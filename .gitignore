@@ -3,6 +3,9 @@ cmake_uninstall.cmake
 
 lib/
 bin/
+include/
+components/
+CMakeModules/
 
 *.pc
 *.conf
