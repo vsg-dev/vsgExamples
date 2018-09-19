@@ -45,8 +45,8 @@ option(VSGFRAMEWORK_SHARED_LIBRARY "Set to ON to build libraries for dynamic lin
 find_package(GLFW)
 find_package(Vulkan)
 find_package(OpenSceneGraph)
-# find_package(VSG)
-#find_package(osg2vsg)
+find_package(VSG)
+find_package(osg2vsg)
 
 find_package(Threads)
 
@@ -56,16 +56,6 @@ if(NOT DL_LIBRARY)
 endif()
 
 
-set(VSG_REPOSITORY https://github.com/robertosfield/VulkanSceneGraphPrototype.git)
-set(VSG_BRANCH master)
-
-set(OSG_REPOSITORY https://openscenegraph@github.com/openscenegraph/OpenSceneGraph.git)
-set(OSG_BRANCH OpenSceneGraph-3.6)
-
-set(OSG2VSG_REPOSITORY https://github.com/robertosfield/osg2vsg.git)
-set(OSG2VSG_BRANCH master)
-
-
 
 if (NOT VSG_FOUND)
     ExternalProject_Add(
@@ -73,7 +63,7 @@ if (NOT VSG_FOUND)
 
         PREFIX components
 
-        GIT_REPOSITORY ${VSG_REPOSITORY}
+        GIT_REPOSITORY "https://github.com/robertosfield/VulkanSceneGraphPrototype.git"
         GIT_TAG "master"
 
         UPDATE_COMMAND ""
@@ -90,7 +80,7 @@ if (NOT OSG2VSG_FOUND)
 
         PREFIX components
 
-        GIT_REPOSITORY ${OSG2VSG_REPOSITORY}
+        GIT_REPOSITORY "https://github.com/robertosfield/osg2vsg.git"
         GIT_TAG "master"
 
         UPDATE_COMMAND ""
