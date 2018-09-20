@@ -32,7 +32,7 @@ set(CMAKE_CXX_STANDARD 11)
 option(VSGFRAMEWORK_SHARED_LIBRARY "Set to ON to build libraries for dynamic linking.  Use OFF for static." ON)
 
 
-macro(addExternal TARGET_NAME REPOSITORY TAG)
+macro(addExternal TARGET_NAME REPOSITORY TAG EXTRA_CMAKE_ARGS)
     ExternalProject_Add(
         ${TARGET_NAME}
 
@@ -45,7 +45,7 @@ macro(addExternal TARGET_NAME REPOSITORY TAG)
         PATCH_COMMAND ""
 
         SOURCE_DIR "${COMPONENT_DIR}/${TARGET_NAME}"
-        CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH}
+        CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH} ${EXTRA_CMAKE_ARGS}
     )
 endmacro()
 
@@ -62,23 +62,23 @@ endif()
 
 find_package(OpenSceneGraph)
 if (NOT OSG_FOUND)
-    addExternal(OpenSceneGraph "https://github.com/openscenegraph/OpenSsceneGraph.git" "OpenSceneGraph-3.6")
-    set(TARGET_OSG "OSG")
+    set(TARGET_OSG "OpenSceneGraph")
+    addExternal(OpenSceneGraph "https://github.com/openscenegraph/OpenSceneGraph.git" "OpenSceneGraph-3.6" "-DLIB_POSTFIX=")
 endif()
 
 find_package(VSG)
 if (NOT VSG_FOUND)
     set(TARGET_VSG VSG)
-    addExternal(${TARGET_VSG} "https://github.com/robertosfield/VulkanSceneGraphPrototype.git" "master")
+    addExternal(${TARGET_VSG} "https://github.com/robertosfield/VulkanSceneGraphPrototype.git" "master" "")
     if (TARGET_OSG)
-        add_dependencies(TARGET_VSG ${TARGET_OSG})
+        add_dependencies(${TARGET_VSG} ${TARGET_OSG})
     endif()
 endif()
 
 find_package(osg2vsg)
 if (NOT OSG2VSG_FOUND)
     set(TARGET_OSG2VSG OSG2VSG)
-    addExternal(${TARGET_OSG2VSG} "https://github.com/robertosfield/osg2vsg.git" "master")
+    addExternal(${TARGET_OSG2VSG} "https://github.com/robertosfield/osg2vsg.git" "master" "")
     if (TARGET_OSG)
         add_dependencies(${TARGET_OSG2VSG} ${TARGET_OSG})
     endif()
