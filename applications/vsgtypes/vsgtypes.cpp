@@ -11,6 +11,7 @@
 #include <vsg/maths/transform.h>
 
 #include <vsg/vk/Instance.h>
+#include <vsg/utils/stream.h>
 
 #include <iostream>
 #include <vector>
@@ -19,7 +20,7 @@
 #include <typeinfo>
 #include <typeindex>
 #include <unordered_map>
-
+#include <type_traits>
 
 #include <osg/Matrixd>
 #include <osg/io_utils>
@@ -128,6 +129,29 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"VkFormat "<<VkFormatForType(vsg::dvec4(1.0, 2.4, 0.1, 0.2))<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(vsg::uivec4(1, 2, 0, 0))<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(vsg::ucvec4(1, 2, 0, 0))<<std::endl;
+
+    constexpr float x = 180.0f;
+    constexpr float rad1 = vsg::radians(90.0f);
+    float rad2 = vsg::radians(x);
+
+    std::cout<<"rad1="<<rad1<<std::endl;
+    std::cout<<"rad2="<<rad2<<std::endl;
+    std::cout<<"(vsg::radians(x))="<<(vsg::radians(x))<<std::endl;
+
+    OPTIONAL_constexpr auto matrix = vsg::rotate(vsg::radians(90.0), 0.0, 0.0, 1.0);
+    std::cout<<"matix = "<<matrix<<std::endl;
+
+    OPTIONAL_constexpr vsg::dvec3 v = vsg::dvec3(1.0, 0.0, 0.0);
+    OPTIONAL_constexpr auto matrix2 = vsg::rotate(vsg::radians(45.0), v);
+    OPTIONAL_constexpr auto matrix3 = vsg::translate(v);
+
+    std::cout<<"matix2 = "<<matrix2<<std::endl;
+    std::cout<<"matix3 = "<<matrix3<<std::endl;
+    std::cout<<"v = "<<v<<std::endl;
+    std::cout<<"v[0] = "<<v[0]<<std::endl;
+    std::cout<<"v.x = "<<v.x<<std::endl;
+    std::cout<<"length(v) = "<<vsg::length(v)<<std::endl;
+    std::cout<<"cross(v, dvec3(2.0, 0.0, 0.0)) = "<<vsg::dot(v,vsg::dvec3(2.0, 0.0, 0.0))<<std::endl;
 
     return 0;
 }
