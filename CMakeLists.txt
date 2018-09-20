@@ -86,3 +86,8 @@ if (NOT OSG2VSG_FOUND)
         add_dependencies(${TARGET_OSG2VSG} ${TARGET_VSG})
     endif()
 endif()
+
+add_custom_target(clobber
+    COMMAND git clean -d -f -x
+    COMMAND rm -rf components
+)
