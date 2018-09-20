@@ -88,3 +88,5 @@ add_custom_target(clobber
     COMMAND git clean -d -f -x
     COMMAND rm -rf components
 )
+
+# add_subdirectory(applications)
