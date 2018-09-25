@@ -7,6 +7,8 @@
 #include <vsg/nodes/QuadGroup.h>
 #include <vsg/nodes/LOD.h>
 
+#include <vsg/maths/vec3.h>
+
 #include <iostream>
 #include <vector>
 #include <chrono>
@@ -56,6 +58,10 @@ int main(int /*argc*/, char** /*argv*/)
 {
 
     vsg::ref_ptr<vsg::QuadGroup> ref_node = new vsg::QuadGroup;
+    std::cout<<"sizeof(Object)="<<sizeof(vsg::Object)<<std::endl;
+    std::cout<<"sizeof(atomic_uint)="<<sizeof(std::atomic_uint)<<std::endl;
+    std::cout<<"sizeof(atomic_ushort)="<<sizeof(std::atomic_ushort)<<std::endl;
+    std::cout<<"sizeof(Auxiliary)="<<sizeof(vsg::Auxiliary)<<std::endl;
     std::cout<<"size_of(vsg::ref_ptr)="<<sizeof(ref_node)<<", sizeof(QuadGroup)="<<sizeof(vsg::QuadGroup)<<std::endl;
 
 
@@ -67,6 +73,23 @@ int main(int /*argc*/, char** /*argv*/)
 #endif
 
     std::cout<<"size_of(std::shared_ptr)="<<sizeof(shared_node)<<", sizeof(SharedPtrQuadGroup)="<<sizeof(SharedPtrQuadGroup)<<std::endl;
+
+    std::cout<<std::endl<<"Alignment int "<<alignof(int)<<std::endl;
+    std::cout<<"Alignment std::atomic_uint  "<<alignof(std::atomic_uint)<<std::endl;
+    std::cout<<"Alignment std::atomic_ushort  "<<alignof(std::atomic_ushort)<<std::endl;
+    std::cout<<"Alignment Object  "<<alignof(vsg::Object)<<std::endl;
+    std::cout<<"Alignment Object* "<<alignof(vsg::Object*)<<std::endl;
+    std::cout<<"Alignment Auxiliary  "<<alignof(vsg::Auxiliary)<<std::endl;
+    std::cout<<"Alignment Auxiliary* "<<alignof(vsg::Auxiliary*)<<std::endl;
+    std::cout<<"Alignment SharedPtrNode  "<<alignof(SharedPtrNode)<<std::endl;
+    std::cout<<"Alignment SharedPtrNode* "<<alignof(SharedPtrNode*)<<std::endl;
+
+    std::cout<<std::endl;
+    std::cout<<"std::is_standard_layout<vsg::Object> "<<std::is_standard_layout<vsg::Object>::value<<std::endl;
+    std::cout<<"std::is_standard_layout<vsg::vec3> "<<std::is_standard_layout<vsg::vec3>::value<<std::endl;
+    std::cout<<"offsetof<vsg::vec3,x> "<<offsetof(vsg::vec3,x)<<std::endl;
+    std::cout<<"offsetof<vsg::vec3,y> "<<offsetof(vsg::vec3,y)<<std::endl;
+    std::cout<<"offsetof<vsg::vec3,z> "<<offsetof(vsg::vec3,z)<<std::endl;
 
     return 0;
 }
