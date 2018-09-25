@@ -5,6 +5,11 @@
 
 #include <vsg/nodes/Group.h>
 #include <vsg/nodes/QuadGroup.h>
+#include <vsg/utils/CommandLine.h>
+
+#ifdef VSG_HAS_DISPATCH_TRAVERSAL
+#include <vsg/viewer/DispatchTraversal.h>
+#endif
 
 #include <osg/ref_ptr>
 #include <osg/Referenced>
@@ -18,51 +23,77 @@
 #include <chrono>
 
 
+class CountNodesVisitor : public vsg::Visitor
+{
+public:
+    unsigned int numNodes = 0;
+};
 
-class ExplicitVsgVisitor : public vsg::Visitor
+
+//#define USE_T_TRAVERSE
+
+class ExplicitVsgVisitor : public CountNodesVisitor
 {
 public:
 
-    ExplicitVsgVisitor():
-        numNodes(0)
-    {}
-
-    unsigned int numNodes;
-
-    void apply(vsg::Object& object)
+    inline void apply(vsg::Object& object) final
     {
+        //std::cout<<"ExplicitVsgVisitor::apply(vsg::Object&)"<<std::endl;
         ++numNodes;
         object.traverse(*this);
     }
 
-    void apply(vsg::Group& group)
+    inline void apply(vsg::Group& group) final
     {
+        //std::cout<<"ExplicitVsgVisitor::apply(vsg::Group&)"<<std::endl;
         ++numNodes;
-        group.vsg::Group::traverse(*this);
+#ifdef USE_T_TRAVERSE
+        group.t_traverse(*this);
+#else
+//        group.vsg::Group::traverse(*this);
+        group.traverse(*this);
+#endif
+    }
+
+    inline void apply(vsg::QuadGroup& group) final
+    {
+        //std::cout<<"ExplicitVsgVisitor::apply(vsg::QuadGroup&)"<<std::endl;
+        ++numNodes;
+#ifdef USE_T_TRAVERSE
+        group.t_traverse(*this);
+#else
+//        group.vsg::QuadGroup::traverse(*this);
+        group.traverse(*this);
+#endif
     }
 };
 
-class VsgVisitor : public vsg::Visitor
+class VsgVisitor : public CountNodesVisitor
 {
 public:
 
-    VsgVisitor():
-        numNodes(0)
-    {}
 
-    unsigned int numNodes;
-
-    void apply(vsg::Object& object)
+    inline void apply(vsg::Object& object) final
     {
+        //std::cout<<"VsgVisitor::apply(vsg::Object&) "<<typeid(object).name()<<std::endl;
         ++numNodes;
         object.traverse(*this);
     }
-
-    void apply(vsg::Group& group)
+#if 1
+    inline void apply(vsg::Group& group) final
     {
+        //std::cout<<"VsgVisitor::apply(vsg::Group&)"<<std::endl;
         ++numNodes;
         group.traverse(*this);
     }
+
+    inline void apply(vsg::QuadGroup& group) final
+    {
+        //std::cout<<"VsgVisitor::apply(vsg::QuadGroup&)"<<std::endl;
+        ++numNodes;
+        group.traverse(*this);
+    }
+#endif
 };
 
 class OsgVisitor: public osg::NodeVisitor
@@ -79,14 +110,9 @@ public:
     void apply(osg::Node& node)
     {
         ++numNodes;
-        node.traverse(*this);
+        traverse(node);
     }
 
-    void apply(osg::Group& group)
-    {
-        ++numNodes;
-        traverse(group);
-    }
 };
 
 
@@ -110,6 +136,16 @@ vsg::Node* createVsgQuadTree(unsigned int numLevels)
 {
     if (numLevels==0) return new vsg::Node;
 
+#if 1
+    vsg::Group* t = new vsg::Group(4);
+
+    --numLevels;
+
+    t->setChild(0, createVsgQuadTree(numLevels));
+    t->setChild(1, createVsgQuadTree(numLevels));
+    t->setChild(2, createVsgQuadTree(numLevels));
+    t->setChild(3, createVsgQuadTree(numLevels));
+#else
     vsg::Group* t = new vsg::Group;
 
     --numLevels;
@@ -120,6 +156,7 @@ vsg::Node* createVsgQuadTree(unsigned int numLevels)
     t->addChild(createVsgQuadTree(numLevels));
     t->addChild(createVsgQuadTree(numLevels));
     t->addChild(createVsgQuadTree(numLevels));
+#endif
 
     return t;
 }
@@ -176,118 +213,118 @@ double time(F function)
 }
 
 
-int main(int /*argc*/, char** /*argv*/)
+int main(int argc, char** argv)
 {
-    ElapsedTime timer;
+    using clock = std::chrono::high_resolution_clock;
 
+    std::string type("vsg::Group");
     unsigned int numLevels = 11;
+    unsigned int numTraversals = 10;
+    bool printTimingInfo = true;
+    bool explicitVisitor = false;
 
-
-#if 0
-    timer.start();
-    vsg::ref_ptr<vsg::Node> fg = createFixedQuadTree(numLevels);
-    std::cout<<"VulkanSceneGraph Fixed Quad Tree creation : "<<timer.duration()<<std::endl;
-#else
-    vsg::ref_ptr<vsg::Node> fg;
-    std::cout<<"VulkanSceneGraph Fixed Quad Tree creation : "<<time( [&]() { fg = createFixedQuadTree(numLevels); } )<<std::endl;
+#ifdef VSG_HAS_DISPATCH_TRAVERSAL
+    vsg::ref_ptr<vsg::DispatchTraversal> vsg_dispatchTraversal;
 #endif
 
-    timer.start();
-    vsg::ref_ptr<vsg::Node> vsg_group = createVsgQuadTree(numLevels);
-    std::cout<<"VulkanSceneGraph Quad Tree creation : "<<timer.duration()<<std::endl;
-
-    timer.start();
-    osg::ref_ptr<osg::Node> osg_group = createOsgQuadTree(numLevels);
-    std::cout<<"OpenSceneGraph Quad Tree creation : "<<timer.duration()<<std::endl;
-
-#if 0
-    std::cout<<std::endl;
-
-
-    timer.start();
-    fg = nullptr;
-    std::cout<<"VulkanSceneGraph FixedGroup deletion : "<<timer.duration()<<std::endl;
-
-    timer.start();
-    vsg_group = nullptr;
-    std::cout<<"VulkanSceneGraph deletion : "<<timer.duration()<<std::endl;
-
-    timer.start();
-    osg_group = nullptr;
-    std::cout<<"OpenSceneGraph deletion : "<<timer.duration()<<std::endl;
-
-    std::cout<<std::endl;
-
-    timer.start();
-    fg = createFixedQuadTree(numLevels);
-    std::cout<<"VulkanSceneGraph Fixed Quad Tree creation : "<<timer.duration()<<std::endl;
-
-    timer.start();
-    vsg_group = createVsgQuadTree(numLevels);
-    std::cout<<"VulkanSceneGraph Quad Tree creation : "<<timer.duration()<<std::endl;
-
-    timer.start();
-    osg_group = createOsgQuadTree(numLevels);
-    std::cout<<"OpenSceneGraph Quad Tree creation : "<<timer.duration()<<std::endl;
+    try
+    {
+        vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--levels", "-l"), numLevels);
+        vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--traversals", "-t"), numTraversals);
+        vsg::CommandLine::read(argc, argv, "--type", type);
+        if (vsg::CommandLine::read(argc, argv, "-q")) { printTimingInfo = false; }
+        if (vsg::CommandLine::read(argc, argv, "-e")) { explicitVisitor = true; }
+#ifdef VSG_HAS_DISPATCH_TRAVERSAL
+        if (vsg::CommandLine::read(argc, argv, "-d")) { vsg_dispatchTraversal = new vsg::DispatchTraversal; }
 #endif
+    }
+    catch (const std::runtime_error& error)
+    {
+        std::cerr << error.what() << std::endl;
+        return 1;
+    }
 
-    std::cout<<std::endl;
+    clock::time_point start = clock::now();
 
+    vsg::ref_ptr<vsg::Node> vsg_root;
+    osg::ref_ptr<osg::Node> osg_root;
 
+    if (type=="vsg::Group") vsg_root = createVsgQuadTree(numLevels);
+    if (type=="vsg::QuadGroup") vsg_root = createFixedQuadTree(numLevels);
+    if (type=="osg::Group") osg_root = createOsgQuadTree(numLevels);
 
-    timer.start();
-    VsgVisitor fgVisitor;
-    fg->accept(fgVisitor);
-    double fg_duration = timer.duration();
+    if (!vsg_root && !osg_root)
+    {
+        std::cout<<"Error invalid type="<<type<<std::endl;
+        return 1;
+    }
 
-    timer.start();
-    ExplicitVsgVisitor efgVisitor;
-    fg->accept(efgVisitor);
-    double fg_explicit_duration = timer.duration();
+    clock::time_point after_construction = clock::now();
 
+    unsigned int numNodesVisited = 0;
+    unsigned int numNodes = 0;
 
-    timer.start();
-    VsgVisitor vsgVisitor;
-    vsg_group->accept(vsgVisitor);
-    double normal = timer.duration();
+    if (vsg_root)
+    {
+#ifdef VSG_HAS_DISPATCH_TRAVERSAL
+        if (vsg_dispatchTraversal)
+        {
+            for(unsigned int i=0; i<numTraversals; ++i)
+            {
+                vsg_root->accept(*vsg_dispatchTraversal);
+                numNodesVisited += vsg_dispatchTraversal->numNodes;
+                numNodes = vsg_dispatchTraversal->numNodes;
+                vsg_dispatchTraversal->numNodes = 0;
+            }
+        }
+        else
+#endif
+        {
+            vsg::ref_ptr<CountNodesVisitor> vsg_visitor;
+            if (explicitVisitor)  vsg_visitor = new ExplicitVsgVisitor;
+            else vsg_visitor = new VsgVisitor;
 
-    timer.start();
-    ExplicitVsgVisitor evsgVisitor;
-    vsg_group->accept(evsgVisitor);
-    double explicit_duration = timer.duration();
+            for(unsigned int i=0; i<numTraversals; ++i)
+            {
+                vsg_root->accept(*vsg_visitor);
+                numNodesVisited += vsg_visitor->numNodes;
+                numNodes = vsg_visitor->numNodes;
+                vsg_visitor->numNodes = 0;
+            }
+        }
+    }
+    else if (osg_root)
+    {
+        for(unsigned int i=0; i<numTraversals; ++i)
+        {
+            OsgVisitor visitor;
+            osg_root->accept(visitor);
+            numNodesVisited += visitor.numNodes;
+            numNodes = visitor.numNodes;
+        }
+    }
 
-    timer.start();
-    OsgVisitor osgVisitor;
-    osg_group->accept(osgVisitor);
-    double osg_duration = timer.duration();
+    clock::time_point after_traversal = clock::now();
 
-    std::cout<<"OpenScenGraph Quad Tree traverse : "<<osg_duration<<" "<<osgVisitor.numNodes<<std::endl;
-    std::cout<<"VulkanSceneGraph Quad Tree traverse normal    : "<<normal<<" "<<vsgVisitor.numNodes<<std::endl;
-    std::cout<<"VulkanSceneGraph Quad Tree traverse, explicit : "<<explicit_duration<<" "<<evsgVisitor.numNodes<<std::endl;
-    std::cout<<"VulkanSceneGraph Fixed Quad Tree traverse, : "<<fg_duration<<" "<<fgVisitor.numNodes<<std::endl;
-    std::cout<<"VulkanSceneGraph Fixed Quad Tree traverse, explicit : "<<fg_explicit_duration<<" "<<efgVisitor.numNodes<<std::endl;
+    vsg_root = 0;
+    osg_root = 0;
 
+    clock::time_point after_destruction = clock::now();
 
-    std::cout<<"vsg_group->accept(fgVisitor) : " << time([&](){vsg_group->accept(fgVisitor);}) <<std::endl;
-    std::cout<<"vsg_group->accept(efgVisitor) : "<< time( [&](){vsg_group->accept(efgVisitor);} ) <<std::endl;
-    std::cout<<"fg->accept(fgVisitor) : "        << time( [&]() {fg->accept(fgVisitor);} ) <<std::endl;
-    std::cout<<"fg->accept(efgVisitor) : "       << time( [&]() { fg->accept(efgVisitor); } ) <<std::endl;
-
-
-    std::cout<<std::endl;
-    std::cout<<"normal/explicit_duration : "<<normal/explicit_duration<<" "<<std::endl;
-    std::cout<<"normal/fg traversal duration : "<<normal/fg_duration<<" "<<std::endl;
-    std::cout<<"normal/efg traversal duration : "<<normal/fg_explicit_duration<<" "<<std::endl;
-    std::cout<<"osg/normal traversal duration : "<<osg_duration/normal<<" "<<std::endl;
-    std::cout<<"osg/explicit_duration : "<<osg_duration/explicit_duration<<" "<<std::endl;
-    std::cout<<"osg/fg traversal duration : "<<osg_duration/fg_duration<<" "<<std::endl;
-    std::cout<<"osg/fg _explicit_traversal duration : "<<osg_duration/fg_explicit_duration<<" "<<std::endl;
-
-    std::cout<<std::endl;
-    std::cout<<"size_of<osg::Group> "<<sizeof(osg::Group)<<" with data "<<(sizeof(osg::Group)+sizeof(vsg::ref_ptr<vsg::Node>)*4)<<std::endl;
-    std::cout<<"size_of<vsg::Node> "<<sizeof(vsg::Node)<<std::endl;
-    std::cout<<"size_of<vsg::Grouo> "<<sizeof(vsg::Group)<<" with data "<<(sizeof(vsg::Group)+sizeof(vsg::ref_ptr<vsg::Node>)*4)<<std::endl;
-    std::cout<<"size_of<vsg::QuadGroup> "<<sizeof(vsg::QuadGroup)<<std::endl;
+    if (printTimingInfo)
+    {
+        std::cout<<"type : "<<type<<std::endl;
+        std::cout<<"numNodes : "<<numNodes<<std::endl;
+        std::cout<<"numNodesVisited : "<<numNodesVisited<<std::endl;
+        std::cout<<"construcion time : "<<std::chrono::duration<double>(after_construction-start).count()<<std::endl;
+        std::cout<<"traversal time : "<<std::chrono::duration<double>(after_traversal-after_construction).count()<<std::endl;
+        std::cout<<"destrucion time : "<<std::chrono::duration<double>(after_destruction-after_traversal).count()<<std::endl;
+        std::cout<<"total time : "<<std::chrono::duration<double>(after_destruction-start).count()<<std::endl;
+        std::cout<<std::endl;
+        std::cout<<"Nodes constructed per second : "<<double(numNodes)/std::chrono::duration<double>(after_construction-start).count()<<std::endl;
+        std::cout<<"Nodes visited per second     : "<<double(numNodesVisited)/std::chrono::duration<double>(after_traversal-after_construction).count()<<std::endl;
+        std::cout<<"Nodes destrctored per second : "<<double(numNodes)/std::chrono::duration<double>(after_destruction-after_traversal).count()<<std::endl;
+    }
 
     return 0;
 }
