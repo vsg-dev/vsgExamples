@@ -8,7 +8,7 @@
 #include <vsg/utils/CommandLine.h>
 
 #ifdef VSG_HAS_DISPATCH_TRAVERSAL
-#include <vsg/viewer/DispatchTraversal.h>
+#include <vsg/traversals/DispatchTraversal.h>
 #endif
 
 #include <osg/ref_ptr>
