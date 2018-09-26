@@ -29,32 +29,32 @@
 namespace vsg
 {
     // do we want to cover all the possible combinations?
-    using ucvec2 = tvec2<unsigned char>;
-    using cvec2 = tvec2<char>;
+    using ucvec2 = t_vec2<unsigned char>;
+    using cvec2 = t_vec2<char>;
 
-    using usvec2 = tvec2<unsigned short>;
-    using svec2 = tvec2<short>;
+    using usvec2 = t_vec2<unsigned short>;
+    using svec2 = t_vec2<short>;
 
-    using ivec2 = tvec2<int>;
-    using uivec2 = tvec2<unsigned int>;
+    using ivec2 = t_vec2<int>;
+    using uivec2 = t_vec2<unsigned int>;
 
-    using ucvec3 = tvec3<unsigned char>;
-    using cvec3 = tvec3<char>;
+    using ucvec3 = t_vec3<unsigned char>;
+    using cvec3 = t_vec3<char>;
 
-    using usvec3 = tvec3<unsigned short>;
-    using svec3 = tvec3<short>;
+    using usvec3 = t_vec3<unsigned short>;
+    using svec3 = t_vec3<short>;
 
-    using ivec3 = tvec3<int>;
-    using uivec3 = tvec3<unsigned int>;
+    using ivec3 = t_vec3<int>;
+    using uivec3 = t_vec3<unsigned int>;
 
-    using ucvec4 = tvec4<unsigned char>;
-    using cvec4 = tvec4<char>;
+    using ucvec4 = t_vec4<unsigned char>;
+    using cvec4 = t_vec4<char>;
 
-    using usvec4 = tvec4<unsigned short>;
-    using svec4 = tvec4<short>;
+    using usvec4 = t_vec4<unsigned short>;
+    using svec4 = t_vec4<short>;
 
-    using ivec4 = tvec4<int>;
-    using uivec4 = tvec4<unsigned int>;
+    using ivec4 = t_vec4<int>;
+    using uivec4 = t_vec4<unsigned int>;
 }
 
 std::unordered_map<std::type_index, VkFormat> VkFormatTypeMap;

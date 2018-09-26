@@ -2,18 +2,13 @@
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/Array.h>
 #include <vsg/core/Visitor.h>
+#include <vsg/utils/stream.h>
 
 #include <iostream>
 #include <algorithm>
 #include <mutex>
 
 
-template<typename T>
-inline std::ostream& operator << (std::ostream& output, const vsg::tvec4<T>& vec)
-{
-    output << vec.x << " " << vec.y<<" "<<vec.z<<" "<<vec.w;
-    return output; // to enable cascading
-}
 
 struct Unique
 {

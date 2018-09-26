@@ -66,7 +66,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     std::cout<<"n = "<<n<<std::endl;
 
-    vsg::tvec2<int> iv(2, 1);
+    vsg::t_vec2<int> iv(2, 1);
     std::cout<<"iv = "<<iv<<std::endl;
 
 
@@ -77,7 +77,7 @@ int main(int /*argc*/, char** /*argv*/)
     mat(3,0) = 102.3;
     std::cout<<"mat = "<<mat<<std::endl;
 
-    vsg::tmat4<short> cmat;
+    vsg::t_mat4<short> cmat;
     std::cout<<"cmat = "<<cmat<<std::endl;
     std::cout<<"sizeof(cmat) = "<<sizeof(cmat)<<std::endl;
 
