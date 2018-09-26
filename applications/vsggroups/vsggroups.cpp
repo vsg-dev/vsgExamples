@@ -23,55 +23,11 @@
 #include <chrono>
 
 
-class CountNodesVisitor : public vsg::Visitor
+class VsgVisitor : public vsg::Visitor
 {
 public:
+
     unsigned int numNodes = 0;
-};
-
-
-//#define USE_T_TRAVERSE
-
-class ExplicitVsgVisitor : public CountNodesVisitor
-{
-public:
-
-    inline void apply(vsg::Object& object) final
-    {
-        //std::cout<<"ExplicitVsgVisitor::apply(vsg::Object&)"<<std::endl;
-        ++numNodes;
-        object.traverse(*this);
-    }
-
-    inline void apply(vsg::Group& group) final
-    {
-        //std::cout<<"ExplicitVsgVisitor::apply(vsg::Group&)"<<std::endl;
-        ++numNodes;
-#ifdef USE_T_TRAVERSE
-        group.t_traverse(*this);
-#else
-//        group.vsg::Group::traverse(*this);
-        group.traverse(*this);
-#endif
-    }
-
-    inline void apply(vsg::QuadGroup& group) final
-    {
-        //std::cout<<"ExplicitVsgVisitor::apply(vsg::QuadGroup&)"<<std::endl;
-        ++numNodes;
-#ifdef USE_T_TRAVERSE
-        group.t_traverse(*this);
-#else
-//        group.vsg::QuadGroup::traverse(*this);
-        group.traverse(*this);
-#endif
-    }
-};
-
-class VsgVisitor : public CountNodesVisitor
-{
-public:
-
 
     inline void apply(vsg::Object& object) final
     {
@@ -221,7 +177,6 @@ int main(int argc, char** argv)
     unsigned int numLevels = 11;
     unsigned int numTraversals = 10;
     bool printTimingInfo = true;
-    bool explicitVisitor = false;
 
 #ifdef VSG_HAS_DISPATCH_TRAVERSAL
     vsg::ref_ptr<vsg::DispatchTraversal> vsg_dispatchTraversal;
@@ -233,7 +188,6 @@ int main(int argc, char** argv)
         vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--traversals", "-t"), numTraversals);
         vsg::CommandLine::read(argc, argv, "--type", type);
         if (vsg::CommandLine::read(argc, argv, "-q")) { printTimingInfo = false; }
-        if (vsg::CommandLine::read(argc, argv, "-e")) { explicitVisitor = true; }
 #ifdef VSG_HAS_DISPATCH_TRAVERSAL
         if (vsg::CommandLine::read(argc, argv, "-d")) { vsg_dispatchTraversal = new vsg::DispatchTraversal; }
 #endif
@@ -280,9 +234,7 @@ int main(int argc, char** argv)
         else
 #endif
         {
-            vsg::ref_ptr<CountNodesVisitor> vsg_visitor;
-            if (explicitVisitor)  vsg_visitor = new ExplicitVsgVisitor;
-            else vsg_visitor = new VsgVisitor;
+            vsg::ref_ptr<VsgVisitor> vsg_visitor = new VsgVisitor;
 
             for(unsigned int i=0; i<numTraversals; ++i)
             {
