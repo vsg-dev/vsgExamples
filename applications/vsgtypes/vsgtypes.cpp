@@ -141,9 +141,9 @@ int main(int /*argc*/, char** /*argv*/)
     auto matrix = vsg::rotate(vsg::radians(90.0), 0.0, 0.0, 1.0);
     std::cout<<"matix = "<<matrix<<std::endl;
 
-    OPTIONAL_constexpr vsg::dvec3 v = vsg::dvec3(1.0, 0.0, 0.0);
+    constexpr vsg::dvec3 v = vsg::dvec3(1.0, 0.0, 0.0);
     auto matrix2 = vsg::rotate(vsg::radians(45.0), v);
-    OPTIONAL_constexpr auto matrix3 = vsg::translate(v);
+    constexpr auto matrix3 = vsg::translate(v);
 
     std::cout<<"matix2 = "<<matrix2<<std::endl;
     std::cout<<"matix3 = "<<matrix3<<std::endl;

@@ -134,7 +134,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"osg_rot = {"<<osg_rot<<"}"<<std::endl;
 
 
-    vsg::mat4 trans = vsg::translate(vsg::vec3(1.0f, 2.0f, 3.0f));
+    constexpr vsg::mat4 trans = vsg::translate(vsg::vec3(1.0f, 2.0f, 3.0f));
     osg::Matrixf osg_trans = osg::Matrixf::translate(1.0f, 2.0f, 3.0f);
 
     std::cout<<"delta for trans "<<computeDelta(trans, osg_trans)<<std::endl;
@@ -142,7 +142,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"osg_trans = {"<<osg_trans<<"}"<<std::endl;
 
 
-    vsg::mat4 scale = vsg::scale(vsg::vec3(1.0f, 2.0f, 3.0f));
+    constexpr vsg::mat4 scale = vsg::scale(vsg::vec3(1.0f, 2.0f, 3.0f));
     osg::Matrixf osg_scale = osg::Matrixf::scale(1.0f, 2.0f, 3.0f);
 
     std::cout<<"delta for scale "<<computeDelta(scale, osg_scale)<<std::endl;
