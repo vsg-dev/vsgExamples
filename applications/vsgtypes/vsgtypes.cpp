@@ -138,11 +138,11 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"rad2="<<rad2<<std::endl;
     std::cout<<"(vsg::radians(x))="<<(vsg::radians(x))<<std::endl;
 
-    OPTIONAL_constexpr auto matrix = vsg::rotate(vsg::radians(90.0), 0.0, 0.0, 1.0);
+    auto matrix = vsg::rotate(vsg::radians(90.0), 0.0, 0.0, 1.0);
     std::cout<<"matix = "<<matrix<<std::endl;
 
     OPTIONAL_constexpr vsg::dvec3 v = vsg::dvec3(1.0, 0.0, 0.0);
-    OPTIONAL_constexpr auto matrix2 = vsg::rotate(vsg::radians(45.0), v);
+    auto matrix2 = vsg::rotate(vsg::radians(45.0), v);
     OPTIONAL_constexpr auto matrix3 = vsg::translate(v);
 
     std::cout<<"matix2 = "<<matrix2<<std::endl;
