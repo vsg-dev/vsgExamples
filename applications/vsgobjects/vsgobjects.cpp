@@ -28,17 +28,19 @@ class MyVisitor : public vsg::Visitor
 public:
     MyVisitor() {}
 
-    void apply(vsg::Object& object)
+    using vsg::Visitor::apply;
+
+    void apply(vsg::Object& object) override
     {
         std::cout<<"Myvisitor::apply(Object& "<<&object<<")"<<std::endl;
     }
 
-    void apply(vsg::Node& node)
+    void apply(vsg::Node& node) override
     {
         std::cout<<"Myvisitor::apply(Node& "<<&node<<")"<<std::endl;
     }
 
-    void apply(vsg::Group& group)
+    void apply(vsg::Group& group) override
     {
         std::cout<<"Myvisitor::apply(Group& "<<&group<<")"<<std::endl;
         for (size_t i=0; i<group.getNumChildren(); ++i)

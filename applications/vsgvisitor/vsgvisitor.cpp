@@ -55,7 +55,9 @@ public:
 
     F1 _function1;
 
-    void apply(C1& object)
+    using Visitor::apply;
+
+    void apply(C1& object) override
     {
         _function1(object);
         object.traverse(*this);
@@ -79,13 +81,15 @@ public:
     F1 _function1;
     F2 _function2;
 
-    void apply(C1& object)
+    using vsg::Visitor::apply;
+
+    void apply(C1& object) override
     {
         _function1(object);
         object.traverse(*this);
     }
 
-    void apply(C2& object)
+    void apply(C2& object) override
     {
         _function2(object);
         object.traverse(*this);
@@ -100,19 +104,21 @@ public:
     std::function<void(vsg::Node&)>     nodeFunction;
     std::function<void(vsg::Group&)>    groupFunction;
 
-    void apply(vsg::Object& object)
+    using vsg::Visitor::apply;
+
+    void apply(vsg::Object& object) override
     {
         if (objectFunction) objectFunction(object);
         object.traverse(*this);
     }
 
-    void apply(vsg::Node& node)
+    void apply(vsg::Node& node) override
     {
         if (nodeFunction) { nodeFunction(node); node.traverse(*this); }
         else apply(static_cast<vsg::Object&>(node));
     }
 
-    void apply(vsg::Group& group)
+    void apply(vsg::Group& group) override
     {
         if (groupFunction) { groupFunction(group); group.traverse(*this); }
         else apply(static_cast<vsg::Node&>(group));

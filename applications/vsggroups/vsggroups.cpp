@@ -29,13 +29,15 @@ public:
 
     unsigned int numNodes = 0;
 
+    using Visitor::apply;
+
     inline void apply(vsg::Object& object) final
     {
         //std::cout<<"VsgVisitor::apply(vsg::Object&) "<<typeid(object).name()<<std::endl;
         ++numNodes;
         object.traverse(*this);
     }
-#if 1
+
     inline void apply(vsg::Group& group) final
     {
         //std::cout<<"VsgVisitor::apply(vsg::Group&)"<<std::endl;
@@ -49,7 +51,6 @@ public:
         ++numNodes;
         group.traverse(*this);
     }
-#endif
 };
 
 class OsgVisitor: public osg::NodeVisitor
@@ -63,7 +64,9 @@ public:
 
     unsigned int numNodes;
 
-    void apply(osg::Node& node)
+    using NodeVisitor::apply;
+
+    void apply(osg::Node& node) override
     {
         ++numNodes;
         traverse(node);

@@ -13,31 +13,33 @@
 
 struct PrintVisitor : public vsg::Visitor
 {
-    void apply(vsg::Object& object)
+    using Visitor::apply;
+
+    void apply(vsg::Object& object) override
     {
         std::cout<<"apply(vsg::Object& "<<&object<<")"<<std::endl;
         object.traverse(*this);
     }
 
-    void apply(vsg::Node& node)
+    void apply(vsg::Node& node) override
     {
         std::cout<<"apply(vsg::Node& "<<&node<<")"<<std::endl;
         node.traverse(*this);
     }
 
-    void apply(vsg::Group& group)
+    void apply(vsg::Group& group) override
     {
         std::cout<<"apply(vsg::Group& "<<&group<<") getNumChildren()="<<group.getNumChildren()<<std::endl;
         group.traverse(*this);
     }
 
-    void apply(vsg::QuadGroup& group)
+    void apply(vsg::QuadGroup& group) override
     {
         std::cout<<"apply(vsg::QuadGroup& "<<&group<<") getNumChildren()="<<group.getNumChildren()<<std::endl;
         group.traverse(*this);
     }
 
-    void apply(vsg::LOD& lod)
+    void apply(vsg::LOD& lod) override
     {
         std::cout<<"apply(vsg::LOD& "<<&lod<<") getNumChildren()="<<lod.getNumChildren()<<std::endl;
         lod.traverse(*this);

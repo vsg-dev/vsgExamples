@@ -36,32 +36,34 @@ int main(int /*argc*/, char** /*argv*/)
     {
         struct VisitValues : public vsg::Visitor
         {
-            void apply(vsg::Object& object)
+            using Visitor::apply;
+
+            void apply(vsg::Object& object) override
             {
                 std::cout<<"Object, "<<typeid(object).name()<<std::endl;
             }
 
-            void apply(vsg::intValue& value)
+            void apply(vsg::intValue& value) override
             {
                 std::cout<<"intValue,  value = "<<value<<std::endl;
             }
 
-            void apply(vsg::uintValue& value)
+            void apply(vsg::uintValue& value) override
             {
                 std::cout<<"uintValue,  value = "<<value<<std::endl;
             }
 
-            void apply(vsg::floatValue& value)
+            void apply(vsg::floatValue& value) override
             {
                 std::cout<<"floatValue, value  = "<<value<<std::endl;
             }
 
-            void apply(vsg::doubleValue& value)
+            void apply(vsg::doubleValue& value) override
             {
                 std::cout<<"doubleValue, value  = "<<value<<std::endl;
             }
 
-            void apply(vsg::stringValue& value)
+            void apply(vsg::stringValue& value) override
             {
                 std::cout<<"stringValue, value  = "<<value.value()<<std::endl;
             }
