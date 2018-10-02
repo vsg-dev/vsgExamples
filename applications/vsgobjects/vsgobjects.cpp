@@ -144,8 +144,8 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<std::endl;
     std::cout<<"size_of<vsg::Object> "<<sizeof(vsg::Object)<<std::endl;
     std::cout<<"size_of<vsg::Node> "<<sizeof(vsg::Node)<<std::endl;
-    std::cout<<"size_of<vsg::QuadGroup> "<<sizeof(vsg::QuadGroup)<<std::endl;
     std::cout<<"size_of<vsg::Grouo> "<<sizeof(vsg::Group)<<std::endl;
+    std::cout<<"size_of<vsg::QuadGroup> "<<sizeof(vsg::QuadGroup)<<std::endl;
     std::cout<<"size_of<vsg::StateGrouo> "<<sizeof(vsg::StateGroup)<<std::endl;
     std::cout<<"size_of<vsg::Auxiliary> "<<sizeof(vsg::Auxiliary)<<std::endl;
 
