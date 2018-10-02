@@ -5,6 +5,8 @@
 #include <vsg/core/Value.h>
 
 #include <vsg/nodes/Group.h>
+#include <vsg/nodes/QuadGroup.h>
+#include <vsg/nodes/StateGroup.h>
 
 #include <osg/ref_ptr>
 #include <osg/Referenced>
@@ -30,23 +32,34 @@ public:
 
     using vsg::Visitor::apply;
 
-    void apply(vsg::Object& object) override
+    void apply(vsg::Object& object) final
     {
         std::cout<<"Myvisitor::apply(Object& "<<&object<<")"<<std::endl;
+        object.traverse(*this);
     }
 
-    void apply(vsg::Node& node) override
+    void apply(vsg::Node& node) final
     {
         std::cout<<"Myvisitor::apply(Node& "<<&node<<")"<<std::endl;
+        node.traverse(*this);
     }
 
-    void apply(vsg::Group& group) override
+    void apply(vsg::Group& group) final
     {
         std::cout<<"Myvisitor::apply(Group& "<<&group<<")"<<std::endl;
-        for (size_t i=0; i<group.getNumChildren(); ++i)
-        {
-            group.getChild(i)->accept(*this);
-        }
+        group.traverse(*this);
+    }
+
+    void apply(vsg::QuadGroup& group) final
+    {
+        std::cout<<"Myvisitor::apply(QuadGroup& "<<&group<<")"<<std::endl;
+        group.traverse(*this);
+    }
+
+    void apply(vsg::StateGroup& group) final
+    {
+        std::cout<<"Myvisitor::apply(StateGroup& "<<&group<<")"<<std::endl;
+        group.traverse(*this);
     }
 };
 
@@ -131,7 +144,9 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<std::endl;
     std::cout<<"size_of<vsg::Object> "<<sizeof(vsg::Object)<<std::endl;
     std::cout<<"size_of<vsg::Node> "<<sizeof(vsg::Node)<<std::endl;
+    std::cout<<"size_of<vsg::QuadGroup> "<<sizeof(vsg::QuadGroup)<<std::endl;
     std::cout<<"size_of<vsg::Grouo> "<<sizeof(vsg::Group)<<std::endl;
+    std::cout<<"size_of<vsg::StateGrouo> "<<sizeof(vsg::StateGroup)<<std::endl;
     std::cout<<"size_of<vsg::Auxiliary> "<<sizeof(vsg::Auxiliary)<<std::endl;
 
     return 0;
