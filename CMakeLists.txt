@@ -50,6 +50,7 @@ macro(addExternal TARGET_NAME REPOSITORY TAG EXTRA_CMAKE_ARGS)
     )
 endmacro()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=corei7")
 
 find_package(GLFW)
 find_package(Vulkan)

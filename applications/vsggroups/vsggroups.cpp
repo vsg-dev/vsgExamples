@@ -21,6 +21,9 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <memory>
+
+#include "SharedPtrNode.h"
 
 
 class VsgVisitor : public vsg::Visitor
@@ -73,6 +76,30 @@ public:
     }
 
 };
+
+class ExperimentVisitor : public experimental::SharedPtrVisitor
+{
+public:
+
+    unsigned int numNodes = 0;
+
+    using SharedPtrVisitor::apply;
+
+    inline void apply(experimental::SharedPtrNode& object) final
+    {
+        //std::cout<<"ExperimentVisitor::apply(vsg::Object&) "<<typeid(object).name()<<std::endl;
+        ++numNodes;
+        object.traverse(*this);
+    }
+
+    inline void apply(experimental::SharedPtrQuadGroup& group) final
+    {
+        //std::cout<<"ExperimentVisitor::apply(vsg::SharedPtrQuadGroup&)"<<std::endl;
+        ++numNodes;
+        group.traverse(*this);
+    }
+};
+
 
 
 osg::Node* createOsgQuadTree(unsigned int numLevels)
@@ -133,6 +160,22 @@ vsg::Node* createFixedQuadTree(unsigned int numLevels)
     t->setChild(1, createFixedQuadTree(numLevels));
     t->setChild(2, createFixedQuadTree(numLevels));
     t->setChild(3, createFixedQuadTree(numLevels));
+
+    return t;
+}
+
+std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned int numLevels)
+{
+    if (numLevels==0) return std::make_shared<experimental::SharedPtrNode>();
+
+    std::shared_ptr<experimental::SharedPtrQuadGroup> t = std::make_shared<experimental::SharedPtrQuadGroup>();
+
+    --numLevels;
+
+    t->setChild(0, createSharedPtrQuadTree(numLevels));
+    t->setChild(1, createSharedPtrQuadTree(numLevels));
+    t->setChild(2, createSharedPtrQuadTree(numLevels));
+    t->setChild(3, createSharedPtrQuadTree(numLevels));
 
     return t;
 }
@@ -205,12 +248,14 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::Node> vsg_root;
     osg::ref_ptr<osg::Node> osg_root;
+    std::shared_ptr<experimental::SharedPtrNode> shared_root;
 
     if (type=="vsg::Group") vsg_root = createVsgQuadTree(numLevels);
     if (type=="vsg::QuadGroup") vsg_root = createFixedQuadTree(numLevels);
     if (type=="osg::Group") osg_root = createOsgQuadTree(numLevels);
+    if (type=="SharedPtrGroup") shared_root = createSharedPtrQuadTree(numLevels)->shared_from_this();
 
-    if (!vsg_root && !osg_root)
+    if (!vsg_root && !osg_root && !shared_root)
     {
         std::cout<<"Error invalid type="<<type<<std::endl;
         return 1;
@@ -258,11 +303,24 @@ int main(int argc, char** argv)
             numNodes = visitor.numNodes;
         }
     }
+    else if (shared_root)
+    {
+        ExperimentVisitor experimentVisitor;
+
+        for(unsigned int i=0; i<numTraversals; ++i)
+        {
+            shared_root->accept(experimentVisitor);
+            numNodesVisited += experimentVisitor.numNodes;
+            numNodes = experimentVisitor.numNodes;
+            experimentVisitor.numNodes = 0;
+        }
+    }
 
     clock::time_point after_traversal = clock::now();
 
     vsg_root = 0;
     osg_root = 0;
+    shared_root = 0;
 
     clock::time_point after_destruction = clock::now();
 

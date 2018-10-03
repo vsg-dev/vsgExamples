@@ -8,6 +8,7 @@ INCLUDE_DIRECTORIES(
 
 
 SET(SOURCES
+    SharedPtrNode.cpp
     vsggroups.cpp
 )
 
