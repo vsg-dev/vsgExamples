@@ -25,6 +25,7 @@
 
 #include "SharedPtrNode.h"
 
+#define INLINE_TRAVERSE
 
 class VsgVisitor : public vsg::Visitor
 {
@@ -34,25 +35,33 @@ public:
 
     using Visitor::apply;
 
-    inline void apply(vsg::Object& object) final
+    void apply(vsg::Object& object) final
     {
         //std::cout<<"VsgVisitor::apply(vsg::Object&) "<<typeid(object).name()<<std::endl;
         ++numNodes;
         object.traverse(*this);
     }
 
-    inline void apply(vsg::Group& group) final
+    void apply(vsg::Group& group) final
     {
         //std::cout<<"VsgVisitor::apply(vsg::Group&)"<<std::endl;
         ++numNodes;
+#ifdef INLINE_TRAVERSE
+        vsg::Group::t_traverse(group, *this);
+#else
         group.traverse(*this);
+#endif
     }
 
-    inline void apply(vsg::QuadGroup& group) final
+    void apply(vsg::QuadGroup& group) final
     {
         //std::cout<<"VsgVisitor::apply(vsg::QuadGroup&)"<<std::endl;
         ++numNodes;
+#ifdef INLINE_TRAVERSE
+        vsg::QuadGroup::t_traverse(group, *this);
+#else
         group.traverse(*this);
+#endif
     }
 };
 
@@ -85,14 +94,14 @@ public:
 
     using SharedPtrVisitor::apply;
 
-    inline void apply(experimental::SharedPtrNode& object) final
+    void apply(experimental::SharedPtrNode& object) final
     {
         //std::cout<<"ExperimentVisitor::apply(vsg::Object&) "<<typeid(object).name()<<std::endl;
         ++numNodes;
         object.traverse(*this);
     }
 
-    inline void apply(experimental::SharedPtrQuadGroup& group) final
+    void apply(experimental::SharedPtrQuadGroup& group) final
     {
         //std::cout<<"ExperimentVisitor::apply(vsg::SharedPtrQuadGroup&)"<<std::endl;
         ++numNodes;
