@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <typeinfo>
+#include <algorithm>
 
 // helper function to simplify iteration through any user objects/values assigned to an object.
 template<typename P, typename F>
