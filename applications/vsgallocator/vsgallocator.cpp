@@ -13,29 +13,6 @@
 #include <vector>
 #include <chrono>
 
-struct MyAllocator : public vsg::Object
-{
-    virtual void* allocate(std::size_t n, const void* hint )
-    {
-        std::cout<<"MyAllocator::allocate(std::size_t "<<n<<", const void*"<< hint<<" )"<<std::endl;
-
-        return ::operator new (n);
-    }
-
-    virtual void* allocate(std::size_t size)
-    {
-        std::cout<<"MyAllocator::allocate(std::size_t "<<size<<")"<<std::endl;
-        return ::operator new (size);
-    }
-
-
-    virtual void* deallocate(void* ptr, std::size_t size=0)
-    {
-        std::cout<<"MyAllocator::deallocate("<<ptr<<"std::size_t "<<size<<")"<<std::endl;
-        ::operator delete(ptr);
-    }
-};
-
 template<typename T>
 struct allocator_adapter
 {
@@ -44,7 +21,7 @@ struct allocator_adapter
     allocator_adapter() = default;
     allocator_adapter(const allocator_adapter& rhs) = default;
 
-    allocator_adapter(MyAllocator* allocator) : _allocator(allocator) {}
+    allocator_adapter(vsg::Allocator* allocator) : _allocator(allocator) {}
 
     allocator_adapter& operator = (const allocator_adapter& rhs) = default;
 
@@ -67,59 +44,17 @@ struct allocator_adapter
         else ::operator delete(ptr);
     }
 
-    vsg::ref_ptr<MyAllocator> _allocator;
+    vsg::ref_ptr<vsg::Allocator> _allocator;
 };
 
 
-
-template<class T>
-vsg::ref_ptr<T> create(vsg::Allocator* allocator)
-{
-    if (allocator)
-    {
-        void* ptr = allocator->allocate(sizeof(T));
-        T* object = new (ptr) T;
-        vsg::Auxiliary* auxiliary = object->getOrCreateUniqueAuxiliary();
-        auxiliary->setAllocator(allocator);
-        return object;
-    }
-    else
-    {
-        return new T;
-    }
-}
-
-template<class T>
-vsg::ref_ptr<T> create(vsg::Auxiliary* auxiliary)
-{
-    if (auxiliary)
-    {
-
-        if (vsg::Allocator* allocator = auxiliary->getAllocator())
-        {
-            void* ptr = allocator->allocate(sizeof(T));
-            T* object = new (ptr) T;
-            object->setAuxiliary(auxiliary);
-            return object;
-        }
-        else
-        {
-            T* object = new T;
-            object->setAuxiliary(auxiliary);
-            return object;
-        }
-    }
-    else
-    {
-        return new T;
-    }
-}
-
 int main(int /*argc*/, char** /*argv*/)
 {
-#if 0
     {
-        vsg::ref_ptr<MyAllocator> allocator = new MyAllocator;
+        std::cout<<std::endl;
+        std::cout<<"Before vaf::Allocator for std::vector"<<std::endl;
+
+        vsg::ref_ptr<vsg::Allocator> allocator = new vsg::Allocator;
 
         using allocator_vec3 = allocator_adapter<vsg::vec3>;
         using std_vector = std::vector<vsg::vec3>;
@@ -134,7 +69,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"sizeof(my_vertices2) "<<sizeof(my_vertices2)<<std::endl;
         }
         std::cout<<std::endl;
-        allocator_adapter<vsg::vec3> local_allocator(new MyAllocator);
+        allocator_adapter<vsg::vec3> local_allocator(new vsg::Allocator);
         std::vector<vsg::vec3, decltype(local_allocator)> my_vertices3(72,local_allocator);
         std::cout<<"before resize"<<std::endl;
         my_vertices3.resize(4);
@@ -145,25 +80,21 @@ int main(int /*argc*/, char** /*argv*/)
     }
 
     {
-        vsg::ref_ptr<vsg::Allocator> allocator = new vsg::Allocator;
         std::cout<<std::endl;
-        std::cout<<"Before create using Allocator"<<std::endl;
+        std::cout<<"Before vsg::Allocator::create() for nodes"<<std::endl;
         {
-            auto mode = create<vsg::Node>(allocator);
-            auto group = create<vsg::QuadGroup>(allocator);
-        }
-        std::cout<<"After create"<<std::endl;
-    }
-#endif
-    {
-        vsg::ref_ptr<vsg::Auxiliary> auxiliary = new vsg::Auxiliary(new vsg::Allocator);
-        std::cout<<std::endl;
-        std::cout<<"Before create using Auxiliary"<<std::endl;
-        {
-            auto mode = create<vsg::Node>(auxiliary);
-            auto group = create<vsg::QuadGroup>(auxiliary);
+            vsg::ref_ptr<vsg::Allocator> allocator = new vsg::Allocator;
+
+            auto group = allocator->create<vsg::Group>(4);
+            auto quadgroup = allocator->create<vsg::QuadGroup>();
 
             group->setValue("fred", 1.0);
+            group->setValue("john", 1.0f);
+
+            std::cout<<"Before allocator = nullptr;\n"<<std::endl;
+
+            allocator = nullptr;
+
             std::cout<<"Before end of block\n"<<std::endl;
         }
         std::cout<<"After create\n"<<std::endl;
