@@ -81,15 +81,22 @@ int main(int /*argc*/, char** /*argv*/)
 
     {
         std::cout<<std::endl;
-        std::cout<<"Before vsg::Allocator::create() for nodes"<<std::endl;
+        std::cout<<"Before vsg::Object::create() for nodes"<<std::endl;
         {
             vsg::ref_ptr<vsg::Allocator> allocator = new vsg::Allocator;
 
+#if 1
+            auto group = vsg::Group::create(allocator, 4);
+            auto quadgroup = vsg::QuadGroup::create(allocator);
+#else
             auto group = allocator->create<vsg::Group>(4);
             auto quadgroup = allocator->create<vsg::QuadGroup>();
+#endif
 
-            group->setValue("fred", 1.0);
-            group->setValue("john", 1.0f);
+
+
+            group->setValue("ginger", 2.0);
+            group->setValue("nutmeg", 3.0f);
 
             std::cout<<"Before allocator = nullptr;\n"<<std::endl;
 
