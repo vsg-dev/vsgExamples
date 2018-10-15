@@ -25,7 +25,7 @@
 
 #include "SharedPtrNode.h"
 
-#define INLINE_TRAVERSE
+//#define INLINE_TRAVERSE
 
 class VsgVisitor : public vsg::Visitor
 {
@@ -54,6 +54,44 @@ public:
     }
 
     void apply(vsg::QuadGroup& group) final
+    {
+        //std::cout<<"VsgVisitor::apply(vsg::QuadGroup&)"<<std::endl;
+        ++numNodes;
+#ifdef INLINE_TRAVERSE
+        vsg::QuadGroup::t_traverse(group, *this);
+#else
+        group.traverse(*this);
+#endif
+    }
+};
+
+class VsgConstVisitor : public vsg::ConstVisitor
+{
+public:
+
+    unsigned int numNodes = 0;
+
+    using ConstVisitor::apply;
+
+    void apply(const vsg::Object& object) final
+    {
+        //std::cout<<"VsgVisitor::apply(vsg::Object&) "<<typeid(object).name()<<std::endl;
+        ++numNodes;
+        object.traverse(*this);
+    }
+
+    void apply(const vsg::Group& group) final
+    {
+        //std::cout<<"VsgVisitor::apply(vsg::Group&)"<<std::endl;
+        ++numNodes;
+#ifdef INLINE_TRAVERSE
+        vsg::Group::t_traverse(group, *this);
+#else
+        group.traverse(*this);
+#endif
+    }
+
+    void apply(const vsg::QuadGroup& group) final
     {
         //std::cout<<"VsgVisitor::apply(vsg::QuadGroup&)"<<std::endl;
         ++numNodes;
@@ -233,9 +271,8 @@ int main(int argc, char** argv)
     unsigned int numTraversals = 10;
     bool printTimingInfo = true;
 
-#ifdef VSG_HAS_DISPATCH_TRAVERSAL
     vsg::ref_ptr<vsg::DispatchTraversal> vsg_dispatchTraversal;
-#endif
+    vsg::ref_ptr<VsgConstVisitor> vsg_ConstVisitor;
 
     try
     {
@@ -243,9 +280,8 @@ int main(int argc, char** argv)
         vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--traversals", "-t"), numTraversals);
         vsg::CommandLine::read(argc, argv, "--type", type);
         if (vsg::CommandLine::read(argc, argv, "-q")) { printTimingInfo = false; }
-#ifdef VSG_HAS_DISPATCH_TRAVERSAL
         if (vsg::CommandLine::read(argc, argv, "-d")) { vsg_dispatchTraversal = new vsg::DispatchTraversal; }
-#endif
+        if (vsg::CommandLine::read(argc, argv, "-c")) { vsg_ConstVisitor = new VsgConstVisitor; }
     }
     catch (const std::runtime_error& error)
     {
@@ -277,9 +313,9 @@ int main(int argc, char** argv)
 
     if (vsg_root)
     {
-#ifdef VSG_HAS_DISPATCH_TRAVERSAL
         if (vsg_dispatchTraversal)
         {
+            std::cout<<"using DispatchTraversal"<<std::endl;
             for(unsigned int i=0; i<numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_dispatchTraversal);
@@ -288,11 +324,21 @@ int main(int argc, char** argv)
                 vsg_dispatchTraversal->numNodes = 0;
             }
         }
+        else if (vsg_ConstVisitor)
+        {
+            std::cout<<"using VsgConstVisitor"<<std::endl;
+            for(unsigned int i=0; i<numTraversals; ++i)
+            {
+                vsg_root->accept(*vsg_ConstVisitor);
+                numNodesVisited += vsg_ConstVisitor->numNodes;
+                numNodes = vsg_ConstVisitor->numNodes;
+                vsg_ConstVisitor->numNodes = 0;
+            }
+        }
         else
-#endif
         {
             vsg::ref_ptr<VsgVisitor> vsg_visitor = new VsgVisitor;
-
+            std::cout<<"using VsgVisitor"<<std::endl;
             for(unsigned int i=0; i<numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_visitor);
@@ -304,6 +350,7 @@ int main(int argc, char** argv)
     }
     else if (osg_root)
     {
+        std::cout<<"using OsgVisitor"<<std::endl;
         for(unsigned int i=0; i<numTraversals; ++i)
         {
             OsgVisitor visitor;
