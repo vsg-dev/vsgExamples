@@ -53,8 +53,38 @@ find_library(VSG_LIBRARY
 set(VSG_LIBRARIES ${VSG_LIBRARY})
 set(VSG_INCLUDE_DIRS ${VSG_INCLUDE_DIR})
 
-# We weed to work out how to auto-detect whether we have found a shared library or not then enable the following definition
-# set(VSG_DEFINITIONS VSG_SHARED_LIBRARY)
+file(WRITE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx"
+"
+#include <vsg/core/Version.h>
+#include <iostream>
+int main(int, char**)
+{
+    std::cout<<vsgGetVersion()<<std::endl;
+    return vsgBuildAsSharedLibrary();
+}
+\n"
+)
+include_directories(${VSG_INCLUDE_DIR})
+
+try_run(RunResult CompileResult
+    "${CMAKE_BINARY_DIR}"
+    ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx
+    CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${VSG_INCLUDE_DIR}
+    LINK_LIBRARIES ${VSG_LIBRARY}
+    COMPILE_OUTPUT_VARIABLE CompileOutput
+    RUN_OUTPUT_VARIABLE RunOutput
+)
+
+#message("file " ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx)
+#message("CompileResult " ${CompileResult})
+message("CompileOutput " ${CompileOutput})
+message("RunResult " ${RunResult})
+message("RunOutput " ${RunOutput})
+
+if (${RunResult} EQUAL 1)
+    set(VSG_DEFINITIONS VSG_SHARED_LIBRARY)
+else()
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(VSG
