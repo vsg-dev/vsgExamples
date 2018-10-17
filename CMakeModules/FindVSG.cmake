@@ -53,43 +53,45 @@ find_library(VSG_LIBRARY
 set(VSG_LIBRARIES ${VSG_LIBRARY})
 set(VSG_INCLUDE_DIRS ${VSG_INCLUDE_DIR})
 
-file(WRITE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx"
-"
-#include <vsg/core/Version.h>
-#include <iostream>
-int main(int, char**)
-{
-    std::cout<<vsgGetVersion()<<std::endl;
-    return vsgBuildAsSharedLibrary();
-}
-\n"
-)
-include_directories(${VSG_INCLUDE_DIR})
-
-try_run(RunResult CompileResult
-    "${CMAKE_BINARY_DIR}"
-    ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx
-    CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${VSG_INCLUDE_DIR}
-    LINK_LIBRARIES ${VSG_LIBRARY}
-    COMPILE_OUTPUT_VARIABLE CompileOutput
-    RUN_OUTPUT_VARIABLE RunOutput
-)
-
-#message("file " ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx)
-#message("CompileResult " ${CompileResult})
-message("CompileOutput " ${CompileOutput})
-message("RunResult " ${RunResult})
-message("RunOutput " ${RunOutput})
-
-if (${RunResult} EQUAL 1)
-    set(VSG_DEFINITIONS VSG_SHARED_LIBRARY)
-else()
-endif()
-
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(VSG
   DEFAULT_MSG
   VSG_LIBRARY VSG_INCLUDE_DIR)
+
+
+if (VSG_FOUND)
+
+    file(WRITE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx"
+    "
+    #include <vsg/core/Version.h>
+    #include <iostream>
+    int main(int, char**)
+    {
+        std::cout<<vsgGetVersion()<<std::endl;
+        return vsgBuildAsSharedLibrary();
+    }
+    \n"
+    )
+
+    try_run(RunResult CompileResult
+        "${CMAKE_BINARY_DIR}"
+        ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx
+        CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${VSG_INCLUDE_DIR}
+        LINK_LIBRARIES ${VSG_LIBRARY}
+        COMPILE_OUTPUT_VARIABLE CompileOutput
+        RUN_OUTPUT_VARIABLE RunOutput
+    )
+
+    #message("file " ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CmakeTmp/vsg_test.cxx)
+    #message("CompileResult " ${CompileResult})
+    #message("CompileOutput " ${CompileOutput})
+    #message("RunResult " ${RunResult})
+    #message("RunOutput " ${RunOutput})
+
+    if (${RunResult} EQUAL 1)
+        set(VSG_DEFINITIONS VSG_SHARED_LIBRARY)
+    endif()
+endif()
 
 # mark_as_advanced(VSG_INCLUDE_DIR VSG_LIBRARY)
 
