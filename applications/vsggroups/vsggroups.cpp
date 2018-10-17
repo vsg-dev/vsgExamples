@@ -319,9 +319,9 @@ int main(int argc, char** argv)
             for(unsigned int i=0; i<numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_dispatchTraversal);
-                numNodesVisited += vsg_dispatchTraversal->numNodes;
-                numNodes = vsg_dispatchTraversal->numNodes;
-                vsg_dispatchTraversal->numNodes = 0;
+                //numNodesVisited += vsg_dispatchTraversal->numNodes;
+                //numNodes = vsg_dispatchTraversal->numNodes;
+                //vsg_dispatchTraversal->numNodes = 0;
             }
         }
         else if (vsg_ConstVisitor)
