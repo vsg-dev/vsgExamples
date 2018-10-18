@@ -17,4 +17,8 @@ if (TARGET_VSG)
     add_dependencies(${APPLICATION_NAME} ${TARGET_VSG})
 endif()
 
+if (${VSG_DEFINITIONS})
+    add_definitions(-D${VSG_DEFINITIONS})
+endif()
+
 TARGET_LINK_LIBRARIES(${APPLICATION_NAME} ${VSG_LIBRARIES})
