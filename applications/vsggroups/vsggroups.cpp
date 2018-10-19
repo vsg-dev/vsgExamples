@@ -7,10 +7,6 @@
 #include <vsg/nodes/QuadGroup.h>
 #include <vsg/utils/CommandLine.h>
 
-#ifdef VSG_HAS_DISPATCH_TRAVERSAL
-#include <vsg/traversals/DispatchTraversal.h>
-#endif
-
 #include <osg/ref_ptr>
 #include <osg/Referenced>
 #include <osg/Group>
