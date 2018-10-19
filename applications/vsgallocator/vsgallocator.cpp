@@ -21,7 +21,7 @@ struct allocator_adapter
     allocator_adapter() = default;
     allocator_adapter(const allocator_adapter& rhs) = default;
 
-    allocator_adapter(vsg::Allocator* allocator) : _allocator(allocator) {}
+    explicit allocator_adapter(vsg::Allocator* allocator) : _allocator(allocator) {}
 
     allocator_adapter& operator = (const allocator_adapter& rhs) = default;
 
@@ -64,8 +64,8 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"sizeof(my_vector) "<<sizeof(my_vector)<<std::endl;
         {
         std::vector<vsg::vec3> vertices(4);
-        std::vector<vsg::vec3, allocator_adapter<vsg::vec3>> my_vertices(16, allocator.get());
-        std::vector<vsg::vec3, allocator_adapter<vsg::vec3>> my_vertices2(36, allocator.get());
+        std::vector<vsg::vec3, allocator_vec3> my_vertices(16, allocator_vec3(allocator));
+        std::vector<vsg::vec3, allocator_vec3> my_vertices2(36, allocator_vec3(allocator));
         std::cout<<"sizeof(my_vertices2) "<<sizeof(my_vertices2)<<std::endl;
         }
         std::cout<<std::endl;
