@@ -37,7 +37,8 @@ endif(NOT CMAKE_BUILD_TYPE)
 option(VSGFRAMEWORK_SHARED_LIBRARY "Set to ON to build libraries for dynamic linking.  Use OFF for static." ON)
 
 
-macro(addExternal TARGET_NAME REPOSITORY TAG EXTRA_CMAKE_ARGS)
+macro(addExternal TARGET_NAME REPOSITORY TAG EXTRA_CMAKE_ARGS1 EXTRA_CMAKE_ARGS2 EXTRA_CMAKE_ARGS3)
+
     ExternalProject_Add(
         ${TARGET_NAME}
 
@@ -50,7 +51,7 @@ macro(addExternal TARGET_NAME REPOSITORY TAG EXTRA_CMAKE_ARGS)
         PATCH_COMMAND ""
 
         SOURCE_DIR "${COMPONENT_DIR}/${TARGET_NAME}"
-        CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH} ${EXTRA_CMAKE_ARGS}
+        CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR} -DCMAKE_PREFIX_PATH=${PREFIX_PATH} ${EXTRA_CMAKE_ARGS1} ${EXTRA_CMAKE_ARGS2} ${EXTRA_CMAKE_ARGS3}
     )
 endmacro()
 
@@ -82,7 +83,7 @@ if (NOT OSG_FOUND)
         set(OSG_LIB_SUFFIX ".so")
     endif()
 
-    addExternal(${TARGET_OSG} "https://github.com/openscenegraph/OpenSceneGraph.git" "OpenSceneGraph-3.6" "-DLIB_POSTFIX=")
+    addExternal(${TARGET_OSG} "https://github.com/openscenegraph/OpenSceneGraph.git" "OpenSceneGraph-3.6" "-DLIB_POSTFIX=" "" "")
     set(OSG_INCLUDE_DIR ${OUTPUT_INCDIR} CACHE PATH "OSG header directory" FORCE)
     set(OSG_LIBRARIES ${OUTPUT_LIBDIR}/libosg${OSG_LIB_SUFFIX} CACHE FILEPATH "osg Library" FORCE)
     set(OSGDB_LIBRARIES ${OUTPUT_LIBDIR}/libosgDB${OSG_LIB_SUFFIX} CACHE FILEPATH "osgUtl Library" FORCE)
@@ -94,7 +95,7 @@ endif()
 find_package(VSG)
 if (NOT VSG_FOUND)
     set(TARGET_VSG VulkanSceneGraph)
-    addExternal(${TARGET_VSG} "https://github.com/robertosfield/VulkanSceneGraphPrototype.git" "master" "-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}")
+    addExternal(${TARGET_VSG} "https://github.com/robertosfield/VulkanSceneGraphPrototype.git" "master" "-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}" "" "")
     if (TARGET_OSG)
         ExternalProject_Add_StepDependencies(${TARGET_VSG} configure ${TARGET_OSG})
     endif()
@@ -108,10 +109,19 @@ if (NOT VSG_FOUND)
     message("In VSG Fallback setup")
 endif()
 
+
 find_package(osg2vsg)
 if (NOT OSG2VSG_FOUND)
     set(TARGET_OSG2VSG osg2vsg)
-    addExternal(${TARGET_OSG2VSG} "https://github.com/robertosfield/osg2vsg.git" "master" "-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}")
+
+    if (VSG_DIR)
+        set(EXTRA_ARGS1 "-DVSG_DIR=${VSG_DIR}")
+    endif()
+    if (OSG_DIR)
+        set(EXTRA_ARGS2 "-DOSG_DIR=${OSG_DIR}")
+    endif()
+
+    addExternal(${TARGET_OSG2VSG} "https://github.com/robertosfield/osg2vsg.git" "master" "-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}" "${EXTRA_ARGS1}" "${EXTRA_ARGS2}")
     if (TARGET_OSG OR TARGET_VSG)
         ExternalProject_Add_StepDependencies(${TARGET_OSG2VSG} configure ${TARGET_OSG} ${TARGET_VSG})
     endif()
