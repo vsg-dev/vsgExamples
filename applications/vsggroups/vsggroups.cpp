@@ -145,80 +145,119 @@ public:
 
 
 
-osg::Node* createOsgQuadTree(unsigned int numLevels)
+osg::Node* createOsgQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
-    if (numLevels==0) return new osg::Node;
+    if (numLevels==0)
+    {
+        numNodes += 1;
+        numBytes += sizeof(osg::Node);
+
+        return new osg::Node;
+    }
 
     osg::Group* t = new osg::Group;
 
+    numNodes += 1;
+    numBytes += sizeof(osg::Group) + 4*sizeof(vsg::ref_ptr<osg::Node>);
+
     --numLevels;
 
-    t->addChild(createOsgQuadTree(numLevels));
-    t->addChild(createOsgQuadTree(numLevels));
-    t->addChild(createOsgQuadTree(numLevels));
-    t->addChild(createOsgQuadTree(numLevels));
+    t->addChild(createOsgQuadTree(numLevels, numNodes, numBytes));
+    t->addChild(createOsgQuadTree(numLevels, numNodes, numBytes));
+    t->addChild(createOsgQuadTree(numLevels, numNodes, numBytes));
+    t->addChild(createOsgQuadTree(numLevels, numNodes, numBytes));
 
     return t;
 }
 
-vsg::Node* createVsgQuadTree(unsigned int numLevels)
+vsg::Node* createVsgQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
-    if (numLevels==0) return new vsg::Node;
+    if (numLevels==0)
+    {
+        numNodes += 1;
+        numBytes += sizeof(vsg::Node);
+
+        return new vsg::Node;
+    }
 
 #if 1
     vsg::Group* t = new vsg::Group(4);
 
     --numLevels;
 
-    t->setChild(0, createVsgQuadTree(numLevels));
-    t->setChild(1, createVsgQuadTree(numLevels));
-    t->setChild(2, createVsgQuadTree(numLevels));
-    t->setChild(3, createVsgQuadTree(numLevels));
+    numNodes += 1;
+    numBytes += sizeof(vsg::Group) + 4*sizeof(vsg::ref_ptr<vsg::Node>);
+
+    t->setChild(0, createVsgQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(1, createVsgQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(2, createVsgQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(3, createVsgQuadTree(numLevels, numNodes, numBytes));
 #else
     vsg::Group* t = new vsg::Group;
 
     --numLevels;
 
+    numNodes += 1;
+    numBytes += sizeof(vsg::Group);
+
     t->getChildren().reserve(4);
 
-    t->addChild(createVsgQuadTree(numLevels));
-    t->addChild(createVsgQuadTree(numLevels));
-    t->addChild(createVsgQuadTree(numLevels));
-    t->addChild(createVsgQuadTree(numLevels));
+    t->addChild(createVsgQuadTree(numLevels, numNodes, numBytes));
+    t->addChild(createVsgQuadTree(numLevels, numNodes, numBytes));
+    t->addChild(createVsgQuadTree(numLevels, numNodes, numBytes));
+    t->addChild(createVsgQuadTree(numLevels, numNodes, numBytes));
 #endif
 
     return t;
 }
 
 
-vsg::Node* createFixedQuadTree(unsigned int numLevels)
+vsg::Node* createFixedQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
-    if (numLevels==0) return new vsg::Node;
+    if (numLevels==0)
+    {
+        numNodes += 1;
+        numBytes += sizeof(vsg::Node);
+
+        return new vsg::Node;
+    }
 
     vsg::QuadGroup* t = new vsg::QuadGroup();
 
     --numLevels;
 
-    t->setChild(0, createFixedQuadTree(numLevels));
-    t->setChild(1, createFixedQuadTree(numLevels));
-    t->setChild(2, createFixedQuadTree(numLevels));
-    t->setChild(3, createFixedQuadTree(numLevels));
+    numNodes += 1;
+    numBytes += sizeof(vsg::QuadGroup);
+
+    t->setChild(0, createFixedQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(1, createFixedQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(2, createFixedQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(3, createFixedQuadTree(numLevels, numNodes, numBytes));
 
     return t;
 }
 
-std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned int numLevels)
+std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
-    if (numLevels==0) return std::make_shared<experimental::SharedPtrNode>();
+    if (numLevels==0)
+    {
+        numNodes += 1;
+        numBytes += sizeof(experimental::SharedPtrNode);
+
+        return std::make_shared<experimental::SharedPtrNode>();
+    }
 
     std::shared_ptr<experimental::SharedPtrQuadGroup> t = std::make_shared<experimental::SharedPtrQuadGroup>();
 
     --numLevels;
 
-    t->setChild(0, createSharedPtrQuadTree(numLevels));
-    t->setChild(1, createSharedPtrQuadTree(numLevels));
-    t->setChild(2, createSharedPtrQuadTree(numLevels));
-    t->setChild(3, createSharedPtrQuadTree(numLevels));
+    numNodes += 1;
+    numBytes += sizeof(experimental::SharedPtrQuadGroup);
+
+    t->setChild(0, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(1, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(2, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(3, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
 
     return t;
 }
@@ -291,10 +330,13 @@ int main(int argc, char** argv)
     osg::ref_ptr<osg::Node> osg_root;
     std::shared_ptr<experimental::SharedPtrNode> shared_root;
 
-    if (type=="vsg::Group") vsg_root = createVsgQuadTree(numLevels);
-    if (type=="vsg::QuadGroup") vsg_root = createFixedQuadTree(numLevels);
-    if (type=="osg::Group") osg_root = createOsgQuadTree(numLevels);
-    if (type=="SharedPtrGroup") shared_root = createSharedPtrQuadTree(numLevels)->shared_from_this();
+    unsigned int numNodes = 0;
+    unsigned int numBytes = 0;
+
+    if (type=="vsg::Group") vsg_root = createVsgQuadTree(numLevels, numNodes, numBytes);
+    if (type=="vsg::QuadGroup") vsg_root = createFixedQuadTree(numLevels, numNodes, numBytes);
+    if (type=="osg::Group") osg_root = createOsgQuadTree(numLevels, numNodes, numBytes);
+    if (type=="SharedPtrGroup") shared_root = createSharedPtrQuadTree(numLevels, numNodes, numBytes)->shared_from_this();
 
     if (!vsg_root && !osg_root && !shared_root)
     {
@@ -305,7 +347,6 @@ int main(int argc, char** argv)
     clock::time_point after_construction = clock::now();
 
     unsigned int numNodesVisited = 0;
-    unsigned int numNodes = 0;
 
     if (vsg_root)
     {
@@ -327,7 +368,6 @@ int main(int argc, char** argv)
             {
                 vsg_root->accept(*vsg_ConstVisitor);
                 numNodesVisited += vsg_ConstVisitor->numNodes;
-                numNodes = vsg_ConstVisitor->numNodes;
                 vsg_ConstVisitor->numNodes = 0;
             }
         }
@@ -339,7 +379,6 @@ int main(int argc, char** argv)
             {
                 vsg_root->accept(*vsg_visitor);
                 numNodesVisited += vsg_visitor->numNodes;
-                numNodes = vsg_visitor->numNodes;
                 vsg_visitor->numNodes = 0;
             }
         }
@@ -352,7 +391,6 @@ int main(int argc, char** argv)
             OsgVisitor visitor;
             osg_root->accept(visitor);
             numNodesVisited += visitor.numNodes;
-            numNodes = visitor.numNodes;
         }
     }
     else if (shared_root)
@@ -363,7 +401,6 @@ int main(int argc, char** argv)
         {
             shared_root->accept(experimentVisitor);
             numNodesVisited += experimentVisitor.numNodes;
-            numNodes = experimentVisitor.numNodes;
             experimentVisitor.numNodes = 0;
         }
     }
@@ -380,6 +417,8 @@ int main(int argc, char** argv)
     {
         std::cout<<"type : "<<type<<std::endl;
         std::cout<<"numNodes : "<<numNodes<<std::endl;
+        std::cout<<"numBytes : "<<numBytes<<std::endl;
+        std::cout<<"average node size : "<<double(numBytes)/double(numNodes)<<std::endl;
         std::cout<<"numNodesVisited : "<<numNodesVisited<<std::endl;
         std::cout<<"construcion time : "<<std::chrono::duration<double>(after_construction-start).count()<<std::endl;
         std::cout<<"traversal time : "<<std::chrono::duration<double>(after_traversal-after_construction).count()<<std::endl;
