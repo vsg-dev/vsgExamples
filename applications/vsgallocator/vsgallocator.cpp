@@ -18,27 +18,32 @@ struct allocator_adapter
 {
     using value_type = T;
 
-    allocator_adapter() = default;
-    allocator_adapter(const allocator_adapter& rhs) = default;
-
-    explicit allocator_adapter(vsg::Allocator* allocator) : _allocator(allocator) {}
-
-    allocator_adapter& operator = (const allocator_adapter& rhs) = default;
-
-    value_type* allocate( std::size_t n, const void* /*hint*/ )
+    allocator_adapter() noexcept
     {
-        const std::size_t size = n * sizeof(value_type);
-        return static_cast<value_type*>(_allocator ? _allocator->allocate(size) : (::operator new (size)));
+        std::cout<<"allocator_adapter::allocator_adapter()"<<std::endl;
     }
 
-    value_type* allocate( std::size_t n )
+    template<class U>
+    allocator_adapter(const allocator_adapter<U>& rhs) noexcept : _allocator(rhs.allocator)
     {
+        std::cout<<"allocator_adapter::allocator_adapter(const allocator_adapter<U>& ) _allocator="<<_allocator.get()<<std::endl;
+    }
+
+    explicit allocator_adapter(vsg::Allocator* allocator) noexcept : _allocator(allocator)
+    {
+        std::cout<<"allocator_adapter::allocator_adapter(vsg::Allocator*) _allocator="<<_allocator.get()<<std::endl;
+    }
+
+    value_type* allocate(std::size_t n)
+    {
+        std::cout<<"allocator_adapter::allocate("<<n<<") _allocator="<<_allocator.get()<<std::endl;
         const std::size_t size = n * sizeof(value_type);
         return static_cast<value_type*>(_allocator ? _allocator->allocate(size) : (::operator new (size)));
     }
 
     void deallocate(value_type* ptr, std::size_t n)
     {
+        std::cout<<"allocator_adapter::deallocate("<<n<<") _allocator="<<_allocator.get()<<std::endl;
         const std::size_t size = n * sizeof(value_type);
         if (_allocator) _allocator->deallocate(ptr, size);
         else ::operator delete(ptr);
@@ -46,6 +51,18 @@ struct allocator_adapter
 
     vsg::ref_ptr<vsg::Allocator> _allocator;
 };
+
+template<class T, class U>
+bool operator == (const allocator_adapter<T>& lhs, const allocator_adapter<U>& rhs) noexcept
+{
+    return lhs._allocator == rhs._allocator;
+}
+
+template<class T, class U>
+bool operator != (const allocator_adapter<T>& lhs, const allocator_adapter<U>& rhs) noexcept
+{
+    return lhs._allocator != rhs._allocator;
+}
 
 
 int main(int /*argc*/, char** /*argv*/)
@@ -77,6 +94,10 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"before shrink_to_fit"<<std::endl;
         my_vertices3.shrink_to_fit();
         std::cout<<"after shrink_to_fit"<<std::endl;
+
+        std::cout<<"before copy"<<std::endl;
+        auto copy_vertices = my_vertices3;
+        std::cout<<"after copy"<<std::endl;
     }
 
     {
