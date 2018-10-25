@@ -24,7 +24,7 @@ struct allocator_adapter
     }
 
     template<class U>
-    allocator_adapter(const allocator_adapter<U>& rhs) noexcept : _allocator(rhs.allocator)
+    allocator_adapter(const allocator_adapter<U>& rhs) noexcept : _allocator(rhs._allocator)
     {
         std::cout<<"allocator_adapter::allocator_adapter(const allocator_adapter<U>& ) _allocator="<<_allocator.get()<<std::endl;
     }
