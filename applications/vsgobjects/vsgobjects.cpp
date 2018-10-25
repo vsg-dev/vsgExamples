@@ -8,6 +8,8 @@
 #include <vsg/nodes/QuadGroup.h>
 #include <vsg/nodes/StateGroup.h>
 
+#include <vsg/utils/stream.h>
+
 #include <osg/ref_ptr>
 #include <osg/Referenced>
 #include <osg/Group>
@@ -85,8 +87,8 @@ int main(int /*argc*/, char** /*argv*/)
         //group->removeChild(pos);
 
         group->setObject("userdata", new vsg::Object());
-        group->setObject(10, new vsg::Object());
-        group->setObject(vsg::Object::Key("list",5), new vsg::Object());
+        group->setObject(vsg::make_string(10), new vsg::Object());
+        group->setObject(vsg::make_string("list",5), new vsg::Object());
 
         group->setValue("name", std::string("[first node]"));
         group->setValue("height", 1.52f);
