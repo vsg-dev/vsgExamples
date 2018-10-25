@@ -77,7 +77,7 @@ int main(int /*argc*/, char** /*argv*/)
             itr != object->getAuxiliary()->getObjectMap().end();
             ++itr)
         {
-            std::cout<<"   key["<<itr->first.name<<", "<<itr->first.index<<"] ";
+            std::cout<<"   key["<<itr->first<<"] ";
             itr->second->accept(visitValues);
         }
 
@@ -85,14 +85,14 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"Use for_each "<<std::endl;
         std::for_each(object->getAuxiliary()->getObjectMap().begin(), object->getAuxiliary()->getObjectMap().end(), [&visitValues](vsg::Auxiliary::ObjectMap::value_type& key_value)
         {
-            std::cout<<"   key["<<key_value.first.name<<", "<<key_value.first.index<<"] ";
+            std::cout<<"   key["<<key_value.first<<"] ";
             key_value.second->accept(visitValues);
         });
 
         std::cout<<"for_each_user_object "<<std::endl;
         for_each_user_object(object, [&visitValues](vsg::Auxiliary::ObjectMap::value_type& key_value)
         {
-            std::cout<<"   key["<<key_value.first.name<<", "<<key_value.first.index<<"] ";
+            std::cout<<"   key["<<key_value.first<<"] ";
             key_value.second->accept(visitValues);
         });
 
