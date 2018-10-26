@@ -47,7 +47,7 @@ int main(int argc, char** argv)
     objects.reserve(numObjects);
     for(unsigned int i=0; i<numObjects; ++i)
     {
-        objects.push_back(new vsg::Node);
+        objects.push_back(vsg::Node::create());
     }
 
     Objects copy_objects(numObjects);

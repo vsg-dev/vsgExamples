@@ -81,7 +81,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"cmat = "<<cmat<<std::endl;
     std::cout<<"sizeof(cmat) = "<<sizeof(cmat)<<std::endl;
 
-    vsg::ref_ptr<vsg::Object> object = new vsg::Object;
+    vsg::ref_ptr<vsg::Object> object(new vsg::Object());
     object->setValue("matrix", mat);
 
     vsg::mat4 new_mat;

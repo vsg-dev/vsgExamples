@@ -114,7 +114,7 @@ public:
 int main(int /*argc*/, char** /*argv*/)
 {
 
-    vsg::ref_ptr<vsg::floatArray> floats = new vsg::floatArray(10);
+    vsg::ref_ptr<vsg::floatArray> floats(new vsg::floatArray(10));
 
     std::cout<<"floats.size() = "<<floats->size()<<std::endl;
 
@@ -127,7 +127,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"   v[] = "<<v<<std::endl;
     });
 
-    vsg::ref_ptr<vsg::vec4Array> colours = new vsg::vec4Array();
+    vsg::ref_ptr<vsg::vec4Array> colours(new vsg::vec4Array());
     colours->resize(20);
     vsg::vec4 colour(0.25, 0.5, 0.75, 1.0);
     for (std::size_t i=0; i<colours->size(); ++i)
@@ -143,7 +143,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"colours->at(4) = "<<colours->at(4)<<std::endl;
     std::cout<<"(*colours)[5] = "<<(*colours)[5]<<std::endl;
 
-    vsg::ref_ptr< State<10,10> > state = new State<10,10>;
+    vsg::ref_ptr< State<10,10> > state(new State<10,10>);
     state->set(new Uniform("values", floats.get()));
     state->set(new Uniform("col", colours.get()));
     state->set(new Attribute("colours", colours.get()));
@@ -164,12 +164,12 @@ int main(int /*argc*/, char** /*argv*/)
         else std::cout<<"    nullptr"<<std::endl;
     });
 
-    vsg::ref_ptr<vsg::vec2Array> texCoords = new vsg::vec2Array
+    vsg::ref_ptr<vsg::vec2Array> texCoords(new vsg::vec2Array
     {
         {1.0f, 2.0f},
         {3.0f, 4.0f},
         {}
-    };
+    });
 
     std::cout<<"texCoords.size() = "<<texCoords->size()<<std::endl;
     for(auto p : *texCoords)
@@ -177,7 +177,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"    tc "<<p.x<<", "<<p.y<<std::endl;
     }
 
-    vsg::ref_ptr<vsg::vec4Array> col = new vsg::vec4Array{{}};
+    vsg::ref_ptr<vsg::vec4Array> col(new vsg::vec4Array{{}});
     std::cout<<"col.size() = "<<col->size()<<std::endl;
     for(auto c : *col)
     {

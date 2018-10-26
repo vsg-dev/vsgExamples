@@ -14,11 +14,11 @@
 #include <functional>
 
 
-vsg::Node* createQuadTree(unsigned int numLevels)
+vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels)
 {
-    if (numLevels==0) return new vsg::Node;
+    if (numLevels==0) return vsg::Node::create();
 
-    vsg::Group* t = new vsg::Group;
+    vsg::ref_ptr<vsg::Group> t = vsg::Group::create();
 
     --numLevels;
 

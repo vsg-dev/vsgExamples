@@ -83,18 +83,18 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, descriptorSetLayout,
     {
-        new vsg::DescriptorBuffer(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, {vsg::BufferData(buffer, 0, bufferSize)})
+        vsg::DescriptorBuffer::create(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)})
     });
 
     vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(device, {descriptorSetLayout}, {});
 
-    vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = new vsg::BindDescriptorSets(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, {descriptorSet});
+    vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, vsg::DescriptorSets{descriptorSet});
 
 
     // set up the compute pipeline
     vsg::ref_ptr<vsg::ShaderModule> computeShaderModule = vsg::ShaderModule::create(device, computeShader);
     vsg::ref_ptr<vsg::ComputePipeline> pipeline = vsg::ComputePipeline::create(device, pipelineLayout, computeShaderModule);
-    vsg::ref_ptr<vsg::BindPipeline> bindPipeline = new vsg::BindPipeline(pipeline);
+    vsg::ref_ptr<vsg::BindPipeline> bindPipeline = vsg::BindPipeline::create(pipeline);
 
 
     // setup command pool
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 
     if (!outputFIlename.empty())
     {
-        vsg::ref_ptr<vsg::vec4Array> array = new vsg::MappedArray<vsg::vec4Array>(bufferMemory, 0, width*height); // devicememorry, offset and numElements
+        vsg::ref_ptr<vsg::vec4Array> array(new vsg::MappedArray<vsg::vec4Array>(bufferMemory, 0, width*height)); // devicememorry, offset and numElements
 
         osg::ref_ptr<osg::Image> image = new osg::Image;
         image->allocateImage(width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE);

@@ -49,16 +49,15 @@ struct PrintVisitor : public vsg::Visitor
 int main(int /*argc*/, char** /*argv*/)
 {
 
-    vsg::ref_ptr<vsg::Group> group = new vsg::Group;
-    //vsg::ref_ptr<vsg::QuadGroup> quad = new vsg::Quad;
+    auto group = vsg::Group::create();
 
     // set up LOD
-    vsg::ref_ptr<vsg::LOD> lod = new vsg::LOD;
+    auto lod = vsg::LOD::create();
     lod->setMinimumArea(0, 0.0);
     lod->setChild(0, new vsg::Node);
     lod->setMinimumArea(1, 0.0);
     lod->setChild(1, new vsg::Node);
-    group->addChild(lod.get());
+    group->addChild(lod);
 
     PrintVisitor visitor;
     group->accept(visitor);

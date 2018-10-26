@@ -41,7 +41,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    vsg::ref_ptr<vsg::Viewer> viewer = new vsg::Viewer;
+    vsg::ref_ptr<vsg::Viewer> viewer = vsg::Viewer::create();
 
     vsg::ref_ptr<vsg::Window> window = vsg::Window::create(width, height, debugLayer, apiDumpLayer);
     if (!window)
@@ -58,10 +58,10 @@ int main(int argc, char** argv)
         viewer->addWindow( new_window );
     }
 
-    vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice = window->physicalDevice();
-    vsg::ref_ptr<vsg::Device> device = window->device();
-    vsg::ref_ptr<vsg::Surface> surface = window->surface();
-    vsg::ref_ptr<vsg::RenderPass> renderPass = window->renderPass();
+    vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice(window->physicalDevice());
+    vsg::ref_ptr<vsg::Device> device(window->device());
+    vsg::ref_ptr<vsg::Surface> surface(window->surface());
+    vsg::ref_ptr<vsg::RenderPass> renderPass(window->renderPass());
 
 
     VkQueue graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 
 
     // set up vertex and index arrays
-    vsg::ref_ptr<vsg::vec3Array> vertices = new vsg::vec3Array
+    vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
     {
         {-0.5f, -0.5f, 0.0f},
         {0.5f,  -0.5f, 0.05f},
@@ -86,9 +86,9 @@ int main(int argc, char** argv)
         {0.5f,  -0.5f, -0.5f},
         {0.5f , 0.5f, -0.5},
         {-0.5f, 0.5f, -0.5}
-    };
+    });
 
-    vsg::ref_ptr<vsg::vec3Array> colors = new vsg::vec3Array
+    vsg::ref_ptr<vsg::vec3Array> colors(new vsg::vec3Array
     {
         {1.0f, 0.0f, 0.0f},
         {0.0f, 1.0f, 0.0f},
@@ -98,9 +98,9 @@ int main(int argc, char** argv)
         {0.0f, 1.0f, 0.0f},
         {0.0f, 0.0f, 1.0f},
         {1.0f, 1.0f, 1.0f},
-    };
+    });
 
-    vsg::ref_ptr<vsg::vec2Array> texcoords = new vsg::vec2Array
+    vsg::ref_ptr<vsg::vec2Array> texcoords(new vsg::vec2Array
     {
         {0.0f, 0.0f},
         {1.0f, 0.0f},
@@ -110,23 +110,23 @@ int main(int argc, char** argv)
         {1.0f, 0.0f},
         {1.0f, 1.0f},
         {0.0f, 1.0f}
-    };
+    });
 
-    vsg::ref_ptr<vsg::ushortArray> indices = new vsg::ushortArray
+    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
     {
         0, 1, 2,
         2, 3, 0,
         4, 5, 6,
         6, 7, 4
-    };
+    });
 
     auto vertexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, {vertices, colors, texcoords}, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
     auto indexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, {indices}, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
 
     // set up uniforms
-    vsg::ref_ptr<vsg::mat4Value> projMatrix = new vsg::mat4Value;
-    vsg::ref_ptr<vsg::mat4Value> viewMatrix = new vsg::mat4Value;
-    vsg::ref_ptr<vsg::mat4Value> modelMatrix = new vsg::mat4Value;
+    vsg::ref_ptr<vsg::mat4Value> projMatrix(new vsg::mat4Value);
+    vsg::ref_ptr<vsg::mat4Value> viewMatrix(new vsg::mat4Value);
+    vsg::ref_ptr<vsg::mat4Value> modelMatrix(new vsg::mat4Value);
 
     auto uniformBufferData = vsg::createHostVisibleBuffer(device, {projMatrix, viewMatrix, modelMatrix}, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
 
@@ -159,14 +159,14 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, descriptorSetLayout,
     {
-        new vsg::DescriptorBuffer(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformBufferData),
-        new vsg::DescriptorImage(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, {imageData})
+        vsg::DescriptorBuffer::create(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformBufferData),
+        vsg::DescriptorImage::create(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::ImageDataList{imageData})
     });
 
     vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(device, {descriptorSetLayout}, {});
 
     // setup binding of descriptors
-    vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = new vsg::BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, {descriptorSet}); // device dependent
+    vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, vsg::DescriptorSets{descriptorSet}); // device dependent
 
 
     // set up graphics pipeline
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},
     };
 
-    vsg::ref_ptr<vsg::ShaderStages> shaderStages = new vsg::ShaderStages(
+    vsg::ref_ptr<vsg::ShaderStages> shaderStages = vsg::ShaderStages::create(vsg::ShaderModules
     {
         vsg::ShaderModule::create(device, vertexShader),
         vsg::ShaderModule::create(device, fragmentShader)
@@ -193,31 +193,31 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::GraphicsPipeline> pipeline = vsg::GraphicsPipeline::create(device, renderPass, pipelineLayout, // device dependent
     {
         shaderStages,  // device dependent
-        new vsg::VertexInputState(vertexBindingsDescriptions, vertexAttributeDescriptions),// device independent
-        new vsg::InputAssemblyState, // device independent
-        new vsg::ViewportState(VkExtent2D{width, height}), // device independent
-        new vsg::RasterizationState,// device independent
-        new vsg::MultisampleState,// device independent
-        new vsg::ColorBlendState,// device independent
-        new vsg::DepthStencilState// device independent
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),// device independent
+        vsg::InputAssemblyState::create(), // device independent
+        vsg::ViewportState::create(VkExtent2D{width, height}), // device independent
+        vsg::RasterizationState::create(),// device independent
+        vsg::MultisampleState::create(),// device independent
+        vsg::ColorBlendState::create(),// device independent
+        vsg::DepthStencilState::create()// device independent
     });
 
-    vsg::ref_ptr<vsg::BindPipeline> bindPipeline = new vsg::BindPipeline(pipeline);
+    vsg::ref_ptr<vsg::BindPipeline> bindPipeline = vsg::BindPipeline::create(pipeline);
 
     // set up vertex buffer binding
-    vsg::ref_ptr<vsg::BindVertexBuffers> bindVertexBuffers = new vsg::BindVertexBuffers(0, vertexBufferData);  // device dependent
+    vsg::ref_ptr<vsg::BindVertexBuffers> bindVertexBuffers = vsg::BindVertexBuffers::create(0, vertexBufferData);  // device dependent
 
     // set up index buffer binding
-    vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = new vsg::BindIndexBuffer(indexBufferData.front(), VK_INDEX_TYPE_UINT16); // device dependent
+    vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = vsg::BindIndexBuffer::create(indexBufferData.front(), VK_INDEX_TYPE_UINT16); // device dependent
 
     // set up drawing of the triangles
-    vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = new vsg::DrawIndexed(12, 1, 0, 0, 0); // device independent
+    vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0); // device independent
 
     // set up what we want to render in a command graph
     // create command graph to contain all the Vulkan calls for specifically rendering the model
-    vsg::ref_ptr<vsg::Group> commandGraph = new vsg::Group;
+    vsg::ref_ptr<vsg::Group> commandGraph = vsg::Group::create();
 
-    vsg::ref_ptr<vsg::StateGroup> stateGroup = new vsg::StateGroup;
+    vsg::ref_ptr<vsg::StateGroup> stateGroup = vsg::StateGroup::create();
     commandGraph->addChild(stateGroup);
 
     // set up the state configuration
@@ -225,7 +225,7 @@ int main(int argc, char** argv)
     stateGroup->add(bindDescriptorSets);  // device dependent
 
     // add subgraph that represents the model to render
-    vsg::ref_ptr<vsg::StateGroup> model = new vsg::StateGroup;
+    vsg::ref_ptr<vsg::StateGroup> model = vsg::StateGroup::create();
     stateGroup->addChild(model);
 
     // add the vertex and index buffer data
@@ -246,7 +246,7 @@ int main(int argc, char** argv)
     for (auto& win : viewer->windows())
     {
         // add a GraphicsStage tp the Window to do dispatch of the command graph to the commnad buffer(s)
-        win->addStage(new vsg::GraphicsStage(commandGraph));
+        win->addStage(vsg::GraphicsStage::create(commandGraph));
         win->populateCommandBuffers();
     }
 

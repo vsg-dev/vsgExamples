@@ -23,7 +23,7 @@
 
 vsg::Group* createGroup()
 {
-    vsg::ref_ptr<vsg::Group> group = new vsg::Group;
+    vsg::ref_ptr<vsg::Group> group(new vsg::Group);
     return group.release();
 }
 
@@ -74,14 +74,13 @@ int main(int /*argc*/, char** /*argv*/)
     {
         std::cout<<"---- Start of block"<<std::endl;
 
-//        vsg::ref_ptr<vsg::Group> group(createGroup());
-        vsg::ref_ptr<vsg::Group> group(new vsg::Group());
+        //vsg::ref_ptr<vsg::Group> group(vsg::Group::create());
+        //vsg::ref_ptr<vsg::Group> group(new vsg::Group);
+        auto group = vsg::Group::create();
 
         std::cout<<"Adding child to group"<<std::endl;
-        group->addChild(new vsg::Node);
-        group->addChild(new vsg::Group);
-
-        group->addChild(new vsg::Group);
+        group->addChild(vsg::Node::create());
+        group->addChild(vsg::Group::create());
 
         //std::cout<<"++++ Removing child to group"<<std::endl;
         //group->removeChild(pos);

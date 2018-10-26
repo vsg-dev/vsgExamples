@@ -26,7 +26,7 @@ void for_each_user_object(P object, F functor)
 
 int main(int /*argc*/, char** /*argv*/)
 {
-    vsg::ref_ptr<vsg::Object> object = new vsg::Object;
+    vsg::ref_ptr<vsg::Object> object(new vsg::Object());
     object->setValue("name", "Name field contents");
     object->setValue("time", 10.0);
     object->setValue("size", 3.1f);

@@ -71,7 +71,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<std::endl;
         std::cout<<"Before vaf::Allocator for std::vector"<<std::endl;
 
-        vsg::ref_ptr<vsg::Allocator> allocator = new vsg::Allocator;
+        vsg::ref_ptr<vsg::Allocator> allocator(new vsg::Allocator);
 
         using allocator_vec3 = allocator_adapter<vsg::vec3>;
         using std_vector = std::vector<vsg::vec3>;
@@ -104,7 +104,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<std::endl;
         std::cout<<"Before vsg::Object::create() for nodes"<<std::endl;
         {
-            vsg::ref_ptr<vsg::Allocator> allocator = new vsg::Allocator;
+            vsg::ref_ptr<vsg::Allocator> allocator(new vsg::Allocator);
 
 #if 1
             auto group = vsg::Group::create(allocator, 4);

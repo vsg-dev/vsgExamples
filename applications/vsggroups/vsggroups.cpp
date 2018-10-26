@@ -373,7 +373,7 @@ int main(int argc, char** argv)
         }
         else
         {
-            vsg::ref_ptr<VsgVisitor> vsg_visitor = new VsgVisitor;
+            vsg::ref_ptr<VsgVisitor> vsg_visitor(new VsgVisitor);
             std::cout<<"using VsgVisitor"<<std::endl;
             for(unsigned int i=0; i<numTraversals; ++i)
             {

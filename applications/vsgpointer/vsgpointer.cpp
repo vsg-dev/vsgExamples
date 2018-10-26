@@ -57,7 +57,7 @@ public:
 int main(int /*argc*/, char** /*argv*/)
 {
 
-    vsg::ref_ptr<vsg::QuadGroup> ref_node = new vsg::QuadGroup;
+    vsg::ref_ptr<vsg::QuadGroup> ref_node = vsg::QuadGroup::create();
     std::cout<<"sizeof(Object)="<<sizeof(vsg::Object)<<std::endl;
     std::cout<<"sizeof(atomic_uint)="<<sizeof(std::atomic_uint)<<std::endl;
     std::cout<<"sizeof(atomic_ushort)="<<sizeof(std::atomic_ushort)<<std::endl;
