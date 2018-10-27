@@ -16,20 +16,14 @@ int main(int argc, char** argv)
     bool printFrameRate = false;
     int numWindows = 1;
 
-    try
-    {
-        if (vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--debug","-d"))) debugLayer = true;
-        if (vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--api","-a"))) { apiDumpLayer = true; debugLayer = true; }
-        if (vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--window","-w"), width, height)) {}
-        if (vsg::CommandLine::read(argc, argv, "-f", numFrames)) {}
-        if (vsg::CommandLine::read(argc, argv, "--fr")) { printFrameRate = true; }
-        if (vsg::CommandLine::read(argc, argv, "--num-windows", numWindows)) {}
-    }
-    catch (const std::runtime_error& error)
-    {
-        std::cerr << error.what() << std::endl;
-        return 1;
-    }
+    vsg::CommandLine arguments(&argc, argv);
+    if (arguments.read({"--debug","-d"})) debugLayer = true;
+    if (arguments.read({"--api","-a"})) { apiDumpLayer = true; debugLayer = true; }
+    if (arguments.read({"--window","-w"}, width, height)) {}
+    if (arguments.read("-f", numFrames)) {}
+    if (arguments.read("--fr")) { printFrameRate = true; }
+    if (arguments.read("--num-windows", numWindows)) {}
+    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 

@@ -16,18 +16,12 @@ int main(int argc, char** argv)
     uint32_t workgroupSize = 32;
     std::string outputFIlename;
 
-    try
-    {
-        if (vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--debug","-d"))) debugLayer = true;
-        if (vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--api","-a"))) { apiDumpLayer = true; debugLayer = true; }
-        if (vsg::CommandLine::read(argc, argv, "-o", outputFIlename)) {}
-        if (vsg::CommandLine::read(argc, argv, "-w", workgroupSize)) {}
-    }
-    catch (const std::runtime_error& error)
-    {
-        std::cerr << error.what() << std::endl;
-        return 1;
-    }
+    vsg::CommandLine arguments(&argc, argv);
+    if (arguments.read({"--debug","-d"})) debugLayer = true;
+    if (arguments.read({"--api","-a"})) { apiDumpLayer = true; debugLayer = true; }
+    if (arguments.read("-o", outputFIlename)) {}
+    if (arguments.read("-w", workgroupSize)) {}
+    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Names instanceExtensions;
     vsg::Names requestedLayers;

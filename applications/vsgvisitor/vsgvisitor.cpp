@@ -150,15 +150,10 @@ void visit2(P& object, std::function<void(C1&)> func1, std::function<void(C2&)> 
 int main(int argc, char** argv)
 {
     unsigned int numLevels = 11;
-    try
-    {
-        vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--levels", "-l"), numLevels);
-    }
-    catch (const std::runtime_error& error)
-    {
-        std::cerr << error.what() << std::endl;
-        return 1;
-    }
+
+    vsg::CommandLine arguments(&argc, argv);
+    arguments.read({"--levels", "-l"}, numLevels);
+    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
 
     vsg::ref_ptr<vsg::Node> scene;

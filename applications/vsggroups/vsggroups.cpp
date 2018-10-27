@@ -299,6 +299,7 @@ double time(F function)
 
 int main(int argc, char** argv)
 {
+
     using clock = std::chrono::high_resolution_clock;
 
     std::string type("vsg::Group");
@@ -309,20 +310,14 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::DispatchTraversal> vsg_dispatchTraversal;
     vsg::ref_ptr<VsgConstVisitor> vsg_ConstVisitor;
 
-    try
-    {
-        vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--levels", "-l"), numLevels);
-        vsg::CommandLine::read(argc, argv, vsg::CommandLine::Match("--traversals", "-t"), numTraversals);
-        vsg::CommandLine::read(argc, argv, "--type", type);
-        if (vsg::CommandLine::read(argc, argv, "-q")) { printTimingInfo = false; }
-        if (vsg::CommandLine::read(argc, argv, "-d")) { vsg_dispatchTraversal = new vsg::DispatchTraversal; }
-        if (vsg::CommandLine::read(argc, argv, "-c")) { vsg_ConstVisitor = new VsgConstVisitor; }
-    }
-    catch (const std::runtime_error& error)
-    {
-        std::cerr << error.what() << std::endl;
-        return 1;
-    }
+    vsg::CommandLine arguments(&argc, argv);
+    arguments.read({"-l", "--levels"}, numLevels);
+    arguments.read({"-t", "--traversals"}, numTraversals);
+    arguments.read("--type", type);
+    if (arguments.read("-q")) { printTimingInfo = false; }
+    if (arguments.read("-d")) { vsg_dispatchTraversal = new vsg::DispatchTraversal; }
+    if (arguments.read("-c")) { vsg_ConstVisitor = new VsgConstVisitor; }
+    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     clock::time_point start = clock::now();
 
