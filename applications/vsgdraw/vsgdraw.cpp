@@ -6,23 +6,19 @@
 #include <chrono>
 
 
+
 int main(int argc, char** argv)
 {
-    bool debugLayer = false;
-    bool apiDumpLayer = false;
-    uint32_t width = 800;
-    uint32_t height = 600;
-    int numFrames=-1;
-    bool printFrameRate = false;
-    int numWindows = 1;
-
     vsg::CommandLine arguments(&argc, argv);
-    if (arguments.read({"--debug","-d"})) debugLayer = true;
-    if (arguments.read({"--api","-a"})) { apiDumpLayer = true; debugLayer = true; }
-    if (arguments.read({"--window","-w"}, width, height)) {}
-    if (arguments.read("-f", numFrames)) {}
-    if (arguments.read("--fr")) { printFrameRate = true; }
-    if (arguments.read("--num-windows", numWindows)) {}
+    auto debugLayer = arguments.value(false, {"--debug","-d"});
+    auto apiDumpLayer = arguments.value(false, {"--api","-a"});
+    auto numFrames = arguments.value(-1, "-f");
+    auto printFrameRate = arguments.value(false, "--fr");
+    auto numWindows = arguments.value(1, "--num-windows");
+
+    using WindowDimensions = std::pair<uint32_t, uint32_t>;
+    auto [width, height] = arguments.value(WindowDimensions(800, 600), {"--window", "-w"});
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
