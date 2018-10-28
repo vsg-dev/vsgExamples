@@ -299,26 +299,16 @@ double time(F function)
 
 int main(int argc, char** argv)
 {
-
-    using clock = std::chrono::high_resolution_clock;
-
-    std::string type("vsg::Group");
-    unsigned int numLevels = 11;
-    unsigned int numTraversals = 10;
-    bool printTimingInfo = true;
-
-    vsg::ref_ptr<vsg::DispatchTraversal> vsg_dispatchTraversal;
-    vsg::ref_ptr<VsgConstVisitor> vsg_ConstVisitor;
-
     vsg::CommandLine arguments(&argc, argv);
-    arguments.read({"-l", "--levels"}, numLevels);
-    arguments.read({"-t", "--traversals"}, numTraversals);
-    arguments.read("--type", type);
-    if (arguments.read("-q")) { printTimingInfo = false; }
-    if (arguments.read("-d")) { vsg_dispatchTraversal = new vsg::DispatchTraversal; }
-    if (arguments.read("-c")) { vsg_ConstVisitor = new VsgConstVisitor; }
+    auto numLevels = arguments.value(11, {"-l", "--levels"});
+    auto numTraversals = arguments.value(10, {"-t", "--traversals"});
+    auto type = arguments.value(std::string("vsg::Group"), "--type");
+    auto quiet = arguments.value(false, "-q");
+    vsg::ref_ptr<vsg::DispatchTraversal> vsg_dispatchTraversal(arguments.read("-d") ? new vsg::DispatchTraversal : nullptr);
+    vsg::ref_ptr<VsgConstVisitor> vsg_ConstVisitor(arguments.read("-c") ? new VsgConstVisitor : nullptr);
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
+    using clock = std::chrono::high_resolution_clock;
     clock::time_point start = clock::now();
 
     vsg::ref_ptr<vsg::Node> vsg_root;
@@ -408,7 +398,7 @@ int main(int argc, char** argv)
 
     clock::time_point after_destruction = clock::now();
 
-    if (printTimingInfo)
+    if (!quiet)
     {
         std::cout<<"type : "<<type<<std::endl;
         std::cout<<"numNodes : "<<numNodes<<std::endl;
