@@ -149,16 +149,12 @@ void visit2(P& object, std::function<void(C1&)> func1, std::function<void(C2&)> 
 
 int main(int argc, char** argv)
 {
-    unsigned int numLevels = 11;
-
     vsg::CommandLine arguments(&argc, argv);
-    arguments.read({"--levels", "-l"}, numLevels);
+    auto numLevels = arguments.value(11u, ({"--levels", "-l"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
-
 
     vsg::ref_ptr<vsg::Node> scene;
     std::cout<<"VulkanSceneGraph Fixed Quad Tree creation : "<<time( [&]() { scene = createQuadTree(numLevels); } )<<std::endl;
-
 
     unsigned int count=0;
     auto countFunc = [&](vsg::Object& /*object*/) { ++count; };

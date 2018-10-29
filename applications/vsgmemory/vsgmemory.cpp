@@ -31,9 +31,8 @@ double time(F function)
 
 int main(int argc, char** argv)
 {
-    unsigned int numObjects = 1000000;
     vsg::CommandLine arguments(&argc, argv);
-    arguments.read({"---num-objects", "-n"}, numObjects);
+    auto numObjects = arguments.value(1000000u, {"---num-objects", "-n"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     using Objects = std::vector<vsg::ref_ptr<vsg::Object>>;
