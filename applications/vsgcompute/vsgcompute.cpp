@@ -9,18 +9,13 @@
 
 int main(int argc, char** argv)
 {
-    bool debugLayer = false;
-    bool apiDumpLayer = false;
+    vsg::CommandLine arguments(&argc, argv);
     uint32_t width = 3200;
     uint32_t height = 2400;
-    uint32_t workgroupSize = 32;
-    std::string outputFIlename;
-
-    vsg::CommandLine arguments(&argc, argv);
-    if (arguments.read({"--debug","-d"})) debugLayer = true;
-    if (arguments.read({"--api","-a"})) { apiDumpLayer = true; debugLayer = true; }
-    if (arguments.read("-o", outputFIlename)) {}
-    if (arguments.read("-w", workgroupSize)) {}
+    auto debugLayer = arguments.value(false, {"--debug","-d"});
+    auto apiDumpLayer = arguments.value(false, {"--api","-a"});
+    auto workgroupSize = arguments.value<uint32_t>(32, "-w");
+    auto outputFIlename = arguments.value<std::string>("", "-o");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Names instanceExtensions;

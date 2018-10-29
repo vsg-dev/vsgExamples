@@ -15,10 +15,7 @@ int main(int argc, char** argv)
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.value(false, "--fr");
     auto numWindows = arguments.value(1, "--num-windows");
-
-    using WindowDimensions = std::pair<uint32_t, uint32_t>;
-    auto [width, height] = arguments.value(WindowDimensions(800, 600), {"--window", "-w"});
-
+    auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
