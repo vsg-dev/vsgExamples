@@ -150,7 +150,7 @@ void visit2(P& object, std::function<void(C1&)> func1, std::function<void(C2&)> 
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
-    auto numLevels = arguments.value(11u, ({"--levels", "-l"});
+    auto numLevels = arguments.value(11u, {"--levels", "-l"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::ref_ptr<vsg::Node> scene;
