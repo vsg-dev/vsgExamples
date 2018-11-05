@@ -1,8 +1,15 @@
 cmake_minimum_required(VERSION 3.7)
 
+project(vsgExamples
+        VERSION 0.0.0
+        DESCRIPTION "Set of example programs that test and illustrate how to use the Vulkan/VkSceneGraph"
+        LANGUAGES CXX C
+)
+
 # build all examples into the bin directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
+# find the vsg
 find_package(vsg REQUIRED)
 
 # Find osg2vsg
