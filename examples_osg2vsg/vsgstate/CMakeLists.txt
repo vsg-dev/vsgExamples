@@ -1,35 +1,5 @@
-SET(APPLICATION_NAME vsgstate)
+set(SOURCES vsgstate.cpp)
 
-INCLUDE_DIRECTORIES(
-    ${CMAKE_SOURCE_DIR}/include/
-    ${Vulkan_INCLUDE_DIR}
-    ${VSG_INCLUDE_DIR}
-    ${OSG_INCLUDE_DIR}
-    ${OSG2VSG_INCLUDE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+add_executable(vsgstate ${SOURCES})
 
-SET(HEADERS
-)
-
-SET(SOURCES
-    vsgstate.cpp
-)
-
-ADD_EXECUTABLE(${APPLICATION_NAME} ${HEADERS} ${SOURCES})
-
-if (TARGET_OSG OR TARGET_VSG OR TARGET_OSG2VSG )
-    add_dependencies(${APPLICATION_NAME} ${TARGET_OSG} ${TARGET_VSG} ${TARGET_OSG2VSG})
-endif()
-
-if (${VSG_DEFINITIONS})
-    add_definitions(-D${VSG_DEFINITIONS})
-endif()
-
-if (${OSG2VSG_DEFINITIONS})
-    add_definitions(-D${OSG2VSG_DEFINITIONS})
-endif()
-
-LINK_DIRECTORIES(${OSG_LIB_DIR})
-
-TARGET_LINK_LIBRARIES(${APPLICATION_NAME} ${OSG2VSG_LIBRARIES} ${VSG_LIBRARIES} ${GLFW_LIBRARY} ${Vulkan_LIBRARY} ${OSG_LIBRARIES} ${OSGUTIL_LIBRARIES} ${OSGDB_LIBRARIES})
+target_link_libraries(vsgstate vsg::vsg osg2vsg::osg2vsg)

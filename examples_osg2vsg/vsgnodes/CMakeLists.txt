@@ -1,24 +1,5 @@
-SET(APPLICATION_NAME vsgnodes)
+set(SOURCES vsgnodes.cpp)
 
-INCLUDE_DIRECTORIES(
-    ${CMAKE_SOURCE_DIR}/include/
-    ${VSG_INCLUDE_DIR}
-)
+add_executable(vsgnodes ${SOURCES})
 
-
-SET(SOURCES
-    vsgnodes.cpp
-)
-
-
-ADD_EXECUTABLE(${APPLICATION_NAME} ${HEADERS} ${SOURCES})
-
-if (TARGET_VSG)
-    add_dependencies(${APPLICATION_NAME} ${TARGET_VSG})
-endif()
-
-if (${VSG_DEFINITIONS})
-    add_definitions(-D${VSG_DEFINITIONS})
-endif()
-
-TARGET_LINK_LIBRARIES(${APPLICATION_NAME} ${VSG_LIBRARIES})
+target_link_libraries(vsgnodes vsg::vsg osg2vsg::osg2vsg)

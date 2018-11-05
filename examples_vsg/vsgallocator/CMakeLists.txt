@@ -1,22 +1,5 @@
-SET(APPLICATION_NAME vsgallocator)
+set(SOURCES vsgallocator.cpp)
 
-INCLUDE_DIRECTORIES(
-    ${CMAKE_SOURCE_DIR}/include/
-    ${VSG_INCLUDE_DIR}
-)
+add_executable(vsgallocator ${SOURCES})
 
-SET(SOURCES
-    vsgallocator.cpp
-)
-
-ADD_EXECUTABLE(${APPLICATION_NAME} ${HEADERS} ${SOURCES})
-
-if (TARGET_VSG)
-    add_dependencies(${APPLICATION_NAME} ${TARGET_VSG})
-endif()
-
-if (${VSG_DEFINITIONS})
-    add_definitions(-D${VSG_DEFINITIONS})
-endif()
-
-TARGET_LINK_LIBRARIES(${APPLICATION_NAME} ${VSG_LIBRARIES})
+target_link_libraries(vsgallocator vsg::vsg)

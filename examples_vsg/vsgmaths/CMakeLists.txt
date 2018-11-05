@@ -1,26 +1,5 @@
-SET(APPLICATION_NAME vsgmaths)
+set(SOURCES vsgmaths.cpp)
 
-INCLUDE_DIRECTORIES(
-    ${CMAKE_SOURCE_DIR}/include/
-    ${OSG_INCLUDE_DIR}
-    ${VSG_INCLUDE_DIR}
-)
+add_executable(vsgmaths ${SOURCES})
 
-SET(SOURCES
-    vsgmaths.cpp
-)
-
-
-ADD_EXECUTABLE(${APPLICATION_NAME} ${HEADERS} ${SOURCES})
-
-LINK_DIRECTORIES(${OSG_LIB_DIR})
-
-if (TARGET_OSG OR TARGET_VSG)
-    add_dependencies(${APPLICATION_NAME} ${TARGET_OSG} ${TARGET_VSG})
-endif()
-
-if (${VSG_DEFINITIONS})
-    add_definitions(-D${VSG_DEFINITIONS})
-endif()
-
-TARGET_LINK_LIBRARIES(${APPLICATION_NAME} ${VSG_LIBRARIES} ${OSG_LIBRARIES})
+target_link_libraries(vsgmaths vsg::vsg)

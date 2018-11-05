@@ -1,22 +1,5 @@
-SET(APPLICATION_NAME vsgvalues)
+set(SOURCES vsgvalues.cpp)
 
-INCLUDE_DIRECTORIES(
-    ${CMAKE_SOURCE_DIR}/include/
-    ${VSG_INCLUDE_DIR}
-)
+add_executable(vsgvalues ${SOURCES})
 
-SET(SOURCES
-    vsgvalues.cpp
-)
-
-ADD_EXECUTABLE(${APPLICATION_NAME} ${HEADERS} ${SOURCES})
-
-if (TARGET_OSG OR TARGET_VSG)
-    add_dependencies(${APPLICATION_NAME} ${TARGET_OSG} ${TARGET_VSG})
-endif()
-
-if (${VSG_DEFINITIONS})
-    add_definitions(-D${VSG_DEFINITIONS})
-endif()
-
-TARGET_LINK_LIBRARIES(${APPLICATION_NAME} ${VSG_LIBRARIES})
+target_link_libraries(vsgvalues vsg::vsg)
