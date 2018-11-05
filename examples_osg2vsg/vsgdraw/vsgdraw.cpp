@@ -5,8 +5,6 @@
 #include <iostream>
 #include <chrono>
 
-
-
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
@@ -60,7 +58,6 @@ int main(int argc, char** argv)
     }
 
     vsg::ref_ptr<vsg::CommandPool> commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
-
 
     // set up vertex and index arrays
     vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
@@ -224,7 +221,6 @@ int main(int argc, char** argv)
 
     // add a GraphicsStage tp the Window to do dispatch of the command graph to the commnad buffer(s)
     window->addStage(vsg::GraphicsStage::create(commandGraph));
-
 
     //
     // end of initialize vulkan
