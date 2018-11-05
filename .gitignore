@@ -8,6 +8,7 @@ components/
 
 *.pc
 *.conf
+*.backup
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
