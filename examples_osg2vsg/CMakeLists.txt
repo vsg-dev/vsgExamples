@@ -1,0 +1,7 @@
+add_subdirectory(vsgcompute)
+add_subdirectory(vsgdraw)
+add_subdirectory(vsggroups)
+add_subdirectory(vsgnodes)
+add_subdirectory(vsgobjects)
+add_subdirectory(vsgpushconstants)
+add_subdirectory(vsgstate)
