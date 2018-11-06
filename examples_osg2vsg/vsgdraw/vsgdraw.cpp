@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv)
 {
-    // set up defaults and read commnand line arguments to override them
+    // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
     auto debugLayer = arguments.value(false, {"--debug","-d"});
     auto apiDumpLayer = arguments.value(false, {"--api","-a"});
