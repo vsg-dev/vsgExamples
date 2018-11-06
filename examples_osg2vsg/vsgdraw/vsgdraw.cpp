@@ -223,9 +223,6 @@ int main(int argc, char** argv)
     // add the draw primitive command
     model->addChild(drawIndexed); // device independent
 
-    // add a GraphicsStage tp the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(vsg::GraphicsStage::create(commandGraph));
-
     //
     // end of initialize vulkan
     //
@@ -236,6 +233,8 @@ int main(int argc, char** argv)
 
     for (auto& win : viewer->windows())
     {
+        // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
+        win->addStage(vsg::GraphicsStage::create(commandGraph));
         win->populateCommandBuffers();
     }
 
