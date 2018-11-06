@@ -7,6 +7,7 @@
 
 int main(int argc, char** argv)
 {
+    // set up defaults and read commnand line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
     auto debugLayer = arguments.value(false, {"--debug","-d"});
     auto apiDumpLayer = arguments.value(false, {"--api","-a"});
@@ -16,6 +17,7 @@ int main(int argc, char** argv)
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
+    // read shaders
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     vsg::ref_ptr<vsg::Shader> vertexShader = vsg::Shader::read( VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert.spv", searchPaths));
@@ -26,6 +28,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(width, height, debugLayer, apiDumpLayer));
@@ -43,6 +46,7 @@ int main(int argc, char** argv)
         viewer->addWindow( new_window );
     }
 
+    // create high level Vulkan objects associated the main window
     vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice(window->physicalDevice());
     vsg::ref_ptr<vsg::Device> device(window->device());
     vsg::ref_ptr<vsg::Surface> surface(window->surface());
@@ -125,7 +129,7 @@ int main(int argc, char** argv)
     }
 
     //
-    // set up descriptor layout and descriptor set and pieline layout for uniforms
+    // set up descriptor layout and descriptor set and pipeline layout for uniforms
     //
     vsg::ref_ptr<vsg::DescriptorPool> descriptorPool = vsg::DescriptorPool::create(device, 1,
     {
