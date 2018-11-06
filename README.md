@@ -7,4 +7,39 @@ Contains [examples](examples_vsg/) that depend upon the core **vsg** library pro
 ## examples_osg2vsg
 Contains [examples](examples_osg2vsg/) that depend upon the core **vsg** library, **Vulkan**, and add the dependency on [osg2vsg](https://github.com/robertosfield/osg2vsg/) library which in turn depends upon [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/). The examples_osg2vsg are only built when osg2vsg is available.
 
+## Quick Guide to Building the vsgExamples
 
+### Prerequisites:
+* C++17 compliant compiler i.e.. g++ 7.3 or later, Clang 6.0 or later, Visual Studio S2017 or later.
+* [Vulkan](https://vulkan.lunarg.com/) 1.1 or later.
+* [CMake](https://www.cmake.org) 3.7 or later.
+* [GLFW](https://www.glfw.org)  3.3 or later.  Used internally by libvsg. The plan is to implement native Windowing support so this dependency will later be removed.
+* [VulkanSceneGraphPrototype](https://github.com/robertosfield/VulkanSceneGraphPrototype/) use master
+
+### Optional Dependencies:
+* [osg2vsg](https://github.com/robertosfield/osg2vsg/) use master.
+* [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/), currently any 3.x stable release should work fine.
+
+The above dependency versions are known to work so they've been set as the current minimum, it may be possible to build against older versions.  If you find success with older versions let us know and we can update the version info.
+
+### Command line build instructions:
+To build and install in source, with all dependencies installed in standard system directories:
+
+    git clone https://github.com/robertosfield/vsgExamples.git
+    cd vsgExmples
+    cmake .
+    make -j 8
+
+Full details on how to build of the VSG can be found in the [INSTALL.md](INSTALL.md) file.
+
+## Running examples
+
+After you have built the examples you should set your binary search path to the vsgExamples/bin directory, and the VSG_FILE_PATH env vars.
+
+	export PATH=/path/to/vsgExamples/bin
+	export VSG_FILE_PATH=/path/to/vsgExamples/data
+
+Then run examples:
+
+	vsgmaths # run simple tests of vsg/maths functionality
+	vsgdraw # run the vsgdraw example (a port of VulkanTutorial)
