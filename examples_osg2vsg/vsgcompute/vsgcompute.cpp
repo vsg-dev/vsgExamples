@@ -12,8 +12,8 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     uint32_t width = 3200;
     uint32_t height = 2400;
-    auto debugLayer = arguments.value(false, {"--debug","-d"});
-    auto apiDumpLayer = arguments.value(false, {"--api","-a"});
+    auto debugLayer = arguments.read({"--debug","-d"});
+    auto apiDumpLayer = arguments.read({"--api","-a"});
     auto workgroupSize = arguments.value<uint32_t>(32, "-w");
     auto outputFIlename = arguments.value<std::string>("", "-o");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
