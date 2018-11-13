@@ -53,17 +53,22 @@ public:
 
         std::ostream& indent() { _output.write(_indentationString, std::min(_indentation, _maximumIndentation)); return _output; }
 
+        template<typename T> void _write(const char* propertyName, T value)
+        {
+            indent()<<propertyName<<" "<<value<<"\n";
+        }
+
         // write single values
-        void write(const char* propertyName, int8_t value) override   { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, uint8_t value) override  { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, int16_t value) override  { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, uint16_t value) override { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, int32_t value) override  { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, uint32_t value) override { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, int64_t value) override  { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, uint64_t value) override { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, float value) override    { indent()<<propertyName<<" "<<value<<"\n"; }
-        void write(const char* propertyName, double value) override   { indent()<<propertyName<<" "<<value<<"\n"; }
+        void write(const char* propertyName, int8_t value) override   { _write(propertyName, value); }
+        void write(const char* propertyName, uint8_t value) override  { _write(propertyName, value); }
+        void write(const char* propertyName, int16_t value) override  { _write(propertyName, value); }
+        void write(const char* propertyName, uint16_t value) override { _write(propertyName, value); }
+        void write(const char* propertyName, int32_t value) override  { _write(propertyName, value); }
+        void write(const char* propertyName, uint32_t value) override { _write(propertyName, value); }
+        void write(const char* propertyName, int64_t value) override  { _write(propertyName, value); }
+        void write(const char* propertyName, uint64_t value) override { _write(propertyName, value); }
+        void write(const char* propertyName, float value) override    { _write(propertyName, value); }
+        void write(const char* propertyName, double value) override   { _write(propertyName, value); }
 
         void write(const char* propertyName, const vsg::Object* object)
         {
@@ -132,6 +137,7 @@ public:
             return (itr->second)();
         }
 
+        std::cout<<"Warnig: ObjectFactory::create("<<className<< ") failed to find means to create object"<<std::endl;
         return vsg::ref_ptr<vsg::Object>();
     }
 };
