@@ -5,7 +5,8 @@
 #include <vsg/core/Version.h>
 
 #include <vsg/nodes/Group.h>
-#include <vsg/nodes/FixedGroup.h>
+#include <vsg/nodes/QuadGroup.h>
+#include <vsg/nodes/StateGroup.h>
 
 #include <vsg/utils/CommandLine.h>
 
@@ -22,7 +23,11 @@
 
 vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels, vsg::Node* sharedLeaf)
 {
+#if 0
     if (numLevels==0) return sharedLeaf ? vsg::ref_ptr<vsg::Node>(sharedLeaf) : vsg::Node::create();
+#else
+    if (numLevels==0) return vsg::ref_ptr<vsg::Node>();
+#endif
 
     vsg::ref_ptr<vsg::Group> t = vsg::Group::create();
 
@@ -81,13 +86,20 @@ public:
 
             ObjectID id = _objectID++;
             _objectIDMap[object] = id;
-            indent()<<propertyName<<" id="<<id<<" "<<object->className()<<"\n";
 
-            indent()<<"{\n";
-            _indentation += _indentationStep;
-            object->write(*this);
-            _indentation -= _indentationStep;
-            indent()<<"}\n";
+            if (object)
+            {
+                indent()<<propertyName<<" id="<<id<<" "<<object->className()<<"\n";
+                indent()<<"{\n";
+                _indentation += _indentationStep;
+                object->write(*this);
+                _indentation -= _indentationStep;
+                indent()<<"}\n";
+            }
+            else
+            {
+                indent()<<propertyName<<" id="<<id<<" nullptr\n";
+            }
         }
 
 protected:
@@ -124,9 +136,14 @@ public:
 
     ObjectFactory()
     {
-        _createMap["vsg::Group"] = [](){ return vsg::Group::create(); };
-        _createMap["vsg::Node"] = [](){ return vsg::Node::create(); };
+        _createMap["nulltr"] = [](){ return vsg::ref_ptr<vsg::Object>(); };
         _createMap["vsg::Object"] = [](){ return vsg::ref_ptr<vsg::Object>(new vsg::Object()); };
+
+        // ndodes
+        _createMap["vsg::Node"] = [](){ return vsg::Node::create(); };
+        _createMap["vsg::Group"] = [](){ return vsg::Group::create(); };
+        _createMap["vsg::QuadGroup"] = [](){ return vsg::QuadGroup::create(); };
+        _createMap["vsg::StateGroup"] = [](){ return vsg::StateGroup::create(); };
     }
 
     vsg::ref_ptr<vsg::Object> create(const std::string& className)
