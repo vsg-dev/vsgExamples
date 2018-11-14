@@ -10,7 +10,7 @@
 #include <vsg/maths/mat4.h>
 #include <vsg/maths/transform.h>
 
-#include <vsg/utils/stream.h>
+#include <vsg/io/stream.h>
 
 #include <iostream>
 #include <vector>

@@ -2,7 +2,7 @@
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/Array.h>
 #include <vsg/core/Visitor.h>
-#include <vsg/utils/stream.h>
+#include <vsg/io/stream.h>
 
 #include <iostream>
 #include <algorithm>

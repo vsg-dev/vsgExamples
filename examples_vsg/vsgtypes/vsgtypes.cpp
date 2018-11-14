@@ -11,7 +11,7 @@
 #include <vsg/maths/transform.h>
 
 #include <vsg/vk/Instance.h>
-#include <vsg/utils/stream.h>
+#include <vsg/io/stream.h>
 
 #include <iostream>
 #include <vector>
