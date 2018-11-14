@@ -13,12 +13,12 @@
 #include <vsg/utils/FileSystem.h>
 #include <vsg/io/Input.h>
 #include <vsg/io/Output.h>
+#include <vsg/io/ObjectFactory.h>
 
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include <unordered_map>
-#include <functional>
 
 
 vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels, vsg::Node* sharedLeaf)
@@ -75,7 +75,7 @@ public:
         void write(const char* propertyName, float value) override    { _write(propertyName, value); }
         void write(const char* propertyName, double value) override   { _write(propertyName, value); }
 
-        void write(const char* propertyName, const vsg::Object* object)
+        void write(const char* propertyName, const vsg::Object* object) override
         {
             if (auto itr = _objectIDMap.find(object); itr !=  _objectIDMap.end())
             {
@@ -123,42 +123,6 @@ protected:
         const char*     _indentationString = "                        ";
 };
 
-class ObjectFactory : public vsg::Object
-{
-public:
-
-
-    using CreateFunction = std::function<vsg::ref_ptr<vsg::Object>()>;
-    using CreateMap = std::map<std::string, CreateFunction>;
-
-    CreateMap _createMap;
-
-
-    ObjectFactory()
-    {
-        _createMap["nulltr"] = [](){ return vsg::ref_ptr<vsg::Object>(); };
-        _createMap["vsg::Object"] = [](){ return vsg::ref_ptr<vsg::Object>(new vsg::Object()); };
-
-        // ndodes
-        _createMap["vsg::Node"] = [](){ return vsg::Node::create(); };
-        _createMap["vsg::Group"] = [](){ return vsg::Group::create(); };
-        _createMap["vsg::QuadGroup"] = [](){ return vsg::QuadGroup::create(); };
-        _createMap["vsg::StateGroup"] = [](){ return vsg::StateGroup::create(); };
-    }
-
-    vsg::ref_ptr<vsg::Object> create(const std::string& className)
-    {
-        if (auto itr = _createMap.find(className); itr!=_createMap.end())
-        {
-            std::cout<<"Using _createMap for "<<className<<std::endl;
-            return (itr->second)();
-        }
-
-        std::cout<<"Warnig: ObjectFactory::create("<<className<< ") failed to find means to create object"<<std::endl;
-        return vsg::ref_ptr<vsg::Object>();
-    }
-};
-
 class AsciiInput : public vsg::Input
 {
 public:
@@ -168,7 +132,7 @@ public:
         AsciiInput(std::istream& input) :
             _input(input)
         {
-            _objectFactory = new ObjectFactory;
+            _objectFactory = new vsg::ObjectFactory;
 
             // write header
             const char* match_token="#vsga";
@@ -311,9 +275,9 @@ protected:
         using ObjectIDMap = std::unordered_map<ObjectID, vsg::ref_ptr<vsg::Object>>;
 #endif
 
-        std::string                 _readPropertyName;
-        ObjectIDMap                 _objectIDMap;
-        vsg::ref_ptr<ObjectFactory> _objectFactory;
+        std::string                         _readPropertyName;
+        ObjectIDMap                         _objectIDMap;
+        vsg::ref_ptr<vsg::ObjectFactory>    _objectFactory;
 };
 
 int main(int argc, char** argv)
