@@ -2,6 +2,7 @@
 #include <vsg/core/observer_ptr.h>
 #include <vsg/core/Object.h>
 #include <vsg/core/Auxiliary.h>
+#include <vsg/core/Array.h>
 #include <vsg/core/Version.h>
 
 #include <vsg/nodes/Group.h>
@@ -20,14 +21,14 @@
 #include <cstring>
 #include <unordered_map>
 
+namespace vsg
+{
+    VSG_type_name(vsg::floatArray)
+}
 
 vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels, vsg::Node* sharedLeaf)
 {
-#if 0
     if (numLevels==0) return sharedLeaf ? vsg::ref_ptr<vsg::Node>(sharedLeaf) : vsg::Node::create();
-#else
-    if (numLevels==0) return vsg::ref_ptr<vsg::Node>();
-#endif
 
     vsg::ref_ptr<vsg::Group> t = vsg::Group::create();
 
@@ -39,6 +40,23 @@ vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels, vsg::Node* shared
     t->addChild(createQuadTree(numLevels, sharedLeaf));
     t->addChild(createQuadTree(numLevels, sharedLeaf));
     t->addChild(createQuadTree(numLevels, sharedLeaf));
+
+    return t;
+}
+
+
+vsg::ref_ptr<vsg::Node> createQuadGroupTree(unsigned int numLevels, vsg::Node* sharedLeaf)
+{
+    if (numLevels==0) return sharedLeaf ? vsg::ref_ptr<vsg::Node>(sharedLeaf) : vsg::Node::create();
+
+    vsg::ref_ptr<vsg::QuadGroup> t = vsg::QuadGroup::create();
+
+    --numLevels;
+
+    t->setChild(0, createQuadGroupTree(numLevels, sharedLeaf));
+    t->setChild(1, createQuadGroupTree(numLevels, sharedLeaf));
+    t->setChild(2, createQuadGroupTree(numLevels, sharedLeaf));
+    t->setChild(3, createQuadGroupTree(numLevels, sharedLeaf));
 
     return t;
 }
@@ -58,29 +76,75 @@ public:
 
         std::ostream& indent() { _output.write(_indentationString, std::min(_indentation, _maximumIndentation)); return _output; }
 
-        template<typename T> void _write(const char* propertyName, T value)
+        // write property name if appropriate for format
+        virtual void writePropertyName(const char* propertyName)
         {
-            indent()<<propertyName<<" "<<value<<"\n";
+            indent()<<propertyName;
         }
 
-        // write single values
-        void write(const char* propertyName, int8_t value) override   { _write(propertyName, value); }
-        void write(const char* propertyName, uint8_t value) override  { _write(propertyName, value); }
-        void write(const char* propertyName, int16_t value) override  { _write(propertyName, value); }
-        void write(const char* propertyName, uint16_t value) override { _write(propertyName, value); }
-        void write(const char* propertyName, int32_t value) override  { _write(propertyName, value); }
-        void write(const char* propertyName, uint32_t value) override { _write(propertyName, value); }
-        void write(const char* propertyName, int64_t value) override  { _write(propertyName, value); }
-        void write(const char* propertyName, uint64_t value) override { _write(propertyName, value); }
-        void write(const char* propertyName, float value) override    { _write(propertyName, value); }
-        void write(const char* propertyName, double value) override   { _write(propertyName, value); }
+        template<typename T> void _write(size_t num, const T* value)
+        {
+            if (num==1)
+            {
+                _output<<' '<<*value<<'\n';
+            }
+            else
+            {
+                for(;num>0;--num, ++value) _output<<' '<<*value<<' ';
+            }
+        }
 
-        void write(const char* propertyName, const vsg::Object* object) override
+
+        // write contiguous array of value(s)
+        void write(size_t num, const int8_t* value) override        { _write(num, value); }
+        void write(size_t num, const uint8_t* value) override       { _write(num, value); }
+        void write(size_t num, const int16_t* value)  override      { _write(num, value); }
+        void write(size_t num, const uint16_t* value)  override     { _write(num, value); }
+        void write(size_t num, const int32_t* value)  override      { _write(num, value); }
+        void write(size_t num, const uint32_t* value)  override     { _write(num, value); }
+        void write(size_t num, const int64_t* value)  override      { _write(num, value); }
+        void write(size_t num, const uint64_t* value)  override     { _write(num, value); }
+        void write(size_t num, const float* value)  override        { _write(num, value); }
+        void write(size_t num, const double* value)  override       { _write(num, value); }
+
+
+        void _write(const std::string& str)
+        {
+            _output<<'"';
+            for(auto c : str)
+            {
+                if (c=='"') _output<<"\\\"";
+                else _output<<c;
+            }
+            _output<<'"';
+        }
+
+        void write(size_t num, const std::string* value) override
+        {
+            if (num==1)
+            {
+                _output<<' ';
+                _write(*value);
+                _output<<'\n';
+            }
+            else
+            {
+                for(;num>0;--num, ++value)
+                {
+                    _output<<' ';
+                    _write(*value);
+                }
+                _output<<'\n';
+            }
+        }
+
+        // write object
+        void write(const vsg::Object* object) override
         {
             if (auto itr = _objectIDMap.find(object); itr !=  _objectIDMap.end())
             {
                 // write out the objectID
-                indent()<<propertyName<<" id="<<itr->second<<"\n";
+                _output<<" id="<<itr->second<<"\n";
                 return;
             }
 
@@ -89,7 +153,11 @@ public:
 
             if (object)
             {
-                indent()<<propertyName<<" id="<<id<<" "<<object->className()<<"\n";
+#if 0
+                _output<<"id="<<id<<" "<<vsg::type_name(*object)<<"\n";
+#else
+                _output<<" id="<<id<<" "<<object->className()<<"\n";
+#endif
                 indent()<<"{\n";
                 _indentation += _indentationStep;
                 object->write(*this);
@@ -98,7 +166,7 @@ public:
             }
             else
             {
-                indent()<<propertyName<<" id="<<id<<" nullptr\n";
+                _output<<" id="<<id<<" nullptr\n";
             }
         }
 
@@ -149,16 +217,13 @@ public:
             std::cout<<"First line ["<<read_line<<"]"<<std::endl;
         }
 
-        bool match(const char* propertyName)
+        bool matchPropertyName(const char* propertyName) override
         {
-            if (propertyName)
+            _input >> _readPropertyName;
+            if (_readPropertyName!=propertyName)
             {
-                _input >> _readPropertyName;
-                if (_readPropertyName!=propertyName)
-                {
-                    std::cout<<"Error: unable to match "<<propertyName<<std::endl;
-                    throw vsg::make_string("Error: unable to match ", propertyName);
-                }
+                std::cout<<"Error: unable to match "<<propertyName<<std::endl;
+                return false;
             }
             return true;
         }
@@ -181,85 +246,132 @@ public:
             }
         }
 
-        template<typename T> void _read(const char* propertyName, T& value)
+        template<typename T> void _read(size_t num, T* value)
         {
-            if (match(propertyName)) _input >> value;
+            if (num==1)
+            {
+                _input >> *value;
+            }
+            else
+            {
+                for(; num>0; --num, ++value)
+                {
+                    _input >> *value;
+                }
+            }
         }
 
-        // read single values
-        virtual void read(const char* propertyName, int8_t& value) { _read(propertyName, value); }
-        virtual void read(const char* propertyName, uint8_t& value) {_read(propertyName, value); }
-        virtual void read(const char* propertyName, int16_t& value) { _read(propertyName, value); }
-        virtual void read(const char* propertyName, uint16_t& value) { _read(propertyName, value); }
-        virtual void read(const char* propertyName, int32_t& value) { _read(propertyName, value); }
-        virtual void read(const char* propertyName, uint32_t& value) { _read(propertyName, value); }
-        virtual void read(const char* propertyName, int64_t& value) { _read(propertyName, value); }
-        virtual void read(const char* propertyName, uint64_t& value) { _read(propertyName, value); }
-        virtual void read(const char* propertyName, float& value) { _read(propertyName, value); }
-        virtual void read(const char* propertyName, double& value) { _read(propertyName, value); }
+        // read value(s)
+        virtual void read(size_t num, int8_t* value) override   { _read(num, value); }
+        virtual void read(size_t num, uint8_t* value) override  { _read(num, value); }
+        virtual void read(size_t num, int16_t* value) override  { _read(num, value); }
+        virtual void read(size_t num, uint16_t* value) override { _read(num, value); }
+        virtual void read(size_t num, int32_t* value) override  { _read(num, value); }
+        virtual void read(size_t num, uint32_t* value) override { _read(num, value); }
+        virtual void read(size_t num, int64_t* value) override  { _read(num, value); }
+        virtual void read(size_t num, uint64_t* value) override { _read(num, value); }
+        virtual void read(size_t num, float* value) override    { _read(num, value); }
+        virtual void read(size_t num, double* value) override   { _read(num, value); }
 
-#if 0
-        // read contiguous array of values
-        virtual void read(const char* propertyName, size_t num, int8_t* values) 0;
-        virtual void read(const char* propertyName, size_t num, uint8_t& value) 0;
-        virtual void read(const char* propertyName, size_t num, int16_t& value) 0;
-        virtual void read(const char* propertyName, size_t num, uint16_t& value) 0;
-        virtual void read(const char* propertyName, size_t num, int32_t& value) 0;
-        virtual void read(const char* propertyName, size_t num, uint32_t& value) 0;
-        virtual void read(const char* propertyName, size_t num, int64_t& value) 0;
-        virtual void read(const char* propertyName, size_t num, uint64_t& value) 0;
-        virtual void read(const char* propertyName, size_t num, float& value) 0;
-        virtual void read(const char* propertyName, size_t num, double& value) 0;
-#endif
-        // read object
-        virtual vsg::ref_ptr<vsg::Object> readObject(const char* propertyName)
+        // read in an individual string
+        void _read(std::string& value)
         {
-            if (match(propertyName))
+            char c;
+            _input >> c;
+            if (_input.good())
             {
-                std::cout<<"Matched "<<propertyName<<" need to read object"<<std::endl;
-
-                auto result = objectID();
-                if (result)
+                if (c=='"')
                 {
-                    ObjectID id = result.value();
-                    std::cout<<"   matched result="<<id<<std::endl;
-
-                    if (auto itr = _objectIDMap.find(id); itr != _objectIDMap.end())
+                    _input.get(c);
+                    while( _input.good())
                     {
-                        std::cout<<"Returning existing object "<<itr->second.get()<<std::endl;
-                        return itr->second;
-                    }
-                    else
-                    {
-                        std::string className;
-                        _input >> className;
-
-                        std::cout<<"Loading new object "<<className<<std::endl;
-
-                        vsg::ref_ptr<vsg::Object> object = _objectFactory->create(className.c_str());
-
-                        if (object)
+                        if (c=='\\')
                         {
-                            match("{");
-
-                            object->read(*this);
-
-                            std::cout<<"Loaded object, assigning to _objectIDMap."<<object.get()<<std::endl;
-
-                            match("}");
-
-                            _objectIDMap[id] = object;
-
-                            return object;
+                            _input.get(c);
+                            if (c=='"') value.push_back(c);
+                            else
+                            {
+                                value.push_back('\\');
+                                value.push_back(c);
+                            }
+                        }
+                        else if (c!='"')
+                        {
+                            value.push_back(c);
                         }
                         else
                         {
-                            std::cout<<"Could not find means to create object"<<std::endl;
+                            break;
                         }
+                        _input.get(c);
                     }
-
                 }
+                else
+                {
+                    _input>>value;
+                }
+            }
+        }
 
+        // read one or more strings
+        void read(size_t num, std::string* value) override
+        {
+            if (num==1)
+            {
+                _read(*value);
+            }
+            else
+            {
+                for(;num>0;--num, ++value)
+                {
+                    _read(*value);
+                }
+            }
+        }
+
+
+        // read object
+        vsg::ref_ptr<vsg::Object> read() override
+        {
+            auto result = objectID();
+            if (result)
+            {
+                ObjectID id = result.value();
+                //std::cout<<"   matched result="<<id<<std::endl;
+
+                if (auto itr = _objectIDMap.find(id); itr != _objectIDMap.end())
+                {
+                    //std::cout<<"Returning existing object "<<itr->second.get()<<std::endl;
+                    return itr->second;
+                }
+                else
+                {
+                    std::string className;
+                    _input >> className;
+
+                    //std::cout<<"Loading new object "<<className<<std::endl;
+
+                    vsg::ref_ptr<vsg::Object> object = _objectFactory->create(className.c_str());
+
+                    if (object)
+                    {
+                        matchPropertyName("{");
+
+                        object->read(*this);
+
+                        //std::cout<<"Loaded object, assigning to _objectIDMap."<<object.get()<<std::endl;
+
+                        matchPropertyName("}");
+
+                        _objectIDMap[id] = object;
+
+                        return object;
+                    }
+                    else
+                    {
+                        std::cout<<"Could not find means to create object"<<std::endl;
+                    }
+                }
             }
             return vsg::ref_ptr<vsg::Object>();
         }
@@ -283,21 +395,29 @@ protected:
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
-    //auto numLevels = arguments.value(4u, {"--levels", "-l"});
-    auto numLevels = arguments.value(4u, "-l");
+    auto numLevels = arguments.value(4u, {"--levels", "-l"});
+    auto useQuadGroup = arguments.read("-q");
     auto inputFilename = arguments.value(std::string(), "-i");
     auto outputFilename = arguments.value(std::string(), "-o");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    std::cout<<"inputFilename "<<inputFilename<<std::endl;
-    std::cout<<"outputFilename "<<outputFilename<<std::endl;
-
     vsg::ref_ptr<vsg::Object> object;
     if (inputFilename.empty())
     {
         auto leaf = vsg::Node::create();
-        object = createQuadTree(numLevels, leaf);
+
+        if (useQuadGroup)
+        {
+            object = createQuadGroupTree(numLevels, leaf);
+        }
+        else
+        {
+            object = createQuadTree(numLevels, leaf);
+        }
+
+        object->setValue("double_value", 10.0);
+        object->setValue("string_value", "All the Kings men.");
     }
     else
     {
@@ -320,14 +440,14 @@ int main(int argc, char** argv)
         {
             // write graph to console
             AsciiOutput output(std::cout);
-            output.write("Root", object);
+            output.writeObject("Root", object);
         }
         else
         {
             // write to specified file
             std::ofstream fout(outputFilename);
             AsciiOutput output(fout);
-            output.write("Root", object);
+            output.writeObject("Root", object);
         }
     }
 
