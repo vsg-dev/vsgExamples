@@ -90,7 +90,8 @@ public:
             }
             else
             {
-                for(;num>0;--num, ++value) _output<<' '<<*value<<' ';
+                for(;num>0;--num, ++value) _output<<' '<<*value;
+                _output<<'\n';
             }
         }
 
@@ -418,6 +419,7 @@ int main(int argc, char** argv)
 
         object->setValue("double_value", 10.0);
         object->setValue("string_value", "All the Kings men.");
+        object->setValue("my vector", vsg::vec4{1.1, 2.2, 3.3, 4.4});
     }
     else
     {
