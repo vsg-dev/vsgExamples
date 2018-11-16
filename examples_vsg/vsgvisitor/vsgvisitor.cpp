@@ -4,7 +4,6 @@
 #include <vsg/core/Auxiliary.h>
 
 #include <vsg/nodes/Group.h>
-#include <vsg/nodes/FixedGroup.h>
 
 #include <vsg/utils/CommandLine.h>
 
