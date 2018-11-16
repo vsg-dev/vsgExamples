@@ -21,11 +21,6 @@
 #include <cstring>
 #include <unordered_map>
 
-namespace vsg
-{
-    VSG_type_name(vsg::floatArray)
-}
-
 vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels, vsg::Node* sharedLeaf)
 {
     if (numLevels==0) return sharedLeaf ? vsg::ref_ptr<vsg::Node>(sharedLeaf) : vsg::Node::create();
@@ -69,6 +64,8 @@ public:
             _output(output)
         {
             _maximumIndentation = std::strlen(_indentationString);
+
+            _output.imbue(std::locale::classic());
 
             // write header
             _output<<"#vsga "<<vsgGetVersion()<<"\n";
@@ -201,6 +198,8 @@ public:
         AsciiInput(std::istream& input) :
             _input(input)
         {
+            _input.imbue(std::locale::classic());
+
             _objectFactory = new vsg::ObjectFactory;
 
             // write header
