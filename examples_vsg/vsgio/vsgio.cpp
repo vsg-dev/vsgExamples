@@ -12,7 +12,7 @@
 
 #include <vsg/utils/CommandLine.h>
 
-#include <vsg/utils/FileSystem.h>
+#include <vsg/io/FileSystem.h>
 #include <vsg/io/AsciiInput.h>
 #include <vsg/io/AsciiOutput.h>
 #include <vsg/io/ObjectFactory.h>
@@ -55,6 +55,7 @@ vsg::ref_ptr<vsg::Node> createQuadGroupTree(unsigned int numLevels, vsg::Node* s
 
     return t;
 }
+
 
 int main(int argc, char** argv)
 {
@@ -112,6 +113,8 @@ int main(int argc, char** argv)
     {
         if (vsg::fileExists(inputFilename))
         {
+            std::cout<<"File extension "<<vsg::fileExtension(inputFilename)<<std::endl;
+
             std::ifstream fin(inputFilename);
             vsg::AsciiInput input(fin);
             object = input.readObject("Root");
