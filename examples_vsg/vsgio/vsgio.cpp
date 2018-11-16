@@ -3,6 +3,7 @@
 #include <vsg/core/Object.h>
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/Array.h>
+#include <vsg/core/Array2D.h>
 #include <vsg/core/Version.h>
 
 #include <vsg/nodes/Group.h>
@@ -425,6 +426,23 @@ int main(int argc, char** argv)
             {10.1, 21.2, 31.4},
             {55.0, 45.0, -20.0}
         });
+
+        vsg::ref_ptr<vsg::vec4Array2D> image( new vsg::vec4Array2D(3, 3) );
+
+        for(size_t i=0; i<image->width(); ++i)
+        {
+            for(size_t j=0; j<image->height(); ++j)
+            {
+                image->at(i, j) = vsg::vec4(i, j, i*j, 1.0);
+            }
+        }
+
+        for(auto& c : *image)
+        {
+            std::cout<<"image c="<<c<<std::endl;
+        }
+
+        object->setObject("image", image);
 
     }
     else
