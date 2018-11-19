@@ -15,6 +15,8 @@
 #include <vsg/io/FileSystem.h>
 #include <vsg/io/AsciiInput.h>
 #include <vsg/io/AsciiOutput.h>
+#include <vsg/io/BinaryInput.h>
+#include <vsg/io/BinaryOutput.h>
 #include <vsg/io/ObjectFactory.h>
 
 #include <iostream>
@@ -113,11 +115,27 @@ int main(int argc, char** argv)
     {
         if (vsg::fileExists(inputFilename))
         {
-            std::cout<<"File extension "<<vsg::fileExtension(inputFilename)<<std::endl;
+            auto ext = vsg::fileExtension(inputFilename);
+            std::cout<<"Input File extension "<<ext<<std::endl;
 
-            std::ifstream fin(inputFilename);
-            vsg::AsciiInput input(fin);
-            object = input.readObject("Root");
+            if (ext=="vsga")
+            {
+                std::ifstream fin(inputFilename);
+                vsg::AsciiInput input(fin);
+                object = input.readObject("Root");
+            }
+            else if (ext=="vsgb")
+            {
+                std::ifstream fin(inputFilename, std::ios::in | std::ios::binary);
+                vsg::BinaryInput input(fin);
+                object = input.readObject("Root");
+            }
+            else
+            {
+                std::cout<<"Warning: file format not supported : "<<inputFilename<<std::endl;
+                return 1;
+            }
+
         }
         else
         {
@@ -136,10 +154,22 @@ int main(int argc, char** argv)
         }
         else
         {
+            auto ext = vsg::fileExtension(outputFilename);
+            std::cout<<"Output File extension "<<ext<<std::endl;
+
             // write to specified file
-            std::ofstream fout(outputFilename);
-            vsg::AsciiOutput output(fout);
-            output.writeObject("Root", object);
+            if (ext=="vsga")
+            {
+                std::ofstream fout(outputFilename);
+                vsg::AsciiOutput output(fout);
+                output.writeObject("Root", object);
+            }
+            else if (ext=="vsgb")
+            {
+                std::ofstream fout(outputFilename, std::ios::out | std::ios::binary);
+                vsg::BinaryOutput output(fout);
+                output.writeObject("Root", object);
+            }
         }
     }
 
