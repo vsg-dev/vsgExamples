@@ -25,8 +25,18 @@ vsg::ref_ptr<vsg::Node> convertToVsg(osg::Node* osgNode)
     return vsg::ref_ptr<vsg::Node>();
 }
 
+vsg::ref_ptr<vsg::Node> convertToVsg(osg::Image* image)
+{
+    // TODO
+    std::cout<<"convertToVsg("<<image->getCompoundClassName()<<") image version"<<std::endl;
+
+    return vsg::ref_ptr<vsg::Node>();
+}
+
 vsg::ref_ptr<vsg::Object> convertToVsg(osg::Object* osgObject)
 {
+    if (osg::Image* image = osgObject->asImage()) return convertToVsg(image);
+
     // TODO
     std::cout<<"convertToVsg("<<osgObject->getCompoundClassName()<<") object version."<<std::endl;
 
@@ -185,7 +195,7 @@ int main(int argc, char** argv)
             osg::ref_ptr<osg::Object> object = osgDB::readObjectFile(filename);
             if (object)
             {
-                std::cout<<"Read osg file "<<filename<<" root object type = "<<object->className()<<std::endl;
+                std::cout<<"Read osg file "<<filename<<" root object type = "<<object->getCompoundClassName()<<std::endl;
                 osgObjects.push_back(object.get());
             }
         }
