@@ -25,12 +25,14 @@ vsg::ref_ptr<vsg::Node> convertToVsg(osg::Node* osgNode)
     return vsg::ref_ptr<vsg::Node>();
 }
 
-vsg::ref_ptr<vsg::Node> convertToVsg(osg::Image* image)
+vsg::ref_ptr<vsg::Data> convertToVsg(osg::Image* image)
 {
     // TODO
     std::cout<<"convertToVsg("<<image->getCompoundClassName()<<") image version"<<std::endl;
 
-    return vsg::ref_ptr<vsg::Node>();
+    return vsg::ref_ptr<vsg::Data>(new vsg::vec4Array2D(image->s(), image->t()));
+
+//    return vsg::ref_ptr<vsg::Data>();
 }
 
 vsg::ref_ptr<vsg::Object> convertToVsg(osg::Object* osgObject)
@@ -48,29 +50,36 @@ vsg::ref_ptr<vsg::Object> convertToVsg(VsgObjects& vsgObjects, OsgObjects& osgOb
     if (vsgObjects.size()==1 && osgObjects.empty()) return vsgObjects.front();
 
     using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
-    using OsgNodes = std::vector<osg::ref_ptr<osg::Node>>;
+    using VsgData = std::vector<vsg::ref_ptr<vsg::Data>>;
 
     VsgNodes vsgNodes;
+    VsgData vsgData;
     VsgObjects vsgRemainingObjects;
     for(auto& object : vsgObjects)
     {
-        auto node = dynamic_cast<vsg::Node*>(object.get());
-        if (node) vsgNodes.push_back(vsg::ref_ptr<vsg::Node>(node));
-        else vsgRemainingObjects.push_back(object);
+        if (auto node = dynamic_cast<vsg::Node*>(object.get()); node!=nullptr) vsgNodes.emplace_back(node);
+        else if (auto data = dynamic_cast<vsg::Data*>(object.get()); data!=nullptr) vsgData.emplace_back(data);
+        else vsgRemainingObjects.emplace_back(object);
     }
 
-    OsgNodes osgNodes;
-    OsgObjects osgRemainingObjects;
     for(auto& object : osgObjects)
     {
-        auto node = object->asNode();
-        if (node) osgNodes.push_back(node);
-        else osgRemainingObjects.push_back(object.get());
+        if (object->asNode())
+        {
+            if (auto node = convertToVsg(object->asNode()); node.valid()) vsgNodes.emplace_back(node);
+        }
+        else if (object->asImage())
+        {
+            if (auto data = convertToVsg(object->asImage()); data.valid()) vsgData.emplace_back(data);
+        }
+        else
+        {
+            if (auto vsgObject = convertToVsg(object.get()); vsgObject.valid()) vsgRemainingObjects.emplace_back(vsgObject);
+        }
     }
 
     vsg::ref_ptr<vsg::Object> root;
-
-    if ((vsgNodes.size()+osgNodes.size())>1)
+    if (vsgNodes.size()>1)
     {
         // input contains nodes
         auto group = vsg::Group::create();
@@ -80,39 +89,34 @@ vsg::ref_ptr<vsg::Object> convertToVsg(VsgObjects& vsgObjects, OsgObjects& osgOb
             group->addChild(node);
         }
 
-        for (auto& osgNode : osgNodes)
-        {
-            auto vsgNode = convertToVsg(osgNode.get());
-            if (vsgNode) group->addChild(vsgNode);
-        }
-
         root = group;
     }
     else if (vsgNodes.size()==1)
     {
         root = vsgNodes.front();
     }
-    else if (osgNodes.size()==1)
+    else if ((vsgData.size()+vsgRemainingObjects.size())>1)
     {
-        root = convertToVsg(osgNodes.front().get());
+        root = new vsg::Object;
+    }
+    else if (vsgData.size()==1)
+    {
+        return vsgData.front();
+    }
+    else if (vsgRemainingObjects.size()==1)
+    {
+        return vsgRemainingObjects.front();
     }
 
-    if ((vsgRemainingObjects.size()+osgRemainingObjects.size())>=1)
+    unsigned int i=0;
+    for (auto& data : vsgData)
     {
-        if (!root) root = new vsg::Object;
+        root->setObject(vsg::make_string("data_",i++), data);
+    }
 
-        unsigned int i=0;
-        for(auto& object : vsgRemainingObjects)
-        {
-            root->setObject(vsg::make_string("vsg_object_",i), object);
-        }
-
-        for(auto& osgObject : osgRemainingObjects)
-        {
-
-            auto object = convertToVsg(osgObject.get());
-            root->setObject(vsg::make_string("osg_object_",i), object);
-        }
+    for (auto& object: vsgRemainingObjects)
+    {
+        root->setObject(vsg::make_string("object_",i++), object);
     }
 
     return root;
