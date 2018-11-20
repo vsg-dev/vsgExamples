@@ -1,5 +1,6 @@
 add_subdirectory(vsgallocator)
 add_subdirectory(vsgarrays)
+add_subdirectory(vsgdraw)
 add_subdirectory(vsgc_interface)
 add_subdirectory(vsgintrospection)
 add_subdirectory(vsgmaths)
