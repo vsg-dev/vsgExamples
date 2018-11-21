@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 
     if (!outputFilename.empty())
     {
-        vsg::ref_ptr<vsg::vec4Array> image(new vsg::MappedArray<vsg::vec4Array>(bufferMemory, 0, width*height)); // devicememorry, offset and numElements
+        vsg::ref_ptr<vsg::vec4Array2D> image(new vsg::MappedData<vsg::vec4Array2D>(bufferMemory, 0, 0, width, height)); // devicememorry, offset, flags and dimensions
         image->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 
         vsg::vsgReaderWriter io;
