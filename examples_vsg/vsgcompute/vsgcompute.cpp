@@ -6,8 +6,7 @@
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
-    uint32_t width = 3200;
-    uint32_t height = 2400;
+    auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(3200, 2400), {"--size", "-s"});
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto workgroupSize = arguments.value<uint32_t>(32, "-w");
