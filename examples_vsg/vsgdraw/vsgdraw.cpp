@@ -3,44 +3,6 @@
 #include <iostream>
 #include <chrono>
 
-template<class T>
-vsg::ref_ptr<T> readFile(const vsg::Path& filename)
-{
-    vsg::ref_ptr<vsg::Object> object;
-    if (vsg::fileExists(filename))
-    {
-        auto ext = vsg::fileExtension(filename);
-        std::cout<<"Input File extension "<<ext<<std::endl;
-
-        if (ext=="vsga")
-        {
-            std::ifstream fin(filename);
-            vsg::AsciiInput input(fin);
-            auto object = input.readObject("Root");
-            return vsg::ref_ptr<T>(dynamic_cast<T*>(object.get()));
-        }
-        else if (ext=="vsgb")
-        {
-            std::ifstream fin(filename, std::ios::in | std::ios::binary);
-            vsg::BinaryInput input(fin);
-            auto object = input.readObject("Root");
-            return vsg::ref_ptr<T>(dynamic_cast<T*>(object.get()));
-        }
-        else
-        {
-            std::cout<<"Warning: file format not supported : "<<filename<<std::endl;
-            return vsg::ref_ptr<T>();
-        }
-
-    }
-    else
-    {
-        std::cout<<"Warning: could not find file : "<<filename<<std::endl;
-        return vsg::ref_ptr<T>();
-    }
-}
-
-
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -65,7 +27,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto textureData = readFile<vsg::Data>(vsg::findFile(textureFile, searchPaths));
+    vsg::vsgReaderWriter vsgReader;
+    auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
+    if (!textureData)
+    {
+        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
+        return 1;
+    }
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
