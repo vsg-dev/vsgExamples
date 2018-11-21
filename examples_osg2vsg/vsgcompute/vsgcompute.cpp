@@ -1,9 +1,5 @@
 #include <vsg/all.h>
 
-#include <osg/ImageUtils>
-#include <osgDB/ReadFile>
-#include <osgDB/WriteFile>
-
 #include <iostream>
 #include <chrono>
 
@@ -15,7 +11,7 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto workgroupSize = arguments.value<uint32_t>(32, "-w");
-    auto outputFIlename = arguments.value<std::string>("", "-o");
+    auto outputFilename = arguments.value<std::string>("", "-o");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Names instanceExtensions;
@@ -106,23 +102,13 @@ int main(int argc, char** argv)
     auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();
     std::cout<<"Time to run commands "<<time<<"ms"<<std::endl;
 
-    if (!outputFIlename.empty())
+    if (!outputFilename.empty())
     {
-        vsg::ref_ptr<vsg::vec4Array> array(new vsg::MappedArray<vsg::vec4Array>(bufferMemory, 0, width*height)); // devicememorry, offset and numElements
+        vsg::ref_ptr<vsg::vec4Array> image(new vsg::MappedArray<vsg::vec4Array>(bufferMemory, 0, width*height)); // devicememorry, offset and numElements
+        image->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 
-        osg::ref_ptr<osg::Image> image = new osg::Image;
-        image->allocateImage(width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE);
-        unsigned char* dest_ptr = image->data();
-
-        for(auto& c : *array)
-        {
-            (*dest_ptr++) = (unsigned char)(c.r * 255.0f);
-            (*dest_ptr++) = (unsigned char)(c.g * 255.0f);
-            (*dest_ptr++) = (unsigned char)(c.b * 255.0f);
-            (*dest_ptr++) = (unsigned char)(c.a * 255.0f);
-        }
-
-        osgDB::writeImageFile(*image, outputFIlename);
+        vsg::vsgReaderWriter io;
+        io.writeFile(image, outputFilename);
     }
 
     // clean up done automatically thanks to ref_ptr<>
