@@ -1,22 +1,22 @@
 #include <vsg/all.h>
 
-#include <osg2vsg/ImageUtils.h>
-
 #include <iostream>
 #include <chrono>
 
-
 int main(int argc, char** argv)
 {
+    // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.value(false, "--fr");
     auto numWindows = arguments.value(1, "--num-windows");
+    auto textureFile = arguments.value(std::string("textures/lz.vsgb"), "-t");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
+    // read shaders
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     vsg::ref_ptr<vsg::Shader> vertexShader = vsg::Shader::read( VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
@@ -27,6 +27,15 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    vsg::vsgReaderWriter vsgReader;
+    auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
+    if (!textureData)
+    {
+        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
+        return 1;
+    }
+
+    // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(width, height, debugLayer, apiDumpLayer));
@@ -44,6 +53,7 @@ int main(int argc, char** argv)
         viewer->addWindow( new_window );
     }
 
+    // create high level Vulkan objects associated the main window
     vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice(window->physicalDevice());
     vsg::ref_ptr<vsg::Device> device(window->device());
     vsg::ref_ptr<vsg::Surface> surface(window->surface());
@@ -59,7 +69,6 @@ int main(int argc, char** argv)
     }
 
     vsg::ref_ptr<vsg::CommandPool> commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
-
 
     // set up vertex and index arrays
     vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
@@ -113,7 +122,7 @@ int main(int argc, char** argv)
     //
     // set up texture image
     //
-    vsg::ImageData imageData = osg2vsg::readImageFile(device, commandPool, graphicsQueue, vsg::findFile("textures/lz.rgb", searchPaths));
+    vsg::ImageData imageData = vsg::transferImageData(device, commandPool, graphicsQueue, textureData);
     if (!imageData.valid())
     {
         std::cout<<"Texture not created"<<std::endl;
