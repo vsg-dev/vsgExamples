@@ -5,7 +5,7 @@ Example programs that test and illustrate how to use the [VulkanSceneGraph/VkSce
 Contains [examples](examples_vsg/) that depend upon the core **vsg** library provided by the [VulkanSceneGraphPrototype](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and [Vulkan](https://vulkan.lunarg.com/).
 
 ## examples_osg
-Contains [examples](examples_osg/) that depend upon the core **vsg** library, **Vulkan**, and add the dependency on [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/). The examples_osg are only built when both the VSG and OSG are available.  These examples use the OSG for data and performane comparison purposes.
+Contains a small set of [examples](examples_osg/) that depend upon the core **vsg** library, **Vulkan**, and add the dependency on [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/). The examples_osg are only built when both the VSG and OSG are available.  These examples use the OSG for data and performance comparison purposes.
 
 ## Quick Guide to Building the vsgExamples
 
