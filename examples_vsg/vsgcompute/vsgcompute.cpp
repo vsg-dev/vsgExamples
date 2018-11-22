@@ -6,11 +6,13 @@
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
-    auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(3200, 2400), {"--size", "-s"});
+    std::uint32_t width = 1024, height = 1024; // data/shader/shader.comp is currently hardwired to 1024x1024.
+    //auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1024, 1024), {"--size", "-s"}); // TODO pass uniform to shader with sizes
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto workgroupSize = arguments.value<uint32_t>(32, "-w");
     auto outputFilename = arguments.value<std::string>("", "-o");
+    auto outputAsFloat = arguments.read("-f");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Names instanceExtensions;
@@ -103,11 +105,30 @@ int main(int argc, char** argv)
 
     if (!outputFilename.empty())
     {
-        vsg::ref_ptr<vsg::vec4Array2D> image(new vsg::MappedData<vsg::vec4Array2D>(bufferMemory, 0, 0, width, height)); // devicememorry, offset, flags and dimensions
+        // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
+        vsg::ref_ptr<vsg::vec4Array2D> image(new vsg::MappedData<vsg::vec4Array2D>(bufferMemory, 0, 0, width, height)); // deviceMemory, offset, flags and dimensions
         image->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 
-        vsg::vsgReaderWriter io;
-        io.writeFile(image, outputFilename);
+        if (outputAsFloat)
+        {
+            vsg::vsgReaderWriter io;
+            io.writeFile(image, outputFilename);
+        }
+        else
+        {
+            // create a unsigned byte version of the image and then copy the texels across converting colours from float to unsigned byte.
+            vsg::ref_ptr<vsg::ubvec4Array2D> dest(new vsg::ubvec4Array2D(width, height));
+            dest->setFormat(VK_FORMAT_R8G8B8A8_UNORM);
+
+            auto c_itr = dest->begin();
+            for(auto& colour : *image)
+            {
+                (c_itr++)->set(colour.r*255.0, colour.g*255.0, colour.b*255.0, colour.a*255.0);
+            }
+
+            vsg::vsgReaderWriter io;
+            io.writeFile(dest, outputFilename);
+        }
     }
 
     // clean up done automatically thanks to ref_ptr<>
