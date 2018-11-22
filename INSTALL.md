@@ -8,7 +8,6 @@
 * [VulkanSceneGraphPrototype](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) use master
 
 ### Optional Dependencies:
-* [osg2vsg](https://github.com/vsg-dev/osg2vsg/) use master.
 * [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/), currently any 3.x stable release should work fine.
 
 The above dependency versions are known to work so they've been set as the current minimum, it may be possible to build against older versions.  If you find success with older versions let us know and we can update the version info.

@@ -4,8 +4,8 @@ Example programs that test and illustrate how to use the [VulkanSceneGraph/VkSce
 ## examples_vsg
 Contains [examples](examples_vsg/) that depend upon the core **vsg** library provided by the [VulkanSceneGraphPrototype](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and [Vulkan](https://vulkan.lunarg.com/).
 
-## examples_osg2vsg
-Contains [examples](examples_osg2vsg/) that depend upon the core **vsg** library, **Vulkan**, and add the dependency on [osg2vsg](https://github.com/vsg-dev/osg2vsg/) library which in turn depends upon [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/). The examples_osg2vsg are only built when osg2vsg is available.
+## examples_osg
+Contains [examples](examples_osg/) that depend upon the core **vsg** library, **Vulkan**, and add the dependency on [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/). The examples_osg are only built when both the VSG and OSG are available.  These examples use the OSG for data and performane comparison purposes.
 
 ## Quick Guide to Building the vsgExamples
 
@@ -17,7 +17,6 @@ Contains [examples](examples_osg2vsg/) that depend upon the core **vsg** library
 * [VulkanSceneGraphPrototype](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) use master
 
 ### Optional Dependencies:
-* [osg2vsg](https://github.com/vsg-dev/osg2vsg/) use master.
 * [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/), currently any 3.x stable release should work fine.
 
 The above dependency versions are known to work so they've been set as the current minimum, it may be possible to build against older versions.  If you find success with older versions let us know and we can update the version info.
