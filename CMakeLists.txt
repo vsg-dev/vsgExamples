@@ -17,8 +17,11 @@ endif(NOT CMAKE_BUILD_TYPE)
 # find the vsg
 find_package(vsg REQUIRED)
 
+# find the OpenSceneGraph
+find_package(osg)
+
 # Find osg2vsg
-find_package(osg2vsg)
+#find_package(osg2vsg)
 
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
@@ -31,7 +34,7 @@ add_custom_target(clobber
 # pure VSG examples
 add_subdirectory(examples_vsg)
 
-if (osg2vsg_FOUND)
+if (OSG_FOUND)
     # examples that required VSG and osg2vsg (and hence OpenSceneGraph)
     add_subdirectory(examples_osg2vsg)
 endif()
