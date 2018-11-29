@@ -1,21 +1,4 @@
-/*
- * Copyright (C) 2010 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
 
-//BEGIN_INCLUDE(all)
 #include <initializer_list>
 #include <memory>
 #include <cstdlib>
@@ -24,361 +7,379 @@
 #include <errno.h>
 #include <cassert>
 
-#include <EGL/egl.h>
-#include <GLES/gl.h>
-
-#include <android/sensor.h>
 #include <android/log.h>
 #include <android_native_app_glue.h>
+
+#include <vsg/all.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "native-activity", __VA_ARGS__))
 
-/**
- * Our saved state data.
- */
-struct saved_state {
-    float angle;
-    int32_t x;
-    int32_t y;
-};
-
-/**
- * Shared state for our app.
- */
-struct engine {
+//
+// App state
+//
+struct AppData
+{
     struct android_app* app;
 
-    ASensorManager* sensorManager;
-    const ASensor* accelerometerSensor;
-    ASensorEventQueue* sensorEventQueue;
+    vsg::ref_ptr<vsg::Viewer> viewer;
 
-    int animating;
-    EGLDisplay display;
-    EGLSurface surface;
-    EGLContext context;
+    vsg::BufferDataList uniformBufferData;
+    vsg::ref_ptr<vsg::mat4Value> projMatrix;
+    vsg::ref_ptr<vsg::mat4Value> viewMatrix;
+    vsg::ref_ptr<vsg::mat4Value> modelMatrix;
+
     int32_t width;
     int32_t height;
-    struct saved_state state;
+
+    // touch coord
+    int32_t x;
+    int32_t y;
+
+    float time;
 };
 
-/**
- * Initialize an EGL context for the current display.
- */
-static int engine_init_display(struct engine* engine) {
-    // initialize OpenGL ES and EGL
+//
+// Init the vsg viewer and load assets
+//
+static int vsg_init(struct AppData* appData)
+{
+    appData->viewer = vsg::Viewer::create();
 
-    /*
-     * Here specify the attributes of the desired configuration.
-     * Below, we select an EGLConfig with at least 8 bits per color
-     * component compatible with on-screen windows
-     */
-    const EGLint attribs[] = {
-            EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-            EGL_BLUE_SIZE, 8,
-            EGL_GREEN_SIZE, 8,
-            EGL_RED_SIZE, 8,
-            EGL_NONE
+    appData->time = 0.0f;
+
+    vsg::Window::Traits traits = {};
+    traits.width = appData->width = ANativeWindow_getWidth(appData->app->window);
+    traits.height = appData->height = ANativeWindow_getHeight(appData->app->window);
+
+    //traits.nativeHandle = engine->app->window;
+    traits.nativeWindow = appData->app->window;
+
+    /*ANativeWindow** nativeWindow = std::any_cast<ANativeWindow*>(&traits.nativeHandle);
+
+    if(nativeWindow != nullptr)
+    {
+
+    }*/
+
+    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));
+    if (!window)
+    {
+        LOGW("Could not create window.");
+        return 1;
+    }
+
+    appData->viewer->addWindow(window);
+
+
+    // read shaders
+    vsg::Paths searchPaths = {"/storage/emulated/0/Download/data"};
+
+    vsg::ref_ptr<vsg::Shader> vertexShader = vsg::Shader::read( VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert.spv", searchPaths));
+    vsg::ref_ptr<vsg::Shader> fragmentShader = vsg::Shader::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag.spv", searchPaths));
+    if (!vertexShader || !fragmentShader)
+    {
+        std::cout<<"Could not create shaders."<<std::endl;
+        return 1;
+    }
+
+    // read texture
+    vsg::vsgReaderWriter vsgReader;
+    auto textureData = vsgReader.read<vsg::Data>(vsg::findFile("textures/lz.vsgb", searchPaths));
+    if (!textureData)
+    {
+        std::cout<<"Could not read texture file : textures/lz.vsgb" <<std::endl;
+        return 1;
+    }
+
+    //
+    // create high level Vulkan objects associated the main window
+
+    vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice(window->physicalDevice());
+    vsg::ref_ptr<vsg::Device> device(window->device());
+    vsg::ref_ptr<vsg::Surface> surface(window->surface());
+    vsg::ref_ptr<vsg::RenderPass> renderPass(window->renderPass());
+
+    VkQueue graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
+    VkQueue presentQueue = device->getQueue(physicalDevice->getPresentFamily());
+    if (!graphicsQueue || !presentQueue)
+    {
+        LOGW("Required graphics/present queue not available!");
+        return 1;
+    }
+
+    // create command pool
+    vsg::ref_ptr<vsg::CommandPool> commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
+
+    // set up vertex and index arrays
+    vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
+            {
+                    {-0.5f, -0.5f, 0.0f},
+                    {0.5f,  -0.5f, 0.05f},
+                    {0.5f , 0.5f, 0.0f},
+                    {-0.5f, 0.5f, 0.0f},
+                    {-0.5f, -0.5f, -0.5f},
+                    {0.5f,  -0.5f, -0.5f},
+                    {0.5f , 0.5f, -0.5},
+                    {-0.5f, 0.5f, -0.5}
+            });
+
+    vsg::ref_ptr<vsg::vec3Array> colors(new vsg::vec3Array
+            {
+                    {1.0f, 0.0f, 0.0f},
+                    {0.0f, 1.0f, 0.0f},
+                    {0.0f, 0.0f, 1.0f},
+                    {1.0f, 1.0f, 1.0f},
+                    {1.0f, 0.0f, 0.0f},
+                    {0.0f, 1.0f, 0.0f},
+                    {0.0f, 0.0f, 1.0f},
+                    {1.0f, 1.0f, 1.0f},
+            });
+
+    vsg::ref_ptr<vsg::vec2Array> texcoords(new vsg::vec2Array
+            {
+                    {0.0f, 0.0f},
+                    {1.0f, 0.0f},
+                    {1.0f, 1.0f},
+                    {0.0f, 1.0f},
+                    {0.0f, 0.0f},
+                    {1.0f, 0.0f},
+                    {1.0f, 1.0f},
+                    {0.0f, 1.0f}
+            });
+
+    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
+            {
+                    0, 1, 2,
+                    2, 3, 0,
+                    4, 5, 6,
+                    6, 7, 4
+            });
+
+    auto vertexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, vsg::DataList{vertices, colors, texcoords}, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+    auto indexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, {indices}, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+
+    // set up uniforms
+    appData->projMatrix = new vsg::mat4Value;
+    appData->viewMatrix = new vsg::mat4Value;
+    appData->modelMatrix = new vsg::mat4Value;
+
+    appData->uniformBufferData = vsg::createHostVisibleBuffer(device, {appData->projMatrix, appData->viewMatrix, appData->modelMatrix}, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+
+    //
+    // set up texture image
+    //
+    vsg::ImageData imageData = vsg::transferImageData(device, commandPool, graphicsQueue, textureData);
+    if (!imageData.valid())
+    {
+        std::cout<<"Texture not created"<<std::endl;
+        return 1;
+    }
+
+    //
+    // set up descriptor layout and descriptor set and pipeline layout for uniforms
+    //
+    vsg::ref_ptr<vsg::DescriptorPool> descriptorPool = vsg::DescriptorPool::create(device, 1,
+    {
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
+            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}
+    });
+
+    vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout = vsg::DescriptorSetLayout::create(device,
+    {
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+            {3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
+    });
+
+    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, descriptorSetLayout,
+    {
+            vsg::DescriptorBuffer::create(0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, appData->uniformBufferData),
+            vsg::DescriptorImage::create(3, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::ImageDataList{imageData})
+    });
+
+    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(device, {descriptorSetLayout}, {});
+
+    // setup binding of descriptors
+    vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, vsg::DescriptorSets{descriptorSet}); // device dependent
+
+
+    // set up graphics pipeline
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions
+    {
+            VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX},
+            VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX},
+            VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}
     };
-    EGLint w, h, format;
-    EGLint numConfigs;
-    EGLConfig config;
-    EGLSurface surface;
-    EGLContext context;
 
-    EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions
+    {
+            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
+            VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0},
+            VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},
+    };
 
-    eglInitialize(display, 0, 0);
+    vsg::ref_ptr<vsg::ShaderStages> shaderStages = vsg::ShaderStages::create(vsg::ShaderModules
+    {
+            vsg::ShaderModule::create(device, vertexShader),
+            vsg::ShaderModule::create(device, fragmentShader)
+    });
 
-    /* Here, the application chooses the configuration it desires.
-     * find the best match if possible, otherwise use the very first one
-     */
-    eglChooseConfig(display, attribs, nullptr,0, &numConfigs);
-    std::unique_ptr<EGLConfig[]> supportedConfigs(new EGLConfig[numConfigs]);
-    assert(supportedConfigs);
-    eglChooseConfig(display, attribs, supportedConfigs.get(), numConfigs, &numConfigs);
-    assert(numConfigs);
-    auto i = 0;
-    for (; i < numConfigs; i++) {
-        auto& cfg = supportedConfigs[i];
-        EGLint r, g, b, d;
-        if (eglGetConfigAttrib(display, cfg, EGL_RED_SIZE, &r)   &&
-            eglGetConfigAttrib(display, cfg, EGL_GREEN_SIZE, &g) &&
-            eglGetConfigAttrib(display, cfg, EGL_BLUE_SIZE, &b)  &&
-            eglGetConfigAttrib(display, cfg, EGL_DEPTH_SIZE, &d) &&
-            r == 8 && g == 8 && b == 8 && d == 0 ) {
+    vsg::ref_ptr<vsg::GraphicsPipeline> pipeline = vsg::GraphicsPipeline::create(device, renderPass, pipelineLayout, // device dependent
+    {
+            shaderStages,  // device dependent
+            vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),// device independent
+            vsg::InputAssemblyState::create(), // device independent
+            vsg::ViewportState::create(VkExtent2D{traits.width, traits.height}), // device independent
+            vsg::RasterizationState::create(),// device independent
+            vsg::MultisampleState::create(),// device independent
+            vsg::ColorBlendState::create(),// device independent
+            vsg::DepthStencilState::create()// device independent
+    });
 
-            config = supportedConfigs[i];
-            break;
-        }
+    vsg::ref_ptr<vsg::BindPipeline> bindPipeline = vsg::BindPipeline::create(pipeline);
+
+    // set up vertex buffer binding
+    vsg::ref_ptr<vsg::BindVertexBuffers> bindVertexBuffers = vsg::BindVertexBuffers::create(0, vertexBufferData);  // device dependent
+
+    // set up index buffer binding
+    vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = vsg::BindIndexBuffer::create(indexBufferData.front(), VK_INDEX_TYPE_UINT16); // device dependent
+
+    // set up drawing of the triangles
+    vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0); // device independent
+
+    // set up what we want to render in a command graph
+    // create command graph to contain all the Vulkan calls for specifically rendering the model
+    vsg::ref_ptr<vsg::Group> commandGraph = vsg::Group::create();
+
+    vsg::ref_ptr<vsg::StateGroup> stateGroup = vsg::StateGroup::create();
+    commandGraph->addChild(stateGroup);
+
+    // set up the state configuration
+    stateGroup->add(bindPipeline);  // device dependent
+    stateGroup->add(bindDescriptorSets);  // device dependent
+
+    // add subgraph that represents the model to render
+    vsg::ref_ptr<vsg::StateGroup> model = vsg::StateGroup::create();
+    stateGroup->addChild(model);
+
+    // add the vertex and index buffer data
+    model->add(bindVertexBuffers); // device dependent
+    model->add(bindIndexBuffer); // device dependent
+
+    // add the draw primitive command
+    model->addChild(drawIndexed); // device independent
+
+    for (auto& win : appData->viewer->windows())
+    {
+        // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
+        win->addStage(vsg::GraphicsStage::create(commandGraph));
+        win->populateCommandBuffers();
     }
-    if (i == numConfigs) {
-        config = supportedConfigs[0];
-    }
-
-    /* EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is
-     * guaranteed to be accepted by ANativeWindow_setBuffersGeometry().
-     * As soon as we picked a EGLConfig, we can safely reconfigure the
-     * ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
-    eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-    surface = eglCreateWindowSurface(display, config, engine->app->window, NULL);
-    context = eglCreateContext(display, config, NULL, NULL);
-
-    if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
-        LOGW("Unable to eglMakeCurrent");
-        return -1;
-    }
-
-    eglQuerySurface(display, surface, EGL_WIDTH, &w);
-    eglQuerySurface(display, surface, EGL_HEIGHT, &h);
-
-    engine->display = display;
-    engine->context = context;
-    engine->surface = surface;
-    engine->width = w;
-    engine->height = h;
-    engine->state.angle = 0;
-
-    // Check openGL on the system
-    auto opengl_info = {GL_VENDOR, GL_RENDERER, GL_VERSION, GL_EXTENSIONS};
-    for (auto name : opengl_info) {
-        auto info = glGetString(name);
-        LOGI("OpenGL Info: %s", info);
-    }
-    // Initialize GL state.
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-    glEnable(GL_CULL_FACE);
-    glShadeModel(GL_SMOOTH);
-    glDisable(GL_DEPTH_TEST);
+    return 0;
 
     return 0;
 }
 
-/**
- * Just the current frame in the display.
- */
-static void engine_draw_frame(struct engine* engine) {
-    if (engine->display == NULL) {
-        // No display.
+//
+// Render a frame
+//
+static void vsg_frame(struct AppData* appData)
+{
+    if (!appData->viewer.valid()) {
+        // no viewer.
         return;
     }
 
-    // Just fill the screen with a color.
-    glClearColor(((float)engine->state.x)/engine->width, engine->state.angle,
-                 ((float)engine->state.y)/engine->height, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
+    appData->viewer->pollEvents();
 
-    eglSwapBuffers(engine->display, engine->surface);
+    appData->time = appData->time + 0.033f;
+    //float previousTime = engine->time;
+    //engine->time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-startTime).count();
+    //if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
+
+    // update
+    (*appData->projMatrix) = vsg::perspective(vsg::radians(45.0f), float(appData->width)/float(appData->height), 0.1f, 10.f);
+    (*appData->viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
+    (*appData->modelMatrix) = vsg::rotate(appData->time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
+
+    vsg::copyDataListToBuffers(appData->uniformBufferData);
+
+    appData->viewer->submitFrame();
 }
 
-/**
- * Tear down the EGL context currently associated with the display.
- */
-static void engine_term_display(struct engine* engine) {
-    if (engine->display != EGL_NO_DISPLAY) {
-        eglMakeCurrent(engine->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-        if (engine->context != EGL_NO_CONTEXT) {
-            eglDestroyContext(engine->display, engine->context);
-        }
-        if (engine->surface != EGL_NO_SURFACE) {
-            eglDestroySurface(engine->display, engine->surface);
-        }
-        eglTerminate(engine->display);
-    }
-    engine->animating = 0;
-    engine->display = EGL_NO_DISPLAY;
-    engine->context = EGL_NO_CONTEXT;
-    engine->surface = EGL_NO_SURFACE;
-}
-
-/**
- * Process the next input event.
- */
-static int32_t engine_handle_input(struct android_app* app, AInputEvent* event) {
-    struct engine* engine = (struct engine*)app->userData;
-    if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
-        engine->animating = 1;
-        engine->state.x = AMotionEvent_getX(event, 0);
-        engine->state.y = AMotionEvent_getY(event, 0);
+//
+// Handle input event
+//
+static int32_t android_handleinput(struct android_app* app, AInputEvent* event)
+{
+    struct AppData* appData = (struct AppData*)app->userData;
+    if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
+    {
+        appData->x = AMotionEvent_getX(event, 0);
+        appData->y = AMotionEvent_getY(event, 0);
         return 1;
     }
     return 0;
 }
 
-/**
- * Process the next main command.
- */
-static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
-    struct engine* engine = (struct engine*)app->userData;
-    switch (cmd) {
+//
+// Handle main commands
+//
+static void android_handlecmd(struct android_app* app, int32_t cmd)
+{
+    struct AppData* appData = (struct AppData*)app->userData;
+    switch (cmd)
+    {
         case APP_CMD_SAVE_STATE:
-            // The system has asked us to save our current state.  Do so.
-            engine->app->savedState = malloc(sizeof(struct saved_state));
-            *((struct saved_state*)engine->app->savedState) = engine->state;
-            engine->app->savedStateSize = sizeof(struct saved_state);
             break;
         case APP_CMD_INIT_WINDOW:
             // The window is being shown, get it ready.
-            if (engine->app->window != NULL) {
-                engine_init_display(engine);
-                engine_draw_frame(engine);
+            if (appData->app->window != NULL)
+            {
+                vsg_init(appData);
             }
             break;
         case APP_CMD_TERM_WINDOW:
             // The window is being hidden or closed, clean it up.
-            engine_term_display(engine);
             break;
         case APP_CMD_GAINED_FOCUS:
-            // When our app gains focus, we start monitoring the accelerometer.
-            if (engine->accelerometerSensor != NULL) {
-                ASensorEventQueue_enableSensor(engine->sensorEventQueue,
-                                               engine->accelerometerSensor);
-                // We'd like to get 60 events per second (in us).
-                ASensorEventQueue_setEventRate(engine->sensorEventQueue,
-                                               engine->accelerometerSensor,
-                                               (1000L/60)*1000);
-            }
             break;
         case APP_CMD_LOST_FOCUS:
-            // When our app loses focus, we stop monitoring the accelerometer.
-            // This is to avoid consuming battery while not being used.
-            if (engine->accelerometerSensor != NULL) {
-                ASensorEventQueue_disableSensor(engine->sensorEventQueue,
-                                                engine->accelerometerSensor);
-            }
-            // Also stop animating.
-            engine->animating = 0;
-            engine_draw_frame(engine);
             break;
     }
 }
 
-/*
- * AcquireASensorManagerInstance(void)
- *    Workaround ASensorManager_getInstance() deprecation false alarm
- *    for Android-N and before, when compiling with NDK-r15
- */
-#include <dlfcn.h>
-ASensorManager* AcquireASensorManagerInstance(android_app* app) {
+//
+// Main entry point for the application
+//
+void android_main(struct android_app* app)
+{
+    struct AppData appData;
 
-  if(!app)
-    return nullptr;
+    memset(&appData, 0, sizeof(AppData));
+    app->userData = &appData;
+    app->onAppCmd = android_handlecmd;
+    app->onInputEvent = android_handleinput;
+    appData.app = app;
 
-  typedef ASensorManager *(*PF_GETINSTANCEFORPACKAGE)(const char *name);
-  void* androidHandle = dlopen("libandroid.so", RTLD_NOW);
-  PF_GETINSTANCEFORPACKAGE getInstanceForPackageFunc = (PF_GETINSTANCEFORPACKAGE)
-      dlsym(androidHandle, "ASensorManager_getInstanceForPackage");
-  if (getInstanceForPackageFunc) {
-    JNIEnv* env = nullptr;
-    app->activity->vm->AttachCurrentThread(&env, NULL);
+    // Used to poll the events in the main loop
+    int events;
+    android_poll_source* source;
 
-    jclass android_content_Context = env->GetObjectClass(app->activity->clazz);
-    jmethodID midGetPackageName = env->GetMethodID(android_content_Context,
-                                                   "getPackageName",
-                                                   "()Ljava/lang/String;");
-    jstring packageName= (jstring)env->CallObjectMethod(app->activity->clazz,
-                                                        midGetPackageName);
-
-    const char *nativePackageName = env->GetStringUTFChars(packageName, 0);
-    ASensorManager* mgr = getInstanceForPackageFunc(nativePackageName);
-    env->ReleaseStringUTFChars(packageName, nativePackageName);
-    app->activity->vm->DetachCurrentThread();
-    if (mgr) {
-      dlclose(androidHandle);
-      return mgr;
-    }
-  }
-
-  typedef ASensorManager *(*PF_GETINSTANCE)();
-  PF_GETINSTANCE getInstanceFunc = (PF_GETINSTANCE)
-      dlsym(androidHandle, "ASensorManager_getInstance");
-  // by all means at this point, ASensorManager_getInstance should be available
-  assert(getInstanceFunc);
-  dlclose(androidHandle);
-
-  return getInstanceFunc();
-}
-
-
-/**
- * This is the main entry point of a native application that is using
- * android_native_app_glue.  It runs in its own thread, with its own
- * event loop for receiving input events and doing other things.
- */
-void android_main(struct android_app* state) {
-    struct engine engine;
-
-    memset(&engine, 0, sizeof(engine));
-    state->userData = &engine;
-    state->onAppCmd = engine_handle_cmd;
-    state->onInputEvent = engine_handle_input;
-    engine.app = state;
-
-    // Prepare to monitor accelerometer
-    engine.sensorManager = AcquireASensorManagerInstance(state);
-    engine.accelerometerSensor = ASensorManager_getDefaultSensor(
-                                        engine.sensorManager,
-                                        ASENSOR_TYPE_ACCELEROMETER);
-    engine.sensorEventQueue = ASensorManager_createEventQueue(
-                                    engine.sensorManager,
-                                    state->looper, LOOPER_ID_USER,
-                                    NULL, NULL);
-
-    if (state->savedState != NULL) {
-        // We are starting with a previous saved state; restore from it.
-        engine.state = *(struct saved_state*)state->savedState;
-    }
-
-    // loop waiting for stuff to do.
-
-    while (1) {
-        // Read all pending events.
-        int ident;
-        int events;
-        struct android_poll_source* source;
-
-        // If not animating, we will block forever waiting for events.
-        // If animating, we loop until all events are read, then continue
-        // to draw the next frame of animation.
-        while ((ident=ALooper_pollAll(engine.animating ? 0 : -1, NULL, &events,
-                                      (void**)&source)) >= 0) {
-
-            // Process this event.
-            if (source != NULL) {
-                source->process(state, source);
-            }
-
-            // If a sensor has data, process it now.
-            if (ident == LOOPER_ID_USER) {
-                if (engine.accelerometerSensor != NULL) {
-                    ASensorEvent event;
-                    while (ASensorEventQueue_getEvents(engine.sensorEventQueue,
-                                                       &event, 1) > 0) {
-                        LOGI("accelerometer: x=%f y=%f z=%f",
-                             event.acceleration.x, event.acceleration.y,
-                             event.acceleration.z);
-                    }
-                }
-            }
-
-            // Check if we are exiting.
-            if (state->destroyRequested != 0) {
-                engine_term_display(&engine);
-                return;
-            }
+    // main loop
+    do
+    {
+        // poll events
+        if (ALooper_pollAll(0, nullptr, &events, (void**)&source) >= 0)
+        {
+            if (source != NULL) source->process(app, source);
         }
 
-        if (engine.animating) {
-            // Done with events; draw next animation frame.
-            engine.state.angle += .01f;
-            if (engine.state.angle > 1) {
-                engine.state.angle = 0;
-            }
-
-            // Drawing is throttled to the screen update rate, so there
-            // is no need to do timing here.
-            engine_draw_frame(&engine);
+        // render if vulkan if ready
+        if (appData.viewer.valid()) {
+            vsg_frame(&appData);
         }
-    }
+    } while (app->destroyRequested == 0);
 }
-//END_INCLUDE(all)

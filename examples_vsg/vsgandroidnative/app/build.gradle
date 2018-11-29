@@ -9,7 +9,11 @@ android {
         targetSdkVersion 26
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_STL=c++_static'
+                version "3.13.0"
+                arguments '-DCMAKE_SYSTEM_NAME="Android', '-DCMAKE_SYSTEM_VERSION=24', '-DCMAKE_ANDROID_ARCH_ABI=armeabi-v7a', '-DANDROID_STL=c++_static', '-Dvsg_DIR=/usr/local/android/lib/cmake/vsg'
+            }
+            ndk {
+                abiFilters 'armeabi-v7a'
             }
         }
     }
