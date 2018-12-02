@@ -18,6 +18,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 find_package(vsg REQUIRED)
 
 # find the OpenSceneGraph
+find_package(OpenThreads)
 find_package(osg)
 
 # set the use of C++17 globally as all examples require it
