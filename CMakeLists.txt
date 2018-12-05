@@ -20,6 +20,7 @@ find_package(vsg REQUIRED)
 # find the OpenSceneGraph
 find_package(OpenThreads)
 find_package(osg)
+find_package(osgDB)
 
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)

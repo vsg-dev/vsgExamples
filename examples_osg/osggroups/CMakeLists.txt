@@ -12,5 +12,5 @@ set(SOURCES osggroups.cpp)
 
 add_executable(osggroups ${SOURCES})
 target_include_directories(osggroups PRIVATE ${OSG_INCLUDE_DIR})
-target_link_libraries(osggroups ${OSG_LIBRARIES} ${OPENTHREADS_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} OpenGL::OpenGL ${DL_LIBRARY})
+target_link_libraries(osggroups ${OSGDB_LIBRARIES} ${OSG_LIBRARIES} ${OPENTHREADS_LIBRARY} ${CMAKE_THREAD_LIBS_INIT} OpenGL::OpenGL ${DL_LIBRARY})
 
