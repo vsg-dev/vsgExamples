@@ -4,7 +4,6 @@
 
 int main(int argc, char** argv)
 {
-
     struct Property bool_property;
     bool_property.type = TYPE_bool;
     bool_property.value._bool = 1;
@@ -16,6 +15,7 @@ int main(int argc, char** argv)
     struct Property mat4_property;
     mat4_property.type = TYPE_mat4;
     mat4_property.value._mat4[0][0] = 1.0f;
+
 
     vsgObjectPtr group = vsgCreate("vsg::Group");
     vsgRef(group);
@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 
     struct Property object_property;
     object_property.type = TYPE_Object;
-    object_property.value._object = group;
+    object_property.value._object = node;
 
     const char* groupClassName = vsgClassName(group);
     if (groupClassName) printf("group's ClassName = %s\n", groupClassName);
@@ -60,6 +60,5 @@ int main(int argc, char** argv)
     vsgUnref(node);
     vsgUnref(lod);
     vsgUnref(group);
-
     return 0;
 }
