@@ -240,7 +240,6 @@ int main(int argc, char** argv)
     /////////////////////////////////////////////////////////////////////
 
     auto startTime =std::chrono::steady_clock::now();
-    float time = 0.0f;
 
     for (auto& win : viewer->windows())
     {
@@ -249,12 +248,13 @@ int main(int argc, char** argv)
         win->populateCommandBuffers();
     }
 
+    float time = 0.0f;
     while (!viewer->done() && (numFrames<0 || (numFrames--)>0))
     {
         viewer->pollEvents();
 
         float previousTime = time;
-        time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-startTime).count();
+        time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-viewer->start_point()).count();
         if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
 
         (*projMatrix) = vsg::perspective(vsg::radians(45.0f), float(width)/float(height), 0.1f, 10.f);
