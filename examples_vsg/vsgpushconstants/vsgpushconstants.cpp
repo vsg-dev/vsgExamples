@@ -10,7 +10,7 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto numFrames = arguments.value(-1, "-f");
-    auto printFrameRate = arguments.value(false, "--fr");
+    auto printFrameRate = arguments.read("--fr");
     auto numWindows = arguments.value(1, "--num-windows");
     auto textureFile = arguments.value(std::string("textures/lz.vsgb"), "-t");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
