@@ -10,7 +10,7 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto numFrames = arguments.value(-1, "-f");
-    auto printFrameRate = arguments.value(false, "--fr");
+    auto printFrameRate = arguments.read("--fr");
     auto numWindows = arguments.value(1, "--num-windows");
     auto textureFile = arguments.value(std::string("textures/lz.vsgb"), "-t");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
@@ -235,9 +235,6 @@ int main(int argc, char** argv)
     //
     /////////////////////////////////////////////////////////////////////
 
-    auto startTime =std::chrono::steady_clock::now();
-    float time = 0.0f;
-
     for (auto& win : viewer->windows())
     {
         // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
@@ -245,12 +242,13 @@ int main(int argc, char** argv)
         win->populateCommandBuffers();
     }
 
+    float time = 0.0f;
     while (!viewer->done() && (numFrames<0 || (numFrames--)>0))
     {
         viewer->pollEvents();
 
         float previousTime = time;
-        time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-startTime).count();
+        time = std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now()-viewer->start_point()).count();
         if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
 
         // update
