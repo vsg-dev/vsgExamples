@@ -11,6 +11,7 @@
 #include <android_native_app_glue.h>
 
 #include <vsg/all.h>
+#include <vsg/viewer/platforms/Android_Window.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "native-activity", __VA_ARGS__))
@@ -23,6 +24,7 @@ struct AppData
     struct android_app* app;
 
     vsg::ref_ptr<vsg::Viewer> viewer;
+    vsg::ref_ptr<vsgAndroid::Android_Window> window;
 
     vsg::BufferDataList uniformBufferData;
     vsg::ref_ptr<vsg::mat4Value> projMatrix;
@@ -55,19 +57,15 @@ static int vsg_init(struct AppData* appData)
     //traits.nativeHandle = engine->app->window;
     traits.nativeWindow = appData->app->window;
 
-    /*ANativeWindow** nativeWindow = std::any_cast<ANativeWindow*>(&traits.nativeHandle);
-
-    if(nativeWindow != nullptr)
-    {
-
-    }*/
-
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));
     if (!window)
     {
         LOGW("Could not create window.");
         return 1;
     }
+
+    // cast the window to an android window so we can pass it events
+    appData->window = static_cast<vsgAndroid::Android_Window*>(window.get());
 
     appData->viewer->addWindow(window);
 
@@ -278,8 +276,6 @@ static int vsg_init(struct AppData* appData)
         win->populateCommandBuffers();
     }
     return 0;
-
-    return 0;
 }
 
 //
@@ -315,13 +311,16 @@ static void vsg_frame(struct AppData* appData)
 static int32_t android_handleinput(struct android_app* app, AInputEvent* event)
 {
     struct AppData* appData = (struct AppData*)app->userData;
-    if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
+
+    return appData->window->handleAndroidInputEvent(event) ? 1 : 0;
+
+    /*if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
     {
         appData->x = AMotionEvent_getX(event, 0);
         appData->y = AMotionEvent_getY(event, 0);
         return 1;
     }
-    return 0;
+    return 0;*/
 }
 
 //
@@ -336,7 +335,7 @@ static void android_handlecmd(struct android_app* app, int32_t cmd)
             break;
         case APP_CMD_INIT_WINDOW:
             // The window is being shown, get it ready.
-            if (appData->app->window != NULL)
+            if (app->window != NULL)
             {
                 vsg_init(appData);
             }
@@ -377,7 +376,7 @@ void android_main(struct android_app* app)
             if (source != NULL) source->process(app, source);
         }
 
-        // render if vulkan if ready
+        // render if vulkan is ready
         if (appData.viewer.valid()) {
             vsg_frame(&appData);
         }
