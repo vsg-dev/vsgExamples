@@ -31,15 +31,15 @@ add_custom_target(clobber
 )
 
 # pure VSG examples
-add_subdirectory(core)
+add_subdirectory(Core)
 
 if (ANDROID)
-    add_subdirectory(android)
+    add_subdirectory(Android)
 else()
-    add_subdirectory(desktop)
+    add_subdirectory(Desktop)
 endif()
 
 if (OSG_FOUND)
     # examples that required VSG and OpenSceneGraph
-    add_subdirectory(osg)
+    add_subdirectory(Osg)
 endif()
