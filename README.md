@@ -1,11 +1,17 @@
 # vsgExamples
-Example programs that test and illustrate how to use the [VulkanSceneGraph/VkSceneGraph](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and optional add-on libraries. The example programs are grouped according to their dependencies:
+Example programs that test and illustrate how to use the [VulkanSceneGraph/VkSceneGraph](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and optional add-on libraries. The example programs are grouped according to the type of features they illustrate their dependencies.
 
-## examples_vsg
-Contains [examples](examples_vsg/) that depend upon the core **vsg** library provided by the [VulkanSceneGraphPrototype](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and [Vulkan](https://vulkan.lunarg.com/).
+## Core examples
+The [Core](Core/) directory contains examples illustrate core class features of the VSG such as reference counting, maths, visitors etc.
 
-## examples_osg
-Contains a small set of [examples](examples_osg/) that depend upon the core **vsg** library, **Vulkan**, and add the dependency on [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/). The examples_osg are only built when both the VSG and OSG are available.  These examples use the OSG for data and performance comparison purposes.
+## Desktop examples
+The [Desktop](Desktop/) directory contains examples use the VSG's native Windowing to create various different desktop graphics applications
+
+## Android examples
+The [Android](Android/) directory contains examples illustrate how to create Android graphics applications
+
+## Osg/vsg examples
+The [Osg](Osg/) directory contains a small set of example that depend upon the core **vsg** library, **Vulkan**, and add the dependency on [OpenSceneGraph](https://github.com/openscenegraph/OpenSceneGraph/). The osg examples are only built when both the VSG and OSG are available.  These examples use the OSG for data and performance comparison purposes.
 
 ## Quick Guide to Building the vsgExamples
 
