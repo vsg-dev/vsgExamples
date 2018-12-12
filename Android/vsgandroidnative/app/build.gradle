@@ -4,7 +4,7 @@ android {
     compileSdkVersion 28
 
     defaultConfig {
-        applicationId = 'com.example.native_activity'
+        applicationId = 'com.vsg.vsgnative'
         minSdkVersion 24
         targetSdkVersion 26
         externalNativeBuild {
@@ -26,7 +26,7 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path 'src/main/cpp/CMakeLists.txt'
+            path 'cpp/CMakeLists.txt'
         }
     }
 }
