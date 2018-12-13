@@ -1,20 +1,18 @@
 
 #include <initializer_list>
-#include <memory>
+//#include <memory>
 #include <cstdlib>
 #include <cstring>
 #include <jni.h>
-#include <errno.h>
-#include <cassert>
 
 #include <android/log.h>
 #include <android_native_app_glue.h>
 
 #include <vsg/all.h>
-#include <vsg/viewer/platforms/Android_Window.h>
+#include <vsg/platform/Android/Android_Window.h>
 
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "native-activity", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "native-activity", __VA_ARGS__))
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vsgnative", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vsgnative", __VA_ARGS__))
 
 //
 // App state
@@ -31,12 +29,7 @@ struct AppData
     vsg::ref_ptr<vsg::mat4Value> viewMatrix;
     vsg::ref_ptr<vsg::mat4Value> modelMatrix;
 
-    int32_t width;
-    int32_t height;
-
-    // touch coord
-    int32_t x;
-    int32_t y;
+    bool animate;
 
     float time;
 };
@@ -46,38 +39,44 @@ struct AppData
 //
 static int vsg_init(struct AppData* appData)
 {
-    appData->viewer = vsg::Viewer::create();
-
+    appData->animate = true;
     appData->time = 0.0f;
 
-    vsg::Window::Traits traits = {};
-    traits.width = appData->width = ANativeWindow_getWidth(appData->app->window);
-    traits.height = appData->height = ANativeWindow_getHeight(appData->app->window);
+    appData->viewer = vsg::Viewer::create();
 
+    // setup traits
+    vsg::Window::Traits traits = {};
+    traits.width = ANativeWindow_getWidth(appData->app->window);
+    traits.height = ANativeWindow_getHeight(appData->app->window);
+
+    // attach the apps native window to the traits, vsg will create a surface inside this.
     //traits.nativeHandle = engine->app->window;
     traits.nativeWindow = appData->app->window;
 
+    // create a window using the ANativeWindow passed via traits
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));
     if (!window)
     {
-        LOGW("Could not create window.");
+        LOGW("Error: Could not create window a VSG window.");
         return 1;
     }
 
     // cast the window to an android window so we can pass it events
     appData->window = static_cast<vsgAndroid::Android_Window*>(window.get());
 
+    // attach the window to the viewer
     appData->viewer->addWindow(window);
 
 
-    // read shaders
-    vsg::Paths searchPaths = {"/storage/emulated/0/Download/data"};
+    // set search paths to try find data folder in the devices Download folder
+    vsg::Paths searchPaths = { "/storage/emulated/0/Download/data", "/sdcard/Download/data" };
 
+    // load vertex and fragments shaders located in the Download/data/shaders folder
     vsg::ref_ptr<vsg::Shader> vertexShader = vsg::Shader::read( VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert.spv", searchPaths));
     vsg::ref_ptr<vsg::Shader> fragmentShader = vsg::Shader::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
-        std::cout<<"Could not create shaders."<<std::endl;
+        LOGW("Error: Failed to load shaders, ensure the shaders are copied to the devices Download/data/shaders folder.");
         return 1;
     }
 
@@ -86,7 +85,7 @@ static int vsg_init(struct AppData* appData)
     auto textureData = vsgReader.read<vsg::Data>(vsg::findFile("textures/lz.vsgb", searchPaths));
     if (!textureData)
     {
-        std::cout<<"Could not read texture file : textures/lz.vsgb" <<std::endl;
+        LOGW("Error: Failed to load Texture data for 'textures/lz.vsgb'. Ensure lz.vsgb has been copied to the devices Download/data/textures folder");
         return 1;
     }
 
@@ -157,7 +156,7 @@ static int vsg_init(struct AppData* appData)
     auto vertexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, vsg::DataList{vertices, colors, texcoords}, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
     auto indexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, {indices}, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
 
-    // set up uniforms
+    // set up uniforms, keep these is our appDats structure so we can update them
     appData->projMatrix = new vsg::mat4Value;
     appData->viewMatrix = new vsg::mat4Value;
     appData->modelMatrix = new vsg::mat4Value;
@@ -170,7 +169,7 @@ static int vsg_init(struct AppData* appData)
     vsg::ImageData imageData = vsg::transferImageData(device, commandPool, graphicsQueue, textureData);
     if (!imageData.valid())
     {
-        std::cout<<"Texture not created"<<std::endl;
+        LOGW("Error: Failed to create texture.");
         return 1;
     }
 
@@ -271,11 +270,22 @@ static int vsg_init(struct AppData* appData)
 
     for (auto& win : appData->viewer->windows())
     {
-        // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
+        // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
         win->addStage(vsg::GraphicsStage::create(commandGraph));
         win->populateCommandBuffers();
     }
     return 0;
+}
+
+static void vsg_term(struct AppData* appData)
+{
+    appData->viewer = nullptr;
+    appData->window = nullptr;
+    appData->modelMatrix = nullptr;
+    appData->viewMatrix = nullptr;
+    appData->projMatrix = nullptr;
+    appData->uniformBufferData.clear();
+    appData->animate = false;
 }
 
 //
@@ -296,12 +306,16 @@ static void vsg_frame(struct AppData* appData)
     //if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
 
     // update
-    (*appData->projMatrix) = vsg::perspective(vsg::radians(45.0f), float(appData->width)/float(appData->height), 0.1f, 10.f);
+    uint32_t width = appData->window->extent2D().width;
+    uint32_t height = appData->window->extent2D().width;
+
+    (*appData->projMatrix) = vsg::perspective(vsg::radians(45.0f), float(width)/float(height), 0.1f, 10.f);
     (*appData->viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
     (*appData->modelMatrix) = vsg::rotate(appData->time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
     vsg::copyDataListToBuffers(appData->uniformBufferData);
 
+    // render
     appData->viewer->submitFrame();
 }
 
@@ -311,16 +325,9 @@ static void vsg_frame(struct AppData* appData)
 static int32_t android_handleinput(struct android_app* app, AInputEvent* event)
 {
     struct AppData* appData = (struct AppData*)app->userData;
-
+    if(appData->window.valid()) return 0;
+    // pass the event to the vsg android window
     return appData->window->handleAndroidInputEvent(event) ? 1 : 0;
-
-    /*if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
-    {
-        appData->x = AMotionEvent_getX(event, 0);
-        appData->y = AMotionEvent_getY(event, 0);
-        return 1;
-    }
-    return 0;*/
 }
 
 //
@@ -329,6 +336,8 @@ static int32_t android_handleinput(struct android_app* app, AInputEvent* event)
 static void android_handlecmd(struct android_app* app, int32_t cmd)
 {
     struct AppData* appData = (struct AppData*)app->userData;
+    if(appData == nullptr) return;
+
     switch (cmd)
     {
         case APP_CMD_SAVE_STATE:
@@ -342,10 +351,13 @@ static void android_handlecmd(struct android_app* app, int32_t cmd)
             break;
         case APP_CMD_TERM_WINDOW:
             // The window is being hidden or closed, clean it up.
+            vsg_term(appData);
             break;
         case APP_CMD_GAINED_FOCUS:
+            appData->animate = true;
             break;
         case APP_CMD_LOST_FOCUS:
+            appData->animate = false;
             break;
     }
 }
@@ -376,8 +388,8 @@ void android_main(struct android_app* app)
             if (source != NULL) source->process(app, source);
         }
 
-        // render if vulkan is ready
-        if (appData.viewer.valid()) {
+        // render if vulkan is ready and we are animating
+        if (appData.animate && appData.viewer.valid()) {
             vsg_frame(&appData);
         }
     } while (app->destroyRequested == 0);

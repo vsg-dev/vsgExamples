@@ -55,7 +55,16 @@ install_manifest.txt
 x64/
 src/vsg/vsg.dir/
 
-#xcode
+# Xcode
 DerivedData/
 *.build
 *.xcodeproj
+
+# Gradle
+.gradle/
+.idea/
+.externalNativeBuild/
+*.iml
+build/
+local.properties
+
