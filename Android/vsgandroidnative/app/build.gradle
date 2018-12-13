@@ -1,0 +1,46 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 28
+
+    defaultConfig {
+        applicationId = 'com.vsg.vsgnative'
+        minSdkVersion 24
+        targetSdkVersion 26
+        externalNativeBuild {
+            cmake {
+                version "3.13.0"
+                arguments '-DCMAKE_SYSTEM_NAME="Android', '-DCMAKE_SYSTEM_VERSION=24', '-DCMAKE_ANDROID_ARCH_ABI=armeabi-v7a', '-DANDROID_STL=c++_static', '-Dvsg_DIR=/usr/local/android/lib/cmake/vsg'
+            }
+            ndk {
+                abiFilters 'armeabi-v7a'
+            }
+        }
+    }
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'),
+                    'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path 'cpp/CMakeLists.txt'
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+}
