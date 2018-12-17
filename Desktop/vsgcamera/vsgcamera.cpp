@@ -6,6 +6,66 @@
 #include <iostream>
 #include <chrono>
 
+class Trackball : public vsg::Visitor
+{
+public:
+
+        Trackball() {}
+
+        vsg::vec2 ndc(vsg::PointerEvent& event)
+        {
+            vsg::vec2 v = vsg::vec2((static_cast<float>(event.x)/window_width)*2.0f-0.5f, (static_cast<float>(event.y)/window_height)*2.0f-0.5f);
+            std::cout<<"ndc = "<<v<<std::endl;
+            return v;
+        }
+
+        void apply(vsg::ExposeWindowEvent& exposeWindow)
+        {
+            std::cout<<"Expose "<<exposeWindow.width<<", "<<exposeWindow.height<<std::endl;
+            window_width = static_cast<float>(exposeWindow.width);
+            window_height = static_cast<float>(exposeWindow.height);
+        }
+
+        void apply(vsg::ButtonPressEvent& buttonPress)
+        {
+            prev_ndc = ndc(buttonPress);
+        };
+
+        void apply(vsg::ButtonReleaseEvent& buttonRelease)
+        {
+            prev_ndc = ndc(buttonRelease);
+        };
+
+        void apply(vsg::MoveEvent& moveEvent)
+        {
+            vsg::vec2 new_ndc = ndc(moveEvent);
+            if (moveEvent.mask & vsg::BUTTON_MASK_1)
+            {
+                vsg::vec2 delta = new_ndc - prev_ndc;
+                std::cout<<"Rotate "<<delta<<std::endl;
+            }
+            else if (moveEvent.mask & vsg::BUTTON_MASK_2)
+            {
+                vsg::vec2 delta = new_ndc - prev_ndc;
+                std::cout<<"Zoom "<<delta<<std::endl;
+            }
+            else if (moveEvent.mask & vsg::BUTTON_MASK_3)
+            {
+                vsg::vec2 delta = new_ndc - prev_ndc;
+                std::cout<<"Pan "<<delta<<std::endl;
+            }
+            else
+            {
+                std::cout<<"MoveEvent "<<moveEvent.mask<<std::endl;
+            }
+            prev_ndc = new_ndc;
+        };
+
+        float window_width = 800.0f;
+        float window_height = 600.0f;
+        vsg::vec2 prev_ndc;
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -260,17 +320,24 @@ int main(int argc, char** argv)
 
     bool windowResized = false;
     float time = 0.0f;
+    Trackball trackball;
     while (!viewer->done() && (numFrames<0 || (numFrames--)>0))
     {
         if (viewer->pollEvents())
         {
+#if 1
+            for (auto& vsg_event : viewer->getEvents())
+            {
+                vsg_event->accept(trackball);
+            }
+#else
             std::cout<<"Have events for frame"<<std::endl;
-
             vsg::PrintEvents print(viewer->start_point());
             for (auto& vsg_event : viewer->getEvents())
             {
                 vsg_event->accept(print);
             }
+#endif
         }
 
         float previousTime = time;
