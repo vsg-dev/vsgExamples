@@ -257,6 +257,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(2.0, 2.0, 2.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
     vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt));
 
+    bool windowResized = false;
     float time = 0.0f;
     while (!viewer->done() && (numFrames<0 || (numFrames--)>0))
     {
@@ -267,24 +268,6 @@ int main(int argc, char** argv)
         if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
 
 
-        auto windowExtent = window->extent2D();
-
-        if (window->resized())
-        {
-            viewport->getViewport().width = static_cast<float>(windowExtent.width);
-            viewport->getViewport().height = static_cast<float>(windowExtent.height);
-            viewport->getScissor().extent = windowExtent;
-
-            vsg::ref_ptr<vsg::GraphicsPipeline> new_pipeline = vsg::GraphicsPipeline::create(device, renderPass, pipelineLayout, pipeline->getPipelineStates());
-
-            bindPipeline->setPipeline(new_pipeline);
-
-            pipeline = new_pipeline;
-
-            perspective->aspectRatio = static_cast<double>(windowExtent.width) / static_cast<double>(windowExtent.height);
-
-            std::cout<<"window aspect ratio = "<<perspective->aspectRatio<<std::endl;
-        }
 
         camera->getProjectionMatrix()->get((*projMatrix));
         camera->getViewMatrix()->get((*viewMatrix));
@@ -300,7 +283,29 @@ int main(int argc, char** argv)
             win->populateCommandBuffers();
         }
 
+        if (window->resized()) windowResized = true;
+
         viewer->submitFrame();
+
+        if (windowResized)
+        {
+            windowResized = false;
+
+            auto windowExtent = window->extent2D();
+            viewport->getViewport().width = static_cast<float>(windowExtent.width);
+            viewport->getViewport().height = static_cast<float>(windowExtent.height);
+            viewport->getScissor().extent = windowExtent;
+
+            vsg::ref_ptr<vsg::GraphicsPipeline> new_pipeline = vsg::GraphicsPipeline::create(device, renderPass, pipelineLayout, pipeline->getPipelineStates());
+
+            bindPipeline->setPipeline(new_pipeline);
+
+            pipeline = new_pipeline;
+
+            perspective->aspectRatio = static_cast<double>(windowExtent.width) / static_cast<double>(windowExtent.height);
+
+            std::cout<<"window aspect ratio = "<<perspective->aspectRatio<<std::endl;
+        }
     }
 
 
