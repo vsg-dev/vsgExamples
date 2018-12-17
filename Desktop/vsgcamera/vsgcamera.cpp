@@ -1,6 +1,7 @@
 #include <vsg/all.h>
 
 #include <vsg/viewer/Camera.h>
+#include <vsg/ui/PrintEvents.h>
 
 #include <iostream>
 #include <chrono>
@@ -261,7 +262,16 @@ int main(int argc, char** argv)
     float time = 0.0f;
     while (!viewer->done() && (numFrames<0 || (numFrames--)>0))
     {
-        viewer->pollEvents();
+        if (viewer->pollEvents())
+        {
+            std::cout<<"Have events for frame"<<std::endl;
+
+            vsg::PrintEvents print(viewer->start_point());
+            for (auto& vsg_event : viewer->getEvents())
+            {
+                vsg_event->accept(print);
+            }
+        }
 
         float previousTime = time;
         time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-viewer->start_point()).count();
