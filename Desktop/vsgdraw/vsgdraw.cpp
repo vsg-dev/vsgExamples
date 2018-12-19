@@ -38,7 +38,12 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(width, height, debugLayer, apiDumpLayer));
+    vsg::ref_ptr<vsg::Window::Traits> traits(new vsg::Window::Traits());
+    traits->width = width;
+    traits->height = height;
+    traits->hdpi = false;
+
+    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits, debugLayer, apiDumpLayer));
     if (!window)
     {
         std::cout<<"Could not create windows."<<std::endl;
@@ -47,9 +52,12 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
+    // set traits shared window for creating extra windows
+    traits->shareWindow = window;
+    
     for(int i=1; i<numWindows; ++i)
     {
-        vsg::ref_ptr<vsg::Window> new_window(vsg::Window::create(width, height, debugLayer, apiDumpLayer, window));
+        vsg::ref_ptr<vsg::Window> new_window(vsg::Window::create(traits, debugLayer, apiDumpLayer));
         viewer->addWindow( new_window );
     }
 
@@ -190,7 +198,7 @@ int main(int argc, char** argv)
         shaderStages,  // device dependent
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),// device independent
         vsg::InputAssemblyState::create(), // device independent
-        vsg::ViewportState::create(VkExtent2D{width, height}), // device independent
+        vsg::ViewportState::create(VkExtent2D{traits->finalBackingWidth, traits->finalBackingHeight}), // device independent
         vsg::RasterizationState::create(),// device independent
         vsg::MultisampleState::create(),// device independent
         vsg::ColorBlendState::create(),// device independent
@@ -252,7 +260,7 @@ int main(int argc, char** argv)
         if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
 
         // update
-        (*projMatrix) = vsg::perspective(vsg::radians(45.0f), float(width)/float(height), 0.1f, 10.f);
+        (*projMatrix) = vsg::perspective(vsg::radians(45.0f), float(traits->width)/float(traits->height), 0.1f, 10.f);
         (*viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
         (*modelMatrix) = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
