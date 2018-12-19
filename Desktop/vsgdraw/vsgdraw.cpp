@@ -49,6 +49,9 @@ int main(int argc, char** argv)
         std::cout<<"Could not create windows."<<std::endl;
         return 1;
     }
+    
+    uint32_t backingWidth = window->extent2D().width;
+    uint32_t backingHeight = window->extent2D().height;
 
     viewer->addWindow(window);
 
@@ -198,7 +201,7 @@ int main(int argc, char** argv)
         shaderStages,  // device dependent
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),// device independent
         vsg::InputAssemblyState::create(), // device independent
-        vsg::ViewportState::create(VkExtent2D{traits->finalBackingWidth, traits->finalBackingHeight}), // device independent
+        vsg::ViewportState::create(VkExtent2D{backingWidth, backingHeight}), // device independent
         vsg::RasterizationState::create(),// device independent
         vsg::MultisampleState::create(),// device independent
         vsg::ColorBlendState::create(),// device independent
