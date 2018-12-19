@@ -6,64 +6,207 @@
 #include <iostream>
 #include <chrono>
 
-class Trackball : public vsg::Visitor
+class EscapeSetsDone : public vsg::Visitor
+{
+public:
+        bool done = false;
+
+        void apply(vsg::KeyPressEvent& keyPress) override
+        {
+            if (keyPress.keyBase==vsg::KEY_Escape) done = true;
+        }
+};
+
+class CameraManipulator : public vsg::Visitor
+{
+public:
+    virtual bool update(vsg::Camera& camera) = 0;
+};
+
+class Trackball : public CameraManipulator
 {
 public:
 
-        Trackball() {}
+        Trackball(vsg::Camera* camera=nullptr) :
+            _camera(camera) {}
 
-        vsg::vec2 ndc(vsg::PointerEvent& event)
+        /// compute non dimensional window coordinate (-1,1) from event coords
+        vsg::dvec2 ndc(vsg::PointerEvent& event)
         {
-            vsg::vec2 v = vsg::vec2((static_cast<float>(event.x)/window_width)*2.0f-0.5f, (static_cast<float>(event.y)/window_height)*2.0f-0.5f);
+            vsg::dvec2 v = vsg::dvec2((static_cast<double>(event.x)/window_width)*2.0-1.0, (static_cast<double>(event.y)/window_height)*2.0-1.0);
             std::cout<<"ndc = "<<v<<std::endl;
             return v;
         }
 
-        void apply(vsg::ExposeWindowEvent& exposeWindow)
+        /// compute trackball coordinate from event coords
+        vsg::dvec3 tbc(vsg::PointerEvent& event)
         {
-            std::cout<<"Expose "<<exposeWindow.width<<", "<<exposeWindow.height<<std::endl;
-            window_width = static_cast<float>(exposeWindow.width);
-            window_height = static_cast<float>(exposeWindow.height);
-        }
+            vsg::dvec2 v = ndc(event);
 
-        void apply(vsg::ButtonPressEvent& buttonPress)
-        {
-            prev_ndc = ndc(buttonPress);
-        };
-
-        void apply(vsg::ButtonReleaseEvent& buttonRelease)
-        {
-            prev_ndc = ndc(buttonRelease);
-        };
-
-        void apply(vsg::MoveEvent& moveEvent)
-        {
-            vsg::vec2 new_ndc = ndc(moveEvent);
-            if (moveEvent.mask & vsg::BUTTON_MASK_1)
+            double l = length(v);
+            std::cout<<"tdc (), nfc = "<<v<<", l="<<l<<std::endl;
+            if (l<1.0f)
             {
-                vsg::vec2 delta = new_ndc - prev_ndc;
-                std::cout<<"Rotate "<<delta<<std::endl;
-            }
-            else if (moveEvent.mask & vsg::BUTTON_MASK_2)
-            {
-                vsg::vec2 delta = new_ndc - prev_ndc;
-                std::cout<<"Zoom "<<delta<<std::endl;
-            }
-            else if (moveEvent.mask & vsg::BUTTON_MASK_3)
-            {
-                vsg::vec2 delta = new_ndc - prev_ndc;
-                std::cout<<"Pan "<<delta<<std::endl;
+                double h = sqrt(1.0-l*l);
+                return vsg::dvec3(v.x, v.y, h);
             }
             else
             {
-                std::cout<<"MoveEvent "<<moveEvent.mask<<std::endl;
+                return vsg::dvec3(v.x, v.y, 0.0);
             }
-            prev_ndc = new_ndc;
+        }
+
+        void apply(vsg::ExposeWindowEvent& exposeWindow) override
+        {
+            std::cout<<"Expose "<<exposeWindow.width<<", "<<exposeWindow.height<<std::endl;
+            window_width = static_cast<double>(exposeWindow.width);
+            window_height = static_cast<double>(exposeWindow.height);
+        }
+
+        void apply(vsg::ButtonPressEvent& buttonPress) override
+        {
+            prev_ndc = ndc(buttonPress);
+            prev_tbc = tbc(buttonPress);
+            prev_time = buttonPress.time;
+            if (buttonPress.mask & vsg::BUTTON_MASK_4)
+            {
+                std::cout<<"buttonPress :  Mouse Wheel Up button="<<buttonPress.button<<std::endl;
+            }
+            else if (buttonPress.mask & vsg::BUTTON_MASK_5)
+            {
+                std::cout<<"buttonPress : Mouse Wheel Down button="<<buttonPress.button<<std::endl;
+            }
+            else
+            {
+                std::cout<<"buttonPress : button = "<<buttonPress.mask<<" button="<<buttonPress.button<<std::endl;
+            }
         };
 
-        float window_width = 800.0f;
-        float window_height = 600.0f;
-        vsg::vec2 prev_ndc;
+        void apply(vsg::ButtonReleaseEvent& buttonRelease) override
+        {
+            prev_ndc = ndc(buttonRelease);
+            prev_tbc = tbc(buttonRelease);
+            prev_time = buttonRelease.time;
+            if (buttonRelease.mask & vsg::BUTTON_MASK_4)
+            {
+                std::cout<<"buttonRelease :  Mouse Wheel Up, button="<<buttonRelease.button<<std::endl;
+            }
+            else if (buttonRelease.mask & vsg::BUTTON_MASK_5)
+            {
+                std::cout<<"buttonRelease : Mouse Wheel Down button="<<buttonRelease.button<<std::endl;
+            }
+            else
+            {
+                std::cout<<"buttonRelease : button = "<<buttonRelease.mask<<std::endl;
+            }
+        };
+
+        void apply(vsg::MoveEvent& moveEvent) override
+        {
+            vsg::dvec2 new_ndc = ndc(moveEvent);
+            vsg::dvec3 new_tbc = tbc(moveEvent);
+            vsg::time_point new_time = moveEvent.time;
+            double delta_time = std::chrono::duration<double, std::chrono::seconds::period>(new_time-prev_time).count();
+
+            std::cout<<"Move tbc=("<<new_tbc<<")"<<std::endl;
+
+            if (moveEvent.mask & vsg::BUTTON_MASK_1)
+            {
+                vsg::dvec2 delta = new_ndc - prev_ndc;
+                vsg::dvec3 xp = vsg::cross(vsg::normalize(prev_tbc), vsg::normalize(new_tbc));
+                double xp_len = vsg::length(xp);
+                if (xp_len>0.0)
+                {
+                    vsg::dvec3 axis = xp/xp_len;
+                    double angle = asin(xp_len);
+                    vsg::dmat4 rotation = vsg::rotate(angle, axis);
+                    //rotation = vsg::rotate(angle, 0.0, 0.0, 1.0);
+
+
+                    //accumulated_transform = accumulated_transform * rotation;
+                    accumulated_transform = rotation;
+
+                    std::cout<<"    Rotate axis=("<<axis<<") angle="<<vsg::degrees(angle)<<" rotation_spreed="<<vsg::degrees(angle)/delta_time<<std::endl;
+                    std::cout<<"    rotation = ("<<rotation<<")"<<std::endl;
+
+                    update();
+                }
+                else
+                {
+                    std::cout<<"    No rotation=("<<xp<<")"<<std::endl;
+                }
+            }
+            else if (moveEvent.mask & vsg::BUTTON_MASK_2)
+            {
+                vsg::dvec2 delta = new_ndc - prev_ndc;
+                std::cout<<"   Zoom "<<delta<<std::endl;
+            }
+            else if (moveEvent.mask & vsg::BUTTON_MASK_3)
+            {
+                vsg::dvec2 delta = new_ndc - prev_ndc;
+                std::cout<<"   Pan "<<delta<<std::endl;
+            }
+            else if (moveEvent.mask & vsg::BUTTON_MASK_4)
+            {
+                std::cout<<"   Mouse Wheel Up "<<std::endl;
+            }
+            else if (moveEvent.mask & vsg::BUTTON_MASK_5)
+            {
+                std::cout<<"   Mouse Wheel Down "<<std::endl;
+            }
+            else
+            {
+                std::cout<<"   MoveEvent "<<moveEvent.mask<<std::endl;
+            }
+            prev_ndc = new_ndc;
+            prev_tbc = new_tbc;
+            prev_time = new_time;
+        };
+
+        void transform(vsg::LookAt* lookAt)
+        {
+            std::cout<<"transform() = "<<accumulated_transform<<std::endl;
+
+            auto center = lookAt->center;
+#if 1
+            vsg::dmat4 matrix = vsg::translate(center) * accumulated_transform * vsg::translate(-center);
+#else
+            vsg::dmat4 matrix = vsg::translate(-center) * accumulated_transform * vsg::translate(center);
+#endif
+
+            lookAt->up = vsg::normalize(matrix * (center+lookAt->up) - matrix * center);
+            lookAt->center = matrix * center;
+            lookAt->eye = matrix * lookAt->eye;
+
+            std::cout<<"    lookAt->eye = "<<lookAt->eye<<std::endl;
+            std::cout<<"    lookAt->center = "<<lookAt->center<<std::endl;
+            std::cout<<"    lookAt->up = "<<lookAt->up<<std::endl;
+
+            accumulated_transform = vsg::dmat4(); // reset to identity
+        }
+
+        bool update(vsg::Camera& camera) override
+        {
+            vsg::LookAt* lookAt = dynamic_cast<vsg::LookAt*>(camera.getViewMatrix());
+            if (lookAt) transform(lookAt);
+
+            return false;
+        }
+
+        bool update()
+        {
+            return _camera ? update(*_camera) : false;
+        }
+
+        vsg::ref_ptr<vsg::Camera> _camera;
+
+        double window_width = 800.0;
+        double window_height = 600.0;
+        vsg::dvec2 prev_ndc;
+        vsg::dvec3 prev_tbc;
+        vsg::time_point prev_time;
+
+        vsg::dmat4 accumulated_transform;
 };
 
 int main(int argc, char** argv)
@@ -315,29 +458,28 @@ int main(int argc, char** argv)
 
 
     vsg::ref_ptr<vsg::Perspective> perspective(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0));
-    vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(2.0, 2.0, 2.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
+    vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(1.0, 1.0, 0.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
     vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt));
 
     bool windowResized = false;
     float time = 0.0f;
-    Trackball trackball;
-    while (!viewer->done() && (numFrames<0 || (numFrames--)>0))
+    vsg::ref_ptr<Trackball> trackball(new Trackball(camera));
+    vsg::ref_ptr<EscapeSetsDone> escapeSetsDone(new EscapeSetsDone);
+
+    using EventHandlers = std::list<vsg::ref_ptr<vsg::Visitor>>;
+    EventHandlers eventHandlers{trackball, escapeSetsDone};
+
+    while (!viewer->done() && !escapeSetsDone->done && (numFrames<0 || (numFrames--)>0))
     {
         if (viewer->pollEvents())
         {
-#if 1
             for (auto& vsg_event : viewer->getEvents())
             {
-                vsg_event->accept(trackball);
+                for(auto& handler : eventHandlers)
+                {
+                    vsg_event->accept(*handler);
+                }
             }
-#else
-            std::cout<<"Have events for frame"<<std::endl;
-            vsg::PrintEvents print(viewer->start_point());
-            for (auto& vsg_event : viewer->getEvents())
-            {
-                vsg_event->accept(print);
-            }
-#endif
         }
 
         float previousTime = time;
@@ -352,7 +494,7 @@ int main(int argc, char** argv)
         //(*projMatrix) = vsg::perspective(vsg::radians(45.0f), float(width)/float(height), 0.1f, 10.f);
         //(*viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
 
-        (*modelMatrix) = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
+        //(*modelMatrix) = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
         for (auto& win : viewer->windows())
         {
