@@ -62,6 +62,10 @@ static int vsg_init(struct AppData* appData)
         return 1;
     }
 
+    // get the width/height
+    uint32_t width = appData->window->extent2D().width;
+    uint32_t height = appData->window->extent2D().height;
+
     // cast the window to an android window so we can pass it events
     appData->window = static_cast<vsgAndroid::Android_Window*>(window.get());
 
@@ -229,7 +233,7 @@ static int vsg_init(struct AppData* appData)
             shaderStages,  // device dependent
             vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),// device independent
             vsg::InputAssemblyState::create(), // device independent
-            vsg::ViewportState::create(VkExtent2D{appData->traits->finalBackingWidth, appData->traits->finalBackingHeight}), // device independent
+            vsg::ViewportState::create(VkExtent2D{width, height}), // device independent
             vsg::RasterizationState::create(),// device independent
             vsg::MultisampleState::create(),// device independent
             vsg::ColorBlendState::create(),// device independent
