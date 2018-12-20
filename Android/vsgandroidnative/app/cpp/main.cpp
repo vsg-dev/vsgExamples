@@ -21,6 +21,7 @@ struct AppData
 {
     struct android_app* app;
 
+    vsg::ref_ptr<vsg::Window::Traits> traits;
     vsg::ref_ptr<vsg::Viewer> viewer;
     vsg::ref_ptr<vsgAndroid::Android_Window> window;
 
@@ -45,21 +46,25 @@ static int vsg_init(struct AppData* appData)
     appData->viewer = vsg::Viewer::create();
 
     // setup traits
-    vsg::Window::Traits traits = {};
-    traits.width = ANativeWindow_getWidth(appData->app->window);
-    traits.height = ANativeWindow_getHeight(appData->app->window);
+    appData->traits = new vsg::Window::Traits();
+    appData->traits->width = ANativeWindow_getWidth(appData->app->window);
+    appData->traits->height = ANativeWindow_getHeight(appData->app->window);
 
     // attach the apps native window to the traits, vsg will create a surface inside this.
     //traits.nativeHandle = engine->app->window;
-    traits.nativeWindow = appData->app->window;
+    appData->traits->nativeWindow = appData->app->window;
 
     // create a window using the ANativeWindow passed via traits
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));
+    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(appData->traits));
     if (!window)
     {
         LOGW("Error: Could not create window a VSG window.");
         return 1;
     }
+
+    // get the width/height
+    uint32_t width = appData->window->extent2D().width;
+    uint32_t height = appData->window->extent2D().height;
 
     // cast the window to an android window so we can pass it events
     appData->window = static_cast<vsgAndroid::Android_Window*>(window.get());
@@ -228,7 +233,7 @@ static int vsg_init(struct AppData* appData)
             shaderStages,  // device dependent
             vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),// device independent
             vsg::InputAssemblyState::create(), // device independent
-            vsg::ViewportState::create(VkExtent2D{traits.width, traits.height}), // device independent
+            vsg::ViewportState::create(VkExtent2D{width, height}), // device independent
             vsg::RasterizationState::create(),// device independent
             vsg::MultisampleState::create(),// device independent
             vsg::ColorBlendState::create(),// device independent
@@ -307,7 +312,7 @@ static void vsg_frame(struct AppData* appData)
 
     // update
     uint32_t width = appData->window->extent2D().width;
-    uint32_t height = appData->window->extent2D().width;
+    uint32_t height = appData->window->extent2D().height;
 
     (*appData->projMatrix) = vsg::perspective(vsg::radians(45.0f), float(width)/float(height), 0.1f, 10.f);
     (*appData->viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
