@@ -249,7 +249,7 @@ int main(int argc, char** argv)
     }
 
     float time = 0.0f;
-    while (!viewer->done() && (numFrames<0 || (numFrames--)>0))
+    while (viewer->active() && (numFrames<0 || (numFrames--)>0))
     {
         viewer->pollEvents();
 

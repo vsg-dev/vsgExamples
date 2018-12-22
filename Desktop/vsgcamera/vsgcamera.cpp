@@ -8,15 +8,33 @@
 
 namespace vsg
 {
-    class EscapeSetsDone : public vsg::Visitor
+    class CloseHandler : public vsg::Visitor
     {
     public:
-            bool done = false;
 
-            void apply(vsg::KeyPressEvent& keyPress) override
+            CloseHandler(Viewer* viewer) : _viewer(viewer) {}
+
+            observer_ptr<Viewer> _viewer;
+            KeySymbol _closeKey = KEY_Escape; // KEY_Undefined
+
+            virtual void close()
             {
-                if (keyPress.keyBase==vsg::KEY_Escape) done = true;
+                std::cout<<"CloseHandler::close()"<<std::endl;
+                ref_ptr<Viewer> viewer = _viewer;
+                viewer->close();
             }
+
+            void apply(KeyPressEvent& keyPress) override
+            {
+                if (_closeKey!=KEY_Undefined && keyPress.keyBase==_closeKey) close();
+            }
+
+            void apply(DeleteWindowEvent& deleteWindowEvent) override
+            {
+                std::cout<<"DeleteWindowEvent"<<std::endl;
+                close();
+            }
+
     };
 
     template<typename T>
@@ -457,12 +475,12 @@ int main(int argc, char** argv)
     bool windowResized = false;
     float time = 0.0f;
     vsg::ref_ptr<vsg::Trackball> trackball(new vsg::Trackball(camera));
-    vsg::ref_ptr<vsg::EscapeSetsDone> escapeSetsDone(new vsg::EscapeSetsDone);
+    vsg::ref_ptr<vsg::CloseHandler> closeHandler(new vsg::CloseHandler(viewer));
 
     using EventHandlers = std::list<vsg::ref_ptr<vsg::Visitor>>;
-    EventHandlers eventHandlers{trackball, escapeSetsDone};
+    EventHandlers eventHandlers{trackball, closeHandler};
 
-    while (!viewer->done() && !escapeSetsDone->done && (numFrames<0 || (numFrames--)>0))
+    while (viewer->active() && (numFrames<0 || (numFrames--)>0))
     {
         if (viewer->pollEvents())
         {
