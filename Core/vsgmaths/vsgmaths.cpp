@@ -82,5 +82,41 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"result = {"<<result<<"}"<<std::endl;
 
 
+
+    vsg::vec2 v2(1.0, 2.0);
+    vsg::vec3 v3(1.0, 2.0, 3.0);
+    vsg::vec4 v4(1.0, 2.0, 3.0, 1.0);
+    std::cout<<"v2 = ("<<v2<<"), -v2="<<-v2<<", v2+v2=("<<(v2+v2)<<"), v2-v2="<<(v2-v2)<<")"<<std::endl;
+    std::cout<<"v3 = ("<<v3<<"), -v3="<<-v3<<", v3+v4=("<<(v3+v3)<<"), v3-v3=("<<(v3-v3)<<")"<<std::endl;
+    std::cout<<"v4 = ("<<v4<<"), -v4="<<-v4<<", v5+v5=("<<(v4+v4)<<"), v4-v4="<<(v4-v4)<<")"<<std::endl;
+    std::cout<<"rot * v3 = ("<<(rot*v3)<<")"<<std::endl;
+    std::cout<<"rot * v4 = ("<<(rot*v4)<<")"<<std::endl;
+    std::cout<<"trans * v3 = ("<<(trans*v3)<<")"<<std::endl;
+    std::cout<<"trans * v4 = ("<<(trans*v4)<<")"<<std::endl;
+    std::cout<<"scale * v3 = ("<<(scale*v3)<<")"<<std::endl;
+    std::cout<<"scale * v4 = ("<<(scale*v4)<<")"<<std::endl;
+    std::cout<<"rot * vec3(1.0, 0.0, 0.0) = ("<<(rot*vsg::vec3(1.0, 0.0, 0.0))<<")"<<std::endl;
+    std::cout<<"rot * vec3(0.0, 1.0, 0.0) = ("<<(rot*vsg::vec3(0.0, 1.0, 0.0))<<")"<<std::endl;
+    std::cout<<"rot * vec3(0.0, 0.0, 1.0) = ("<<(rot*vsg::vec3(0.0, 0.0, 1.0))<<")"<<std::endl;
+    std::cout<<std::endl;
+    std::cout<<"view * vec3(0.0, 0.0, 0.0) = ("<<(view*vsg::vec3(0.0, 0.0, 0.0))<<")"<<std::endl;
+    std::cout<<"view * vec3(2.0, 2.0, 2.0) = ("<<(view*vsg::vec3(2.0, 2.0, 2.0))<<")"<<std::endl;
+    std::cout<<"view * vec3(2.0, 2.0, 3.0) = ("<<(view*vsg::vec3(2.0, 2.0, 3.0))<<")"<<std::endl;
+
+    vsg::dmat4 rot_x = vsg::rotate(vsg::radians(45.0), 1.0, 0.0, 0.0);
+    vsg::dmat4 rot_y = vsg::rotate(vsg::radians(45.0), 0.0, 1.0, 0.0);
+    vsg::dmat4 rot_z = vsg::rotate(vsg::radians(45.0), 0.0, 0.0, 1.0);
+
+    std::cout<<"\nrot_x = "<<rot_x<<std::endl;
+    std::cout<<"    rot_x * vsg::vec3(0.0, 1.0, 0.0) = "<< (rot_x * vsg::dvec3(0.0, 1.0, 0.0))<<std::endl;
+    std::cout<<"    rot_x * vsg::vec3(0.0, 0.0, 1.0) = "<< (rot_x * vsg::dvec3(0.0, 0.0, 1.0))<<std::endl;
+    std::cout<<"\nrot_y = "<<rot_y<<std::endl;
+    std::cout<<"    rot_y * vsg::vec3(1.0, 0.0, 0.0) = "<< (rot_y * vsg::dvec3(1.0, 0.0, 0.0))<<std::endl;
+    std::cout<<"    rot_y * vsg::vec3(0.0, 0.0, 1.0) = "<< (rot_y * vsg::dvec3(0.0, 0.0, 1.0))<<std::endl;
+    std::cout<<"\nrot_z = "<<rot_z<<std::endl;
+    std::cout<<"    rot_z * vsg::vec3(1.0, 0.0, 0.0) = "<< (rot_z * vsg::dvec3(1.0, 0.0, 0.0))<<std::endl;
+    std::cout<<"    rot_z * vsg::vec3(0.0, 1.0, 0.0) = "<< (rot_z * vsg::dvec3(0.0, 1.0, 0.0))<<std::endl;
+
+
     return 0;
 }
