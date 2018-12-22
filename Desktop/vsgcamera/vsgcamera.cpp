@@ -445,12 +445,12 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
     vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt));
 
-    bool windowResized = false;
-    float time = 0.0f;
-
     // assign a Trackball and CloseHandler to the Viewer to respond to events
     auto trackball = vsg::Trackball::create(camera);
     viewer->addEventHandlers({trackball, vsg::CloseHandler::create(viewer)});
+
+    bool windowResized = false;
+    float time = 0.0f;
 
     while (viewer->active() && (numFrames<0 || (numFrames--)>0))
     {
