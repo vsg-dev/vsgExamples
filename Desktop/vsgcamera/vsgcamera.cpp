@@ -12,28 +12,31 @@ namespace vsg
     {
     public:
 
-            CloseHandler(Viewer* viewer) : _viewer(viewer) {}
+        CloseHandler(Viewer* viewer) : _viewer(viewer) {}
 
-            observer_ptr<Viewer> _viewer;
-            KeySymbol _closeKey = KEY_Escape; // KEY_Undefined
+        KeySymbol closeKey = KEY_Escape; // KEY_Undefined
 
-            virtual void close()
-            {
-                std::cout<<"CloseHandler::close()"<<std::endl;
-                ref_ptr<Viewer> viewer = _viewer;
-                viewer->close();
-            }
+        virtual void close()
+        {
+            // take a ref_ptr<> of the oberserv_ptr<> to be able to safely access it
+            ref_ptr<Viewer> viewer = _viewer;
+            if (viewer) viewer->close();
+        }
 
-            void apply(KeyPressEvent& keyPress) override
-            {
-                if (_closeKey!=KEY_Undefined && keyPress.keyBase==_closeKey) close();
-            }
+        void apply(KeyPressEvent& keyPress) override
+        {
+            if (closeKey!=KEY_Undefined && keyPress.keyBase==closeKey) close();
+        }
 
-            void apply(DeleteWindowEvent& deleteWindowEvent) override
-            {
-                std::cout<<"DeleteWindowEvent"<<std::endl;
-                close();
-            }
+        void apply(DeleteWindowEvent& deleteWindowEvent) override
+        {
+            close();
+        }
+
+    protected:
+
+        // use observer_ptr<> to avoid circular reference
+        observer_ptr<Viewer> _viewer;
 
     };
 
