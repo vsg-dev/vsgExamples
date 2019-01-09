@@ -253,10 +253,17 @@ int main(int argc, char** argv)
         win->populateCommandBuffers();
     }
 
+    // add close handler to close the viewer when escape pressed or close button clicked
+    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
     float time = 0.0f;
-    while (!viewer->done() && (numFrames<0 || (numFrames--)>0))
+    while (viewer->active() && (numFrames<0 || (numFrames--)>0))
     {
-        viewer->pollEvents();
+        // poll events and advance frame counters
+        viewer->advance();
+
+        // pass any events into EventHandlers assigned to the Viewer
+        viewer->handleEvents();
 
         float previousTime = time;
         time = std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now()-viewer->start_point()).count();

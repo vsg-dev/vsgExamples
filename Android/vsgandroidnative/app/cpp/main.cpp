@@ -303,7 +303,11 @@ static void vsg_frame(struct AppData* appData)
         return;
     }
 
-    appData->viewer->pollEvents();
+    // poll events and advance frame counters
+    viewer->advance();
+
+    // pass any events into EventHandlers assigned to the Viewer
+    viewer->handleEvents();
 
     appData->time = appData->time + 0.033f;
     //float previousTime = engine->time;

@@ -3,87 +3,78 @@
 #include <vsg/viewer/Camera.h>
 #include <vsg/ui/PrintEvents.h>
 
+#include <vsg/viewer/CloseHandler.h>
+
 #include <iostream>
 #include <chrono>
 
 namespace vsg
 {
-    class EscapeSetsDone : public vsg::Visitor
-    {
-    public:
-            bool done = false;
-
-            void apply(vsg::KeyPressEvent& keyPress) override
-            {
-                if (keyPress.keyBase==vsg::KEY_Escape) done = true;
-            }
-    };
-
     template<typename T>
-    constexpr vsg::t_mat4<T> lookAtInverse(vsg::t_vec3<T> const& eye, vsg::t_vec3<T> const& center, vsg::t_vec3<T> const& up)
+    constexpr t_mat4<T> lookAtInverse(t_vec3<T> const& eye, t_vec3<T> const& center, t_vec3<T> const& up)
     {
-        using vec_type = vsg::t_vec3<T>;
+        using vec_type = t_vec3<T>;
 
         vec_type forward = normalize(center - eye);
         vec_type up_normal = normalize(up);
         vec_type side = normalize(cross(forward, up_normal));
         vec_type u = normalize(cross(side, forward));
 
-        return vsg::translate(eye.x, eye.y, eye.z) *
-            vsg::t_mat4<T>(side[0], u[0], -forward[0], 0,
+        return translate(eye.x, eye.y, eye.z) *
+            t_mat4<T>(side[0], u[0], -forward[0], 0,
                             side[1], u[1], -forward[1], 0,
                             side[2], u[2], -forward[2], 0,
                             0, 0, 0, 1);
     }
 
-    class Trackball : public vsg::Visitor
+    class Trackball : public Inherit<Visitor, Trackball>
     {
     public:
 
-        Trackball(vsg::Camera* camera) :
+        Trackball(ref_ptr<Camera> camera) :
             _camera(camera)
         {
-            _lookAt = dynamic_cast<vsg::LookAt*>(_camera->getViewMatrix());
+            _lookAt = dynamic_cast<LookAt*>(_camera->getViewMatrix());
 
             if (!_lookAt)
             {
                 // TODO: need to work out how to map the original ViewMatrix to a LookAt and back, for now just fallback to assigning our own LookAt
-                _lookAt = new vsg::LookAt;
+                _lookAt = new LookAt;
             }
 
-            _homeLookAt = new vsg::LookAt(_lookAt->eye, _lookAt->center, _lookAt->up);
+            _homeLookAt = new LookAt(_lookAt->eye, _lookAt->center, _lookAt->up);
         }
 
         /// compute non dimensional window coordinate (-1,1) from event coords
-        vsg::dvec2 ndc(vsg::PointerEvent& event)
+        dvec2 ndc(PointerEvent& event)
         {
-            vsg::dvec2 v = vsg::dvec2((static_cast<double>(event.x)/window_width)*2.0-1.0, (static_cast<double>(event.y)/window_height)*2.0-1.0);
+            dvec2 v = dvec2((static_cast<double>(event.x)/window_width)*2.0-1.0, (static_cast<double>(event.y)/window_height)*2.0-1.0);
             //std::cout<<"ndc = "<<v<<std::endl;
             return v;
         }
 
         /// compute trackball coordinate from event coords
-        vsg::dvec3 tbc(vsg::PointerEvent& event)
+        dvec3 tbc(PointerEvent& event)
         {
-            vsg::dvec2 v = ndc(event);
+            dvec2 v = ndc(event);
 
             double l = length(v);
             if (l<1.0f)
             {
-                double h = 0.5 + cos(l*vsg::PI)*0.5;
-                return vsg::dvec3(v.x, -v.y, h);
+                double h = 0.5 + cos(l*PI)*0.5;
+                return dvec3(v.x, -v.y, h);
             }
             else
             {
-                return vsg::dvec3(v.x, -v.y, 0.0);
+                return dvec3(v.x, -v.y, 0.0);
             }
         }
 
-        void apply(vsg::KeyPressEvent& keyPress) override
+        void apply(KeyPressEvent& keyPress) override
         {
             if (keyPress.keyBase==_homeKey)
             {
-                vsg::LookAt* lookAt = dynamic_cast<vsg::LookAt*>(_camera->getViewMatrix());
+                LookAt* lookAt = dynamic_cast<LookAt*>(_camera->getViewMatrix());
                 if (lookAt && _homeLookAt)
                 {
                     lookAt->eye = _homeLookAt->eye;
@@ -93,13 +84,13 @@ namespace vsg
             }
         }
 
-        void apply(vsg::ExposeWindowEvent& exposeWindow) override
+        void apply(ExposeWindowEvent& exposeWindow) override
         {
             window_width = static_cast<double>(exposeWindow.width);
             window_height = static_cast<double>(exposeWindow.height);
         }
 
-        void apply(vsg::ButtonPressEvent& buttonPress) override
+        void apply(ButtonPressEvent& buttonPress) override
         {
             prev_ndc = ndc(buttonPress);
             prev_tbc = tbc(buttonPress);
@@ -114,38 +105,38 @@ namespace vsg
             }
         };
 
-        void apply(vsg::ButtonReleaseEvent& buttonRelease) override
+        void apply(ButtonReleaseEvent& buttonRelease) override
         {
             prev_ndc = ndc(buttonRelease);
             prev_tbc = tbc(buttonRelease);
         };
 
-        void apply(vsg::MoveEvent& moveEvent) override
+        void apply(MoveEvent& moveEvent) override
         {
-            vsg::LookAt* lookAt = dynamic_cast<vsg::LookAt*>(_camera->getViewMatrix());
+            LookAt* lookAt = dynamic_cast<LookAt*>(_camera->getViewMatrix());
 
-            vsg::dvec2 new_ndc = ndc(moveEvent);
-            vsg::dvec3 new_tbc = tbc(moveEvent);
+            dvec2 new_ndc = ndc(moveEvent);
+            dvec3 new_tbc = tbc(moveEvent);
 
-            if (moveEvent.mask & vsg::BUTTON_MASK_1)
+            if (moveEvent.mask & BUTTON_MASK_1)
             {
-                vsg::dvec3 xp = vsg::cross(vsg::normalize(new_tbc), vsg::normalize(prev_tbc));
-                double xp_len = vsg::length(xp);
+                dvec3 xp = cross(normalize(new_tbc), normalize(prev_tbc));
+                double xp_len = length(xp);
                 if (xp_len>0.0)
                 {
-                    vsg::dvec3 axis = xp/xp_len;
+                    dvec3 axis = xp/xp_len;
                     double angle = asin(xp_len);
                     rotate(angle, axis);
                 }
             }
-            else if (moveEvent.mask & vsg::BUTTON_MASK_2)
+            else if (moveEvent.mask & BUTTON_MASK_2)
             {
-                vsg::dvec2 delta = new_ndc - prev_ndc;
+                dvec2 delta = new_ndc - prev_ndc;
                 pan(delta);
             }
-            else if (moveEvent.mask & vsg::BUTTON_MASK_3)
+            else if (moveEvent.mask & BUTTON_MASK_3)
             {
-                vsg::dvec2 delta = new_ndc - prev_ndc;
+                dvec2 delta = new_ndc - prev_ndc;
                 zoom(delta.y);
             }
 
@@ -154,50 +145,50 @@ namespace vsg
         };
 
 
-        void rotate(double angle, const vsg::dvec3& axis)
+        void rotate(double angle, const dvec3& axis)
         {
-            vsg::dmat4 rotation = vsg::rotate(angle, axis);
-            vsg::dmat4 lv = vsg::lookAt(_lookAt->eye, _lookAt->center, _lookAt->up);
-            vsg::dmat4 lvInverse = lookAtInverse(_lookAt->eye, _lookAt->center, _lookAt->up);
-            vsg::dvec3 centerEyeSpace = (lv * _lookAt->center);
+            dmat4 rotation = vsg::rotate(angle, axis);
+            dmat4 lv = lookAt(_lookAt->eye, _lookAt->center, _lookAt->up);
+            dmat4 lvInverse = lookAtInverse(_lookAt->eye, _lookAt->center, _lookAt->up);
+            dvec3 centerEyeSpace = (lv * _lookAt->center);
 
-            vsg::dmat4 matrix = lvInverse * vsg::translate(centerEyeSpace) * rotation * vsg::translate(-centerEyeSpace) * lv;
+            dmat4 matrix = lvInverse * translate(centerEyeSpace) * rotation * translate(-centerEyeSpace) * lv;
 
-            _lookAt->up = vsg::normalize(matrix * (_lookAt->eye + _lookAt->up) - matrix * _lookAt->eye);
+            _lookAt->up = normalize(matrix * (_lookAt->eye + _lookAt->up) - matrix * _lookAt->eye);
             _lookAt->center = matrix * _lookAt->center;
             _lookAt->eye = matrix * _lookAt->eye;
         }
 
         void zoom(double ratio)
         {
-            vsg::dvec3 lookVector = _lookAt->center - _lookAt->eye;
+            dvec3 lookVector = _lookAt->center - _lookAt->eye;
             _lookAt->eye = _lookAt->eye + lookVector * ratio;
         }
 
-        void pan(vsg::dvec2& delta)
+        void pan(dvec2& delta)
         {
-            vsg::dvec3 lookVector = _lookAt->center - _lookAt->eye;
-            vsg::dvec3 lookNormal = normalize(lookVector);
-            vsg::dvec3 sideNormal = vsg::cross(_lookAt->up, lookNormal);
-            double distance = vsg::length(lookVector);
-            vsg::dvec3 translation = sideNormal * (delta.x*distance) + _lookAt->up * (delta.y*distance);
+            dvec3 lookVector = _lookAt->center - _lookAt->eye;
+            dvec3 lookNormal = normalize(lookVector);
+            dvec3 sideNormal = cross(_lookAt->up, lookNormal);
+            double distance = length(lookVector);
+            dvec3 translation = sideNormal * (delta.x*distance) + _lookAt->up * (delta.y*distance);
 
             _lookAt->eye = _lookAt->eye + translation;
             _lookAt->center = _lookAt->center + translation;
         }
 
     protected:
-        vsg::ref_ptr<vsg::Camera> _camera;
-        vsg::ref_ptr<vsg::LookAt> _lookAt;
-        vsg::ref_ptr<vsg::LookAt> _homeLookAt;
+        ref_ptr<Camera> _camera;
+        ref_ptr<LookAt> _lookAt;
+        ref_ptr<LookAt> _homeLookAt;
 
-        vsg::KeySymbol _homeKey = vsg::KEY_Space;
+        KeySymbol _homeKey = KEY_Space;
         double _direction;
 
         double window_width = 800.0;
         double window_height = 600.0;
-        vsg::dvec2 prev_ndc;
-        vsg::dvec3 prev_tbc;
+        dvec2 prev_ndc;
+        dvec3 prev_tbc;
 };
 
 }
@@ -454,32 +445,24 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
     vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt));
 
+    // assign a Trackball and CloseHandler to the Viewer to respond to events
+    auto trackball = vsg::Trackball::create(camera);
+    viewer->addEventHandlers({trackball, vsg::CloseHandler::create(viewer)});
+
     bool windowResized = false;
     float time = 0.0f;
-    vsg::ref_ptr<vsg::Trackball> trackball(new vsg::Trackball(camera));
-    vsg::ref_ptr<vsg::EscapeSetsDone> escapeSetsDone(new vsg::EscapeSetsDone);
 
-    using EventHandlers = std::list<vsg::ref_ptr<vsg::Visitor>>;
-    EventHandlers eventHandlers{trackball, escapeSetsDone};
-
-    while (!viewer->done() && !escapeSetsDone->done && (numFrames<0 || (numFrames--)>0))
+    while (viewer->active() && (numFrames<0 || (numFrames--)>0))
     {
-        if (viewer->pollEvents())
-        {
-            for (auto& vsg_event : viewer->getEvents())
-            {
-                for(auto& handler : eventHandlers)
-                {
-                    vsg_event->accept(*handler);
-                }
-            }
-        }
+        // poll events and advance frame counters
+        viewer->advance();
+
+        // pass any events into EventHandlers assigned to the Viewer
+        viewer->handleEvents();
 
         float previousTime = time;
         time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-viewer->start_point()).count();
         if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
-
-
 
         camera->getProjectionMatrix()->get((*projMatrix));
         camera->getViewMatrix()->get((*viewMatrix));
