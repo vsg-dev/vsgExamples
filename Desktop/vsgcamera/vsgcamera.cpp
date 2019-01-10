@@ -260,7 +260,7 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::Perspective> perspective(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0));
     vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
-    vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt));
+    vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt, viewport));
 
     // assign a Trackball and CloseHandler to the Viewer to respond to events
     auto trackball = vsg::Trackball::create(camera);
@@ -283,11 +283,6 @@ int main(int argc, char** argv)
 
         camera->getProjectionMatrix()->get((*projMatrix));
         camera->getViewMatrix()->get((*viewMatrix));
-
-        //(*projMatrix) = vsg::perspective(vsg::radians(45.0f), float(width)/float(height), 0.1f, 10.f);
-        //(*viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
-
-        //(*modelMatrix) = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
         for (auto& win : viewer->windows())
         {
