@@ -1,4 +1,7 @@
-set(SOURCES vsgcamera.cpp)
+set(SOURCES
+    Trackball.cpp
+    vsgcamera.cpp
+)
 
 add_executable(vsgcamera ${SOURCES})
 
