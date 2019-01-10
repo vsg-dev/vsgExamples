@@ -58,7 +58,7 @@ namespace vsg
         double window_height = 600.0;
         dvec2 prev_ndc;
         dvec3 prev_tbc;
-};
+    };
 
 }
 
