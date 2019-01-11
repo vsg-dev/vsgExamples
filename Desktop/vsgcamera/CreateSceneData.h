@@ -9,7 +9,6 @@
 struct SceneData
 {
     vsg::ref_ptr<vsg::Node> commandGraph;
-    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
     vsg::ref_ptr<vsg::GraphicsPipeline> pipeline;
     vsg::ref_ptr<vsg::BindPipeline> bindPipeline;
 };

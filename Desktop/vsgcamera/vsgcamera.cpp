@@ -151,7 +151,7 @@ int main(int argc, char** argv)
             viewport->getViewport().height = static_cast<float>(windowExtent.height);
             viewport->getScissor().extent = windowExtent;
 
-            vsg::ref_ptr<vsg::GraphicsPipeline> new_pipeline = vsg::GraphicsPipeline::create(device, renderPass, sceneData.pipelineLayout, sceneData.pipeline->getPipelineStates());
+            vsg::ref_ptr<vsg::GraphicsPipeline> new_pipeline = vsg::GraphicsPipeline::create(device, renderPass, sceneData.pipeline->getPipelineLayout(), sceneData.pipeline->getPipelineStates());
 
             sceneData.bindPipeline->setPipeline(new_pipeline);
             sceneData.pipeline = new_pipeline;

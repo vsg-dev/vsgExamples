@@ -106,7 +106,6 @@ SceneData createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::Co
     });
 
     vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(device, {descriptorSetLayout}, pushConstantRanges);
-    scenedata.pipelineLayout = pipelineLayout; // need to pass this back to allow updates to GraphicsPipeline on resize
 
     // setup binding of descriptors
     vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, vsg::DescriptorSets{descriptorSet}); // device dependent
