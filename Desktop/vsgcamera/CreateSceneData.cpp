@@ -161,9 +161,8 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
     commandGraph->add(bindPipeline);  // device dependent
     commandGraph->add(bindDescriptorSets);  // device dependent
 
-    commandGraph->add(pushConstant_proj);
-    commandGraph->add(pushConstant_view);
-    commandGraph->add(pushConstant_model);
+    commandGraph->add(pushConstant_proj); // camera projection matrix
+    commandGraph->add(pushConstant_view); // camera view matrix
 
     // add subgraph that represents the model to render
     vsg::ref_ptr<vsg::StateGroup> model = vsg::StateGroup::create();
@@ -172,6 +171,7 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
     // add the vertex and index buffer data
     model->add(bindVertexBuffers); // device dependent
     model->add(bindIndexBuffer); // device dependent
+    model->add(pushConstant_model); // model transform matrix
 
     // add the draw primitive command
     model->addChild(drawIndexed); // device independent
