@@ -12,6 +12,55 @@
 #include "CreateSceneData.h"
 
 
+class UpdatePipeline : public vsg::Visitor
+{
+public:
+
+    vsg::ref_ptr<vsg::ViewportState> _viewportState;
+
+    UpdatePipeline(vsg::ViewportState* viewportState) :
+        _viewportState(viewportState) {}
+
+    void apply(vsg::BindPipeline& bindPipeline)
+    {
+        std::cout<<"Found BindPipeline "<<std::endl;
+        vsg::GraphicsPipeline* graphicsPipeline = dynamic_cast<vsg::GraphicsPipeline*>(bindPipeline.getPipeline());
+        if (graphicsPipeline)
+        {
+            bool needToRegenerateGraphicsPipeline = false;
+            for(auto& pipelineState : graphicsPipeline->getPipelineStates())
+            {
+                if (pipelineState==_viewportState)
+                {
+                    needToRegenerateGraphicsPipeline = true;
+                }
+            }
+            if (needToRegenerateGraphicsPipeline)
+            {
+
+                vsg::ref_ptr<vsg::GraphicsPipeline> new_pipeline = vsg::GraphicsPipeline::create(graphicsPipeline->getRenderPass()->getDevice(),
+                                                                                                 graphicsPipeline->getRenderPass(),
+                                                                                                 graphicsPipeline->getPipelineLayout(),
+                                                                                                 graphicsPipeline->getPipelineStates());
+
+                bindPipeline.setPipeline(new_pipeline);
+
+                std::cout<<"found matching viewport, replaced."<<std::endl;
+            }
+        }
+    }
+
+    void apply(vsg::StateGroup& stateGroup)
+    {
+        for(auto& component : stateGroup.getStateComponents())
+        {
+            component->accept(*this);
+        }
+
+        stateGroup.traverse(*this);
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -90,9 +139,9 @@ int main(int argc, char** argv)
 
 
     // create the scene/command graph
-    SceneData sceneData = createSceneData(device, commandPool, renderPass, graphicsQueue,
-                                          projMatrix, viewMatrix, viewport,
-                                          vertexShader, fragmentShader, textureData);
+    auto commandGraph = createSceneData(device, commandPool, renderPass, graphicsQueue,
+                                        projMatrix, viewMatrix, viewport,
+                                        vertexShader, fragmentShader, textureData);
 
     //
     // end of initialize vulkan
@@ -104,7 +153,7 @@ int main(int argc, char** argv)
     for (auto& win : viewer->windows())
     {
         // add a GraphicsStage tp the Window to do dispatch of the command graph to the commnad buffer(s)
-        win->addStage(vsg::GraphicsStage::create(sceneData.commandGraph));
+        win->addStage(vsg::GraphicsStage::create(commandGraph));
         win->populateCommandBuffers();
     }
 
@@ -147,14 +196,13 @@ int main(int argc, char** argv)
 
             auto windowExtent = window->extent2D();
 
+            UpdatePipeline updatePipeline(camera->getViewportState());
+
             viewport->getViewport().width = static_cast<float>(windowExtent.width);
             viewport->getViewport().height = static_cast<float>(windowExtent.height);
             viewport->getScissor().extent = windowExtent;
 
-            vsg::ref_ptr<vsg::GraphicsPipeline> new_pipeline = vsg::GraphicsPipeline::create(device, renderPass, sceneData.pipeline->getPipelineLayout(), sceneData.pipeline->getPipelineStates());
-
-            sceneData.bindPipeline->setPipeline(new_pipeline);
-            sceneData.pipeline = new_pipeline;
+            commandGraph->accept(updatePipeline);
 
             perspective->aspectRatio = static_cast<double>(windowExtent.width) / static_cast<double>(windowExtent.height);
 

@@ -119,7 +119,7 @@ void Trackball::apply(MoveEvent& moveEvent)
 
 void Trackball::apply(FrameEvent& frame)
 {
-    std::cout<<"Frame "<<frame.frameStamp->frameCount<<std::endl;
+//    std::cout<<"Frame "<<frame.frameStamp->frameCount<<std::endl;
 }
 
 

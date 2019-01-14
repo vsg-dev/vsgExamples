@@ -11,12 +11,10 @@
 #include "CreateSceneData.h"
 
 
-SceneData createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::CommandPool> commandPool, vsg::ref_ptr<vsg::RenderPass> renderPass, VkQueue graphicsQueue, // viewer/window
-                          vsg::ref_ptr<vsg::mat4Value> projMatrix, vsg::ref_ptr<vsg::mat4Value> viewMatrix, vsg::ref_ptr<vsg::ViewportState> viewport, // camera
-                          vsg::ref_ptr<vsg::Shader> vertexShader, vsg::ref_ptr<vsg::Shader> fragmentShader, vsg::ref_ptr<vsg::Data> textureData) // scene graph
+vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::CommandPool> commandPool, vsg::ref_ptr<vsg::RenderPass> renderPass, VkQueue graphicsQueue, // viewer/window
+                                        vsg::ref_ptr<vsg::mat4Value> projMatrix, vsg::ref_ptr<vsg::mat4Value> viewMatrix, vsg::ref_ptr<vsg::ViewportState> viewport, // camera
+                                        vsg::ref_ptr<vsg::Shader> vertexShader, vsg::ref_ptr<vsg::Shader> fragmentShader, vsg::ref_ptr<vsg::Data> textureData) // scene graph
 {
-    SceneData scenedata;
-
     // set up vertex and index arrays
     vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
     {
@@ -73,7 +71,7 @@ SceneData createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::Co
     if (!imageData.valid())
     {
         std::cout<<"Texture not created"<<std::endl;
-        return scenedata;
+        return vsg::ref_ptr<vsg::Node>();
     }
 
     vsg::ref_ptr<vsg::mat4Value> modelMatrix(new vsg::mat4Value);
@@ -144,11 +142,7 @@ SceneData createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::Co
         vsg::DepthStencilState::create()// device independent
     });
 
-    scenedata.pipeline = pipeline; // need to pass this back to allow updates to GraphicsPipeline on resize
-
     vsg::ref_ptr<vsg::BindPipeline> bindPipeline = vsg::BindPipeline::create(pipeline);
-
-    scenedata.bindPipeline = bindPipeline;
 
     // set up vertex buffer binding
     vsg::ref_ptr<vsg::BindVertexBuffers> bindVertexBuffers = vsg::BindVertexBuffers::create(0, vertexBufferData);  // device dependent
@@ -162,7 +156,6 @@ SceneData createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::Co
     // set up what we want to render in a command graph
     // create command graph to contain all the Vulkan calls for specifically rendering the model
     auto commandGraph = vsg::StateGroup::create();
-    scenedata.commandGraph = commandGraph;
 
     // set up the state configuration
     commandGraph->add(bindPipeline);  // device dependent
@@ -183,5 +176,5 @@ SceneData createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::Co
     // add the draw primitive command
     model->addChild(drawIndexed); // device independent
 
-    return scenedata;
+    return commandGraph;
 }
