@@ -16,6 +16,9 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
                                         vsg::ref_ptr<vsg::mat4Value> projMatrix, vsg::ref_ptr<vsg::mat4Value> viewMatrix, vsg::ref_ptr<vsg::ViewportState> viewport, // camera
                                         vsg::Paths& searchPaths) // scene graph
 {
+    //
+    // load shaders
+    //
     vsg::ref_ptr<vsg::Shader> vertexShader = vsg::Shader::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
     vsg::ref_ptr<vsg::Shader> fragmentShader = vsg::Shader::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
@@ -26,6 +29,9 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
 
     std::string textureFile("textures/lz.vsgb");
 
+    //
+    // set up texture image
+    //
     vsg::vsgReaderWriter vsgReader;
     auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
     if (!textureData)
@@ -34,8 +40,17 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
         return vsg::ref_ptr<vsg::Node>();
     }
 
+    vsg::ImageData imageData = vsg::transferImageData(device, commandPool, graphicsQueue, textureData);
+    if (!imageData.valid())
+    {
+        std::cout<<"Texture not created"<<std::endl;
+        return vsg::ref_ptr<vsg::Node>();
+    }
+
+    //
     // set up what we want to render in a command graph
     // create command graph to contain all the Vulkan calls for specifically rendering the model
+    //
     auto commandGraph = vsg::StateGroup::create();
 
     // variables assigned within rendering setup, but needed by model setup
@@ -121,21 +136,12 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
         // add subgraph that represents the model to render
         vsg::ref_ptr<vsg::StateGroup> model = vsg::StateGroup::create();
 
-        //
-        // set up texture image
-        //
-        vsg::ImageData imageData = vsg::transferImageData(device, commandPool, graphicsQueue, textureData);
-        if (!imageData.valid())
-        {
-            std::cout<<"Texture not created"<<std::endl;
-            return vsg::ref_ptr<vsg::Node>();
-        }
 
+        // set up DescriptorSet
         vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, descriptorSetLayout,
         {
             vsg::DescriptorImage::create(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::ImageDataList{imageData})
         });
-
 
         // setup binding of descriptors
         vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, vsg::DescriptorSets{descriptorSet}); // device dependent
