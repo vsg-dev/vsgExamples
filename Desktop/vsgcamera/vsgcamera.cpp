@@ -70,28 +70,12 @@ int main(int argc, char** argv)
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.read("--fr");
     auto numWindows = arguments.value(1, "--num-windows");
-    auto textureFile = arguments.value(std::string("textures/lz.vsgb"), "-t");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // read shaders
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    vsg::ref_ptr<vsg::Shader> vertexShader = vsg::Shader::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
-    vsg::ref_ptr<vsg::Shader> fragmentShader = vsg::Shader::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
-    if (!vertexShader || !fragmentShader)
-    {
-        std::cout<<"Could not create shaders."<<std::endl;
-        return 1;
-    }
-
-    vsg::vsgReaderWriter vsgReader;
-    auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
-    if (!textureData)
-    {
-        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
-        return 1;
-    }
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -141,7 +125,7 @@ int main(int argc, char** argv)
     // create the scene/command graph
     auto commandGraph = createSceneData(device, commandPool, renderPass, graphicsQueue,
                                         projMatrix, viewMatrix, viewport,
-                                        vertexShader, fragmentShader, textureData);
+                                        searchPaths);
 
     //
     // end of initialize vulkan
