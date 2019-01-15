@@ -21,9 +21,9 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
     auto commandGraph = vsg::StateGroup::create();
 
     // variables assigned within rendering setup, but needed by model setup
-    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
     vsg::ref_ptr<vsg::DescriptorPool> descriptorPool;
     vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout;
+    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
 
     // create rendering setup
     {
@@ -83,11 +83,8 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
 
         vsg::ref_ptr<vsg::BindPipeline> bindPipeline = vsg::BindPipeline::create(pipeline);
 
-
-
         // set up the state configuration
         commandGraph->add(bindPipeline);  // device dependent
-
     }
 
     // setup camera values
@@ -103,6 +100,28 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
 
     // create model
     {
+        // add subgraph that represents the model to render
+        vsg::ref_ptr<vsg::StateGroup> model = vsg::StateGroup::create();
+
+        //
+        // set up texture image
+        //
+        vsg::ImageData imageData = vsg::transferImageData(device, commandPool, graphicsQueue, textureData);
+        if (!imageData.valid())
+        {
+            std::cout<<"Texture not created"<<std::endl;
+            return vsg::ref_ptr<vsg::Node>();
+        }
+
+        vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, descriptorSetLayout,
+        {
+            vsg::DescriptorImage::create(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::ImageDataList{imageData})
+        });
+
+
+        // setup binding of descriptors
+        vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, vsg::DescriptorSets{descriptorSet}); // device dependent
+        model->add(bindDescriptorSets);  // device dependent
 
 
         // set up vertex and index arrays
@@ -153,29 +172,6 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
         auto vertexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, vsg::DataList{vertices, colors, texcoords}, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
         auto indexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, {indices}, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
 
-        //
-        // set up texture image
-        //
-        vsg::ImageData imageData = vsg::transferImageData(device, commandPool, graphicsQueue, textureData);
-        if (!imageData.valid())
-        {
-            std::cout<<"Texture not created"<<std::endl;
-            return vsg::ref_ptr<vsg::Node>();
-        }
-
-        vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, descriptorSetLayout,
-        {
-            vsg::DescriptorImage::create(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::ImageDataList{imageData})
-        });
-
-
-        // add subgraph that represents the model to render
-        vsg::ref_ptr<vsg::StateGroup> model = vsg::StateGroup::create();
-
-
-        // setup binding of descriptors
-        vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, vsg::DescriptorSets{descriptorSet}); // device dependent
-        model->add(bindDescriptorSets);  // device dependent
 
         // set up vertex buffer binding
         vsg::ref_ptr<vsg::BindVertexBuffers> bindVertexBuffers = vsg::BindVertexBuffers::create(0, vertexBufferData);  // device dependent
