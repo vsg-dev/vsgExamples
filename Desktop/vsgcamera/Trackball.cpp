@@ -59,8 +59,15 @@ void Trackball::apply(KeyPressEvent& keyPress)
 
 void Trackball::apply(ExposeWindowEvent& exposeWindow)
 {
-    window_width = static_cast<double>(exposeWindow.width);
-    window_height = static_cast<double>(exposeWindow.height);
+    std::cout<<"Trackball::apply(ExposeWindowEvent& "<<window_width<<", "<<window_height<<")"<<std::endl;
+}
+
+void Trackball::apply(ConfigureWindowEvent& configureWindow)
+{
+    window_width = static_cast<double>(configureWindow.width);
+    window_height = static_cast<double>(configureWindow.height);
+
+    std::cout<<"Trackball::apply(ConfigureWindowEvent& "<<window_width<<", "<<window_height<<")"<<std::endl;
 }
 
 void Trackball::apply(ButtonPressEvent& buttonPress)
