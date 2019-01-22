@@ -119,11 +119,11 @@ int main(int argc, char** argv)
             // create a unsigned byte version of the image and then copy the texels across converting colours from float to unsigned byte.
             vsg::ref_ptr<vsg::ubvec4Array2D> dest(new vsg::ubvec4Array2D(width, height));
             dest->setFormat(VK_FORMAT_R8G8B8A8_UNORM);
-
+            using component_type = uint8_t;
             auto c_itr = dest->begin();
             for(auto& colour : *image)
             {
-                (c_itr++)->set(colour.r*255.0, colour.g*255.0, colour.b*255.0, colour.a*255.0);
+                (c_itr++)->set(static_cast<component_type>(colour.r*255.0), static_cast<component_type>(colour.g*255.0), static_cast<component_type>(colour.b*255.0), static_cast<component_type>(colour.a*255.0));
             }
 
             vsg::vsgReaderWriter io;
