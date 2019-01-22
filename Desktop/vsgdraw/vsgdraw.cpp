@@ -49,7 +49,7 @@ int main(int argc, char** argv)
         std::cout<<"Could not create windows."<<std::endl;
         return 1;
     }
-    
+
     uint32_t backingWidth = window->extent2D().width;
     uint32_t backingHeight = window->extent2D().height;
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 
     // set traits shared window for creating extra windows
     traits->shareWindow = window;
-    
+
     for(int i=1; i<numWindows; ++i)
     {
         vsg::ref_ptr<vsg::Window> new_window(vsg::Window::create(traits, debugLayer, apiDumpLayer));
@@ -256,7 +256,7 @@ int main(int argc, char** argv)
     // add close handler to close the viewer when escape pressed or close button clicked
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    float time = 0.0f;
+    float time = 0.0;
     while (viewer->active() && (numFrames<0 || (numFrames--)>0))
     {
         // poll events and advance frame counters
@@ -266,8 +266,8 @@ int main(int argc, char** argv)
         viewer->handleEvents();
 
         float previousTime = time;
-        time = std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now()-viewer->start_point()).count();
-        if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
+        time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-viewer->start_point()).count();
+        if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0f/(time-previousTime)<<std::endl;
 
         // update
         (*projMatrix) = vsg::perspective(vsg::radians(45.0f), float(traits->width)/float(traits->height), 0.1f, 10.f);

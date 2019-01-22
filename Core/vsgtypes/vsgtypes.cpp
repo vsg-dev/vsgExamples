@@ -118,11 +118,11 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"VkFormat "<<VkFormatForType(1l)<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(1.0f)<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(1.0)<<std::endl;
-    std::cout<<"VkFormat "<<VkFormatForType(vsg::vec2(1.0, 2.4))<<std::endl;
+    std::cout<<"VkFormat "<<VkFormatForType(vsg::vec2(1.0f, 2.4f))<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(vsg::dvec2(1.0, 2.4))<<std::endl;
-    std::cout<<"VkFormat "<<VkFormatForType(vsg::vec3(1.0, 2.4, 0.3))<<std::endl;
+    std::cout<<"VkFormat "<<VkFormatForType(vsg::vec3(1.0f, 2.4f, 0.3f))<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(vsg::dvec3(1.0, 2.4, 0.2))<<std::endl;
-    std::cout<<"VkFormat "<<VkFormatForType(vsg::vec4(1.0, 2.4, 0.1, 0.2))<<std::endl;
+    std::cout<<"VkFormat "<<VkFormatForType(vsg::vec4(1.0f, 2.4f, 0.1f, 0.2f))<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(vsg::dvec4(1.0, 2.4, 0.1, 0.2))<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(vsg::uivec4(1, 2, 0, 0))<<std::endl;
     std::cout<<"VkFormat "<<VkFormatForType(vsg::ucvec4(1, 2, 0, 0))<<std::endl;

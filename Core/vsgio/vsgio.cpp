@@ -85,12 +85,12 @@ int main(int argc, char** argv)
 
         object->setValue("double_value", 10.0);
         object->setValue("string_value", "All the Kings men.");
-        object->setValue("my vector", vsg::vec4{1.1, 2.2, 3.3, 4.4});
+        object->setValue("my vector", vsg::vec4{1.1f, 2.2f, 3.3f, 4.4f});
 
-        object->setObject("my array", new vsg::floatArray{10.1, 21.2, 31.4, 55.0});
+        object->setObject("my array", new vsg::floatArray{10.1f, 21.2f, 31.4f, 55.0f});
         object->setObject("my vec3Array", new vsg::vec3Array{
-            {10.1, 21.2, 31.4},
-            {55.0, 45.0, -20.0}
+            {10.1f, 21.2f, 31.4f},
+            {55.0f, 45.0f, -20.0f}
         });
 
         vsg::ref_ptr<vsg::vec4Array2D> image( new vsg::vec4Array2D(3, 3) );
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         {
             for(size_t j=0; j<image->height(); ++j)
             {
-                image->at(i, j) = vsg::vec4(i, j, i*j, 1.0);
+                image->at(i, j) = vsg::vec4(i, j, i*j, 1.0f);
             }
         }
 
