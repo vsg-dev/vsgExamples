@@ -219,8 +219,8 @@ std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned in
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
-    auto numLevels = arguments.value(11, {"-l", "--levels"});
-    auto numTraversals = arguments.value(10, {"-t", "--traversals"});
+    auto numLevels = arguments.value(11u, {"-l", "--levels"});
+    auto numTraversals = arguments.value(10u, {"-t", "--traversals"});
     auto type = arguments.value(std::string("vsg::Group"), "--type");
     auto quiet = arguments.read("-q");
     auto inputFilename = arguments.value(std::string(""), "-i");
