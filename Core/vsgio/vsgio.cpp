@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         {
             for(size_t j=0; j<image->height(); ++j)
             {
-                image->at(i, j) = vsg::vec4(i, j, i*j, 1.0f);
+                image->at(i, j) = vsg::vec4(static_cast<float>(i), static_cast<float>(j), static_cast<float>(i*j), 1.0f);
             }
         }
 
