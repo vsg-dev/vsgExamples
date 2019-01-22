@@ -26,48 +26,59 @@ GraphicsPipelineConfig::GraphicsPipelineConfig(Allocator* allocator) :
 {
 }
 
-GraphicsPipeline* GraphicsPipelineConfig::createPipeline(Device* device, RenderPass* renderPass, ViewportState* viewport)
+void GraphicsPipelineConfig::init()
 {
-    // variables assigned within rendering setup, but needed by model setup
-    vsg::ref_ptr<vsg::DescriptorPool> descriptorPool;
-    vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout;
-    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
-
-    //
-    // set up descriptor layout and descriptor set and pipeline layout for uniforms
-    //
-    descriptorPool = vsg::DescriptorPool::create(device, 1,
+    maxSets = 0;
+    descriptorPoolSizes = DescriptorPoolSizes
     {
         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1} // texture
-    });
+    };
 
-    descriptorSetLayout = vsg::DescriptorSetLayout::create(device,
+    descriptorSetLayoutBindings = vsg::DescriptorSetLayoutBindings
     {
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // texture
-    });
+    };
 
-    vsg::PushConstantRanges pushConstantRanges
+    pushConstantRanges = vsg::PushConstantRanges
     {
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 196} // projection view, and model matrices
     };
 
-    pipelineLayout = vsg::PipelineLayout::create(device, {descriptorSetLayout}, pushConstantRanges);
-
-
-    // set up graphics pipeline
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
+    vertexBindingsDescriptions = vsg::VertexInputState::Bindings
     {
         VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
         VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
         VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
     };
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
+    vertexAttributeDescriptions = vsg::VertexInputState::Attributes
     {
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
         VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
+
+    pipelineStates = GraphicsPipelineStates
+    {
+        vsg::InputAssemblyState::create(), // device independent
+        vsg::RasterizationState::create(),// device independent
+        vsg::MultisampleState::create(),// device independent
+        vsg::ColorBlendState::create(),// device independent
+        vsg::DepthStencilState::create()// device independent
+    };
+}
+
+GraphicsPipeline* GraphicsPipelineConfig::createPipeline(Device* device, RenderPass* renderPass, ViewportState* viewport)
+{
+    //
+    // set up descriptor layout and descriptor set and pipeline layout for uniforms
+    //
+    vsg::ref_ptr<vsg::DescriptorPool> descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
+
+    vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout = vsg::DescriptorSetLayout::create(device, descriptorSetLayoutBindings);
+
+    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(device, {descriptorSetLayout}, pushConstantRanges);
+
 
     vsg::ShaderModules shaderModules;
     shaderModules.reserve(shaders.size());

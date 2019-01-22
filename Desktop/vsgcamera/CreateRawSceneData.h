@@ -11,17 +11,30 @@ namespace vsg
 {
     struct Context
     {
-        vsg::ref_ptr<vsg::Device> device;
-        vsg::ref_ptr<vsg::CommandPool> commandPool;
-        vsg::ref_ptr<vsg::RenderPass> renderPass;
-        vsg::ref_ptr<vsg::ViewportState> viewport;
+        ref_ptr<Device> device;
+        ref_ptr<CommandPool> commandPool;
+        ref_ptr<RenderPass> renderPass;
+        ref_ptr<ViewportState> viewport;
         VkQueue graphicsQueue;
+    };
+
+
+    // one set per thread?
+    struct FrameResources
+    {
+        using DescriptorPools = std::vector<ref_ptr<DescriptorPool>>;
+        using DescriptorSetLayouts = std::vector<ref_ptr<DescriptorSetLayout>>;
+        using PiplineLayouts = std::vector<ref_ptr<PipelineLayout>>;
+        using GraphicsPipelines = std::vector<ref_ptr<GraphicsPipeline>>;
+
     };
 
     class GraphicsPipelineConfig : public Inherit<Object, GraphicsPipelineConfig>
     {
     public:
         GraphicsPipelineConfig(Allocator* allocator = nullptr);
+
+        void init();
 
         GraphicsPipeline* createPipeline(Device* device, RenderPass* renderPass, ViewportState* viewport);
 
