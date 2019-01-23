@@ -50,13 +50,8 @@ public:
         }
     }
 
-    void apply(vsg::StateGroup& stateGroup)
+    void apply(vsg::Group& stateGroup)
     {
-        for(auto& component : stateGroup.getStateComponents())
-        {
-            component->accept(*this);
-        }
-
         stateGroup.traverse(*this);
     }
 };

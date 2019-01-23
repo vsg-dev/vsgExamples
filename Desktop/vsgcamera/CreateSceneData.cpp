@@ -53,7 +53,7 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
     // set up what we want to render in a command graph
     // create command graph to contain all the Vulkan calls for specifically rendering the model
     //
-    auto commandGraph = vsg::StateGroup::create();
+    auto commandGraph = vsg::Group::create();
 
     // variables assigned within rendering setup, but needed by model setup
     vsg::ref_ptr<vsg::DescriptorPool> descriptorPool;
@@ -119,24 +119,31 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
         vsg::ref_ptr<vsg::BindPipeline> bindPipeline = vsg::BindPipeline::create(pipeline);
 
         // set up the state configuration
-        commandGraph->add(bindPipeline);  // device dependent
+        commandGraph->addChild(bindPipeline);  // device dependent
     }
 
     // setup camera values
     {
         // camera projection matrix
         vsg::ref_ptr<vsg::PushConstants> pushConstant_proj = vsg::PushConstants::create(VK_SHADER_STAGE_VERTEX_BIT, 0, projMatrix);
-        commandGraph->add(pushConstant_proj);
+        commandGraph->addChild(pushConstant_proj);
 
         // camera view matrix
         vsg::ref_ptr<vsg::PushConstants> pushConstant_view = vsg::PushConstants::create(VK_SHADER_STAGE_VERTEX_BIT, 64, viewMatrix);
-        commandGraph->add(pushConstant_view);
+        commandGraph->addChild(pushConstant_view);
+    }
+
+    // model transform matrix
+    {
+        vsg::ref_ptr<vsg::mat4Value> modelMatrix(new vsg::mat4Value);
+        vsg::ref_ptr<vsg::PushConstants> pushConstant_model = vsg::PushConstants::create(VK_SHADER_STAGE_VERTEX_BIT, 128, modelMatrix); // device independent
+        commandGraph->addChild(pushConstant_model);
     }
 
     // create model
     {
         // add subgraph that represents the model to render
-        vsg::ref_ptr<vsg::StateGroup> model = vsg::StateGroup::create();
+        vsg::ref_ptr<vsg::Group> model = vsg::Group::create();
 
 
         // set up DescriptorSet
@@ -147,7 +154,7 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
 
         // setup binding of descriptors
         vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, vsg::DescriptorSets{descriptorSet}); // device dependent
-        model->add(bindDescriptorSets);  // device dependent
+        model->addChild(bindDescriptorSets);  // device dependent
 
 
         // set up vertex and index arrays
@@ -202,16 +209,11 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
 
         // set up vertex buffer binding
         vsg::ref_ptr<vsg::BindVertexBuffers> bindVertexBuffers = vsg::BindVertexBuffers::create(0, vertexBufferData);  // device dependent
-        model->add(bindVertexBuffers); // device dependent
+        model->addChild(bindVertexBuffers); // device dependent
 
         // set up index buffer binding
         vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = vsg::BindIndexBuffer::create(indexBufferData.front(), VK_INDEX_TYPE_UINT16); // device dependent
-        model->add(bindIndexBuffer); // device dependent
-
-        // model transform matrix
-        vsg::ref_ptr<vsg::mat4Value> modelMatrix(new vsg::mat4Value);
-        vsg::ref_ptr<vsg::PushConstants> pushConstant_model = vsg::PushConstants::create(VK_SHADER_STAGE_VERTEX_BIT, 128, modelMatrix); // device independent
-        model->add(pushConstant_model);
+        model->addChild(bindIndexBuffer); // device dependent
 
         // set up drawing of the triangles
         vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0); // device independent
