@@ -26,11 +26,6 @@ GraphicsPipelineGroup::GraphicsPipelineGroup(Allocator* allocator) :
 {
 }
 
-void GraphicsPipelineGroup::init()
-{
-}
-
-
 void GraphicsPipelineGroup::accept(DispatchTraversal& dv) const
 {
     if (_bindPipeline) _bindPipeline->accept(dv);
@@ -40,6 +35,24 @@ void GraphicsPipelineGroup::accept(DispatchTraversal& dv) const
     traverse(dv);
 
     // do we restore pipelines in parental chain?
+}
+
+void GraphicsPipelineGroup::traverse(Visitor& visitor)
+{
+    if (_bindPipeline) _bindPipeline->accept(visitor);
+    if (_projPushConstant) _projPushConstant->accept(visitor);
+    if (_viewPushConstant) _viewPushConstant->accept(visitor);
+
+    Inherit::traverse(visitor);
+}
+
+void GraphicsPipelineGroup::traverse(ConstVisitor& visitor) const
+{
+    if (_bindPipeline) _bindPipeline->accept(visitor);
+    if (_projPushConstant) _projPushConstant->accept(visitor);
+    if (_viewPushConstant) _viewPushConstant->accept(visitor);
+
+    Inherit::traverse(visitor);
 }
 
 void GraphicsPipelineGroup::compile(Context& context)
@@ -83,6 +96,19 @@ Texture::Texture(Allocator* allocator) :
     Inherit(allocator)
 {
 }
+
+void Texture::traverse(Visitor& visitor)
+{
+    if (_bindDescriptorSets) _bindDescriptorSets->accept(visitor);
+    Inherit::traverse(visitor);
+}
+
+void Texture::traverse(ConstVisitor& visitor) const
+{
+    if (_bindDescriptorSets) _bindDescriptorSets->accept(visitor);
+    Inherit::traverse(visitor);
+}
+
 
 void Texture::accept(DispatchTraversal& dv) const
 {

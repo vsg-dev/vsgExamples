@@ -50,7 +50,10 @@ namespace vsg
     public:
         GraphicsPipelineGroup(Allocator* allocator = nullptr);
 
-        void init();
+        using Inherit::traverse;
+
+        void traverse(Visitor& visitor) override;
+        void traverse(ConstVisitor& visitor) const override;
 
         void accept(DispatchTraversal& dv) const override;
 
@@ -79,6 +82,11 @@ namespace vsg
     {
     public:
         Texture(Allocator* allocator = nullptr);
+
+        using Inherit::traverse;
+
+        void traverse(Visitor& visitor) override;
+        void traverse(ConstVisitor& visitor) const override;
 
         void accept(DispatchTraversal& dv) const override;
 
