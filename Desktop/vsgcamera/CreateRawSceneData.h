@@ -34,6 +34,7 @@ namespace vsg
 
         virtual void compile(Context& context) = 0;
     };
+    VSG_type_name(vsg::GraphicsNode);
 
     // one set per thread?
     struct FrameResources
@@ -42,7 +43,6 @@ namespace vsg
         using DescriptorSetLayouts = std::vector<ref_ptr<DescriptorSetLayout>>;
         using PiplineLayouts = std::vector<ref_ptr<PipelineLayout>>;
         using GraphicsPipelines = std::vector<ref_ptr<GraphicsPipeline>>;
-
     };
 
     class GraphicsPipelineGroup : public Inherit<GraphicsNode, GraphicsPipelineGroup>
@@ -73,18 +73,21 @@ namespace vsg
         ref_ptr<PushConstants> _projPushConstant;
         ref_ptr<PushConstants> _viewPushConstant;
     };
-
+    VSG_type_name(vsg::GraphicsPipelineGroup);
 
     class Texture : public Inherit<GraphicsNode, Texture>
     {
     public:
         Texture(Allocator* allocator = nullptr);
 
+        void accept(DispatchTraversal& dv) const override;
+
         void compile(Context& context);
 
         ref_ptr<Data> _textureData;
         ref_ptr<vsg::BindDescriptorSets> _bindDescriptorSets;
     };
+    VSG_type_name(vsg::Texture);
 
     class MatrixTransform : public Inherit<GraphicsNode, MatrixTransform>
     {
@@ -99,6 +102,7 @@ namespace vsg
 
         ref_ptr<PushConstants> _pushConstant;
     };
+    VSG_type_name(vsg::MatrixTransform);
 
     class Geometry : public Inherit<GraphicsNode, Geometry>
     {
@@ -116,9 +120,8 @@ namespace vsg
         Commands _commands;
 
         ref_ptr<Group> _renderImplementation;
-
-
     };
+    VSG_type_name(vsg::Geometry);
 
     class CompileTraversal : public Visitor
     {

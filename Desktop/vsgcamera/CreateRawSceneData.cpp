@@ -62,9 +62,9 @@ void GraphicsPipelineGroup::compile(Context& context)
     auto shaderStages = ShaderStages::create(shaderModules);
 
     GraphicsPipelineStates full_pipelineStates = pipelineStates;
-    pipelineStates.emplace_back(context.viewport);
-    pipelineStates.emplace_back(shaderStages);
-    pipelineStates.emplace_back(VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions));
+    full_pipelineStates.emplace_back(context.viewport);
+    full_pipelineStates.emplace_back(shaderStages);
+    full_pipelineStates.emplace_back(VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions));
 
 
     ref_ptr<GraphicsPipeline> pipeline = GraphicsPipeline::create(context.device, context.renderPass, context.pipelineLayout, full_pipelineStates);
@@ -83,6 +83,13 @@ Texture::Texture(Allocator* allocator) :
     Inherit(allocator)
 {
 }
+
+void Texture::accept(DispatchTraversal& dv) const
+{
+    if (_bindDescriptorSets) _bindDescriptorSets->accept(dv);
+    traverse(dv);
+}
+
 
 void Texture::compile(Context& context)
 {
@@ -237,7 +244,7 @@ vsg::ref_ptr<vsg::Node> createRawSceneData(vsg::Paths& searchPaths)
     vsg::ref_ptr<vsg::GraphicsPipelineGroup> gp = vsg::GraphicsPipelineGroup::create();
 
     gp->shaders = vsg::GraphicsPipelineGroup::Shaders{vertexShader, fragmentShader};
-    gp->maxSets = 0;
+    gp->maxSets = 1;
     gp->descriptorPoolSizes = vsg::DescriptorPoolSizes
     {
         {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1} // texture
