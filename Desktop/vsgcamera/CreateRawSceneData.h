@@ -15,9 +15,25 @@ namespace vsg
         ref_ptr<CommandPool> commandPool;
         ref_ptr<RenderPass> renderPass;
         ref_ptr<ViewportState> viewport;
-        VkQueue graphicsQueue;
+        VkQueue graphicsQueue = 0;
+
+        ref_ptr<DescriptorPool> descriptorPool;
+        ref_ptr<DescriptorSetLayout> descriptorSetLayout;
+        ref_ptr<PipelineLayout> pipelineLayout;
+
+        ref_ptr<mat4Value> projMatrix;
+        ref_ptr<mat4Value> viewMatrix;
     };
 
+
+    class GraphicsNode : public Inherit<Group, GraphicsNode>
+    {
+    public:
+        GraphicsNode(Allocator* allocator = nullptr):
+            Inherit(allocator) {}
+
+        virtual void compile(Context& context) = 0;
+    };
 
     // one set per thread?
     struct FrameResources
@@ -29,14 +45,16 @@ namespace vsg
 
     };
 
-    class GraphicsPipelineConfig : public Inherit<Object, GraphicsPipelineConfig>
+    class GraphicsPipelineGroup : public Inherit<GraphicsNode, GraphicsPipelineGroup>
     {
     public:
-        GraphicsPipelineConfig(Allocator* allocator = nullptr);
+        GraphicsPipelineGroup(Allocator* allocator = nullptr);
 
         void init();
 
-        GraphicsPipeline* createPipeline(Device* device, RenderPass* renderPass, ViewportState* viewport);
+        void accept(DispatchTraversal& dv) const override;
+
+        void compile(Context& context) override;
 
         using Shaders = std::vector<ref_ptr<Shader>>;
 
@@ -44,37 +62,52 @@ namespace vsg
         uint32_t maxSets = 0;
         DescriptorPoolSizes descriptorPoolSizes; // need to accumulate descriptorPoolSizes by looking at scene graph
         // descriptorSetLayout ..
-        vsg::DescriptorSetLayoutBindings descriptorSetLayoutBindings;
-        vsg::PushConstantRanges pushConstantRanges;
-        vsg::VertexInputState::Bindings vertexBindingsDescriptions;
-        vsg::VertexInputState::Attributes vertexAttributeDescriptions;
+        DescriptorSetLayoutBindings descriptorSetLayoutBindings;
+        PushConstantRanges pushConstantRanges;
+        VertexInputState::Bindings vertexBindingsDescriptions;
+        VertexInputState::Attributes vertexAttributeDescriptions;
         Shaders shaders;
         GraphicsPipelineStates pipelineStates;
+
+        ref_ptr<BindPipeline> _bindPipeline;
+        ref_ptr<PushConstants> _projPushConstant;
+        ref_ptr<PushConstants> _viewPushConstant;
     };
 
 
-    // compilable?
-    class Geometry;
-    class MatrixTransform : public Inherit<Group, MatrixTransform>
+    class Texture : public Inherit<GraphicsNode, Texture>
+    {
+    public:
+        Texture(Allocator* allocator = nullptr);
+
+        void compile(Context& context);
+
+        ref_ptr<Data> _textureData;
+        ref_ptr<vsg::BindDescriptorSets> _bindDescriptorSets;
+    };
+
+    class MatrixTransform : public Inherit<GraphicsNode, MatrixTransform>
     {
     public:
         MatrixTransform(Allocator* allocator = nullptr);
 
         void accept(DispatchTraversal& dv) const override;
 
-        dmat4 _matrix;
+        void compile(Context& context) override;
 
-        ref_ptr<StateGroup> _stateGroup;
+        ref_ptr<mat4Value> _matrix;
 
-        void compile(Context& context);
+        ref_ptr<PushConstants> _pushConstant;
     };
 
-    class Geometry : public Inherit<Group, Geometry>
+    class Geometry : public Inherit<GraphicsNode, Geometry>
     {
     public:
         Geometry(Allocator* allocator = nullptr);
 
         void accept(DispatchTraversal& dv) const override;
+
+        void compile(Context& context) override;
 
         using Commands = std::vector<ref_ptr<Command>>;
 
@@ -82,24 +115,8 @@ namespace vsg
         ref_ptr<Data> _indices;
         Commands _commands;
 
-        ref_ptr<StateGroup> _stateGroup;
+        ref_ptr<Group> _renderImplementation;
 
-        void compile(Context& context);
-
-    };
-
-    class StateSet : public Inherit<Group, StateSet>
-    {
-    public:
-        StateSet(Allocator* allocator = nullptr);
-
-        void accept(DispatchTraversal& dv) const override;
-
-        void compile(Context& context);
-
-        ref_ptr<Data> textureData;
-        vsg::ref_ptr<vsg::Shader> vertexShader;
-        vsg::ref_ptr<vsg::Shader> fragmentShader;
 
     };
 
@@ -110,10 +127,7 @@ namespace vsg
         CompileTraversal() {}
 
         void apply(Group& group);
-
-        void apply(Geometry& geometry);
-        void apply(MatrixTransform& transform);
-        void apply(StateSet& stateset);
+        void apply(GraphicsNode& graphics);
 
         Context context;
     };
