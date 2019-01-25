@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include <osgDB/ReadFile>
+#include <osg/Billboard>
 
 #include "Trackball.h"
 #include "GraphicsNodes.h"
@@ -230,6 +231,23 @@ public:
         if (transform.getStateSet()) popStateSet();
     }
 
+    void apply(osg::Billboard& billboard)
+    {
+        std::cout<<"apply(osg::Billboard& billboard)"<<std::endl;
+
+        for(unsigned int i=0; i<billboard.getNumDrawables(); ++i)
+        {
+            auto translate = osg::Matrixd::translate(billboard.getPosition(i));
+
+            if (matrixstack.empty()) pushMatrix(translate);
+            else pushMatrix(matrixstack.back()*translate);
+
+            billboard.getDrawable(i)->accept(*this);
+
+            popMatrix();
+        }
+    }
+
     void apply(osg::Geometry& geometry)
     {
         geometries.insert(&geometry);
@@ -238,7 +256,7 @@ public:
 
         statesets.insert(statestack);
 
-        std::cout<<"Geometry "<<geometry.className()<<" ss="<<statestack.size()<<" ms="<<matrixstack.size()<<std::endl;
+        std::cout<<"   Geometry "<<geometry.className()<<" ss="<<statestack.size()<<" ms="<<matrixstack.size()<<std::endl;
 
         if (geometry.getStateSet()) popStateSet();
     }
