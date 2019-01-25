@@ -184,9 +184,11 @@ public:
     using StateSets = std::set<StateStack>;
     using MatrixStack = std::vector<osg::Matrixd>;
     using Geometries = std::set<osg::ref_ptr<osg::Geometry>>;
+    using StateMap = std::map<StateStack, osg::ref_ptr<osg::StateSet>>;
 
     StateStack statestack;
     StateSets statesets;
+    StateMap stateMap;
     MatrixStack matrixstack;
     Geometries geometries;
 
@@ -254,7 +256,37 @@ public:
 
         if (geometry.getStateSet()) pushStateSet(*geometry.getStateSet());
 
-        statesets.insert(statestack);
+        if (stateMap.find(statestack)==stateMap.end())
+        {
+            statesets.insert(statestack);
+
+            if (statestack.empty())
+            {
+                std::cout<<"New Empty StateSet's"<<std::endl;
+                stateMap[statestack] = 0;
+            }
+            else if (statestack.size()==1)
+            {
+                std::cout<<"New Single  StateSet's"<<std::endl;
+                stateMap[statestack] = statestack.back();
+            }
+            else // multiple stateset's need to merge
+            {
+                std::cout<<"New Merging StateSet's "<<statestack.size()<<std::endl;
+                osg::ref_ptr<osg::StateSet> new_stateset = new osg::StateSet;
+                for(auto& stateset : statestack)
+                {
+                    new_stateset->merge(*stateset);
+                }
+                stateMap[statestack] = new_stateset;
+            }
+
+            std::cout<<"Need to create StateSet"<<std::endl;
+        }
+        else
+        {
+            std::cout<<"Already have StateSet"<<std::endl;
+        }
 
         std::cout<<"   Geometry "<<geometry.className()<<" ss="<<statestack.size()<<" ms="<<matrixstack.size()<<std::endl;
 
