@@ -47,6 +47,50 @@ namespace vsg
         Context context;
     };
 
+    class UpdatePipeline : public vsg::Visitor
+    {
+    public:
+
+        vsg::ref_ptr<vsg::ViewportState> _viewportState;
+
+        UpdatePipeline(vsg::ViewportState* viewportState) :
+            _viewportState(viewportState) {}
+
+        void apply(vsg::BindPipeline& bindPipeline)
+        {
+            std::cout<<"Found BindPipeline "<<std::endl;
+            vsg::GraphicsPipeline* graphicsPipeline = dynamic_cast<vsg::GraphicsPipeline*>(bindPipeline.getPipeline());
+            if (graphicsPipeline)
+            {
+                bool needToRegenerateGraphicsPipeline = false;
+                for(auto& pipelineState : graphicsPipeline->getPipelineStates())
+                {
+                    if (pipelineState==_viewportState)
+                    {
+                        needToRegenerateGraphicsPipeline = true;
+                    }
+                }
+                if (needToRegenerateGraphicsPipeline)
+                {
+
+                    vsg::ref_ptr<vsg::GraphicsPipeline> new_pipeline = vsg::GraphicsPipeline::create(graphicsPipeline->getRenderPass()->getDevice(),
+                                                                                                    graphicsPipeline->getRenderPass(),
+                                                                                                    graphicsPipeline->getPipelineLayout(),
+                                                                                                    graphicsPipeline->getPipelineStates());
+
+                    bindPipeline.setPipeline(new_pipeline);
+
+                    std::cout<<"found matching viewport, replaced."<<std::endl;
+                }
+            }
+        }
+
+        void apply(vsg::Group& stateGroup)
+        {
+            stateGroup.traverse(*this);
+        }
+    };
+
     class GraphicsPipelineGroup : public Inherit<GraphicsNode, GraphicsPipelineGroup>
     {
     public:
