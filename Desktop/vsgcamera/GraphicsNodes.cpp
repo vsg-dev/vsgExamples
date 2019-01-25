@@ -226,7 +226,6 @@ void Geometry::compile(Context& context)
     vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = vsg::BindIndexBuffer::create(indexBufferData.front(), VK_INDEX_TYPE_UINT16); // device dependent
     _renderImplementation->addChild(bindIndexBuffer); // device dependent
 
-    // set up drawing of the triangles
-    vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0); // device independent
-    _renderImplementation->addChild(drawIndexed); // device independent
+    // add the commands in the the _renderImplementation group.
+    for(auto& command : _commands) _renderImplementation->addChild(command);
 }

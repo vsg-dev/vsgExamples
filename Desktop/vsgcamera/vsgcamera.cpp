@@ -75,11 +75,11 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
 
     gp->pipelineStates = vsg::GraphicsPipelineStates
     {
-        vsg::InputAssemblyState::create(), // device independent
-        vsg::RasterizationState::create(),// device independent
-        vsg::MultisampleState::create(),// device independent
-        vsg::ColorBlendState::create(),// device independent
-        vsg::DepthStencilState::create()// device independent
+        vsg::InputAssemblyState::create(),
+        vsg::RasterizationState::create(),
+        vsg::MultisampleState::create(),
+        vsg::ColorBlendState::create(),
+        vsg::DepthStencilState::create()
     };
 
 
@@ -155,7 +155,7 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     geometry->_arrays = vsg::DataList{vertices, colors, texcoords};
     geometry->_indices = indices;
 
-    vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0); // device independent
+    vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0);
     geometry->_commands = vsg::Geometry::Commands{drawIndexed};
 
     // add geometry to texture group
