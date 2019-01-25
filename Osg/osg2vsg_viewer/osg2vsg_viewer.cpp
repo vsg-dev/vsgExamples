@@ -173,8 +173,110 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     return gp;
 }
 
+class PrintVisitor : public osg::NodeVisitor
+{
+public:
+    PrintVisitor():
+        osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
+
+    using StateStack = std::vector<osg::ref_ptr<osg::StateSet>>;
+    using StateSets = std::set<StateStack>;
+    using MatrixStack = std::vector<osg::Matrixd>;
+    using Geometries = std::set<osg::ref_ptr<osg::Geometry>>;
+
+    StateStack statestack;
+    StateSets statesets;
+    MatrixStack matrixstack;
+    Geometries geometries;
+
+    void apply(osg::Node& node)
+    {
+        std::cout<<"Visiting "<<node.className()<<" "<<node.getStateSet()<<std::endl;
+
+        if (node.getStateSet()) pushStateSet(*node.getStateSet());
+
+        traverse(node);
+
+        if (node.getStateSet()) popStateSet();
+    }
+
+    void apply(osg::Group& group)
+    {
+        std::cout<<"Group "<<group.className()<<" "<<group.getStateSet()<<std::endl;
+
+        if (group.getStateSet()) pushStateSet(*group.getStateSet());
+
+        traverse(group);
+
+        if (group.getStateSet()) popStateSet();
+    }
+
+    void apply(osg::Transform& transform)
+    {
+        std::cout<<"Transform "<<transform.className()<<" "<<transform.getStateSet()<<std::endl;
+
+        if (transform.getStateSet()) pushStateSet(*transform.getStateSet());
+
+        osg::Matrix matrix;
+        if (!matrixstack.empty()) matrix = matrixstack.back();
+        transform.computeLocalToWorldMatrix(matrix, this);
+
+        pushMatrix(matrix);
+
+        traverse(transform);
+
+        popMatrix();
+
+        if (transform.getStateSet()) popStateSet();
+    }
+
+    void apply(osg::Geometry& geometry)
+    {
+        geometries.insert(&geometry);
+
+        if (geometry.getStateSet()) pushStateSet(*geometry.getStateSet());
+
+        statesets.insert(statestack);
+
+        std::cout<<"Geometry "<<geometry.className()<<" ss="<<statestack.size()<<" ms="<<matrixstack.size()<<std::endl;
+
+        if (geometry.getStateSet()) popStateSet();
+    }
+
+    void pushStateSet(osg::StateSet& stateset)
+    {
+        statestack.push_back(&stateset);
+    }
+
+    void popStateSet()
+    {
+        statestack.pop_back();
+    }
+
+    void pushMatrix(const osg::Matrix& matrix)
+    {
+        matrixstack.push_back(matrix);
+    }
+
+    void popMatrix()
+    {
+        matrixstack.pop_back();
+    }
+
+    void print()
+    {
+        std::cout<<"   statesets.size() = "<<statesets.size()<<std::endl;
+        std::cout<<"   geometries.size() = "<<geometries.size()<<std::endl;
+    }
+};
+
 vsg::ref_ptr<vsg::Node> convertToVsg(osg::ref_ptr<osg::Node> osg_scene)
 {
+    PrintVisitor print;
+    osg_scene->accept(print);
+
+    print.print();
+
     return vsg::ref_ptr<vsg::Node>();
 }
 
