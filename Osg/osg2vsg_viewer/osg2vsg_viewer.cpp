@@ -173,7 +173,6 @@ int main(int argc, char** argv)
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.read("--fr");
-    auto numWindows = arguments.value(1, "--num-windows");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -192,12 +191,6 @@ int main(int argc, char** argv)
     }
 
     viewer->addWindow(window);
-
-    for(int i=1; i<numWindows; ++i)
-    {
-        vsg::ref_ptr<vsg::Window> new_window(vsg::Window::create(width, height, debugLayer, apiDumpLayer, window));
-        viewer->addWindow( new_window );
-    }
 
     // create high level Vulkan objects associated the main window
     vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice(window->physicalDevice());
