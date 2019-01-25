@@ -12,11 +12,15 @@
 
 #include <iostream>
 
+#include "GraphicsNodes.h"
 #include "CreateSceneData.h"
 
-vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::CommandPool> commandPool, vsg::ref_ptr<vsg::RenderPass> renderPass, VkQueue graphicsQueue, // viewer/window
-                                        vsg::ref_ptr<vsg::mat4Value> projMatrix, vsg::ref_ptr<vsg::mat4Value> viewMatrix, vsg::ref_ptr<vsg::ViewportState> viewport, // camera
-                                        vsg::Paths& searchPaths) // scene graph
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//
+// createRawSceneData
+//
+vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
 {
     //
     // load shaders
@@ -42,185 +46,129 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::ref_ptr<vsg::Device> device, vsg::r
         return vsg::ref_ptr<vsg::Node>();
     }
 
-    vsg::ImageData imageData = vsg::transferImageData(device, commandPool, graphicsQueue, textureData);
-    if (!imageData.valid())
+    //
+    // set up graphics pipeline
+    //
+    vsg::ref_ptr<vsg::GraphicsPipelineGroup> gp = vsg::GraphicsPipelineGroup::create();
+
+    gp->shaders = vsg::GraphicsPipelineGroup::Shaders{vertexShader, fragmentShader};
+    gp->maxSets = 1;
+    gp->descriptorPoolSizes = vsg::DescriptorPoolSizes
     {
-        std::cout<<"Texture not created"<<std::endl;
-        return vsg::ref_ptr<vsg::Node>();
-    }
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1} // texture
+    };
+
+    gp->descriptorSetLayoutBindings = vsg::DescriptorSetLayoutBindings
+    {
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+    };
+
+    gp->pushConstantRanges = vsg::PushConstantRanges
+    {
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 196} // projection view, and model matrices
+    };
+
+    gp->vertexBindingsDescriptions = vsg::VertexInputState::Bindings
+    {
+        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+    };
+
+    gp->vertexAttributeDescriptions = vsg::VertexInputState::Attributes
+    {
+        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+    };
+
+    gp->pipelineStates = vsg::GraphicsPipelineStates
+    {
+        vsg::InputAssemblyState::create(), // device independent
+        vsg::RasterizationState::create(),// device independent
+        vsg::MultisampleState::create(),// device independent
+        vsg::ColorBlendState::create(),// device independent
+        vsg::DepthStencilState::create()// device independent
+    };
+
 
     //
-    // set up what we want to render in a command graph
-    // create command graph to contain all the Vulkan calls for specifically rendering the model
+    // set up model transformation node
     //
-    auto commandGraph = vsg::Group::create();
+    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT, 128
 
-    // variables assigned within rendering setup, but needed by model setup
-    vsg::ref_ptr<vsg::DescriptorPool> descriptorPool;
-    vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout;
-    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
+    // add transform to graphics pipeline group
+    gp->addChild(transform);
 
-    // create rendering setup
+
+    //
+    // create texture node
+    //
+    vsg::ref_ptr<vsg::Texture> texture = vsg::Texture::create();
+    texture->_textureData = textureData;
+
+    // add texture node to transform node
+    transform->addChild(texture);
+
+
+    //
+    // set up vertex and index arrays
+    //
+    vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
     {
-        //
-        // set up descriptor layout and descriptor set and pipeline layout for uniforms
-        //
-        descriptorPool = vsg::DescriptorPool::create(device, 1,
-        {
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1} // texture
-        });
+        {-0.5f, -0.5f, 0.0f},
+        {0.5f,  -0.5f, 0.05f},
+        {0.5f , 0.5f, 0.0f},
+        {-0.5f, 0.5f, 0.0f},
+        {-0.5f, -0.5f, -0.5f},
+        {0.5f,  -0.5f, -0.5f},
+        {0.5f , 0.5f, -0.5},
+        {-0.5f, 0.5f, -0.5}
+    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-        descriptorSetLayout = vsg::DescriptorSetLayout::create(device,
-        {
-            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // texture
-        });
-
-        vsg::PushConstantRanges pushConstantRanges
-        {
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 196} // projection view, and model matrices
-        };
-
-        pipelineLayout = vsg::PipelineLayout::create(device, {descriptorSetLayout}, pushConstantRanges);
-
-
-        // set up graphics pipeline
-        vsg::VertexInputState::Bindings vertexBindingsDescriptions
-        {
-            VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-            VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
-            VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-        };
-
-        vsg::VertexInputState::Attributes vertexAttributeDescriptions
-        {
-            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-            VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-            VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
-        };
-
-        vsg::ref_ptr<vsg::ShaderStages> shaderStages = vsg::ShaderStages::create(vsg::ShaderModules
-        {
-            vsg::ShaderModule::create(device, vertexShader),
-            vsg::ShaderModule::create(device, fragmentShader)
-        });
-
-        vsg::ref_ptr<vsg::GraphicsPipeline> pipeline = vsg::GraphicsPipeline::create(device, renderPass, pipelineLayout, // device dependent
-        {
-            shaderStages,  // device dependent
-            vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),// device independent
-            vsg::InputAssemblyState::create(), // device independent
-            viewport, // window independent
-            vsg::RasterizationState::create(),// device independent
-            vsg::MultisampleState::create(),// device independent
-            vsg::ColorBlendState::create(),// device independent
-            vsg::DepthStencilState::create()// device independent
-        });
-
-        vsg::ref_ptr<vsg::BindPipeline> bindPipeline = vsg::BindPipeline::create(pipeline);
-
-        // set up the state configuration
-        commandGraph->addChild(bindPipeline);  // device dependent
-    }
-
-    // setup camera values
+    vsg::ref_ptr<vsg::vec3Array> colors(new vsg::vec3Array
     {
-        // camera projection matrix
-        vsg::ref_ptr<vsg::PushConstants> pushConstant_proj = vsg::PushConstants::create(VK_SHADER_STAGE_VERTEX_BIT, 0, projMatrix);
-        commandGraph->addChild(pushConstant_proj);
+        {1.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f},
+        {1.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f},
+    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-        // camera view matrix
-        vsg::ref_ptr<vsg::PushConstants> pushConstant_view = vsg::PushConstants::create(VK_SHADER_STAGE_VERTEX_BIT, 64, viewMatrix);
-        commandGraph->addChild(pushConstant_view);
-    }
-
-    // model transform matrix
+    vsg::ref_ptr<vsg::vec2Array> texcoords(new vsg::vec2Array
     {
-        vsg::ref_ptr<vsg::mat4Value> modelMatrix(new vsg::mat4Value);
-        vsg::ref_ptr<vsg::PushConstants> pushConstant_model = vsg::PushConstants::create(VK_SHADER_STAGE_VERTEX_BIT, 128, modelMatrix); // device independent
-        commandGraph->addChild(pushConstant_model);
-    }
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f},
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f}
+    }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    // create model
+    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
     {
-        // add subgraph that represents the model to render
-        vsg::ref_ptr<vsg::Group> model = vsg::Group::create();
+        0, 1, 2,
+        2, 3, 0,
+        4, 5, 6,
+        6, 7, 4
+    }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
+    auto geometry = vsg::Geometry::create();
 
-        // set up DescriptorSet
-        vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, descriptorSetLayout,
-        {
-            vsg::DescriptorImage::create(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::ImageDataList{imageData})
-        });
+    // setup geometry
+    geometry->_arrays = vsg::DataList{vertices, colors, texcoords};
+    geometry->_indices = indices;
 
-        // setup binding of descriptors
-        vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, vsg::DescriptorSets{descriptorSet}); // device dependent
-        model->addChild(bindDescriptorSets);  // device dependent
+    vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0); // device independent
+    geometry->_commands = vsg::Geometry::Commands{drawIndexed};
 
+    // add geometry to texture group
+    texture->addChild(geometry);
 
-        // set up vertex and index arrays
-        vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
-        {
-            {-0.5f, -0.5f, 0.0f},
-            {0.5f,  -0.5f, 0.05f},
-            {0.5f , 0.5f, 0.0f},
-            {-0.5f, 0.5f, 0.0f},
-            {-0.5f, -0.5f, -0.5f},
-            {0.5f,  -0.5f, -0.5f},
-            {0.5f , 0.5f, -0.5},
-            {-0.5f, 0.5f, -0.5}
-        });
-
-        vsg::ref_ptr<vsg::vec3Array> colors(new vsg::vec3Array
-        {
-            {1.0f, 0.0f, 0.0f},
-            {0.0f, 1.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f},
-            {1.0f, 1.0f, 1.0f},
-            {1.0f, 0.0f, 0.0f},
-            {0.0f, 1.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f},
-            {1.0f, 1.0f, 1.0f},
-        });
-
-        vsg::ref_ptr<vsg::vec2Array> texcoords(new vsg::vec2Array
-        {
-            {0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f},
-            {0.0f, 1.0f},
-            {0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f},
-            {0.0f, 1.0f}
-        });
-
-        vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
-        {
-            0, 1, 2,
-            2, 3, 0,
-            4, 5, 6,
-            6, 7, 4
-        });
-
-
-        auto vertexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, vsg::DataList{vertices, colors, texcoords}, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
-        auto indexBufferData = vsg::createBufferAndTransferData(device, commandPool, graphicsQueue, {indices}, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
-
-
-        // set up vertex buffer binding
-        vsg::ref_ptr<vsg::BindVertexBuffers> bindVertexBuffers = vsg::BindVertexBuffers::create(0, vertexBufferData);  // device dependent
-        model->addChild(bindVertexBuffers); // device dependent
-
-        // set up index buffer binding
-        vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = vsg::BindIndexBuffer::create(indexBufferData.front(), VK_INDEX_TYPE_UINT16); // device dependent
-        model->addChild(bindIndexBuffer); // device dependent
-
-        // set up drawing of the triangles
-        vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0); // device independent
-        model->addChild(drawIndexed); // device independent
-
-        commandGraph->addChild(model);
-    }
-
-    return commandGraph;
+    return gp;
 }

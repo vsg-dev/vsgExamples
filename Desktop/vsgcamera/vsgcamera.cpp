@@ -10,7 +10,7 @@
 
 #include "Trackball.h"
 #include "CreateSceneData.h"
-#include "CreateRawSceneData.h"
+#include "GraphicsNodes.h"
 
 
 class UpdatePipeline : public vsg::Visitor
@@ -66,7 +66,6 @@ int main(int argc, char** argv)
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.read("--fr");
     auto numWindows = arguments.value(1, "--num-windows");
-    auto newSceneGraph = arguments.read("-n");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -120,57 +119,19 @@ int main(int argc, char** argv)
 
 
     // create the scene/command graph
-    vsg::ref_ptr<vsg::Node> commandGraph;
-    if (newSceneGraph)
-    {
-        commandGraph = createRawSceneData(searchPaths);
+    vsg::ref_ptr<vsg::Node> commandGraph  = createSceneData(searchPaths);
 
-#if 0
-        device, commandPool, renderPass, graphicsQueue,
-                                        projMatrix, viewMatrix, viewport,
-#endif
+    // compile the Vulkan objects
+    vsg::CompileTraversal compile;
+    compile.context.device = device;
+    compile.context.commandPool = commandPool;
+    compile.context.renderPass = renderPass;
+    compile.context.viewport = viewport;
+    compile.context.graphicsQueue = graphicsQueue;
+    compile.context.projMatrix = projMatrix;
+    compile.context.viewMatrix = viewMatrix;
 
-        std::cout<<std::endl<<"Command graph"<<std::endl;
-        struct PrintVisitor : public vsg::Visitor
-        {
-            void apply(vsg::Object& object)
-            {
-                std::cout<<"   "<<object.className()<<std::endl;
-                object.traverse(*this);
-            }
-        } print;
-
-        commandGraph->accept(print);
-
-        std::cout<<std::endl<<"Compiling"<<std::endl;
-
-        vsg::CompileTraversal compile;
-        compile.context.device = device;
-        compile.context.commandPool = commandPool;
-        compile.context.renderPass = renderPass;
-        compile.context.viewport = viewport;
-        compile.context.graphicsQueue = graphicsQueue;
-        compile.context.projMatrix = projMatrix;
-        compile.context.viewMatrix = viewMatrix;
-
-
-        std::cout<<"Compilie traversal"<<std::endl;
-
-        commandGraph->accept(compile);
-
-        std::cout<<std::endl<<"After compile"<<std::endl;
-        commandGraph->accept(print);
-
-
-        std::cout<<std::endl;
-
-    }
-    else
-    {
-        commandGraph = createSceneData(device, commandPool, renderPass, graphicsQueue,
-                                        projMatrix, viewMatrix, viewport,
-                                        searchPaths);
-    }
+    commandGraph->accept(compile);
 
     //
     // end of initialize vulkan

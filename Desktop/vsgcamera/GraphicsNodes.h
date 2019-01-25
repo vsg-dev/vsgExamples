@@ -25,7 +25,6 @@ namespace vsg
         ref_ptr<mat4Value> viewMatrix;
     };
 
-
     class GraphicsNode : public Inherit<Group, GraphicsNode>
     {
     public:
@@ -35,6 +34,18 @@ namespace vsg
         virtual void compile(Context& context) = 0;
     };
     VSG_type_name(vsg::GraphicsNode);
+
+    class CompileTraversal : public Visitor
+    {
+    public:
+
+        CompileTraversal() {}
+
+        void apply(Group& group);
+        void apply(GraphicsNode& graphics);
+
+        Context context;
+    };
 
     class GraphicsPipelineGroup : public Inherit<GraphicsNode, GraphicsPipelineGroup>
     {
@@ -121,18 +132,4 @@ namespace vsg
         ref_ptr<Group> _renderImplementation;
     };
     VSG_type_name(vsg::Geometry);
-
-    class CompileTraversal : public Visitor
-    {
-    public:
-
-        CompileTraversal() {}
-
-        void apply(Group& group);
-        void apply(GraphicsNode& graphics);
-
-        Context context;
-    };
 }
-
-extern vsg::ref_ptr<vsg::Node> createRawSceneData(vsg::Paths& searchPaths);
