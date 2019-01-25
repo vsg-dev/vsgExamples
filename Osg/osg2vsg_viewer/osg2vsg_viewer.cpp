@@ -8,10 +8,13 @@
 #include <iostream>
 #include <chrono>
 
+#include <osgDB/ReadFile>
+
 #include "Trackball.h"
 #include "GraphicsNodes.h"
 
-vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
+
+vsg::ref_ptr<vsg::GraphicsPipelineGroup> createGraphicsPipeline(vsg::Paths& searchPaths)
 {
     //
     // load shaders
@@ -21,20 +24,7 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     if (!vertexShader || !fragmentShader)
     {
         std::cout<<"Could not create shaders."<<std::endl;
-        return vsg::ref_ptr<vsg::Node>();
-    }
-
-    std::string textureFile("textures/lz.vsgb");
-
-    //
-    // set up texture image
-    //
-    vsg::vsgReaderWriter vsgReader;
-    auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
-    if (!textureData)
-    {
-        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
-        return vsg::ref_ptr<vsg::Node>();
+        return vsg::ref_ptr<vsg::GraphicsPipelineGroup>();
     }
 
     //
@@ -82,6 +72,16 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
         vsg::DepthStencilState::create()
     };
 
+    return gp;
+}
+
+vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
+{
+    //
+    // set up graphics pipeline
+    //
+    vsg::ref_ptr<vsg::GraphicsPipelineGroup> gp = createGraphicsPipeline(searchPaths);
+
 
     //
     // set up model transformation node
@@ -95,6 +95,15 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     //
     // create texture node
     //
+    //
+    std::string textureFile("textures/lz.vsgb");
+    vsg::vsgReaderWriter vsgReader;
+    auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
+    if (!textureData)
+    {
+        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
+        return vsg::ref_ptr<vsg::Node>();
+    }
     vsg::ref_ptr<vsg::Texture> texture = vsg::Texture::create();
     texture->_textureData = textureData;
 
@@ -164,6 +173,10 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     return gp;
 }
 
+vsg::ref_ptr<vsg::Node> convertToVsg(osg::ref_ptr<osg::Node> osg_scene)
+{
+    return vsg::ref_ptr<vsg::Node>();
+}
 
 int main(int argc, char** argv)
 {
@@ -178,6 +191,21 @@ int main(int argc, char** argv)
 
     // read shaders
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+
+    // read osg models.
+    osg::ArgumentParser osg_arguments(&argc, argv);
+    osg::ref_ptr<osg::Node> osg_scene = osgDB::readNodeFiles(osg_arguments);
+
+    // create the scene/command graph
+    vsg::ref_ptr<vsg::Node> commandGraph  = osg_scene.valid() ? convertToVsg(osg_scene) : createSceneData(searchPaths);
+
+    if (!commandGraph)
+    {
+        std::cout<<"No command graph created."<<std::endl;
+        return 1;
+    }
+
 
 
     // create the viewer and assign window(s) to it
@@ -218,9 +246,6 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
     vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt, viewport));
 
-
-    // create the scene/command graph
-    vsg::ref_ptr<vsg::Node> commandGraph  = createSceneData(searchPaths);
 
     // compile the Vulkan objects
     vsg::CompileTraversal compile;
