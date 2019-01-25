@@ -36,15 +36,6 @@ namespace vsg
     };
     VSG_type_name(vsg::GraphicsNode);
 
-    // one set per thread?
-    struct FrameResources
-    {
-        using DescriptorPools = std::vector<ref_ptr<DescriptorPool>>;
-        using DescriptorSetLayouts = std::vector<ref_ptr<DescriptorSetLayout>>;
-        using PiplineLayouts = std::vector<ref_ptr<PipelineLayout>>;
-        using GraphicsPipelines = std::vector<ref_ptr<GraphicsPipeline>>;
-    };
-
     class GraphicsPipelineGroup : public Inherit<GraphicsNode, GraphicsPipelineGroup>
     {
     public:
