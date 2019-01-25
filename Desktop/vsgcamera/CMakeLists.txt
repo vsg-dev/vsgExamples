@@ -1,6 +1,5 @@
 set(SOURCES
     Trackball.cpp
-    CreateSceneData.cpp
     GraphicsNodes.cpp
     vsgcamera.cpp
 )
