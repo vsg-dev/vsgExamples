@@ -309,7 +309,7 @@ public:
             auto translate = osg::Matrixd::translate(billboard.getPosition(i));
 
             if (matrixstack.empty()) pushMatrix(translate);
-            else pushMatrix(matrixstack.back()*translate);
+            else pushMatrix(translate * matrixstack.back());
 
             billboard.getDrawable(i)->accept(*this);
 
@@ -422,9 +422,35 @@ public:
 
             for(auto& geometry : geometries)
             {
-                osg::ref_ptr<osg::Geometry> new_geometry = new osg::Geometry(*geometry);
+                osg::ref_ptr<osg::Geometry> new_geometry = geometry; // new osg::Geometry(*geometry);
                 new_geometry->setStateSet(nullptr);
                 stateGroup->addChild(new_geometry);
+            }
+        }
+
+        if (group->getNumChildren()==1) return group->getChild(0);
+
+        return group;
+    }
+
+    osg::ref_ptr<osg::Node> createTransformGeometryGraph(TransformGeometryMap& transformGeometryMap)
+    {
+        std::cout<<"createStateGeometryGraph()"<<transformGeometryMap.size()<<std::endl;
+
+        if (transformGeometryMap.empty()) return nullptr;
+
+        osg::ref_ptr<osg::Group> group = new osg::Group;
+        for(auto [matrix, geometries] : transformGeometryMap)
+        {
+            osg::ref_ptr<osg::MatrixTransform> transform = new osg::MatrixTransform;
+            transform->setMatrix(matrix);
+            group->addChild(transform);
+
+            for(auto& geometry : geometries)
+            {
+                osg::ref_ptr<osg::Geometry> new_geometry = geometry; // new osg::Geometry(*geometry);
+                new_geometry->setStateSet(nullptr);
+                transform->addChild(new_geometry);
             }
         }
 
@@ -442,18 +468,8 @@ public:
             osg::ref_ptr<osg::Group> programGroup = new osg::Group;
             group->addChild(programGroup);
             programGroup->setStateSet(programStateSet.get());
-//
-            using StateGeometryMap = std::map<osg::ref_ptr<osg::StateSet>, osg::ref_ptr<osg::Geometry>>;
-            using TransformGeometryMap = std::map<osg::Matrix, osg::ref_ptr<osg::Geometry>>;
 
-            struct TransformStatePair
-            {
-                std::map<osg::Matrix, StateGeometryMap> matrixStateGeometryMap;
-                std::map<osg::ref_ptr<osg::StateSet>, TransformGeometryMap> stateTransformMap;
-            };
-//
-
-            bool transformAtTop = true; //transformStatePair.matrixStateGeometryMap.size() < transformStatePair.stateTransformMap.size();
+            bool transformAtTop = transformStatePair.matrixStateGeometryMap.size() < transformStatePair.stateTransformMap.size();
             if (transformAtTop)
             {
                 for(auto [matrix, stateGeometryMap] : transformStatePair.matrixStateGeometryMap)
@@ -476,6 +492,14 @@ public:
             }
             else
             {
+                for(auto [stateset, transformeGeometryMap] : transformStatePair.stateTransformMap)
+                {
+                    osg::ref_ptr<osg::Node> transformGeometryGraph = createTransformGeometryGraph(transformeGeometryMap);
+                    if (!transformGeometryGraph) continue;
+
+                    transformGeometryGraph->setStateSet(stateset);
+                    programGroup->addChild(transformGeometryGraph);
+                }
             }
 
             std::cout<<"       programStateSet = "<<programStateSet.get()<<std::endl;
