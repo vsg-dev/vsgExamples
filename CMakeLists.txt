@@ -21,6 +21,7 @@ find_package(vsg REQUIRED)
 find_package(OpenThreads)
 find_package(osg)
 find_package(osgDB)
+find_package(osgUtil)
 
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)

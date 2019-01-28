@@ -1,14 +1,12 @@
 #include <vsg/all.h>
 
-#include <vsg/viewer/Camera.h>
-#include <vsg/ui/PrintEvents.h>
-
-#include <vsg/viewer/CloseHandler.h>
 
 #include <iostream>
 #include <chrono>
 
 #include <osgDB/ReadFile>
+#include <osgDB/WriteFile>
+#include <osgUtil/Optimizer>
 #include <osg/Billboard>
 
 #include "Trackball.h"
@@ -180,17 +178,86 @@ public:
     PrintVisitor():
         osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
 
+
+    using StateGeometryMap = std::map<osg::ref_ptr<osg::StateSet>, osg::ref_ptr<osg::Geometry>>;
+    using TransformGeometryMap = std::map<osg::Matrix, osg::ref_ptr<osg::Geometry>>;
+
+    struct TransformStatePair
+    {
+        std::map<osg::Matrix, StateGeometryMap> MatrixStateGeometryMap;
+        std::map<osg::ref_ptr<osg::StateSet>, TransformGeometryMap> StateTransformMap;
+    };
+
+    using ProgramTransformStateMap = std::map<osg::ref_ptr<osg::StateSet>, TransformStatePair>;
+
     using StateStack = std::vector<osg::ref_ptr<osg::StateSet>>;
     using StateSets = std::set<StateStack>;
     using MatrixStack = std::vector<osg::Matrixd>;
     using Geometries = std::set<osg::ref_ptr<osg::Geometry>>;
-    using StateMap = std::map<StateStack, osg::ref_ptr<osg::StateSet>>;
+    using StatePair = std::pair<osg::ref_ptr<osg::StateSet>, osg::ref_ptr<osg::StateSet>>;
+    using StateMap = std::map<StateStack, StatePair>;
+
+    struct UniqueStateSet
+    {
+        bool operator() ( const osg::ref_ptr<osg::StateSet>& lhs, const osg::ref_ptr<osg::StateSet>& rhs) const
+        {
+            if (!lhs) return lhs;
+            if (!rhs) return rhs;
+            return lhs->compare(*rhs)<0;
+        }
+    };
+
+    using UniqueStats = std::set<osg::ref_ptr<osg::StateSet>, UniqueStateSet>;
 
     StateStack statestack;
     StateSets statesets;
     StateMap stateMap;
     MatrixStack matrixstack;
     Geometries geometries;
+    UniqueStats uniqueStateSets;
+
+    osg::ref_ptr<osg::StateSet> uniqueState(osg::ref_ptr<osg::StateSet> stateset)
+    {
+        if (auto itr = uniqueStateSets.find(stateset); itr != uniqueStateSets.end())
+        {
+            std::cout<<"    uniqueState() found state"<<std::endl;
+            return *itr;
+        }
+
+        std::cout<<"    uniqueState() inserting state"<<std::endl;
+
+        uniqueStateSets.insert(stateset);
+        return stateset;
+    }
+
+    StatePair computeStatePair(osg::StateSet* stateset)
+    {
+        if (!stateset) return StatePair();
+
+        osg::ref_ptr<osg::StateSet> programState = new osg::StateSet;
+        osg::ref_ptr<osg::StateSet> dataState = new osg::StateSet;
+
+        programState->setModeList(stateset->getModeList());
+        programState->setTextureModeList(stateset->getTextureModeList());
+        programState->setDefineList(stateset->getDefineList());
+
+        dataState->setAttributeList(stateset->getAttributeList());
+        dataState->setTextureAttributeList(stateset->getTextureAttributeList());
+        dataState->setUniformList(stateset->getUniformList());
+
+        for(auto attribute : stateset->getAttributeList())
+        {
+            osg::Program* program = dynamic_cast<osg::Program*>(attribute.second.first.get());
+            if (program)
+            {
+                std::cout<<"Found program removing from dataState"<<program<<" inserting into programState"<<std::endl;
+                dataState->removeAttribute(program);
+                programState->setAttribute(program, attribute.second.second);
+            }
+        }
+
+        return StatePair(uniqueState(programState), uniqueState(dataState));
+    };
 
     void apply(osg::Node& node)
     {
@@ -256,19 +323,21 @@ public:
 
         if (geometry.getStateSet()) pushStateSet(*geometry.getStateSet());
 
-        if (stateMap.find(statestack)==stateMap.end())
+        auto itr = stateMap.find(statestack);
+
+        if (itr==stateMap.end())
         {
             statesets.insert(statestack);
 
             if (statestack.empty())
             {
                 std::cout<<"New Empty StateSet's"<<std::endl;
-                stateMap[statestack] = 0;
+                stateMap[statestack] = computeStatePair(0);
             }
             else if (statestack.size()==1)
             {
                 std::cout<<"New Single  StateSet's"<<std::endl;
-                stateMap[statestack] = statestack.back();
+                stateMap[statestack] = computeStatePair(statestack.back());
             }
             else // multiple stateset's need to merge
             {
@@ -278,8 +347,13 @@ public:
                 {
                     new_stateset->merge(*stateset);
                 }
-                stateMap[statestack] = new_stateset;
+                stateMap[statestack] = computeStatePair(new_stateset);
             }
+
+            itr = stateMap.find(statestack);
+
+            if (itr->second.first.valid()) osgDB::writeObjectFile(*(itr->second.first), vsg::make_string("programState_", stateMap.size(),".osgt"));
+            if (itr->second.second.valid()) osgDB::writeObjectFile(*(itr->second.second), vsg::make_string("dataState_", stateMap.size(),".osgt"));
 
             std::cout<<"Need to create StateSet"<<std::endl;
         }
@@ -338,6 +412,7 @@ int main(int argc, char** argv)
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.read("--fr");
+    auto optimize = !arguments.read("--no-optimize");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -348,6 +423,12 @@ int main(int argc, char** argv)
     // read osg models.
     osg::ArgumentParser osg_arguments(&argc, argv);
     osg::ref_ptr<osg::Node> osg_scene = osgDB::readNodeFiles(osg_arguments);
+
+    if (optimize)
+    {
+        osgUtil::Optimizer optimizer;
+        optimizer.optimize(osg_scene.get());
+    }
 
     // create the scene/command graph
     vsg::ref_ptr<vsg::Node> commandGraph  = osg_scene.valid() ? convertToVsg(osg_scene) : createSceneData(searchPaths);
