@@ -8,6 +8,7 @@
 #include <osgDB/WriteFile>
 #include <osgUtil/Optimizer>
 #include <osg/Billboard>
+#include <osg/MatrixTransform>
 
 #include "Trackball.h"
 #include "GraphicsNodes.h"
@@ -172,15 +173,16 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     return gp;
 }
 
-class PrintVisitor : public osg::NodeVisitor
+class SceneAnalysisVisitor : public osg::NodeVisitor
 {
 public:
-    PrintVisitor():
+    SceneAnalysisVisitor():
         osg::NodeVisitor(osg::NodeVisitor::TRAVERSE_ALL_CHILDREN) {}
 
 
-    using StateGeometryMap = std::map<osg::ref_ptr<osg::StateSet>, osg::ref_ptr<osg::Geometry>>;
-    using TransformGeometryMap = std::map<osg::Matrix, osg::ref_ptr<osg::Geometry>>;
+    using Geometries = std::vector<osg::ref_ptr<osg::Geometry>>;
+    using StateGeometryMap = std::map<osg::ref_ptr<osg::StateSet>, Geometries>;
+    using TransformGeometryMap = std::map<osg::Matrix, Geometries>;
 
     struct TransformStatePair
     {
@@ -193,7 +195,6 @@ public:
     using StateStack = std::vector<osg::ref_ptr<osg::StateSet>>;
     using StateSets = std::set<StateStack>;
     using MatrixStack = std::vector<osg::Matrixd>;
-    using Geometries = std::set<osg::ref_ptr<osg::Geometry>>;
     using StatePair = std::pair<osg::ref_ptr<osg::StateSet>, osg::ref_ptr<osg::StateSet>>;
     using StateMap = std::map<StateStack, StatePair>;
 
@@ -210,10 +211,8 @@ public:
     using UniqueStats = std::set<osg::ref_ptr<osg::StateSet>, UniqueStateSet>;
 
     StateStack statestack;
-    StateSets statesets;
     StateMap stateMap;
     MatrixStack matrixstack;
-    Geometries geometries;
     UniqueStats uniqueStateSets;
     ProgramTransformStateMap programTransformStateMap;
 
@@ -320,16 +319,12 @@ public:
 
     void apply(osg::Geometry& geometry)
     {
-        geometries.insert(&geometry);
-
         if (geometry.getStateSet()) pushStateSet(*geometry.getStateSet());
 
         auto itr = stateMap.find(statestack);
 
         if (itr==stateMap.end())
         {
-            statesets.insert(statestack);
-
             if (statestack.empty())
             {
                 std::cout<<"New Empty StateSet's"<<std::endl;
@@ -370,10 +365,10 @@ public:
 
         TransformStatePair& transformStatePair = programTransformStateMap[statePair.first];
         StateGeometryMap& stateGeometryMap = transformStatePair.matrixStateGeometryMap[matrix];
-        stateGeometryMap[statePair.second] = &geometry;
+        stateGeometryMap[statePair.second].push_back(&geometry);
 
         TransformGeometryMap& transformGeometryMap = transformStatePair.stateTransformMap[statePair.second];
-        transformGeometryMap[matrix] = &geometry;
+        transformGeometryMap[matrix].push_back(&geometry);
 
         std::cout<<"   Geometry "<<geometry.className()<<" ss="<<statestack.size()<<" ms="<<matrixstack.size()<<std::endl;
 
@@ -403,8 +398,6 @@ public:
     void print()
     {
         std::cout<<"\nprint()\n";
-        std::cout<<"   statesets.size() = "<<statesets.size()<<std::endl;
-        std::cout<<"   geometries.size() = "<<geometries.size()<<std::endl;
         std::cout<<"   programTransformStateMap.size() = "<<programTransformStateMap.size()<<std::endl;
         for(auto [programStateSet, transformStatePair] : programTransformStateMap)
         {
@@ -413,11 +406,89 @@ public:
             std::cout<<"           transformStatePair.stateTransformMap.size() = "<<transformStatePair.stateTransformMap.size()<<std::endl;
         }
     }
+
+    osg::ref_ptr<osg::Node> createStateGeometryGraph(StateGeometryMap& stateGeometryMap)
+    {
+        std::cout<<"createStateGeometryGraph()"<<stateGeometryMap.size()<<std::endl;
+
+        if (stateGeometryMap.empty()) return nullptr;
+
+        osg::ref_ptr<osg::Group> group = new osg::Group;
+        for(auto [stateset, geometries] : stateGeometryMap)
+        {
+            osg::ref_ptr<osg::Group> stateGroup = new osg::Group;
+            stateGroup->setStateSet(stateset);
+            group->addChild(stateGroup);
+
+            for(auto& geometry : geometries)
+            {
+                osg::ref_ptr<osg::Geometry> new_geometry = new osg::Geometry(*geometry);
+                new_geometry->setStateSet(nullptr);
+                stateGroup->addChild(new_geometry);
+            }
+        }
+
+        if (group->getNumChildren()==1) return group->getChild(0);
+
+        return group;
+    }
+
+    osg::ref_ptr<osg::Node> createOSG()
+    {
+        osg::ref_ptr<osg::Group> group = new osg::Group;
+
+        for(auto [programStateSet, transformStatePair] : programTransformStateMap)
+        {
+            osg::ref_ptr<osg::Group> programGroup = new osg::Group;
+            group->addChild(programGroup);
+            programGroup->setStateSet(programStateSet.get());
+//
+            using StateGeometryMap = std::map<osg::ref_ptr<osg::StateSet>, osg::ref_ptr<osg::Geometry>>;
+            using TransformGeometryMap = std::map<osg::Matrix, osg::ref_ptr<osg::Geometry>>;
+
+            struct TransformStatePair
+            {
+                std::map<osg::Matrix, StateGeometryMap> matrixStateGeometryMap;
+                std::map<osg::ref_ptr<osg::StateSet>, TransformGeometryMap> stateTransformMap;
+            };
+//
+
+            bool transformAtTop = true; //transformStatePair.matrixStateGeometryMap.size() < transformStatePair.stateTransformMap.size();
+            if (transformAtTop)
+            {
+                for(auto [matrix, stateGeometryMap] : transformStatePair.matrixStateGeometryMap)
+                {
+                    osg::ref_ptr<osg::Node> stateGeometryGraph = createStateGeometryGraph(stateGeometryMap);
+                    if (!stateGeometryGraph) continue;
+
+                    if (!matrix.isIdentity())
+                    {
+                        osg::ref_ptr<osg::MatrixTransform> transform = new osg::MatrixTransform;
+                        transform->setMatrix(matrix);
+                        programGroup->addChild(transform);
+                        transform->addChild(stateGeometryGraph);
+                    }
+                    else
+                    {
+                        programGroup->addChild(stateGeometryGraph);
+                    }
+                }
+            }
+            else
+            {
+            }
+
+            std::cout<<"       programStateSet = "<<programStateSet.get()<<std::endl;
+            std::cout<<"           transformStatePair.matrixStateGeometryMap.size() = "<<transformStatePair.matrixStateGeometryMap.size()<<std::endl;
+            std::cout<<"           transformStatePair.stateTransformMap.size() = "<<transformStatePair.stateTransformMap.size()<<std::endl;
+        }
+        return group;
+    }
 };
 
 vsg::ref_ptr<vsg::Node> convertToVsg(osg::ref_ptr<osg::Node> osg_scene)
 {
-    PrintVisitor print;
+    SceneAnalysisVisitor print;
     osg_scene->accept(print);
 
     print.print();
@@ -434,6 +505,7 @@ int main(int argc, char** argv)
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.read("--fr");
     auto optimize = !arguments.read("--no-optimize");
+    auto outputFilename = arguments.value(std::string(), "-o");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -450,6 +522,22 @@ int main(int argc, char** argv)
         osgUtil::Optimizer optimizer;
         optimizer.optimize(osg_scene.get());
     }
+
+    if (!outputFilename.empty())
+    {
+        SceneAnalysisVisitor sceneAnalysis;
+        osg_scene->accept(sceneAnalysis);
+
+        auto scene = sceneAnalysis.createOSG();
+        if (scene.valid())
+        {
+            std::cout<<"Writing file to "<<outputFilename<<std::endl;
+            osgDB::writeNodeFile(*scene, outputFilename);
+        }
+
+        return 1;
+    }
+
 
     // create the scene/command graph
     vsg::ref_ptr<vsg::Node> commandGraph  = osg_scene.valid() ? convertToVsg(osg_scene) : createSceneData(searchPaths);
