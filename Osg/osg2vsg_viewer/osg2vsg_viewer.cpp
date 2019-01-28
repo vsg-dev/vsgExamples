@@ -184,8 +184,8 @@ public:
 
     struct TransformStatePair
     {
-        std::map<osg::Matrix, StateGeometryMap> MatrixStateGeometryMap;
-        std::map<osg::ref_ptr<osg::StateSet>, TransformGeometryMap> StateTransformMap;
+        std::map<osg::Matrix, StateGeometryMap> matrixStateGeometryMap;
+        std::map<osg::ref_ptr<osg::StateSet>, TransformGeometryMap> stateTransformMap;
     };
 
     using ProgramTransformStateMap = std::map<osg::ref_ptr<osg::StateSet>, TransformStatePair>;
@@ -215,6 +215,7 @@ public:
     MatrixStack matrixstack;
     Geometries geometries;
     UniqueStats uniqueStateSets;
+    ProgramTransformStateMap programTransformStateMap;
 
     osg::ref_ptr<osg::StateSet> uniqueState(osg::ref_ptr<osg::StateSet> stateset)
     {
@@ -362,6 +363,18 @@ public:
             std::cout<<"Already have StateSet"<<std::endl;
         }
 
+        osg::Matrix matrix;
+        if (!matrixstack.empty()) matrix = matrixstack.back();
+
+        StatePair& statePair = itr->second;
+
+        TransformStatePair& transformStatePair = programTransformStateMap[statePair.first];
+        StateGeometryMap& stateGeometryMap = transformStatePair.matrixStateGeometryMap[matrix];
+        stateGeometryMap[statePair.second] = &geometry;
+
+        TransformGeometryMap& transformGeometryMap = transformStatePair.stateTransformMap[statePair.second];
+        transformGeometryMap[matrix] = &geometry;
+
         std::cout<<"   Geometry "<<geometry.className()<<" ss="<<statestack.size()<<" ms="<<matrixstack.size()<<std::endl;
 
         if (geometry.getStateSet()) popStateSet();
@@ -389,8 +402,16 @@ public:
 
     void print()
     {
+        std::cout<<"\nprint()\n";
         std::cout<<"   statesets.size() = "<<statesets.size()<<std::endl;
         std::cout<<"   geometries.size() = "<<geometries.size()<<std::endl;
+        std::cout<<"   programTransformStateMap.size() = "<<programTransformStateMap.size()<<std::endl;
+        for(auto [programStateSet, transformStatePair] : programTransformStateMap)
+        {
+            std::cout<<"       programStateSet = "<<programStateSet.get()<<std::endl;
+            std::cout<<"           transformStatePair.matrixStateGeometryMap.size() = "<<transformStatePair.matrixStateGeometryMap.size()<<std::endl;
+            std::cout<<"           transformStatePair.stateTransformMap.size() = "<<transformStatePair.stateTransformMap.size()<<std::endl;
+        }
     }
 };
 
