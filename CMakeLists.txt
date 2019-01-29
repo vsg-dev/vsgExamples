@@ -17,12 +17,6 @@ endif(NOT CMAKE_BUILD_TYPE)
 # find the vsg
 find_package(vsg REQUIRED)
 
-# find the OpenSceneGraph
-find_package(OpenThreads)
-find_package(osg)
-find_package(osgDB)
-find_package(osgUtil)
-
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
 
@@ -38,9 +32,4 @@ if (ANDROID)
     add_subdirectory(Android)
 else()
     add_subdirectory(Desktop)
-endif()
-
-if (OSG_FOUND)
-    # examples that required VSG and OpenSceneGraph
-    add_subdirectory(Osg)
 endif()
