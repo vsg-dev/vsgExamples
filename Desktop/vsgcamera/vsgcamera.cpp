@@ -8,7 +8,6 @@
 #include <iostream>
 #include <chrono>
 
-#include "Trackball.h"
 #include "GraphicsNodes.h"
 
 vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
