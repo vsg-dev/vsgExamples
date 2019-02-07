@@ -268,13 +268,12 @@ int main(int argc, char** argv)
         (*viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
         (*modelMatrix) = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
-        for (auto& win : viewer->windows())
+        if (viewer->aquireNextFrame())
         {
-            // we need to regenerate the CommandBuffer so that the PushConstants get called with the new values.
-            win->populateCommandBuffers();
-        }
+            viewer->populateNextFrame();
 
-        viewer->submitFrame();
+            viewer->submitNextFrame();
+        }
     }
 
 

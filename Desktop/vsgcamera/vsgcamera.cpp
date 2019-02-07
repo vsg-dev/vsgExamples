@@ -277,33 +277,32 @@ int main(int argc, char** argv)
         camera->getProjectionMatrix()->get((*projMatrix));
         camera->getViewMatrix()->get((*viewMatrix));
 
-        for (auto& win : viewer->windows())
-        {
-            // we need to regenerate the CommandBuffer so that the PushConstants get called with the new values.
-            win->populateCommandBuffers();
-        }
-
         if (window->resized()) windowResized = true;
 
-        viewer->submitFrame();
-
-        if (windowResized)
+        if (viewer->aquireNextFrame())
         {
-            windowResized = false;
+            if (windowResized)
+            {
+                windowResized = false;
 
-            auto windowExtent = window->extent2D();
+                auto windowExtent = window->extent2D();
 
-            vsg::UpdatePipeline updatePipeline(camera->getViewportState());
+                vsg::UpdatePipeline updatePipeline(camera->getViewportState());
 
-            viewport->getViewport().width = static_cast<float>(windowExtent.width);
-            viewport->getViewport().height = static_cast<float>(windowExtent.height);
-            viewport->getScissor().extent = windowExtent;
+                viewport->getViewport().width = static_cast<float>(windowExtent.width);
+                viewport->getViewport().height = static_cast<float>(windowExtent.height);
+                viewport->getScissor().extent = windowExtent;
 
-            commandGraph->accept(updatePipeline);
+                commandGraph->accept(updatePipeline);
 
-            perspective->aspectRatio = static_cast<double>(windowExtent.width) / static_cast<double>(windowExtent.height);
+                perspective->aspectRatio = static_cast<double>(windowExtent.width) / static_cast<double>(windowExtent.height);
 
-            std::cout<<"window aspect ratio = "<<perspective->aspectRatio<<std::endl;
+                std::cout<<"window aspect ratio = "<<perspective->aspectRatio<<std::endl;
+            }
+
+            viewer->populateNextFrame();
+
+            viewer->submitNextFrame();
         }
     }
 
