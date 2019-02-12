@@ -251,7 +251,6 @@ int main(int argc, char** argv)
     {
         // add a GraphicsStage tp the Window to do dispatch of the command graph to the commnad buffer(s)
         win->addStage(vsg::GraphicsStage::create(commandGraph));
-        win->populateCommandBuffers();
     }
 
 
