@@ -276,7 +276,12 @@ int main(int argc, char** argv)
 
         vsg::copyDataListToBuffers(uniformBufferData);
 
-        viewer->submitFrame();
+        if (viewer->aquireNextFrame())
+        {
+            viewer->populateNextFrame();
+
+            viewer->submitNextFrame();
+        }
     }
 
     // clean up done automatically thanks to ref_ptr<>
