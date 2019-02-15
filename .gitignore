@@ -54,6 +54,9 @@ install_manifest.txt
 .vs/
 x64/
 src/vsg/vsg.dir/
+*.pdb
+*.tlog
+*.log
 
 # Xcode
 DerivedData/
