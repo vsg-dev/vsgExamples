@@ -190,7 +190,7 @@ void MatrixTransform::compile(Context& context)
 //       draw + draw DrawIndexed
 //       push constants for per geometry colours etc.
 //
-//       Maps to a Group containing StateGroup + Binds + DrawIndex/Draw etc + Push constants
+//       Maps to a Group containing group containing + Binds + DrawIndex/Draw etc + Push constants
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 //
