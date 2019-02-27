@@ -16,30 +16,6 @@
 
 using namespace vsg;
 
-
-/////////////////////////////////////////////////////////////////////////////////////////
-//
-// CompileTraversal
-//
-void CompileTraversal::apply(Group& group)
-{
-    auto graphics = dynamic_cast<GraphicsNode*>(&group);
-    if (graphics)
-    {
-        apply(*graphics);
-    }
-    else
-    {
-        group.traverse(*this);
-    }
-}
-
-void CompileTraversal::apply(GraphicsNode& graphics)
-{
-    graphics.compile(context);
-    graphics.traverse(*this);
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 // GraphicsPipelineGroup
@@ -80,12 +56,14 @@ void GraphicsPipelineGroup::traverse(ConstVisitor& visitor) const
 
 void GraphicsPipelineGroup::compile(Context& context)
 {
+    context.descriptorSetLayouts.clear();
+
     //
     // set up descriptor layout and descriptor set and pipeline layout for uniforms
     //
     context.descriptorPool = DescriptorPool::create(context.device, maxSets, descriptorPoolSizes);
-    context.descriptorSetLayout = DescriptorSetLayout::create(context.device, descriptorSetLayoutBindings);
-    context.pipelineLayout = PipelineLayout::create(context.device, {context.descriptorSetLayout}, pushConstantRanges);
+    context.descriptorSetLayouts.push_back(DescriptorSetLayout::create(context.device, descriptorSetLayoutBindings));
+    context.pipelineLayout = PipelineLayout::create(context.device, context.descriptorSetLayouts, pushConstantRanges);
 
 
     ShaderModules shaderModules;
@@ -150,7 +128,7 @@ void Texture::compile(Context& context)
     }
 
     // set up DescriptorSet
-    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(context.device, context.descriptorPool, context.descriptorSetLayout,
+    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(context.device, context.descriptorPool, context.descriptorSetLayouts,
     {
         vsg::DescriptorImage::create(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::ImageDataList{imageData})
     });
