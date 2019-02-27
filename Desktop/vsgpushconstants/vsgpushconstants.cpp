@@ -155,7 +155,7 @@ int main(int argc, char** argv)
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 196}
     };
 
-    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, descriptorSetLayout,
+    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, {descriptorSetLayout},
     {
         vsg::DescriptorImage::create(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::ImageDataList{imageData})
     });
