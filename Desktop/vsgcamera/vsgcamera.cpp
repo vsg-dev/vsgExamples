@@ -1,22 +1,15 @@
 #include <vsg/all.h>
 
-#include <vsg/viewer/Camera.h>
-#include <vsg/ui/PrintEvents.h>
-
-#include <vsg/viewer/CloseHandler.h>
-
 #include <iostream>
 #include <chrono>
-
-#include "GraphicsNodes.h"
 
 vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
 {
     //
     // load shaders
     //
-    vsg::ref_ptr<vsg::Shader> vertexShader = vsg::Shader::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
-    vsg::ref_ptr<vsg::Shader> fragmentShader = vsg::Shader::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
+    vsg::ref_ptr<vsg::ShaderModule> vertexShader = vsg::ShaderModule::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
+    vsg::ref_ptr<vsg::ShaderModule> fragmentShader = vsg::ShaderModule::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
         std::cout<<"Could not create shaders."<<std::endl;
@@ -39,41 +32,46 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     //
     // set up graphics pipeline
     //
-    vsg::ref_ptr<vsg::GraphicsPipelineGroup> gp = vsg::GraphicsPipelineGroup::create();
 
-    gp->shaders = vsg::GraphicsPipelineGroup::Shaders{vertexShader, fragmentShader};
-    gp->maxSets = 1;
-    gp->descriptorPoolSizes = vsg::DescriptorPoolSizes
-    {
-        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1} // texture
-    };
+    // gp->maxSets = 1;
+    // gp->descriptorPoolSizes = vsg::DescriptorPoolSizes
+    // {
+    //     {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1} // texture
+    // };
 
-    gp->descriptorSetLayoutBindings = vsg::DescriptorSetLayoutBindings
+    vsg::DescriptorSetLayoutBindings descriptorBindings
     {
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
-    gp->pushConstantRanges = vsg::PushConstantRanges
+    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+    vsg::DescriptorSetLayouts descriptorSetLayouts{descriptorSetLayout};
+
+    vsg::PushConstantRanges pushConstantRanges
     {
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 196} // projection view, and model matrices
     };
 
-    gp->vertexBindingsDescriptions = vsg::VertexInputState::Bindings
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions
     {
         VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
         VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
         VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
     };
 
-    gp->vertexAttributeDescriptions = vsg::VertexInputState::Attributes
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions
     {
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
         VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
 
-    gp->pipelineStates = vsg::GraphicsPipelineStates
+    vsg::ShaderModules shaders{vertexShader, fragmentShader};
+
+    vsg::GraphicsPipelineStates pipelineStates = vsg::GraphicsPipelineStates
     {
+        vsg::ShaderStages::create(shaders),
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
         vsg::MultisampleState::create(),
@@ -81,6 +79,13 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
         vsg::DepthStencilState::create()
     };
 
+    auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
+    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, pipelineStates);
+    auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+
+    // crete StateGroup to hold the GraphicsProgram to decorate the whole command graph
+    auto gp = vsg::StateGroup::create();
+    gp->add(bindGraphicsPipeline);
 
     //
     // set up model transformation node
@@ -96,10 +101,18 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     //
     vsg::ref_ptr<vsg::Texture> texture = vsg::Texture::create();
     texture->_textureData = textureData;
+    //texture->_samplerInfo =
+    texture->_dstBinding = 0;
+
+    vsg::Descriptors descriptors{texture};
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, descriptors);
+    auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
+
+    auto textureGroup = vsg::StateGroup::create();
+    textureGroup->add(bindDescriptorSets);
 
     // add texture node to transform node
-    transform->addChild(texture);
-
+    transform->addChild(textureGroup);
 
     //
     // set up vertex and index arrays
@@ -158,7 +171,7 @@ vsg::ref_ptr<vsg::Node> createSceneData(vsg::Paths& searchPaths)
     geometry->_commands = vsg::Geometry::Commands{drawIndexed};
 
     // add geometry to texture group
-    texture->addChild(geometry);
+    textureGroup->addChild(geometry);
 
     return gp;
 }
@@ -182,7 +195,6 @@ int main(int argc, char** argv)
     // create the scene/command graph
     vsg::ref_ptr<vsg::Node> commandGraph = createSceneData(searchPaths);
 
-
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -201,23 +213,6 @@ int main(int argc, char** argv)
         viewer->addWindow( new_window );
     }
 
-    // create high level Vulkan objects associated the main window
-    vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice(window->physicalDevice());
-    vsg::ref_ptr<vsg::Device> device(window->device());
-    vsg::ref_ptr<vsg::Surface> surface(window->surface());
-    vsg::ref_ptr<vsg::RenderPass> renderPass(window->renderPass());
-
-
-    VkQueue graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
-    VkQueue presentQueue = device->getQueue(physicalDevice->getPresentFamily());
-    if (!graphicsQueue || !presentQueue)
-    {
-        std::cout<<"Required graphics/present queue not available!"<<std::endl;
-        return 1;
-    }
-
-    vsg::ref_ptr<vsg::CommandPool> commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
-
     // camera related state
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
     vsg::ref_ptr<vsg::Perspective> perspective(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0));
@@ -227,25 +222,11 @@ int main(int argc, char** argv)
     // create graphics stage
     auto stage = vsg::GraphicsStage::create(commandGraph, camera);
 
-    // compile the Vulkan objects
-    vsg::CompileTraversal compile;
-    compile.context.device = device;
-    compile.context.commandPool = commandPool;
-    compile.context.renderPass = renderPass;
-    compile.context.viewport = viewport;
-    compile.context.graphicsQueue = graphicsQueue;
-    compile.context.projMatrix = stage->_projMatrix;
-    compile.context.viewMatrix = stage->_viewMatrix;
-
-    commandGraph->accept(compile);
-
-    // add a GraphicsStage tp the Window to do dispatch of the command graph to the commnad buffer(s)
+    // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
     window->addStage(stage);
 
-    //
-    // end of initialize vulkan
-    //
-    /////////////////////////////////////////////////////////////////////
+    // compile the Vulkan objects
+    viewer->compile();
 
     auto startTime =std::chrono::steady_clock::now();
 
@@ -275,7 +256,6 @@ int main(int argc, char** argv)
             viewer->submitNextFrame();
         }
     }
-
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;

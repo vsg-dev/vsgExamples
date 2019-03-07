@@ -1,5 +1,4 @@
 set(SOURCES
-    GraphicsNodes.cpp
     vsgcamera.cpp
 )
 
