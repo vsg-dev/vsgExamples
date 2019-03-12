@@ -1,4 +1,5 @@
 set(SOURCES
+    AnimationPath.cpp
     vsgviewer.cpp
 )
 

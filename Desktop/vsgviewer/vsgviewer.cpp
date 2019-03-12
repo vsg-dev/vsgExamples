@@ -4,6 +4,9 @@
 #include <chrono>
 #include <thread>
 
+#include "AnimationPath.h"
+
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -146,13 +149,12 @@ int main(int argc, char** argv)
             std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
             return 1;
         }
-#if 0
-        osg::ref_ptr<osg::AnimationPath> animationPath = new osg::AnimationPath;
-        animationPath->setLoopMode(osg::AnimationPath::LOOP);
+
+        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
+        //animationPath->setLoopMode(osg::AnimationPath::LOOP);
         animationPath->read(in);
 
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
-#endif
     }
 
     double time = 0.0;
