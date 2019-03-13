@@ -25,7 +25,6 @@ int main(int argc, char** argv)
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.read("--fr");
-    auto sleepTime = arguments.value(0.0, "--sleep");
     auto pathFilename = arguments.value(std::string(),"-p");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
@@ -151,8 +150,6 @@ int main(int argc, char** argv)
 
             viewer->submitNextFrame();
         }
-
-        std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(sleepTime));
     }
 
     // clean up done automatically thanks to ref_ptr<>
