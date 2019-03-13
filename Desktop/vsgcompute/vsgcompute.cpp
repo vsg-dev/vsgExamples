@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     }
 
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-    vsg::ref_ptr<vsg::Shader> computeShader = vsg::Shader::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
+    vsg::ref_ptr<vsg::ShaderModule> computeShader = vsg::ShaderModule::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
     if (!computeShader)
     {
         std::cout<<"Error : No shader loaded."<<std::endl;
@@ -56,35 +56,37 @@ int main(int argc, char** argv)
     buffer->bind(bufferMemory, 0);
 
 
-    // set up DescriptorPool, DescriptorSetLayout, DecriptorSet and BindDescriptorSets
-    vsg::ref_ptr<vsg::DescriptorPool> descriptorPool = vsg::DescriptorPool::create(device, 1,
-    {
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}
-    });
+    // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
+    vsg::DescriptorSetLayoutBindings descriptorBindings { {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} };
+    vsg::DescriptorSetLayouts descriptorSetLayouts { vsg::DescriptorSetLayout::create(descriptorBindings) };
+    vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)}) };
 
-    vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout = vsg::DescriptorSetLayout::create(device,
-    {
-        {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}
-    });
+    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, descriptors);
 
-    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(device, descriptorPool, {descriptorSetLayout},
-    {
-        vsg::DescriptorBuffer::create(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)})
-    });
-
-    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(device, {descriptorSetLayout}, {});
+    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, vsg::PushConstantRanges{});
 
     vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, vsg::DescriptorSets{descriptorSet});
 
 
     // set up the compute pipeline
-    vsg::ref_ptr<vsg::ShaderModule> computeShaderModule = vsg::ShaderModule::create(device, computeShader);
-    vsg::ref_ptr<vsg::ComputePipeline> pipeline = vsg::ComputePipeline::create(device, pipelineLayout, computeShaderModule);
-    vsg::ref_ptr<vsg::BindPipeline> bindPipeline = vsg::BindPipeline::create(pipeline);
+    vsg::ref_ptr<vsg::ComputePipeline> pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
+    vsg::ref_ptr<vsg::BindComputePipeline> bindPipeline = vsg::BindComputePipeline::create(pipeline);
 
 
-    // setup command pool
-    vsg::ref_ptr<vsg::CommandPool> commandPool = vsg::CommandPool::create(device, physicalDevice->getComputeFamily());
+    // assign to a CommandGraph that binds the Pipeline and DescritorSets and calls Dispatch
+    vsg::ref_ptr<vsg::StateGroup> commandGraph = vsg::StateGroup::create();
+    commandGraph->add(bindPipeline);
+    commandGraph->add(bindDescriptorSets);
+    commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width)/float(workgroupSize))), uint32_t(ceil(float(height)/float(workgroupSize))), 1));
+
+
+    // compile the Vulkan objects
+    vsg::CompileTraversal compileTraversal;
+    compileTraversal.context.device = device;
+    compileTraversal.context.commandPool = vsg::CommandPool::create(device, physicalDevice->getComputeFamily());
+    compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, {{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
+
+    commandGraph->accept(compileTraversal);
 
 
     // setup fence
@@ -93,11 +95,10 @@ int main(int argc, char** argv)
     auto startTime =std::chrono::steady_clock::now();
 
     // dispatch commands
-    vsg::dispatchCommandsToQueue(device, commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer)
+    vsg::dispatchCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer)
     {
-        bindPipeline->dispatch(commandBuffer);
-        bindDescriptorSets->dispatch(commandBuffer);
-        vkCmdDispatch(commandBuffer, uint32_t(ceil(float(width)/float(workgroupSize))), uint32_t(ceil(float(height)/float(workgroupSize))), 1);
+        vsg::DispatchTraversal dispatchTraversals(&commandBuffer);
+        commandGraph->accept(dispatchTraversals);
     });
 
     auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();
