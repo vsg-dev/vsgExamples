@@ -37,44 +37,19 @@ int main(int argc, char** argv)
     using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
     VsgNodes vsgNodes;
 
+    vsg::vsgReaderWriter io;
+
     // read any vsg files
     for (int i=1; i<argc; ++i)
     {
         std::string filename = arguments[i];
-        auto ext = vsg::fileExtension(filename);
-        if (ext=="vsga")
+
+        auto loaded_scene = io.read<vsg::Node>(filename);
+        if (loaded_scene)
         {
-            filename = vsg::findFile(filename, searchPaths);
-            if (!filename.empty())
-            {
-                std::ifstream fin(filename);
-                vsg::AsciiInput input(fin);
-
-                vsg::ref_ptr<vsg::Node> loaded_scene = input.readObject<vsg::Node>("Root");
-                if (loaded_scene) vsgNodes.push_back(loaded_scene);
-
-                std::cout<<"vsg ascii file "<<filename<<" loaded_scene="<<loaded_scene.get()<<std::endl;
-
-                arguments.remove(i, 1);
-                --i;
-            }
-        }
-        else if (ext=="vsgb")
-        {
-            filename = vsg::findFile(filename, searchPaths);
-            if (!filename.empty())
-            {
-                std::ifstream fin(filename, std::ios::in | std::ios::binary);
-                vsg::BinaryInput input(fin);
-
-                std::cout<<"vsg binary file "<<filename<<std::endl;
-
-                vsg::ref_ptr<vsg::Node> loaded_scene = input.readObject<vsg::Node>("Root");
-                if (loaded_scene) vsgNodes.push_back(loaded_scene);
-
-                arguments.remove(i, 1);
-                --i;
-            }
+            vsgNodes.push_back(loaded_scene);
+            arguments.remove(i, 1);
+            --i;
         }
     }
 
