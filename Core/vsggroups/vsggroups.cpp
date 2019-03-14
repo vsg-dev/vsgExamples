@@ -8,11 +8,7 @@
 #include <vsg/utils/CommandLine.h>
 
 #include <vsg/io/FileSystem.h>
-#include <vsg/io/AsciiInput.h>
-#include <vsg/io/AsciiOutput.h>
-#include <vsg/io/BinaryInput.h>
-#include <vsg/io/BinaryOutput.h>
-#include <vsg/io/ObjectFactory.h>
+#include <vsg/io/ReaderWriter.h>
 
 #include <iostream>
 #include <vector>
@@ -240,24 +236,12 @@ int main(int argc, char** argv)
 
     if (!inputFilename.empty())
     {
-        auto ext = vsg::fileExtension(inputFilename);
-        std::cout<<"Input File extension "<<ext<<std::endl;
+        vsg::vsgReaderWriter io;
+        vsg_root = io.read<vsg::Node>(inputFilename);
 
-        if (ext=="vsga")
+        if (!vsg_root)
         {
-            std::ifstream fin(inputFilename);
-            vsg::AsciiInput input(fin);
-            vsg_root = input.readObject<vsg::Node>("Root");
-        }
-        else if (ext=="vsgb")
-        {
-            std::ifstream fin(inputFilename, std::ios::in | std::ios::binary);
-            vsg::BinaryInput input(fin);
-            vsg_root = input.readObject<vsg::Node>("Root");
-        }
-        else
-        {
-            std::cout<<"Warning: file format not supported : "<<inputFilename<<std::endl;
+            std::cout<<"Warning: file not loaded : "<<inputFilename<<std::endl;
             return 1;
         }
     }
@@ -330,22 +314,8 @@ int main(int argc, char** argv)
 
     if (!outputFilename.empty())
     {
-        auto ext = vsg::fileExtension(outputFilename);
-        std::cout<<"Output File extension "<<ext<<std::endl;
-
-        // write to specified file
-        if (ext=="vsga")
-        {
-            std::ofstream fout(outputFilename);
-            vsg::AsciiOutput output(fout);
-            output.writeObject("Root", vsg_root);
-        }
-        else if (ext=="vsgb")
-        {
-            std::ofstream fout(outputFilename, std::ios::out | std::ios::binary);
-            vsg::BinaryOutput output(fout);
-            output.writeObject("Root", vsg_root);
-        }
+        vsg::vsgReaderWriter io;
+        io.writeFile(vsg_root, outputFilename);
     }
 
     clock::time_point after_write = clock::now();
