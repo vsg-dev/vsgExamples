@@ -7,7 +7,6 @@ int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
     std::uint32_t width = 1024, height = 1024; // data/shader/shader.comp is currently hardwired to 1024x1024.
-    //auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1024, 1024), {"--size", "-s"}); // TODO pass uniform to shader with sizes
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto workgroupSize = arguments.value<uint32_t>(32, "-w");
@@ -33,7 +32,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
     vsg::ref_ptr<vsg::Instance> instance = vsg::Instance::create(instanceExtensions, validatedNames);
@@ -48,13 +46,11 @@ int main(int argc, char** argv)
     // get the queue for the compute commands
     VkQueue computeQueue = device->getQueue(physicalDevice->getComputeFamily());
 
-
     // allocate output storage buffer
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
     vsg::ref_ptr<vsg::Buffer> buffer =  vsg::Buffer::create(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
     vsg::ref_ptr<vsg::DeviceMemory>  bufferMemory = vsg::DeviceMemory::create(device, buffer,  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     buffer->bind(bufferMemory, 0);
-
 
     // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
     vsg::DescriptorSetLayoutBindings descriptorBindings { {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} };
@@ -62,23 +58,18 @@ int main(int argc, char** argv)
     vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)}) };
 
     vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, descriptors);
-
     vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, vsg::PushConstantRanges{});
-
     vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, vsg::DescriptorSets{descriptorSet});
-
 
     // set up the compute pipeline
     vsg::ref_ptr<vsg::ComputePipeline> pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
     vsg::ref_ptr<vsg::BindComputePipeline> bindPipeline = vsg::BindComputePipeline::create(pipeline);
-
 
     // assign to a CommandGraph that binds the Pipeline and DescritorSets and calls Dispatch
     vsg::ref_ptr<vsg::StateGroup> commandGraph = vsg::StateGroup::create();
     commandGraph->add(bindPipeline);
     commandGraph->add(bindDescriptorSets);
     commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width)/float(workgroupSize))), uint32_t(ceil(float(height)/float(workgroupSize))), 1));
-
 
     // compile the Vulkan objects
     vsg::CompileTraversal compileTraversal;
@@ -87,7 +78,6 @@ int main(int argc, char** argv)
     compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, {{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
 
     commandGraph->accept(compileTraversal);
-
 
     // setup fence
     vsg::ref_ptr<vsg::Fence> fence = vsg::Fence::create(device);
