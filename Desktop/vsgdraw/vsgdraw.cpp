@@ -1,5 +1,4 @@
 #include <vsg/all.h>
-
 #include <iostream>
 
 int main(int argc, char** argv)
@@ -8,16 +7,13 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
-    auto numFrames = arguments.value(-1, "-f");
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    // read shaders
+    // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    //
     // load shaders
-    //
     vsg::ref_ptr<vsg::ShaderModule> vertexShader = vsg::ShaderModule::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
     vsg::ref_ptr<vsg::ShaderModule> fragmentShader = vsg::ShaderModule::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
@@ -26,9 +22,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    //
     // read texture image
-    //
     std::string textureFile("textures/lz.vsgb");
     vsg::vsgReaderWriter vsgReader;
     auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
@@ -38,16 +32,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    //
     // set up graphics pipeline
-    //
     vsg::DescriptorSetLayoutBindings descriptorBindings
     {
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
-    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-    vsg::DescriptorSetLayouts descriptorSetLayouts{descriptorSetLayout};
+    vsg::DescriptorSetLayouts descriptorSetLayouts{vsg::DescriptorSetLayout::create(descriptorBindings)};
 
     vsg::PushConstantRanges pushConstantRanges
     {
@@ -68,12 +59,10 @@ int main(int argc, char** argv)
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
 
-    vsg::ShaderModules shaders{vertexShader, fragmentShader};
-
     vsg::GraphicsPipelineStates pipelineStates
     {
-        vsg::ShaderStages::create(shaders),
-        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
+        vsg::ShaderStages::create( vsg::ShaderModules{vertexShader, fragmentShader} ),
+        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
         vsg::MultisampleState::create(),
@@ -85,36 +74,26 @@ int main(int argc, char** argv)
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, pipelineStates);
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
-    //
-    // create texture and associated DescriptSets and binding
-    //
+    // create texture and associated DescriptorSets and binding
     auto texture = vsg::Texture::create();
     texture->_textureData = textureData;
     texture->_dstBinding = 0;
 
-    vsg::Descriptors descriptors{texture};
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, descriptors);
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, vsg::Descriptors{texture});
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
-
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSets);
 
-
-    //
     // set up model transformation node
-    //
     auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT, 128
 
     // add transform to root of the scene graph
     scenegraph->addChild(transform);
 
-
-    //
     // set up vertex and index arrays
-    //
     vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
     {
         {-0.5f, -0.5f, 0.0f},
@@ -159,21 +138,15 @@ int main(int argc, char** argv)
         6, 7, 4
     }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    auto geometry = vsg::Geometry::create();
-
     // setup geometry
+    auto geometry = vsg::Geometry::create();
     geometry->_arrays = vsg::DataList{vertices, colors, texcoords};
     geometry->_indices = indices;
-
-    vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0);
-    geometry->_commands = vsg::Geometry::Commands{drawIndexed};
+    geometry->_commands = vsg::Geometry::Commands{vsg::DrawIndexed::create(12, 1, 0, 0, 0)};
 
     // add geometry to transform
     transform->addChild(geometry);
 
-
-    ///////////////////////////////////////////////////////
-    //
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -202,7 +175,7 @@ int main(int argc, char** argv)
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     // main frame loop
-    while (viewer->active() && (numFrames<0 || (numFrames--)>0))
+    while (viewer->active())
     {
         // poll events and advance frame counters
         viewer->advance();
