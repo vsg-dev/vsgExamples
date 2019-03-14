@@ -11,7 +11,7 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto windowTraits = vsg::Window::Traits::create();
-    windowTraits->windowTitle = "osg2vsg";
+    windowTraits->windowTitle = "vsgviewer";
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
         }
     }
 
-    // assign the vsg_scene from the loaded/converted nodes
+    // assign the vsg_scene from the loaded nodes
     vsg::ref_ptr<vsg::Node> vsg_scene;
     if (vsgNodes.size()>1)
     {
@@ -125,7 +125,6 @@ int main(int argc, char** argv)
         }
 
         vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
-        //animationPath->setLoopMode(osg::AnimationPath::LOOP);
         animationPath->read(in);
 
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
