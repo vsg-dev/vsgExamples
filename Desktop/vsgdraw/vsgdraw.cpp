@@ -1,7 +1,6 @@
 #include <vsg/all.h>
 
 #include <iostream>
-#include <chrono>
 
 int main(int argc, char** argv)
 {
@@ -16,7 +15,6 @@ int main(int argc, char** argv)
     // read shaders
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    // create the scene/command graph
     //
     // load shaders
     //
@@ -28,11 +26,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    //
+    // read texture image
+    //
     std::string textureFile("textures/lz.vsgb");
-
-    //
-    // set up texture image
-    //
     vsg::vsgReaderWriter vsgReader;
     auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
     if (!textureData)
@@ -73,7 +70,7 @@ int main(int argc, char** argv)
 
     vsg::ShaderModules shaders{vertexShader, fragmentShader};
 
-    vsg::GraphicsPipelineStates pipelineStates = vsg::GraphicsPipelineStates
+    vsg::GraphicsPipelineStates pipelineStates
     {
         vsg::ShaderStages::create(shaders),
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
@@ -88,23 +85,10 @@ int main(int argc, char** argv)
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, pipelineStates);
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
-    // crete StateGroup to hold the GraphicsProgram to decorate the whole command graph
-    auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(bindGraphicsPipeline);
-
     //
-    // set up model transformation node
+    // create texture and associated DescriptSets and binding
     //
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT, 128
-
-    // add transform to graphics pipeline group
-    scenegraph->addChild(transform);
-
-
-    //
-    // create texture
-    //
-    vsg::ref_ptr<vsg::Texture> texture = vsg::Texture::create();
+    auto texture = vsg::Texture::create();
     texture->_textureData = textureData;
     texture->_dstBinding = 0;
 
@@ -112,11 +96,21 @@ int main(int argc, char** argv)
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, descriptors);
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
 
-    auto textureGroup = vsg::StateGroup::create();
-    textureGroup->add(bindDescriptorSets);
 
-    // add texture  to transform node
-    transform->addChild(textureGroup);
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    auto scenegraph = vsg::StateGroup::create();
+    scenegraph->add(bindGraphicsPipeline);
+    scenegraph->add(bindDescriptorSets);
+
+
+    //
+    // set up model transformation node
+    //
+    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT, 128
+
+    // add transform to root of the scene graph
+    scenegraph->addChild(transform);
+
 
     //
     // set up vertex and index arrays
@@ -174,8 +168,9 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::DrawIndexed> drawIndexed = vsg::DrawIndexed::create(12, 1, 0, 0, 0);
     geometry->_commands = vsg::Geometry::Commands{drawIndexed};
 
-    // add geometry to texture group
-    textureGroup->addChild(geometry);
+    // add geometry to transform
+    transform->addChild(geometry);
+
 
     ///////////////////////////////////////////////////////
     //
@@ -191,24 +186,22 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    // camera related state
+    // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
     vsg::ref_ptr<vsg::Perspective> perspective(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0));
     vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
     vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt, viewport));
 
-    // create graphics stage
-    auto stage = vsg::GraphicsStage::create(scenegraph, camera);
-
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(stage);
+    window->addStage(vsg::GraphicsStage::create(scenegraph, camera));
 
     // compile the Vulkan objects
     viewer->compile();
 
-    // assign a CloseHandler to the Viewer to respond to events
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
+    // main frame loop
     while (viewer->active() && (numFrames<0 || (numFrames--)>0))
     {
         // poll events and advance frame counters
@@ -219,6 +212,7 @@ int main(int argc, char** argv)
 
         if (viewer->aquireNextFrame())
         {
+            // animate the transform
             float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
             transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
