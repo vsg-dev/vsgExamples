@@ -23,6 +23,7 @@ int main(int argc, char** argv)
     if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
     if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
+    if (arguments.read({"-t", "--test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->fullscreen = true; }
     auto numFrames = arguments.value(-1, "-f");
     auto printFrameRate = arguments.read("--fr");
     auto pathFilename = arguments.value(std::string(),"-p");
