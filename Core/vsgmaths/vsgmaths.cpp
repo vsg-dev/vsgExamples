@@ -8,6 +8,7 @@
 #include <vsg/maths/vec3.h>
 #include <vsg/maths/vec4.h>
 #include <vsg/maths/mat4.h>
+#include <vsg/maths/plane.h>
 #include <vsg/maths/transform.h>
 
 #include <vsg/io/stream.h>
@@ -116,6 +117,44 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"\nrot_z = "<<rot_z<<std::endl;
     std::cout<<"    rot_z * vsg::vec3(1.0, 0.0, 0.0) = "<< (rot_z * vsg::dvec3(1.0, 0.0, 0.0))<<std::endl;
     std::cout<<"    rot_z * vsg::vec3(0.0, 1.0, 0.0) = "<< (rot_z * vsg::dvec3(0.0, 1.0, 0.0))<<std::endl;
+
+    using Polytope = std::vector<vsg::plane>;
+    Polytope polytope{
+        vsg::plane(vsg::vec3(1.0, 0.0, 0.0), -1.0),
+        vsg::plane(vsg::vec3(-1.0, 0.0, 0.0), -1.0)
+    };
+
+    std::cout<<std::endl<<"Planes : "<<std::endl;
+    for(auto& plane : polytope)
+    {
+        std::cout<<"   plane : "<<plane.n<<", "<<plane.p<<std::endl;
+    }
+
+    using Sphres = std::vector<vsg::sphere>;
+    Sphres spheres{
+        vsg::sphere(vsg::vec3(0.0, 0.0, 0.0), 0.5),
+        vsg::sphere(vsg::vec3(1.0, 0.0, 0.0), 0.5),
+        vsg::sphere(vsg::vec3(-1.0, 0.0, 0.0), 0.5),
+        vsg::sphere(vsg::vec3(-3.0, 0.0, 0.0), 2.0),
+        vsg::sphere(vsg::vec3(2.0, 0.0, 0.0), 0.5),
+        vsg::sphere(vsg::vec3(2.0, 0.0, 0.0), 1.0),
+        vsg::sphere(vsg::vec3(3.0, 0.0, 0.0), 1.0)
+    };
+
+    for(auto& sphere : spheres)
+    {
+        std::cout<<"   sphere : "<<sphere.center<<" "<<sphere.radius<<" ";
+        if (vsg::intersect(polytope, sphere)) std::cout<<"intersects"<<std::endl;
+        else std::cout<<"does not intersect"<<std::endl;
+
+        for(auto& plane : polytope)
+        {
+            std::cout<<"      n="<<plane.n<<", p="<<plane.p<<", distance "<<vsg::distance(plane, sphere.center)<<std::endl;
+        }
+
+        std::cout<<std::endl;
+    }
+
 
 
     return 0;
