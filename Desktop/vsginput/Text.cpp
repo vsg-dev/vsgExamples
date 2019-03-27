@@ -124,10 +124,22 @@ Font::Font(const std::string& fontname, Paths searchPaths, Allocator* allocator)
         return elements;
     };
 
-    auto valueFromPair = [&split](const std::string& str)
+    auto uintValueFromPair = [&split](const std::string& str)
     {
         std::vector<std::string> els = split(str, '=');
-        return atoi(els[1].c_str());
+        return static_cast<uint32_t>(atoi(els[1].c_str()));
+    };
+
+    auto floatValueFromPair = [&split](const std::string& str)
+    {
+        std::vector<std::string> els = split(str, '=');
+        return static_cast<float>(atof(els[1].c_str()));
+    };
+
+    auto stringValueFromPair = [&split](const std::string& str)
+    {
+        std::vector<std::string> els = split(str, '=');
+        return els[1];
     };
 
     std::string dataFile("fonts/" + fontname + ".txt");
@@ -136,14 +148,19 @@ Font::Font(const std::string& fontname, Paths searchPaths, Allocator* allocator)
     // read header lines
     std::string infoline;
     std::getline(in, infoline);
+    std::vector<std::string> infoelements = split(infoline, ' ');
+    std::string facename = stringValueFromPair(infoelements[1]);
+    _fontHeight = floatValueFromPair(infoelements[2]);
 
     std::string commonline;
     std::getline(in, commonline);
     std::vector<std::string> commonelements = split(commonline, ' ');
-    _lineHeight = valueFromPair(commonelements[1]);
-    _base = valueFromPair(commonelements[2]);
-    _scaleWidth = valueFromPair(commonelements[3]);
-    _scaleHeight = valueFromPair(commonelements[4]);
+    _lineHeight = floatValueFromPair(commonelements[1]);
+    _normalisedLineHeight = _lineHeight / _fontHeight;
+    _baseLine = floatValueFromPair(commonelements[2]);
+    _normalisedBaseLine = _baseLine / _fontHeight;
+    _scaleWidth = floatValueFromPair(commonelements[3]);
+    _scaleHeight = floatValueFromPair(commonelements[4]);
 
     std::string pageline;
     std::getline(in, pageline);
@@ -160,17 +177,34 @@ Font::Font(const std::string& fontname, Paths searchPaths, Allocator* allocator)
 
         GlyphData glyph;
 
-        glyph.character = valueFromPair(elements[1]);
-        glyph.x = valueFromPair(elements[2]);
-        glyph.y = valueFromPair(elements[3]);
-        glyph.width = valueFromPair(elements[4]);
-        glyph.height = valueFromPair(elements[5]);
-        glyph.xoffset = valueFromPair(elements[6]);
-        glyph.yoffset = valueFromPair(elements[7]);
-        glyph.xadvance = valueFromPair(elements[8]);
+        glyph.character = uintValueFromPair(elements[1]);
 
-        glyph.uvOrigin = vec2((float)glyph.x / (float)_scaleWidth, (float)glyph.y / (float)_scaleHeight);
-        glyph.uvSize = vec2((float)glyph.width / (float)_scaleWidth, (float)glyph.height / (float)_scaleHeight);
+        // pixel rect of glyph
+        float x = floatValueFromPair(elements[2]);
+        float y = floatValueFromPair(elements[3]);
+        float width = floatValueFromPair(elements[4]);
+        float height = floatValueFromPair(elements[5]);
+
+        // adujst y to bottom origin
+        y = _scaleHeight - (y + height);
+
+        // offset for character glyph in a string
+        float xoffset = floatValueFromPair(elements[6]);
+        float yoffset = floatValueFromPair(elements[7]);
+        float xadvance = floatValueFromPair(elements[8]);
+
+        // calc uv space rect
+        vec2 uvorigin = vec2(x / _scaleWidth, y / _scaleHeight);
+        vec2 uvsize = vec2(width / _scaleWidth, height / _scaleHeight);
+        glyph.uvrect = vec4(uvorigin.x, uvorigin.y, uvorigin.x + uvsize.x, uvorigin.y + uvsize.y);
+        glyph.uvrect = vec4(uvorigin.x, uvorigin.y, uvorigin.x + uvsize.x, uvorigin.y + uvsize.y);
+       
+        // calc normaised size
+        glyph.size = vec2(width / _fontHeight, height / _fontHeight);
+
+        // calc normalise offsets
+        glyph.offset = vec2(xoffset / _fontHeight, _normalisedBaseLine - glyph.size.y - (yoffset / _fontHeight));
+        glyph.xadvance = xadvance / _fontHeight;
 
         _glyphs[glyph.character] = glyph;
     }
@@ -181,9 +215,14 @@ Font::Font(const std::string& fontname, Paths searchPaths, Allocator* allocator)
 //
 
 Text::Text(Font* font, TextGroup* group, Allocator* allocator) :
-    Inherit(allocator)
+    Inherit(allocator),
+    _fontHeight(30.0f)
 {
     _font = font;
+
+    // create transform to translate text for now
+    _transform = MatrixTransform::create();
+    addChild(_transform);
 
     // create and bind descriptorset for font texture
     auto graphicsPipeline = group->_bindGraphicsPipeline->getPipeline();
@@ -193,37 +232,51 @@ Text::Text(Font* font, TextGroup* group, Allocator* allocator) :
     auto bindDescriptorSets = BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, DescriptorSets{ descriptorSet });
 
     add(bindDescriptorSets);
-
-    // add a default quad
-//    ref_ptr<Geometry> glyph = createGlyphQuad(vec3(0.0f,0.0f,0.0f), vec3(1.0f,0.0f,0.0f), vec3(0.0f,1.0f,0.0f), 0.0f, 0.0f, 1.0f, 1.0f);
-//    addChild(glyph);
-
-    setText("Cheese!");
 }
 
 void Text::setText(const std::string& text)
 {
+    _text = text;
+
     // remove old children
-    uint32_t childcount = getNumChildren();
+    uint32_t childcount = _transform->getNumChildren();
     for(uint32_t i=0; i<childcount; i++)
     {
-        removeChild(0);
+        _transform->removeChild(0);
     }
 
     float x = 0.0f;
+    float y = 0.0f;
     for (int i = 0; i < text.size(); i++)
     {
         uint16_t character = (uint16_t)text.at(i);
+
+        if (character == '\n')
+        {
+            y -= _font->_normalisedLineHeight * _fontHeight;
+            x = 0.0f;
+            continue;
+        }
+
         // see if we have glyph data
-        if(_font->_glyphs.find(character) == _font->_glyphs.end()) continue;
+        if(_font->_glyphs.find(character) == _font->_glyphs.end())
+        {
+            // for now use @ symbol for missing char
+            character = '@';
+        }
 
         Font::GlyphData glyphData = _font->_glyphs[character];
 
-        ref_ptr<Geometry> glyph = createGlyphQuad(vec3(x, 0.0f, 0.0f), vec3(glyphData.width/50.0f, 0.0f, 0.0f), vec3(0.0f, glyphData.height/50.0f, 0.0f), glyphData.uvOrigin.x, 1.0f - glyphData.uvOrigin.y, glyphData.uvOrigin.x + glyphData.uvSize.x, 1.0f - (glyphData.uvOrigin.y + glyphData.uvSize.y));
-        addChild(glyph);
+        ref_ptr<Geometry> glyph = createGlyphQuad(vec3(x + (glyphData.offset.x * _fontHeight), y + (glyphData.offset.y * _fontHeight), 0.0f), vec3(glyphData.size.x * _fontHeight, 0.0f, 0.0f), vec3(0.0f, glyphData.size.y * _fontHeight, 0.0f), glyphData.uvrect.x, glyphData.uvrect.y, glyphData.uvrect.z, glyphData.uvrect.w);
+        _transform->addChild(glyph);
 
-        x += glyphData.xadvance/50.0f;
+        x += glyphData.xadvance * _fontHeight;
     }
+}
+
+void Text::setPosition(const vec3& position)
+{
+    _transform->setMatrix(translate(position));
 }
 
 ref_ptr<Geometry> Text::createGlyphQuad(const vec3& corner, const vec3& widthVec, const vec3& heightVec, float l, float b, float r, float t)

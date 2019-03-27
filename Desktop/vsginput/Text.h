@@ -21,25 +21,22 @@ namespace vsg
         struct GlyphData
         {
             uint16_t character;
-            uint32_t x; 
-            uint32_t y;
-            uint32_t width;
-            uint32_t height;
-            uint32_t xoffset;
-            uint32_t yoffset;
-            uint32_t xadvance;
-
-            vec2 uvOrigin;
-            vec2 uvSize;
+            vec4 uvrect; // min x/y, max x/y
+            vec2 size; // normalised size of the glyph
+            vec2 offset; // normalised offset
+            float xadvance; // normalised xadvance 
         };
         using GlyphMap = std::map<uint16_t, GlyphData>;
 
         GlyphMap _glyphs;
 
-        uint32_t _lineHeight;
-        uint32_t _base;
-        uint32_t _scaleWidth;
-        uint32_t _scaleHeight;
+        float _fontHeight; // height font was exported at in pixels
+        float _lineHeight; // line height in pixels
+        float _normalisedLineHeight; // line height normailsed against fontHeight
+        float _baseLine; // base line
+        float _normalisedBaseLine; // base line normailsed againt font height
+        float _scaleWidth; // the pixel size of the atlas used to scale to UV space
+        float _scaleHeight;
     };
     VSG_type_name(Font)
 
@@ -48,12 +45,24 @@ namespace vsg
     public:
         Text(Font* font, TextGroup* group, Allocator* allocator = nullptr);
 
+        const std::string& getText() const { return _text; }
         void setText(const std::string& text);
+
+        Font* getFont() const { return _font; }
+        void setFont(Font* font) { _font = font; }
+
+        const float getFontHeight() const { return _fontHeight; }
+        void setFont(const float& fontHeight) { _fontHeight = fontHeight; }
+
+        void setPosition(const vec3& position);
 
         ref_ptr<Geometry> createGlyphQuad(const vec3& corner, const vec3& widthVec, const vec3& heightVec, float l, float b, float r, float t);
 
+    protected:
         ref_ptr<Font> _font;
+        ref_ptr<MatrixTransform> _transform;
         std::string _text;
+        float _fontHeight;
     };
     VSG_type_name(Text)
 
