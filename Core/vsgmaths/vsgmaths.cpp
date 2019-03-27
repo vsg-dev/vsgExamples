@@ -120,6 +120,7 @@ int main(int /*argc*/, char** /*argv*/)
 
     using Polytope = std::vector<vsg::plane>;
     Polytope polytope{
+        vsg::plane(1.0, 0.0, 0.0, -1.0),
         vsg::plane(vsg::vec3(1.0, 0.0, 0.0), -1.0),
         vsg::plane(vsg::vec3(-1.0, 0.0, 0.0), -1.0)
     };
