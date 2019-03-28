@@ -121,10 +121,10 @@ int main(int /*argc*/, char** /*argv*/)
 
     using Polytope = std::vector<vsg::plane>;
     Polytope polytope{
-        vsg::plane(0.0, 1.0, 0.0, -1.0),
-        vsg::plane(0.0, -1.0, 0.0, 1.0),
-        vsg::plane(vsg::vec3(1.0, 0.0, 0.0), -1.0),
-        vsg::plane(vsg::vec3(-1.0, 0.0, 0.0), -1.0)
+        vsg::plane(1.0, 0.0, 0.0, 1.0),  // left plane
+        vsg::plane(-1.0, 0.0, 0.0, 1.0), // right plane
+        vsg::plane(0.0, 1.0, 0.0, 1.0),  // bottom plane
+        vsg::plane(0.0, -1.0, 0.0, 1.0)  // top plane
     };
 
     std::cout<<std::endl<<"Planes : "<<std::endl;
@@ -160,7 +160,8 @@ int main(int /*argc*/, char** /*argv*/)
     }
 #endif
 
-    vsg::mat4 plane_trans = vsg::translate(vsg::vec3(1.0, 2.0, 3.0));
+    //vsg::mat4 plane_trans = vsg::translate(vsg::vec3(1.0, 2.0, 3.0));
+    vsg::mat4 plane_trans = vsg::translate(vsg::vec3(1.0, 0.0, 0.0));
 
     for(auto& plane : polytope)
     {
@@ -190,6 +191,10 @@ int main(int /*argc*/, char** /*argv*/)
 
         std::cout<<std::endl;
     }
+
+    vsg::vec3 pv(1.0, 2.0, 3.0);
+    std::cout<<"pv * plane_trans = "<< (pv * plane_trans)<<std::endl;
+    std::cout<<"plane_trans * pv = "<< (plane_trans * pv)<<std::endl;
 
 
     return 0;
