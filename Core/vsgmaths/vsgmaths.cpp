@@ -103,6 +103,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"view * vec3(0.0, 0.0, 0.0) = ("<<(view*vsg::vec3(0.0, 0.0, 0.0))<<")"<<std::endl;
     std::cout<<"view * vec3(2.0, 2.0, 2.0) = ("<<(view*vsg::vec3(2.0, 2.0, 2.0))<<")"<<std::endl;
     std::cout<<"view * vec3(2.0, 2.0, 3.0) = ("<<(view*vsg::vec3(2.0, 2.0, 3.0))<<")"<<std::endl;
+    std::cout<<"view * vec4(2.0, 2.0, 3.0, 1.0) = ("<<(view*vsg::vec4(2.0, 2.0, 3.0, 1.0))<<")"<<std::endl;
 
     vsg::dmat4 rot_x = vsg::rotate(vsg::radians(45.0), 1.0, 0.0, 0.0);
     vsg::dmat4 rot_y = vsg::rotate(vsg::radians(45.0), 0.0, 1.0, 0.0);
@@ -120,7 +121,8 @@ int main(int /*argc*/, char** /*argv*/)
 
     using Polytope = std::vector<vsg::plane>;
     Polytope polytope{
-        vsg::plane(1.0, 0.0, 0.0, -1.0),
+        vsg::plane(0.0, 1.0, 0.0, -1.0),
+        vsg::plane(0.0, -1.0, 0.0, 1.0),
         vsg::plane(vsg::vec3(1.0, 0.0, 0.0), -1.0),
         vsg::plane(vsg::vec3(-1.0, 0.0, 0.0), -1.0)
     };
@@ -142,6 +144,7 @@ int main(int /*argc*/, char** /*argv*/)
         vsg::sphere(vsg::vec3(3.0, 0.0, 0.0), 1.0)
     };
 
+#if 1
     for(auto& sphere : spheres)
     {
         std::cout<<"   sphere : "<<sphere.center<<" "<<sphere.radius<<" ";
@@ -155,7 +158,38 @@ int main(int /*argc*/, char** /*argv*/)
 
         std::cout<<std::endl;
     }
+#endif
 
+    vsg::mat4 plane_trans = vsg::translate(vsg::vec3(1.0, 2.0, 3.0));
+
+    for(auto& plane : polytope)
+    {
+#if 1
+        plane.vec = plane.vec * plane_trans;
+#else
+        plane.vec = plane_trans * plane.vec;
+#endif
+    }
+
+    std::cout<<std::endl<<"Transformed Planes : "<<std::endl;
+    for(auto& plane : polytope)
+    {
+        std::cout<<"   plane : "<<plane.n<<", "<<plane.p<<std::endl;
+    }
+
+    for(auto& sphere : spheres)
+    {
+        std::cout<<"   sphere : "<<sphere.center<<" "<<sphere.radius<<" ";
+        if (vsg::intersect(polytope, sphere)) std::cout<<"intersects"<<std::endl;
+        else std::cout<<"does not intersect"<<std::endl;
+
+        for(auto& plane : polytope)
+        {
+            std::cout<<"      n="<<plane.n<<", p="<<plane.p<<", distance "<<vsg::distance(plane, sphere.center)<<std::endl;
+        }
+
+        std::cout<<std::endl;
+    }
 
 
     return 0;
