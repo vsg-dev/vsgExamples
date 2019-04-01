@@ -9,8 +9,8 @@ TextGroup::TextGroup(Paths searchPaths, Allocator* allocator) :
     Inherit(allocator)
 {
     // load shaders
-    ref_ptr<ShaderModule> vertexShader = ShaderModule::read(VK_SHADER_STAGE_VERTEX_BIT, "main", findFile("shaders/vert_PushConstants.spv", searchPaths));
-    ref_ptr<ShaderModule> fragmentShader = ShaderModule::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", findFile("shaders/frag_PushConstants.spv", searchPaths));
+    ref_ptr<ShaderModule> vertexShader = ShaderModule::read(VK_SHADER_STAGE_VERTEX_BIT, "main", findFile("shaders/vert_text.spv", searchPaths));
+    ref_ptr<ShaderModule> fragmentShader = ShaderModule::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", findFile("shaders/frag_text.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
         std::cout << "Could not create shaders." << std::endl;
@@ -20,7 +20,10 @@ TextGroup::TextGroup(Paths searchPaths, Allocator* allocator) :
     // set up graphics pipeline
     DescriptorSetLayoutBindings descriptorBindings
     {
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr},
+        {3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr }
     };
 
     DescriptorSetLayouts descriptorSetLayouts{ DescriptorSetLayout::create(descriptorBindings) };
@@ -33,15 +36,18 @@ TextGroup::TextGroup(Paths searchPaths, Allocator* allocator) :
     VertexInputState::Bindings vertexBindingsDescriptions
     {
         VkVertexInputBindingDescription{0, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vec3), VK_VERTEX_INPUT_RATE_INSTANCE}, // colour data
-        VkVertexInputBindingDescription{2, sizeof(vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+
+        // per instance
+        VkVertexInputBindingDescription{1, sizeof(GlyphInstanceData), VK_VERTEX_INPUT_RATE_INSTANCE} // glyph data
     };
 
     VertexInputState::Attributes vertexAttributeDescriptions
     {
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+
+        // per instance Glyph data
+        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32_SFLOAT, 0}, // instance offset (x,y)
+        VkVertexInputAttributeDescription{2, 1, VK_FORMAT_R32_SFLOAT, sizeof(vec2)}, // glyph index in lookup textures
     };
 
     // setup blending
@@ -62,15 +68,19 @@ TextGroup::TextGroup(Paths searchPaths, Allocator* allocator) :
 
     colorBlendAttachments.push_back(colorBlendAttachment);
 
+    ref_ptr<DepthStencilState> depthStencilState = DepthStencilState::create();
+    depthStencilState->depthTestEnable = VK_TRUE;
+    depthStencilState->depthWriteEnable = VK_TRUE;
+
     GraphicsPipelineStates pipelineStates
     {
         ShaderStages::create(ShaderModules{vertexShader, fragmentShader}),
         VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
-        InputAssemblyState::create(),
+        InputAssemblyState::create(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP),
         RasterizationState::create(),
         MultisampleState::create(),
         ColorBlendState::create(colorBlendAttachments),
-        DepthStencilState::create()
+        depthStencilState
     };
 
     auto pipelineLayout = PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
@@ -96,9 +106,9 @@ Font::Font(const std::string& fontname, Paths searchPaths, Allocator* allocator)
         return;
     }
 
-    _texture = Texture::create();
-    _texture->_textureData = textureData;
-    _texture->_dstBinding = 0;
+    _atlasTexture = Texture::create();
+    _atlasTexture->_textureData = textureData;
+    _atlasTexture->_dstBinding = 0;
 
     // read glyph data from txt file
     auto startsWith = [](const std::string& str, const std::string& match)
@@ -167,12 +177,24 @@ Font::Font(const std::string& fontname, Paths searchPaths, Allocator* allocator)
 
     std::string charsline;
     std::getline(in, charsline);
+    std::vector<std::string> charselements = split(charsline, ' ');
+    uint32_t charscount = uintValueFromPair(charselements[1]);
 
-    for (std::string line; std::getline(in, line); )
+    // allocate lookup texture data
+    vsg::ref_ptr<vsg::vec4Array> uvTexels(new vsg::vec4Array(charscount));
+    uvTexels->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+
+    vsg::ref_ptr<vsg::vec4Array> sizeTexels(new vsg::vec4Array(charscount));
+    sizeTexels->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+
+    float lookupTexelSize = 1.0f / (float)charscount;
+    float loopupTexelHalfSize = lookupTexelSize * 0.5f;
+
+    // read character data lines
+    for (uint32_t i = 0; i < charscount; i++)
     {
-        std::cout << line << std::endl;
-        if(!startsWith(line, "char id")) continue;
-
+        std::string line;
+        std::getline(in, line);
         std::vector<std::string> elements = split(line, ' ');
 
         GlyphData glyph;
@@ -196,8 +218,7 @@ Font::Font(const std::string& fontname, Paths searchPaths, Allocator* allocator)
         // calc uv space rect
         vec2 uvorigin = vec2(x / _scaleWidth, y / _scaleHeight);
         vec2 uvsize = vec2(width / _scaleWidth, height / _scaleHeight);
-        glyph.uvrect = vec4(uvorigin.x, uvorigin.y, uvorigin.x + uvsize.x, uvorigin.y + uvsize.y);
-        glyph.uvrect = vec4(uvorigin.x, uvorigin.y, uvorigin.x + uvsize.x, uvorigin.y + uvsize.y);
+        glyph.uvrect = vec4(uvorigin.x, uvorigin.y, uvsize.x, uvsize.y);
        
         // calc normaised size
         glyph.size = vec2(width / _fontHeight, height / _fontHeight);
@@ -206,8 +227,24 @@ Font::Font(const std::string& fontname, Paths searchPaths, Allocator* allocator)
         glyph.offset = vec2(xoffset / _fontHeight, _normalisedBaseLine - glyph.size.y - (yoffset / _fontHeight));
         glyph.xadvance = xadvance / _fontHeight;
 
+        // calc offset into lookup texture
+        glyph.lookupOffset = (lookupTexelSize * i) + loopupTexelHalfSize;
+
+        // add glyph to list
         _glyphs[glyph.character] = glyph;
+
+        // add data to lookup
+        uvTexels->set(i, glyph.uvrect);
+        sizeTexels->set(i, vec4(glyph.size.x, glyph.size.y, glyph.offset.x, glyph.offset.y));
     }
+
+    _glyphUVsTexture = Texture::create();
+    _glyphUVsTexture->_textureData = uvTexels;
+    _glyphUVsTexture->_dstBinding = 1;
+
+    _glyphSizesTexture = Texture::create();
+    _glyphSizesTexture->_textureData = sizeTexels;
+    _glyphSizesTexture->_dstBinding = 2;
 }
 
 //
@@ -224,11 +261,20 @@ Text::Text(Font* font, TextGroup* group, Allocator* allocator) :
     _transform = MatrixTransform::create();
     addChild(_transform);
 
+    // create font metrics uniform
+    _textMetrics = vsg::TextMetricsValue::create();
+    _textMetrics->value().height = _fontHeight;
+    _textMetrics->value().lineHeight = _font->_lineHeight;
+
+    _textMetricsUniform = vsg::Uniform::create();
+    _textMetricsUniform->_dataList.push_back(_textMetrics);
+    _textMetricsUniform->_dstBinding = 3;
+
     // create and bind descriptorset for font texture
     auto graphicsPipeline = group->_bindGraphicsPipeline->getPipeline();
     auto& descriptorSetLayouts = graphicsPipeline->getPipelineLayout()->getDescriptorSetLayouts();
 
-    auto descriptorSet = DescriptorSet::create(descriptorSetLayouts, Descriptors{ _font->_texture });
+    auto descriptorSet = DescriptorSet::create(descriptorSetLayouts, Descriptors{ _font->_atlasTexture, _font->_glyphUVsTexture, _font->_glyphSizesTexture,  _textMetricsUniform });
     auto bindDescriptorSets = BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, DescriptorSets{ descriptorSet });
 
     add(bindDescriptorSets);
@@ -239,39 +285,21 @@ void Text::setText(const std::string& text)
     _text = text;
 
     // remove old children
-    uint32_t childcount = _transform->getNumChildren();
+    uint32_t childcount = static_cast<uint32_t>(_transform->getNumChildren());
     for(uint32_t i=0; i<childcount; i++)
     {
         _transform->removeChild(0);
     }
 
-    float x = 0.0f;
-    float y = 0.0f;
-    for (int i = 0; i < text.size(); i++)
-    {
-        uint16_t character = (uint16_t)text.at(i);
+    //_transform->addChild(createQuadGlyphs(_text));
+    _transform->addChild(createInstancedGlyphs(_text));
+}
 
-        if (character == '\n')
-        {
-            y -= _font->_normalisedLineHeight * _fontHeight;
-            x = 0.0f;
-            continue;
-        }
-
-        // see if we have glyph data
-        if(_font->_glyphs.find(character) == _font->_glyphs.end())
-        {
-            // for now use @ symbol for missing char
-            character = '@';
-        }
-
-        Font::GlyphData glyphData = _font->_glyphs[character];
-
-        ref_ptr<Geometry> glyph = createGlyphQuad(vec3(x + (glyphData.offset.x * _fontHeight), y + (glyphData.offset.y * _fontHeight), 0.0f), vec3(glyphData.size.x * _fontHeight, 0.0f, 0.0f), vec3(0.0f, glyphData.size.y * _fontHeight, 0.0f), glyphData.uvrect.x, glyphData.uvrect.y, glyphData.uvrect.z, glyphData.uvrect.w);
-        _transform->addChild(glyph);
-
-        x += glyphData.xadvance * _fontHeight;
-    }
+void Text::setFontHeight(const float& fontHeight)
+{ 
+    _fontHeight = fontHeight;
+    _textMetrics->value().height = fontHeight;
+    _textMetricsUniform->copyDataListToBuffers();
 }
 
 void Text::setPosition(const vec3& position)
@@ -279,41 +307,74 @@ void Text::setPosition(const vec3& position)
     _transform->setMatrix(translate(position));
 }
 
-ref_ptr<Geometry> Text::createGlyphQuad(const vec3& corner, const vec3& widthVec, const vec3& heightVec, float l, float b, float r, float t)
+ref_ptr<Geometry> Text::createInstancedGlyphs(const std::string& text)
 {
+    bool useindices = true;
+
     // set up vertex and index arrays
     ref_ptr<vec3Array> vertices(new vec3Array
     {
-        corner,
-        corner + widthVec,
-        corner + widthVec + heightVec,
-        corner + heightVec
+        vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.0f, 0.0f, 0.0f),
+        vec3(1.0f, 1.0f, 0.0f),
+        vec3(1.0f, 0.0f, 0.0f)
     });
 
-    ref_ptr<vec3Array> colors(new vec3Array
-    {
-        {1.0f, 1.0f, 1.0f}
-    });
-
-    ref_ptr<vec2Array> texcoords(new vec2Array
-    {
-        {l, b},
-        {r, b},
-        {r, t},
-        {l, t}
-    });
-
-    ref_ptr<ushortArray> indices(new ushortArray
+    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
     {
         0, 1, 2,
-        2, 3, 0
+        2, 3, 1
     });
+
+    // build the instance data
+    uint32_t charcount = static_cast<uint32_t>(text.size());
+
+    // this is a bit wrong at the mo, their might not be charcount instances as we skip new line and space characters
+    ref_ptr<GlyphInstanceDataArray> instancedata(new GlyphInstanceDataArray(charcount));
+
+    float x = 0.0f;
+    float y = 0.0f;
+    uint32_t instanceCount = 0;
+
+    for (uint32_t i = 0; i < charcount; i++)
+    {
+        uint16_t character = (uint16_t)text.at(i);
+        Font::GlyphData& glyphData = _font->_glyphs[character];
+
+        if (character == '\n')
+        {
+            y -= _font->_normalisedLineHeight;
+            x = 0.0f;
+            continue;
+        }
+        else if (character == ' ')
+        {
+            x += glyphData.xadvance;
+            continue;
+        }
+
+        GlyphInstanceData data;
+        data.offset = vec2(x, y);
+        data.lookupOffset = glyphData.lookupOffset;
+
+        instancedata->set(instanceCount, data);
+        instanceCount++;
+
+        x += glyphData.xadvance;
+    }
 
     // setup geometry
     auto geometry = Geometry::create();
-    geometry->_arrays = DataList{ vertices, colors, texcoords };
-    geometry->_indices = indices;
-    geometry->_commands = Geometry::Commands{ DrawIndexed::create(6, 1, 0, 0, 0) };
+    geometry->_arrays = DataList{ vertices, instancedata }; // for now stash the instance data in the arrays (share a buffer)
+    if(useindices)
+    {
+        geometry->_indices = indices;
+        geometry->_commands = Geometry::Commands{ DrawIndexed::create(6, instanceCount, 0, 0, 0) }; // draw char count instances
+    }
+    else
+    {
+        geometry->_commands = Geometry::Commands{ Draw::create(4, instanceCount, 0, 0) }; // draw char count instances
+    }
 
     return geometry;
 }

@@ -16,7 +16,9 @@ namespace vsg
     public:
         Font(const std::string& fontname, Paths searchPaths, Allocator* allocator = nullptr);
 
-        ref_ptr<Texture> _texture;
+        ref_ptr<Texture> _atlasTexture;
+        ref_ptr<Texture> _glyphUVsTexture; // vec4 uvrect (x,y,width,height)
+        ref_ptr<Texture> _glyphSizesTexture; // vec4 size, offset, (sizex,sizey,offsetx,offsety)
 
         struct GlyphData
         {
@@ -24,7 +26,8 @@ namespace vsg
             vec4 uvrect; // min x/y, max x/y
             vec2 size; // normalised size of the glyph
             vec2 offset; // normalised offset
-            float xadvance; // normalised xadvance 
+            float xadvance; // normalised xadvance
+            float lookupOffset; // offset into lookup texture
         };
         using GlyphMap = std::map<uint16_t, GlyphData>;
 
@@ -40,6 +43,32 @@ namespace vsg
     };
     VSG_type_name(Font)
 
+    struct TextMetrics
+    {
+        float height;
+        float lineHeight;
+    };
+
+    class VSG_DECLSPEC TextMetricsValue : public Inherit<Value<TextMetrics>, TextMetricsValue>
+    {
+    public:
+        TextMetricsValue() {}
+
+        void read(Input& input) override
+        {
+        }
+        void write(Output& output) const override
+        {
+        }
+    };
+    VSG_type_name(TextMetricsValue)
+
+    struct GlyphInstanceData {
+        vec2 offset;
+        float lookupOffset;
+    };
+    VSG_array(GlyphInstanceDataArray, GlyphInstanceData);
+
     class Text : public Inherit<StateGroup, Text>
     {
     public:
@@ -52,17 +81,22 @@ namespace vsg
         void setFont(Font* font) { _font = font; }
 
         const float getFontHeight() const { return _fontHeight; }
-        void setFont(const float& fontHeight) { _fontHeight = fontHeight; }
+        void setFontHeight(const float& fontHeight);
 
         void setPosition(const vec3& position);
 
-        ref_ptr<Geometry> createGlyphQuad(const vec3& corner, const vec3& widthVec, const vec3& heightVec, float l, float b, float r, float t);
-
     protected:
+        ref_ptr<Geometry> createInstancedGlyphs(const std::string& text);
+
+        // data
         ref_ptr<Font> _font;
-        ref_ptr<MatrixTransform> _transform;
         std::string _text;
         float _fontHeight;
+
+        // graph objects
+        ref_ptr<Uniform> _textMetricsUniform;
+        ref_ptr<TextMetricsValue> _textMetrics;
+        ref_ptr<MatrixTransform> _transform;
     };
     VSG_type_name(Text)
 
