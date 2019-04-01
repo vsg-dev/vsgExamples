@@ -26,7 +26,7 @@ public:
         _keyboardInputText->setText("Cheese!");
     }
 
-    void apply(vsg::ConfigureWindowEvent& configure)
+    void apply(vsg::ConfigureWindowEvent& configure) override
     {
         auto width = configure.width;
         auto height = configure.height;
