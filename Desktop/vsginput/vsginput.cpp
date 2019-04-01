@@ -21,9 +21,29 @@ public:
 
         _keyboardInputText = vsg::Text::create(font, _textGroup);
         _textGroup->addChild(_keyboardInputText);
+        
+        // fill with test data
+        float fontheight = 50.0f;
+        std::string sampletext = "Cheese!";
 
-        _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - 50, 0.0f));
-        _keyboardInputText->setText("Cheese!");
+        /*
+        uint32_t maxlines = 1000;
+        uint32_t charsPerLine = 1000;
+        for (uint32_t line = 0; line < maxlines; line++)
+        {
+            for (uint32_t c = 0; c < charsPerLine; c++)
+            {
+                sampletext += 32 + (rand() % 94);
+            }
+            sampletext += "\n";
+        }
+        std::cout << "total characters: " << sampletext.size() << std::endl;
+        */
+
+        _keyboardInputText->setFontHeight(fontheight);
+        _keyboardInputText->setText(sampletext);
+
+        _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - fontheight, 0.0f));
     }
 
     void apply(vsg::ConfigureWindowEvent& configure) override
@@ -38,11 +58,11 @@ public:
         vsg::ref_ptr<vsg::Orthographic> orthographic(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 10.0));
         
         camera->setProjectionMatrix(orthographic);
-        _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - 50, 0.0f));
+        _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - _keyboardInputText->getFontHeight(), 0.0f));
 
         //rand color
         float randcolor = (rand() % 10) / 10.0f;
-        window->clearColor().float32[0] = randcolor;
+        //window->clearColor().float32[0] = randcolor;
 
         _shouldRecompile = true;
         _shouldReleaseViewport = true;
@@ -124,7 +144,12 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(width, height, debugLayer, apiDumpLayer));
+    vsg::ref_ptr<vsg::Window::Traits> traits = vsg::Window::Traits::create();
+    traits->width = width;
+    traits->height = height;
+    traits->swapchainPreferences.presentMode = VkPresentModeKHR::VK_PRESENT_MODE_IMMEDIATE_KHR;
+
+    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits, debugLayer, apiDumpLayer));
     if (!window)
     {
         std::cout<<"Could not create windows."<<std::endl;
@@ -153,6 +178,8 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // main frame loop
+    double time = 0.0;
+    double runtime = 0.0;
     while (viewer->active())
     {
         // poll events and advance frame counters
@@ -163,10 +190,6 @@ int main(int argc, char** argv)
 
         if (viewer->aquireNextFrame())
         {
-            // animate the transform
-            float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-            //transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
-
             if (keyboardInput->shouldRecompile())
             {
                 keyboardInput->reset(); // this releases the graphicspipline implementation
@@ -177,7 +200,13 @@ int main(int argc, char** argv)
 
             viewer->submitNextFrame();
         }
+
+        double previousTime = time;
+        time = std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now() - viewer->start_point()).count();
+        runtime += time - previousTime;
     }
+
+    std::cout << "avg fps: " << 1.0 / (runtime / (double)viewer->getFrameStamp()->frameCount) <<std::endl;
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;
