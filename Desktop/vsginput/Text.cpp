@@ -322,8 +322,7 @@ ref_ptr<Geometry> Text::createInstancedGlyphs(const std::string& text)
 
     vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
     {
-        0, 1, 2,
-        2, 3, 1
+        0, 1, 2, 3
     });
 
     // build the instance data
@@ -369,7 +368,7 @@ ref_ptr<Geometry> Text::createInstancedGlyphs(const std::string& text)
     if(useindices)
     {
         geometry->_indices = indices;
-        geometry->_commands = Geometry::Commands{ DrawIndexed::create(6, instanceCount, 0, 0, 0) }; // draw char count instances
+        geometry->_commands = Geometry::Commands{ DrawIndexed::create(4, instanceCount, 0, 0, 0) }; // draw char count instances
     }
     else
     {
