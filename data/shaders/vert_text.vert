@@ -19,7 +19,7 @@ layout(binding = 2) uniform sampler2D glyphSizes;
 layout(binding = 3) uniform TextMetrics
 {
     float height;
-	float lineHeight;
+    float lineHeight;
 } textMetrics;
 
 layout(location = 0) out lowp vec2 fragTexCoord;
@@ -30,14 +30,14 @@ out gl_PerVertex {
 
 void main()
 {
-	// lookup glyph data
-	vec4 glyphRect = texture(glyphUVs, vec2(instLookupOffset, 0.5));
-	vec4 glyphSize = texture(glyphSizes, vec2(instLookupOffset, 0.5)) * textMetrics.height;
+    // lookup glyph data
+    vec4 glyphRect = texture(glyphUVs, vec2(instLookupOffset, 0.5));
+    vec4 glyphSize = texture(glyphSizes, vec2(instLookupOffset, 0.5)) * textMetrics.height;
 
-	vec2 scaledOffset = (instOffset * textMetrics.height) + glyphSize.zw;
+    vec2 scaledOffset = (instOffset * textMetrics.height) + glyphSize.zw;
 
-	vec2 vert = (inPosition.xy * glyphSize.xy) + scaledOffset;
+    vec2 vert = (inPosition.xy * glyphSize.xy) + scaledOffset;
     gl_Position = (pc.projection * pc.view * pc.model) * vec4(vert, 0.0, 1.0);
-	
-	fragTexCoord = (inPosition.xy * glyphRect.zw) + glyphRect.xy;
+    
+    fragTexCoord = (inPosition.xy * glyphRect.zw) + glyphRect.xy;
 }
