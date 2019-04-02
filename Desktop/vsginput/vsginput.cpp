@@ -43,7 +43,7 @@ public:
         _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - _keyboardInputText->getFontHeight(), 0.0f));
     }
 
-    void apply(vsg::ConfigureWindowEvent& configure)
+    void apply(vsg::ConfigureWindowEvent& configure) override
     {
         auto width = configure.width;
         auto height = configure.height;
