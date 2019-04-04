@@ -175,24 +175,18 @@ int main(int argc, char** argv)
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     // main frame loop
-    while (viewer->active())
+    while (viewer->advanceToNextFrame())
     {
-        // poll events and advance frame counters
-        viewer->advance();
-
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
-        if (viewer->aquireNextFrame())
-        {
-            // animate the transform
-            float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-            transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
+        // animate the transform
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
+        transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
-            viewer->populateNextFrame();
+        viewer->populateNextFrame();
 
-            viewer->submitNextFrame();
-        }
+        viewer->submitNextFrame();
     }
 
     // clean up done automatically thanks to ref_ptr<>
