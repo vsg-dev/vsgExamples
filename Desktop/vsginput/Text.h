@@ -2,23 +2,59 @@
 
 namespace vsg
 {
-    class TextGroup : public Inherit<StateGroup, TextGroup>
+    class GraphicsPipelineBuilder : public Inherit<Object, GraphicsPipelineBuilder>
     {
     public:
-        TextGroup(Paths searchPaths, Allocator* allocator = nullptr);
 
-        ref_ptr<BindGraphicsPipeline> _bindGraphicsPipeline;
+        class Traits : public Inherit<Object, Traits>
+        {
+        public:
+            ShaderModules shaderModules;
+
+            using BindingFormat = std::vector<VkFormat>;
+            using BindingFormats = std::vector<BindingFormat>;
+
+            std::map<VkVertexInputRate, BindingFormats> vertexAttributes;
+
+            using BindingTypes = std::vector<VkDescriptorType>;
+            using BindingSet = std::map<VkShaderStageFlags, BindingTypes>;
+
+            std::vector<BindingSet> descriptorLayouts;
+
+            ColorBlendState::ColorBlendAttachments colorBlendAttachments;
+            VkPrimitiveTopology primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        };
+
+        GraphicsPipelineBuilder(Paths searchPaths, Allocator* allocator = nullptr);
+        
+        virtual void build(vsg::ref_ptr<Traits> traits);
+
+        ref_ptr<GraphicsPipeline> getGraphicsPipeline() const { return _graphicsPipeline; }
+
+        static size_t sizeOf(VkFormat format);
+        static size_t sizeOf(const std::vector<VkFormat>& format);
+
+    protected:
+        ref_ptr<GraphicsPipeline> _graphicsPipeline;
     };
-    VSG_type_name(TextGroup)
+    VSG_type_name(GraphicsPipelineBuilder)
 
-    class Font : public Inherit<Object, Font>
+    class TextGraphicsPipelineBuilder : public Inherit<GraphicsPipelineBuilder, TextGraphicsPipelineBuilder>
     {
     public:
-        Font(const std::string& fontname, Paths searchPaths, Allocator* allocator = nullptr);
+        TextGraphicsPipelineBuilder(Paths searchPaths, Allocator* allocator = nullptr);
+    protected:
+        
+    };
+    VSG_type_name(TextGraphicsPipelineBuilder)
 
-        ref_ptr<Texture> _atlasTexture;
-        ref_ptr<Texture> _glyphUVsTexture; // vec4 uvrect (x,y,width,height)
-        ref_ptr<Texture> _glyphSizesTexture; // vec4 size, offset, (sizex,sizey,offsetx,offsety)
+    //
+    // Font state group that binds atlas and lookup texture descriptors
+    //
+    class Font : public Inherit<StateGroup, Font>
+    {
+    public:
+        Font(GraphicsPipeline* pipeline, const std::string& fontname, Paths searchPaths, Allocator* allocator = nullptr);
 
         struct GlyphData
         {
@@ -31,24 +67,40 @@ namespace vsg
         };
         using GlyphMap = std::map<uint16_t, GlyphData>;
 
+        GlyphMap& getGlyphMap() { return _glyphs; }
+        const GlyphMap& getGlyphMap() const { return _glyphs; }
+
+        float getHeight() const { return _fontHeight; }
+        float getNormalisedLineHeight() const { return _normalisedLineHeight; }
+
+    protected:
+
+        // data
         GlyphMap _glyphs;
 
         float _fontHeight; // height font was exported at in pixels
-        float _lineHeight; // line height in pixels
         float _normalisedLineHeight; // line height normailsed against fontHeight
-        float _baseLine; // base line
-        float _normalisedBaseLine; // base line normailsed againt font height
-        float _scaleWidth; // the pixel size of the atlas used to scale to UV space
-        float _scaleHeight;
+
+        // descriptors
+        ref_ptr<Texture> _atlasTexture;
+        ref_ptr<Texture> _glyphUVsTexture; // vec4 uvrect (x,y,width,height)
+        ref_ptr<Texture> _glyphSizesTexture; // vec4 size, offset, (offsetx,offsety, sizex,sizey)
     };
     VSG_type_name(Font)
 
+    //
+    // TextMetrics
+    //
     struct TextMetrics
     {
         float height;
         float lineHeight;
     };
 
+
+    //
+    // TextMetricsValue
+    //
     class VSG_DECLSPEC TextMetricsValue : public Inherit<Value<TextMetrics>, TextMetricsValue>
     {
     public:
@@ -63,41 +115,91 @@ namespace vsg
     };
     VSG_type_name(TextMetricsValue)
 
+
+    //
+    // GlyphInstanceData
+    //
     struct GlyphInstanceData {
+        vec3 position;
         vec2 offset;
         float lookupOffset;
     };
     VSG_array(GlyphInstanceDataArray, GlyphInstanceData);
 
+
+    //
+    // Text
+    //
     class Text : public Inherit<StateGroup, Text>
     {
     public:
-        Text(Font* font, TextGroup* group, Allocator* allocator = nullptr);
+        Text(Font* font, GraphicsPipeline* pipeline, Allocator* allocator = nullptr);
 
         const std::string& getText() const { return _text; }
         void setText(const std::string& text);
 
         Font* getFont() const { return _font; }
-        void setFont(Font* font) { _font = font; }
+        void setFont(Font* font);
 
-        const float getFontHeight() const { return _fontHeight; }
+        const float getFontHeight() const { return _textMetrics->value().height; }
         void setFontHeight(const float& fontHeight);
 
         void setPosition(const vec3& position);
 
     protected:
-        ref_ptr<Geometry> createInstancedGlyphs(const std::string& text);
+        void buildTextGraph();
+        ref_ptr<Geometry> createInstancedGlyphs();
 
         // data
         ref_ptr<Font> _font;
         std::string _text;
-        float _fontHeight;
+        ref_ptr<TextMetricsValue> _textMetrics;
 
         // graph objects
         ref_ptr<Uniform> _textMetricsUniform;
-        ref_ptr<TextMetricsValue> _textMetrics;
         ref_ptr<MatrixTransform> _transform;
     };
     VSG_type_name(Text)
+
+      
+    //
+    // TextGroup
+    //
+    class TextGroup : public Inherit<StateGroup, TextGroup>
+    {
+    public:
+        TextGroup(Font* font, GraphicsPipeline* pipeline, Allocator* allocator = nullptr);
+
+        void addText(const std::string& text, const vec3& position);
+        const uint32_t getNumTexts() { return static_cast<uint32_t>(_texts.size()); }
+
+        void buildTextGraph();
+        void clear();
+
+        Font* getFont() const { return _font; }
+        void setFont(Font* font);
+
+        const float getFontHeight() const { return _textMetrics->value().height; }
+        void setFontHeight(const float& fontHeight);
+
+    protected:
+        ref_ptr<Geometry> createInstancedGlyphs();
+
+        // data
+        ref_ptr<Font> _font;
+        
+        std::vector<std::string> _texts;
+        std::vector<vec3> _positions;
+
+        ref_ptr<TextMetricsValue> _textMetrics;
+
+        // graph objects
+        ref_ptr<Uniform> _textMetricsUniform;
+        ref_ptr<MatrixTransform> _transform;
+    };
+    VSG_type_name(TextGroup)
+
+    // loads glyph data info from a unity3d font file
+    extern bool readUnity3dFontMetaFile(const std::string& filePath, Font::GlyphMap& glyphMap, float& fontPixelHeight, float& normalisedLineHeight);
 
 }
