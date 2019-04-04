@@ -177,35 +177,26 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
-    // main frame loop
-    double time = 0.0;
-    double runtime = 0.0;
-    while (viewer->active())
-    {
-        // poll events and advance frame counters
-        viewer->advance();
+    auto before = std::chrono::steady_clock::now();
 
+    // main frame loop
+    while (viewer->advanceToNextFrame())
+    {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
-        if (viewer->aquireNextFrame())
+        if (keyboardInput->shouldRecompile())
         {
-            if (keyboardInput->shouldRecompile())
-            {
-                keyboardInput->reset(); // this releases the graphicspipline implementation
-                viewer->compile();
-            }
-
-            viewer->populateNextFrame();
-
-            viewer->submitNextFrame();
+            keyboardInput->reset(); // this releases the graphicspipline implementation
+            viewer->compile();
         }
 
-        double previousTime = time;
-        time = std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now() - viewer->start_point()).count();
-        runtime += time - previousTime;
+        viewer->populateNextFrame();
+
+        viewer->submitNextFrame();
     }
 
+    auto runtime = std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now() - before).count();
     std::cout << "avg fps: " << 1.0 / (runtime / (double)viewer->getFrameStamp()->frameCount) <<std::endl;
 
     // clean up done automatically thanks to ref_ptr<>

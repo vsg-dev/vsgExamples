@@ -25,7 +25,6 @@ int main(int argc, char** argv)
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"-t", "--test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->fullscreen = true; }
     auto numFrames = arguments.value(-1, "-f");
-    auto printFrameRate = arguments.read("--fr");
     auto pathFilename = arguments.value(std::string(),"-p");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
@@ -131,25 +130,15 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
-    double time = 0.0;
-    while (viewer->active() && (numFrames<0 || (numFrames--)>0))
+    // rendering main loop
+    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
-        // poll events and advance frame counters
-        viewer->advance();
-
-        double previousTime = time;
-        time = std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now()-viewer->start_point()).count();
-        if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
-
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
-        if (viewer->aquireNextFrame())
-        {
-            viewer->populateNextFrame();
+        viewer->populateNextFrame();
 
-            viewer->submitNextFrame();
-        }
+        viewer->submitNextFrame();
     }
 
     // clean up done automatically thanks to ref_ptr<>
