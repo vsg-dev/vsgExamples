@@ -51,10 +51,10 @@ namespace vsg
     //
     // Font state group that binds atlas and lookup texture descriptors
     //
-    class Font : public Inherit<StateGroup, Font>
+    class Font : public Inherit<BindDescriptorSets, Font>
     {
     public:
-        Font(GraphicsPipeline* pipeline, const std::string& fontname, Paths searchPaths, Allocator* allocator = nullptr);
+        Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths searchPaths);
 
         struct GlyphData
         {

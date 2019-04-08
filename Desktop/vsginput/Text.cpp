@@ -207,8 +207,8 @@ TextGraphicsPipelineBuilder::TextGraphicsPipelineBuilder(Paths searchPaths, Allo
 // Font
 //
 
-Font::Font(GraphicsPipeline* pipeline, const std::string& fontname, Paths searchPaths, Allocator* allocator) :
-    Inherit(allocator)
+Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths searchPaths) :
+    Inherit(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, DescriptorSets{ })
 {
     // load glyph atlas
     std::string textureFile("fonts/" + fontname + ".vsgb");
@@ -264,13 +264,11 @@ Font::Font(GraphicsPipeline* pipeline, const std::string& fontname, Paths search
     _glyphSizesTexture->_dstBinding = 1;
 
     // create and bind descriptorset for font texture
-    auto& descriptorSetLayouts = pipeline->getPipelineLayout()->getDescriptorSetLayouts();
+    auto& descriptorSetLayouts = pipelineLayout->getDescriptorSetLayouts();
 
     DescriptorSetLayouts fontDescriptorSetLayouts =  { descriptorSetLayouts[0] };
 
-    auto descriptorSet = DescriptorSet::create(fontDescriptorSetLayouts, Descriptors{ _glyphUVsTexture, _glyphSizesTexture, _atlasTexture });
-    auto bindDescriptorSets = BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 0, DescriptorSets{ descriptorSet });
-    add(bindDescriptorSets);
+    _descriptorSets = DescriptorSets{ DescriptorSet::create(fontDescriptorSetLayouts, Descriptors{ _glyphUVsTexture, _glyphSizesTexture, _atlasTexture }) };
 }
 
 //

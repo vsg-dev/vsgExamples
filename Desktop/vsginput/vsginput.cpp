@@ -11,8 +11,7 @@ public:
     KeyboardInput(vsg::ref_ptr<vsg::Viewer> viewer, vsg::ref_ptr<vsg::Group> root, vsg::Paths searchPaths) :
         _viewer(viewer),
         _root(root),
-        _shouldRecompile(false),
-        _shouldReleaseViewport(false)
+        _shouldRecompile(false)
     {
         vsg::ref_ptr<vsg::Window> window(_viewer->windows()[0]);
 
@@ -24,17 +23,16 @@ public:
 
         vsg::ref_ptr<vsg::TextGraphicsPipelineBuilder> textPipelineBuilder = vsg::TextGraphicsPipelineBuilder::create(searchPaths);
         stategroup->add(vsg::BindGraphicsPipeline::create(textPipelineBuilder->getGraphicsPipeline()));
-        _graphicsPipeline = textPipelineBuilder->getGraphicsPipeline();
 
         // any text attached below the font node will use it's atlas and lookup texture descriptor set (0)
-        _font = vsg::Font::create(textPipelineBuilder->getGraphicsPipeline(), "roboto", searchPaths);
-        stategroup->addChild(_font);
+        _font = vsg::Font::create(textPipelineBuilder->getGraphicsPipeline()->getPipelineLayout(), "roboto", searchPaths);
+        stategroup->add(_font);
 
         _keyboardInputText = vsg::Text::create(_font, textPipelineBuilder->getGraphicsPipeline());
-        _font->addChild(_keyboardInputText);
+        stategroup->addChild(_keyboardInputText);
 
         _textGroup = vsg::TextGroup::create(_font, textPipelineBuilder->getGraphicsPipeline());
-        _font->addChild(_textGroup);
+        stategroup->addChild(_textGroup);
         
         //
         _keyboardInputText->setFontHeight(50.0f);
@@ -56,9 +54,6 @@ public:
         
         camera->setProjectionMatrix(orthographic);
         _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - _keyboardInputText->getFontHeight(), 0.0f));
-
-        _shouldRecompile = true;
-        _shouldReleaseViewport = true;
     }
 
     void apply(vsg::KeyPressEvent& keyPress) override
@@ -146,12 +141,6 @@ public:
     void reset()
     { 
         _shouldRecompile = false;
-        // hack, release the graphics pipeline implementation to allow new viewport to recompile
-        if(_shouldReleaseViewport)
-        {
-            _graphicsPipeline->release();
-            _shouldReleaseViewport = false;
-        }
     }
 
 protected:
@@ -165,8 +154,6 @@ protected:
 
     // flag used to force recompile
     bool _shouldRecompile;
-    bool _shouldReleaseViewport;
-    vsg::ref_ptr<vsg::GraphicsPipeline> _graphicsPipeline;
 };
 
 int main(int argc, char** argv)
