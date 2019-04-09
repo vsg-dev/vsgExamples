@@ -162,6 +162,9 @@ namespace vsg
         const float getFontHeight() const { return _textMetrics->value().height; }
         void setFontHeight(const float& fontHeight);
 
+        const vec3 getBillboardAxis() const { return _textMetrics->value().billboardAxis; }
+        void setBillboardAxis(const vec3& billboardAxis);
+
         void setPosition(const vec3& position);
 
         void buildTextGraph();

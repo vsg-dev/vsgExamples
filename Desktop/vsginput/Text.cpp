@@ -392,6 +392,12 @@ void TextBase::setFontHeight(const float& fontHeight)
     _textMetricsUniform->copyDataListToBuffers();
 }
 
+void TextBase::setBillboardAxis(const vec3& billboardAxis)
+{
+    _textMetrics->value().billboardAxis = billboardAxis;
+    _textMetricsUniform->copyDataListToBuffers();
+}
+
 void TextBase::setPosition(const vec3& position)
 {
     _transform->setMatrix(translate(position));

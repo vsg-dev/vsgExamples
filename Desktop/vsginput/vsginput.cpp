@@ -106,6 +106,27 @@ public:
             if (_density > 100) _density = 100;
             randomFillCube(vsg::vec3(-400.0f, -400.0f, -800.0f), vsg::vec3(800.0f, 800.0f, 800.0f), _density, _textGroup->getFontHeight());
         }
+        // Need to look into function keys
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_0)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(0.0f, 0.0f, 0.0f));
+        }
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_1)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(1.0f,1.0f,1.0f));
+        }
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_2)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(0.0f, 1.0f, 1.0f));
+        }
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_3)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(1.0f, 0.0f, 1.0f));
+        }
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_4)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(1.0f, 1.0f, 0.0f));
+        }
     }
 
 
@@ -162,6 +183,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
+    auto usePerspective = arguments.read({ "--perspective","-p" });
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -194,10 +216,20 @@ int main(int argc, char** argv)
 
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
-    vsg::ref_ptr<vsg::Perspective> projection(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 2000.0));
-    vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 100.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
-    //vsg::ref_ptr<vsg::Orthographic> projection(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0));
-    //vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
+
+    vsg::ref_ptr<vsg::ProjectionMatrix> projection;
+    vsg::ref_ptr<vsg::LookAt> lookAt;
+    if (usePerspective)
+    {
+        projection = vsg::ref_ptr<vsg::Perspective>(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 2000.0));
+        lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 100.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
+    }
+    else
+    {
+        projection = vsg::ref_ptr<vsg::Orthographic>(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0));
+        lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
+    }
+
     vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(projection, lookAt, viewport));
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
