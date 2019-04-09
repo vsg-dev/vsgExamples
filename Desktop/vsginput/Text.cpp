@@ -272,10 +272,86 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
 }
 
 //
-// Text
+// GlyphGeometry
 //
 
-Text::Text(Font* font, GraphicsPipeline* pipeline, Allocator* allocator) :
+GlyphGeometry::GlyphGeometry(Allocator* allocator) :
+    Inherit(allocator)
+{
+}
+
+void GlyphGeometry::compile(Context& context)
+{
+    if (!_renderImplementation.empty()) return;
+
+    _renderImplementation.clear();
+
+    bool failure = false;
+
+    // set up vertex and index arrays
+    ref_ptr<vec3Array> vertices(new vec3Array
+    {
+        vec3(0.0f, 1.0f, 0.0f),
+        vec3(0.0f, 0.0f, 0.0f),
+        vec3(1.0f, 1.0f, 0.0f),
+        vec3(1.0f, 0.0f, 0.0f)
+    });
+
+    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
+    {
+        0, 1, 2, 3
+    });
+
+
+    DataList dataList;
+    dataList.reserve(3);
+    dataList.emplace_back(vertices);
+    dataList.emplace_back(_glyphInstances);
+    dataList.emplace_back(indices);
+
+    auto bufferData = vsg::createBufferAndTransferData(context, dataList, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+    if (!bufferData.empty())
+    {
+        BufferDataList vertexBufferData(bufferData.begin(), bufferData.begin() + 2); //verts and glyph instances
+        vsg::ref_ptr<vsg::BindVertexBuffers> bindVertexBuffers = vsg::BindVertexBuffers::create(0, vertexBufferData);
+        if (bindVertexBuffers)
+            _renderImplementation.emplace_back(bindVertexBuffers);
+        else
+            failure = true;
+
+        vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = vsg::BindIndexBuffer::create(bufferData.back(), VK_INDEX_TYPE_UINT16);
+        if (bindIndexBuffer)
+            _renderImplementation.emplace_back(bindIndexBuffer);
+        else
+            failure = true;
+    }
+    else
+        failure = true;
+
+    if (failure)
+    {
+        //std::cout<<"Failed to create required arrays/indices buffers on GPU."<<std::endl;
+        _renderImplementation.clear();
+        return;
+    }
+
+    // add the draw indexed command
+    _renderImplementation.emplace_back(DrawIndexed::create(4, static_cast<uint32_t>(_glyphInstances->valueCount()), 0, 0, 0));
+}
+
+void GlyphGeometry::dispatch(CommandBuffer& commandBuffer) const
+{
+    for (auto& command : _renderImplementation)
+    {
+        command->dispatch(commandBuffer);
+    }
+}
+
+//
+// TextBase
+//
+
+TextBase::TextBase(Font* font, GraphicsPipeline* pipeline, Allocator* allocator) :
     Inherit(allocator)
 {
     _font = font;
@@ -304,30 +380,24 @@ Text::Text(Font* font, GraphicsPipeline* pipeline, Allocator* allocator) :
     add(bindDescriptorSets);
 }
 
-void Text::setText(const std::string& text)
-{
-    _text = text;
-    buildTextGraph();
-}
-
-void Text::setFont(Font* font)
+void TextBase::setFont(Font* font)
 {
     _font = font;
     buildTextGraph();
 }
 
-void Text::setFontHeight(const float& fontHeight)
-{ 
+void TextBase::setFontHeight(const float& fontHeight)
+{
     _textMetrics->value().height = fontHeight;
     _textMetricsUniform->copyDataListToBuffers();
 }
 
-void Text::setPosition(const vec3& position)
+void TextBase::setPosition(const vec3& position)
 {
     _transform->setMatrix(translate(position));
 }
 
-void Text::buildTextGraph()
+void TextBase::buildTextGraph()
 {
     // remove old children
     uint32_t childcount = static_cast<uint32_t>(_transform->getNumChildren());
@@ -339,24 +409,23 @@ void Text::buildTextGraph()
     _transform->addChild(createInstancedGlyphs());
 }
 
-ref_ptr<Geometry> Text::createInstancedGlyphs()
+//
+// Text
+//
+
+Text::Text(Font* font, GraphicsPipeline* pipeline, Allocator* allocator) :
+    Inherit(font, pipeline, allocator)
 {
-    bool useindices = true;
+}
 
-    // set up vertex and index arrays
-    ref_ptr<vec3Array> vertices(new vec3Array
-    {
-        vec3(0.0f, 1.0f, 0.0f),
-        vec3(0.0f, 0.0f, 0.0f),
-        vec3(1.0f, 1.0f, 0.0f),
-        vec3(1.0f, 0.0f, 0.0f)
-    });
+void Text::setText(const std::string& text)
+{
+    _text = text;
+    buildTextGraph();
+}
 
-    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
-    {
-        0, 1, 2, 3
-    });
-
+ref_ptr<GlyphGeometry> Text::createInstancedGlyphs()
+{
     // build the instance data
     uint32_t charcount = static_cast<uint32_t>(_text.size());
 
@@ -396,17 +465,8 @@ ref_ptr<Geometry> Text::createInstancedGlyphs()
     }
 
     // setup geometry
-    auto geometry = Geometry::create();
-    geometry->_arrays = DataList{ vertices, instancedata }; // for now stash the instance data in the arrays (share a buffer)
-    if(useindices)
-    {
-        geometry->_indices = indices;
-        geometry->_commands = Geometry::Commands{ DrawIndexed::create(4, instanceCount, 0, 0, 0) }; // draw char count instances
-    }
-    else
-    {
-        geometry->_commands = Geometry::Commands{ Draw::create(4, instanceCount, 0, 0) }; // draw char count instances
-    }
+    auto geometry = GlyphGeometry::create();
+    geometry->_glyphInstances = instancedata;
 
     return geometry;
 }
@@ -416,32 +476,8 @@ ref_ptr<Geometry> Text::createInstancedGlyphs()
 //
 
 TextGroup::TextGroup(Font* font, GraphicsPipeline* pipeline, Allocator* allocator) :
-    Inherit(allocator)
+    Inherit(font, pipeline, allocator)
 {
-    _font = font;
-
-    // create transform to translate text for now
-    _transform = MatrixTransform::create();
-    addChild(_transform);
-
-    // create font metrics uniform
-    _textMetrics = vsg::TextMetricsValue::create();
-    _textMetrics->value().height = 30.0f;
-    _textMetrics->value().lineHeight = 1.0f;
-
-    _textMetricsUniform = vsg::Uniform::create();
-    _textMetricsUniform->_dataList.push_back(_textMetrics);
-    _textMetricsUniform->_dstBinding = 3;
-
-    // create and bind descriptorset for text metrix uniform
-    auto& descriptorSetLayouts = pipeline->getPipelineLayout()->getDescriptorSetLayouts();
-
-    DescriptorSetLayouts textDescriptorSetLayouts = { descriptorSetLayouts[1] };
-
-    auto descriptorSet = DescriptorSet::create(textDescriptorSetLayouts, Descriptors{ _textMetricsUniform });
-    auto bindDescriptorSets = BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 1, DescriptorSets{ descriptorSet });
-
-    add(bindDescriptorSets);
 }
 
 void TextGroup::addText(const std::string& text, const vec3& position)
@@ -458,48 +494,8 @@ void TextGroup::clear()
     //buildTextGraph();
 }
 
-void TextGroup::setFont(Font* font)
+ref_ptr<GlyphGeometry> TextGroup::createInstancedGlyphs()
 {
-    _font = font;
-    //buildTextGraph();
-}
-
-void TextGroup::setFontHeight(const float& fontHeight)
-{
-    _textMetrics->value().height = fontHeight;
-    _textMetricsUniform->copyDataListToBuffers();
-}
-
-void TextGroup::buildTextGraph()
-{
-    // remove old children
-    uint32_t childcount = static_cast<uint32_t>(_transform->getNumChildren());
-    for (uint32_t i = 0; i < childcount; i++)
-    {
-        _transform->removeChild(0);
-    }
-
-    _transform->addChild(createInstancedGlyphs());
-}
-
-ref_ptr<Geometry> TextGroup::createInstancedGlyphs()
-{
-    bool useindices = true;
-
-    // set up vertex and index arrays
-    ref_ptr<vec3Array> vertices(new vec3Array
-        {
-            vec3(0.0f, 1.0f, 0.0f),
-            vec3(0.0f, 0.0f, 0.0f),
-            vec3(1.0f, 1.0f, 0.0f),
-            vec3(1.0f, 0.0f, 0.0f)
-        });
-
-    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
-        {
-            0, 1, 2, 3
-        });
-
     // build the instance data
     uint32_t charcount = 0;
     for (auto textstr : _texts)
@@ -547,18 +543,8 @@ ref_ptr<Geometry> TextGroup::createInstancedGlyphs()
         }
     }
 
-    // setup geometry
-    auto geometry = Geometry::create();
-    geometry->_arrays = DataList{ vertices, instancedata }; // for now stash the instance data in the arrays (share a buffer)
-    if (useindices)
-    {
-        geometry->_indices = indices;
-        geometry->_commands = Geometry::Commands{ DrawIndexed::create(4, instanceCount, 0, 0, 0) }; // draw char count instances
-    }
-    else
-    {
-        geometry->_commands = Geometry::Commands{ Draw::create(4, instanceCount, 0, 0) }; // draw char count instances
-    }
+    auto geometry = GlyphGeometry::create();
+    geometry->_glyphInstances = instancedata;
 
     return geometry;
 }

@@ -20,7 +20,8 @@ layout(set = 0, binding = 1) uniform sampler2D glyphSizes;
 layout(set = 1, binding = 3) uniform TextMetrics
 {
     float height;
-    float lineHeight;
+	float lineHeight;
+    vec3 billboardAxis;
 } textMetrics;
 
 layout(location = 0) out lowp vec2 fragTexCoord;
@@ -38,9 +39,38 @@ void main()
     vec2 offset = (instOffset.xy * textMetrics.height) + glyphSize.xy;
 	vec2 size = inPosition.xy * glyphSize.zw;
 
-    vec2 vert = offset + size;
-	vec3 point = instPostion + vec3(vert, 0.0);
-    gl_Position = (pc.projection * pc.view * pc.model) * vec4(point, 1.0);
+    vec3 vert = vec3(offset + size, 0.0);
+	
+	mat4 instPostionMat = mat4(1.0); 
+	instPostionMat[3] = vec4(instPostion, 1.0);
+	
+	mat4 modelView = pc.view * (pc.model * instPostionMat);
+	
+	// xaxis
+	if(textMetrics.billboardAxis.x > 0.0)
+	{
+		modelView[0][0] = 1.0;
+		modelView[0][1] = 0.0;
+		modelView[0][2] = 0.0;
+	}
+
+	// yaxis
+	if(textMetrics.billboardAxis.y > 0.0)
+	{
+		modelView[1][0] = 0.0;
+		modelView[1][1] = 1.0;
+		modelView[1][2] = 0.0;
+	}
+	
+	// zaxis
+	if(textMetrics.billboardAxis.z > 0.0)
+	{
+		modelView[2][0] = 0.0;
+		modelView[2][1] = 0.0;
+		modelView[2][2] = 1.0;
+	}
+	
+    gl_Position = (pc.projection * modelView) * vec4(vert, 1.0);
     
     fragTexCoord = (inPosition.xy * glyphUvRect.zw) + glyphUvRect.xy;
 }
