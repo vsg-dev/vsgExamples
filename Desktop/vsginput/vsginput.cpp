@@ -11,8 +11,7 @@ public:
     KeyboardInput(vsg::ref_ptr<vsg::Viewer> viewer, vsg::ref_ptr<vsg::Group> root, vsg::Paths searchPaths) :
         _viewer(viewer),
         _root(root),
-        _shouldRecompile(false),
-        _shouldReleaseViewport(false)
+        _shouldRecompile(false)
     {
         vsg::ref_ptr<vsg::Window> window(_viewer->windows()[0]);
 
@@ -24,17 +23,16 @@ public:
 
         vsg::ref_ptr<vsg::TextGraphicsPipelineBuilder> textPipelineBuilder = vsg::TextGraphicsPipelineBuilder::create(searchPaths);
         stategroup->add(vsg::BindGraphicsPipeline::create(textPipelineBuilder->getGraphicsPipeline()));
-        _graphicsPipeline = textPipelineBuilder->getGraphicsPipeline();
 
         // any text attached below the font node will use it's atlas and lookup texture descriptor set (0)
-        _font = vsg::Font::create(textPipelineBuilder->getGraphicsPipeline(), "roboto", searchPaths);
-        stategroup->addChild(_font);
+        _font = vsg::Font::create(textPipelineBuilder->getGraphicsPipeline()->getPipelineLayout(), "roboto", searchPaths);
+        stategroup->add(_font);
 
         _keyboardInputText = vsg::Text::create(_font, textPipelineBuilder->getGraphicsPipeline());
-        _font->addChild(_keyboardInputText);
+        stategroup->addChild(_keyboardInputText);
 
         _textGroup = vsg::TextGroup::create(_font, textPipelineBuilder->getGraphicsPipeline());
-        _font->addChild(_textGroup);
+        stategroup->addChild(_textGroup);
         
         //
         _keyboardInputText->setFontHeight(50.0f);
@@ -54,11 +52,8 @@ public:
 
         vsg::ref_ptr<vsg::Orthographic> orthographic(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0));
         
-        camera->setProjectionMatrix(orthographic);
-        _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - _keyboardInputText->getFontHeight(), 0.0f));
-
-        _shouldRecompile = true;
-        _shouldReleaseViewport = true;
+        //camera->setProjectionMatrix(orthographic);
+       // _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - _keyboardInputText->getFontHeight(), 0.0f));
     }
 
     void apply(vsg::KeyPressEvent& keyPress) override
@@ -111,6 +106,27 @@ public:
             if (_density > 100) _density = 100;
             randomFillCube(vsg::vec3(-400.0f, -400.0f, -800.0f), vsg::vec3(800.0f, 800.0f, 800.0f), _density, _textGroup->getFontHeight());
         }
+        // Need to look into function keys
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_0)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(0.0f, 0.0f, 0.0f));
+        }
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_1)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(1.0f,1.0f,1.0f));
+        }
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_2)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(0.0f, 1.0f, 1.0f));
+        }
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_3)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(1.0f, 0.0f, 1.0f));
+        }
+        else if (keyPress.keyBase == vsg::KeySymbol::KEY_4)
+        {
+            _textGroup->setBillboardAxis(vsg::vec3(1.0f, 1.0f, 0.0f));
+        }
     }
 
 
@@ -146,12 +162,6 @@ public:
     void reset()
     { 
         _shouldRecompile = false;
-        // hack, release the graphics pipeline implementation to allow new viewport to recompile
-        if(_shouldReleaseViewport)
-        {
-            _graphicsPipeline->release();
-            _shouldReleaseViewport = false;
-        }
     }
 
 protected:
@@ -165,8 +175,6 @@ protected:
 
     // flag used to force recompile
     bool _shouldRecompile;
-    bool _shouldReleaseViewport;
-    vsg::ref_ptr<vsg::GraphicsPipeline> _graphicsPipeline;
 };
 
 int main(int argc, char** argv)
@@ -175,6 +183,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
+    auto usePerspective = arguments.read({ "--perspective","-p" });
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -207,10 +216,21 @@ int main(int argc, char** argv)
 
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
-    //vsg::ref_ptr<vsg::Perspective> perspective(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0));
-    vsg::ref_ptr<vsg::Orthographic> orthographic(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0));
-    vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
-    vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(orthographic, lookAt, viewport));
+
+    vsg::ref_ptr<vsg::ProjectionMatrix> projection;
+    vsg::ref_ptr<vsg::LookAt> lookAt;
+    if (usePerspective)
+    {
+        projection = vsg::ref_ptr<vsg::Perspective>(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 2000.0));
+        lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 100.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
+    }
+    else
+    {
+        projection = vsg::ref_ptr<vsg::Orthographic>(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0));
+        lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
+    }
+
+    vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(projection, lookAt, viewport));
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
     window->addStage(vsg::GraphicsStage::create(scenegraph, camera));
@@ -220,6 +240,8 @@ int main(int argc, char** argv)
 
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer), keyboardInput});
+
+    viewer->addEventHandler(vsg::Trackball::create(camera));
 
     // compile the Vulkan objects
     viewer->compile();
