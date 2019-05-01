@@ -17,13 +17,15 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
-    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
     if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"-t", "--test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->fullscreen = true; }
+    if (arguments.read({"--st", "--small-test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->width = 192, windowTraits->height = 108; windowTraits->decoration = false; }
+    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
+    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
