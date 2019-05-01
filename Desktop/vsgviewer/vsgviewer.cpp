@@ -102,13 +102,13 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt, vsg::ViewportState::create(window->extent2D())));
 
 
-    // add a GraphicsStage tp the Window to do dispatch of the command graph to the commnad buffer(s)
+    // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
     window->addStage(vsg::GraphicsStage::create(vsg_scene, camera));
 
     // compile the Vulkan objects
     viewer->compile();
 
-    // add close handler to respond the close window button and pressing esape
+    // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
 
