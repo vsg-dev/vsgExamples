@@ -142,7 +142,7 @@ int main(int argc, char** argv)
     auto geometry = vsg::Geometry::create();
     geometry->_arrays = vsg::DataList{vertices, colors, texcoords};
     geometry->_indices = indices;
-    geometry->_commands = vsg::Geometry::Commands{vsg::DrawIndexed::create(12, 1, 0, 0, 0)};
+    geometry->_commands = vsg::Geometry::DrawCommands{vsg::DrawIndexed::create(12, 1, 0, 0, 0)};
 
     // add geometry to transform
     transform->addChild(geometry);
