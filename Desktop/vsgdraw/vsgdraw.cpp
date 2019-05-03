@@ -139,13 +139,13 @@ int main(int argc, char** argv)
     }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
-    auto geometry = vsg::Geometry::create();
-    geometry->_arrays = vsg::DataList{vertices, colors, texcoords};
-    geometry->_indices = indices;
-    geometry->_commands = vsg::Geometry::DrawCommands{vsg::DrawIndexed::create(12, 1, 0, 0, 0)};
+    auto drawCommands = vsg::Commands::create();
+    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
+    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
 
-    // add geometry to transform
-    transform->addChild(geometry);
+    // add drawCommands to transform
+    transform->addChild(drawCommands);
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
