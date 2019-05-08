@@ -3,8 +3,7 @@
 
 layout(push_constant) uniform PushConstants {
     mat4 projection;
-    mat4 view;
-    mat4 model;
+    mat4 modelview;
 } pc;
 
 layout(location = 0) in vec3 inPosition;
@@ -44,7 +43,7 @@ void main()
 	mat4 instPostionMat = mat4(1.0); 
 	instPostionMat[3] = vec4(instPostion, 1.0);
 	
-	mat4 modelView = pc.view * (pc.model * instPostionMat);
+	mat4 modelView = pc.modelview  * instPostionMat;
 	
 	// xaxis
 	if(textMetrics.billboardAxis.x > 0.0)
