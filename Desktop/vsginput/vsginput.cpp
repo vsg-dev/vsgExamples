@@ -33,7 +33,7 @@ public:
 
         _textGroup = vsg::TextGroup::create(_font, textPipelineBuilder->getGraphicsPipeline());
         stategroup->addChild(_textGroup);
-        
+
         //
         _keyboardInputText->setFontHeight(50.0f);
         _keyboardInputText->setText("VulkanSceneGraph!");
@@ -51,7 +51,7 @@ public:
         vsg::Camera* camera = graphicsStage->_camera;
 
         vsg::ref_ptr<vsg::Orthographic> orthographic(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0));
-        
+
         //camera->setProjectionMatrix(orthographic);
        // _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - _keyboardInputText->getFontHeight(), 0.0f));
     }
