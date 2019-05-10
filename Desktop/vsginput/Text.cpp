@@ -376,6 +376,7 @@ TextBase::TextBase(Font* font, GraphicsPipeline* pipeline, Allocator* allocator)
 
     auto descriptorSet = DescriptorSet::create(textDescriptorSetLayouts, Descriptors{ _textMetricsUniform });
     auto bindDescriptorSets = BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 1, DescriptorSets{ descriptorSet });
+    bindDescriptorSets->setSlot(2); // Font goes to slot 1, so use slot 2
 
     add(bindDescriptorSets);
 }
