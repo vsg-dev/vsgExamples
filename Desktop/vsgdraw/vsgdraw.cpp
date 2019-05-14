@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 
     vsg::PushConstantRanges pushConstantRanges
     {
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 196} // projection view, and model matrices
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions
@@ -88,7 +88,7 @@ int main(int argc, char** argv)
     scenegraph->add(bindDescriptorSets);
 
     // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT, 128
+    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
 
     // add transform to root of the scene graph
     scenegraph->addChild(transform);

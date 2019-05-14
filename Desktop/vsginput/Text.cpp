@@ -319,7 +319,7 @@ void GlyphGeometry::compile(Context& context)
         else
             failure = true;
 
-        vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = vsg::BindIndexBuffer::create(bufferData.back(), VK_INDEX_TYPE_UINT16);
+        vsg::ref_ptr<vsg::BindIndexBuffer> bindIndexBuffer = vsg::BindIndexBuffer::create(bufferData.back());
         if (bindIndexBuffer)
             _renderImplementation.emplace_back(bindIndexBuffer);
         else
@@ -376,6 +376,7 @@ TextBase::TextBase(Font* font, GraphicsPipeline* pipeline, Allocator* allocator)
 
     auto descriptorSet = DescriptorSet::create(textDescriptorSetLayouts, Descriptors{ _textMetricsUniform });
     auto bindDescriptorSets = BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 1, DescriptorSets{ descriptorSet });
+    bindDescriptorSets->setSlot(2); // Font goes to slot 1, so use slot 2
 
     add(bindDescriptorSets);
 }
