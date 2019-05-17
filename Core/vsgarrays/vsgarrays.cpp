@@ -127,8 +127,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"   v[] = "<<v<<std::endl;
     });
 
-    vsg::ref_ptr<vsg::vec4Array> colours(new vsg::vec4Array());
-    colours->resize(20);
+    vsg::ref_ptr<vsg::vec4Array> colours(new vsg::vec4Array(40));
     vsg::vec4 colour(0.25, 0.5, 0.75, 1.0);
     for (std::size_t i=0; i<colours->size(); ++i)
     {
