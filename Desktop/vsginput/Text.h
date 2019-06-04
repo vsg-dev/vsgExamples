@@ -9,7 +9,7 @@ namespace vsg
         class Traits : public Inherit<Object, Traits>
         {
         public:
-            ShaderModules shaderModules;
+            ShaderStages shaderStages;
 
             using BindingFormat = std::vector<VkFormat>;
             using BindingFormats = std::vector<BindingFormat>;

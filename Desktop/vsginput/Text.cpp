@@ -66,7 +66,6 @@ void GraphicsPipelineBuilder::build(vsg::ref_ptr<Traits> traits)
 
     GraphicsPipelineStates pipelineStates
     {
-        ShaderStages::create(traits->shaderModules),
         VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         InputAssemblyState::create(traits->primitiveTopology),
         RasterizationState::create(),
@@ -82,7 +81,7 @@ void GraphicsPipelineBuilder::build(vsg::ref_ptr<Traits> traits)
 
 
     auto pipelineLayout = PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
-    _graphicsPipeline = GraphicsPipeline::create(pipelineLayout, pipelineStates);
+    _graphicsPipeline = GraphicsPipeline::create(pipelineLayout, traits->shaderStages, pipelineStates);
 }
 
 size_t GraphicsPipelineBuilder::sizeOf(VkFormat format)
@@ -170,14 +169,14 @@ TextGraphicsPipelineBuilder::TextGraphicsPipelineBuilder(Paths searchPaths, Allo
     };
 
     // shaders
-    ref_ptr<ShaderModule> vertexShader = ShaderModule::read(VK_SHADER_STAGE_VERTEX_BIT, "main", findFile("shaders/vert_text.spv", searchPaths));
-    ref_ptr<ShaderModule> fragmentShader = ShaderModule::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", findFile("shaders/frag_text.spv", searchPaths));
+    ref_ptr<ShaderStage> vertexShader = ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", findFile("shaders/vert_text.spv", searchPaths));
+    ref_ptr<ShaderStage> fragmentShader = ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", findFile("shaders/frag_text.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
         std::cout << "Could not create shaders." << std::endl;
         return;
     }
-    traits->shaderModules = { vertexShader, fragmentShader };
+    traits->shaderStages = { vertexShader, fragmentShader };
 
     // topology
     traits->primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
