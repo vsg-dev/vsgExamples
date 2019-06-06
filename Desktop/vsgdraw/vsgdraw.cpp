@@ -74,10 +74,8 @@ int main(int argc, char** argv)
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, pipelineStates);
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
-    // create texture and associated DescriptorSets and binding
-    auto texture = vsg::Texture::create();
-    texture->_textureData = textureData;
-    texture->_dstBinding = 0;
+    // create texture image and associated DescriptorSets and binding
+    auto texture = vsg::DescriptorImage::create(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::Sampler::create(), textureData);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, vsg::Descriptors{texture});
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});

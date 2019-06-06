@@ -82,9 +82,9 @@ namespace vsg
         float _normalisedLineHeight; // line height normailsed against fontHeight
 
         // descriptors
-        ref_ptr<Texture> _atlasTexture;
-        ref_ptr<Texture> _glyphUVsTexture; // vec4 uvrect (x,y,width,height)
-        ref_ptr<Texture> _glyphSizesTexture; // vec4 size, offset, (offsetx,offsety, sizex,sizey)
+        ref_ptr<DescriptorImage> _atlasTexture;
+        ref_ptr<DescriptorImage> _glyphUVsTexture; // vec4 uvrect (x,y,width,height)
+        ref_ptr<DescriptorImage> _glyphSizesTexture; // vec4 size, offset, (offsetx,offsety, sizex,sizey)
     };
     VSG_type_name(Font)
 
