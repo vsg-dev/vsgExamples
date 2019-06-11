@@ -219,7 +219,7 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
         return;
     }
 
-    _atlasTexture = DescriptorImage::create(2, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::Sampler::create(), textureData);
+    _atlasTexture = DescriptorImage::create(vsg::Sampler::create(), textureData, 2, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     std::string fontFile = "fonts/" + fontname + ".txt";
     if (!readUnity3dFontMetaFile(findFile(fontFile, searchPaths), _glyphs, _fontHeight, _normalisedLineHeight))
@@ -252,8 +252,8 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
         i++;
      }
 
-    _glyphUVsTexture = DescriptorImage::create(0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::Sampler::create(), uvTexels);
-    _glyphSizesTexture = DescriptorImage::create(1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, vsg::Sampler::create(), sizeTexels);
+    _glyphUVsTexture = DescriptorImage::create(vsg::Sampler::create(), uvTexels, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    _glyphSizesTexture = DescriptorImage::create(vsg::Sampler::create(), sizeTexels, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     // create and bind descriptorset for font texture
     auto& descriptorSetLayouts = pipelineLayout->getDescriptorSetLayouts();
@@ -357,9 +357,7 @@ TextBase::TextBase(Font* font, GraphicsPipeline* pipeline, Allocator* allocator)
     _textMetrics->value().height = 30.0f;
     _textMetrics->value().lineHeight = 1.0f;
 
-    _textMetricsUniform = vsg::Uniform::create();
-    _textMetricsUniform->_dataList.push_back(_textMetrics);
-    _textMetricsUniform->_dstBinding = 3;
+    _textMetricsUniform = vsg::DescriptorBuffer::create(_textMetrics,3);
 
     // create and bind descriptorset for text metrix uniform
     auto& descriptorSetLayouts = pipeline->getPipelineLayout()->getDescriptorSetLayouts();

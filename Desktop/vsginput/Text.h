@@ -177,7 +177,7 @@ namespace vsg
         ref_ptr<TextMetricsValue> _textMetrics;
 
         // graph objects
-        ref_ptr<Uniform> _textMetricsUniform;
+        ref_ptr<DescriptorBuffer> _textMetricsUniform;
         ref_ptr<MatrixTransform> _transform;
     };
     VSG_type_name(TextBase)
