@@ -55,7 +55,7 @@ int main(int argc, char** argv)
     // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
     vsg::DescriptorSetLayoutBindings descriptorBindings { {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} };
     vsg::DescriptorSetLayouts descriptorSetLayouts { vsg::DescriptorSetLayout::create(descriptorBindings) };
-    vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)}) };
+    vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) };
 
     vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, descriptors);
     vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, vsg::PushConstantRanges{});

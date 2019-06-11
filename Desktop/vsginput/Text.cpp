@@ -357,9 +357,7 @@ TextBase::TextBase(Font* font, GraphicsPipeline* pipeline, Allocator* allocator)
     _textMetrics->value().height = 30.0f;
     _textMetrics->value().lineHeight = 1.0f;
 
-    _textMetricsUniform = vsg::Uniform::create();
-    _textMetricsUniform->_dataList.push_back(_textMetrics);
-    _textMetricsUniform->_dstBinding = 3;
+    _textMetricsUniform = vsg::DescriptorBuffer::create(_textMetrics,3);
 
     // create and bind descriptorset for text metrix uniform
     auto& descriptorSetLayouts = pipeline->getPipelineLayout()->getDescriptorSetLayouts();
