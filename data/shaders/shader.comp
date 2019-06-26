@@ -1,11 +1,10 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#define WIDTH 1024
-#define HEIGHT 1024
-#define WORKGROUP_SIZE 32
+layout(constant_id = 0) const int WIDTH = 1024;
+layout(constant_id = 1) const int HEIGHT = 1024;
+layout (local_size_x_id = 2, local_size_y_id = 2, local_size_z = 1 ) in;  // pass in WORKGROUP_SIZE as specialization constant_id=2
 
-layout (local_size_x = WORKGROUP_SIZE, local_size_y = WORKGROUP_SIZE, local_size_z = 1 ) in;
 
 struct Pixel{
   vec4 value;

@@ -6,7 +6,8 @@
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
-    std::uint32_t width = 1024, height = 1024; // data/shader/shader.comp is currently hardwired to 1024x1024.
+    auto width = arguments.value(1024u, "--width");
+    auto height = arguments.value(1024u, "--height");
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto workgroupSize = arguments.value<uint32_t>(32, "-w");
@@ -25,12 +26,16 @@ int main(int argc, char** argv)
     }
 
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-    vsg::ref_ptr<vsg::ShaderStage> computeShader = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
-    if (!computeShader)
+    vsg::ref_ptr<vsg::ShaderStage> computeStage = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
+    if (!computeStage)
     {
         std::cout<<"Error : No shader loaded."<<std::endl;
         return 1;
     }
+
+    vsg::ref_ptr<vsg::uintArray> dimensions(new vsg::uintArray{width, height, workgroupSize});
+    computeStage->setSpecializationMapEntries(vsg::ShaderStage::SpecializationMapEntries{{0, 0, 4}, {1, 4, 4}, {2, 8, 4}});
+    computeStage->setSpecializationData(dimensions);
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
@@ -62,7 +67,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, vsg::DescriptorSets{descriptorSet});
 
     // set up the compute pipeline
-    vsg::ref_ptr<vsg::ComputePipeline> pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
+    vsg::ref_ptr<vsg::ComputePipeline> pipeline = vsg::ComputePipeline::create(pipelineLayout, computeStage);
     vsg::ref_ptr<vsg::BindComputePipeline> bindPipeline = vsg::BindComputePipeline::create(pipeline);
 
     // assign to a CommandGraph that binds the Pipeline and DescritorSets and calls Dispatch
@@ -72,8 +77,7 @@ int main(int argc, char** argv)
     commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width)/float(workgroupSize))), uint32_t(ceil(float(height)/float(workgroupSize))), 1));
 
     // compile the Vulkan objects
-    vsg::CompileTraversal compileTraversal;
-    compileTraversal.context.device = device;
+    vsg::CompileTraversal compileTraversal(device);
     compileTraversal.context.commandPool = vsg::CommandPool::create(device, physicalDevice->getComputeFamily());
     compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, {{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
 
