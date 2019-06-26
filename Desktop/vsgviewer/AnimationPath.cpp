@@ -88,7 +88,7 @@ AnimationPathHandler::AnimationPathHandler(ref_ptr<Camera> camera, ref_ptr<Anima
     if (!_lookAt)
     {
         // TODO: need to work out how to map the original ViewMatrix to a LookAt and back, for now just fallback to assigning our own LookAt
-        _lookAt = new LookAt;
+        _lookAt = LookAt::create();
     }
 }
 

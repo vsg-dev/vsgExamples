@@ -120,18 +120,17 @@ public:
 
 
 
-vsg::Node* createVsgQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
+vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
     if (numLevels==0)
     {
         numNodes += 1;
         numBytes += sizeof(vsg::Node);
 
-        return new vsg::Node;
+        return vsg::Node::create();
     }
 
-#if 1
-    vsg::Group* t = new vsg::Group(4);
+    auto t = vsg::Group::create(4);
 
     --numLevels;
 
@@ -142,37 +141,22 @@ vsg::Node* createVsgQuadTree(unsigned int numLevels, unsigned int& numNodes, uns
     t->setChild(1, createVsgQuadTree(numLevels, numNodes, numBytes));
     t->setChild(2, createVsgQuadTree(numLevels, numNodes, numBytes));
     t->setChild(3, createVsgQuadTree(numLevels, numNodes, numBytes));
-#else
-    vsg::Group* t = new vsg::Group;
-
-    --numLevels;
-
-    numNodes += 1;
-    numBytes += sizeof(vsg::Group);
-
-    t->getChildren().reserve(4);
-
-    t->addChild(createVsgQuadTree(numLevels, numNodes, numBytes));
-    t->addChild(createVsgQuadTree(numLevels, numNodes, numBytes));
-    t->addChild(createVsgQuadTree(numLevels, numNodes, numBytes));
-    t->addChild(createVsgQuadTree(numLevels, numNodes, numBytes));
-#endif
 
     return t;
 }
 
 
-vsg::Node* createFixedQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
+vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
     if (numLevels==0)
     {
         numNodes += 1;
         numBytes += sizeof(vsg::Node);
 
-        return new vsg::Node;
+        return vsg::Node::create();
     }
 
-    vsg::QuadGroup* t = new vsg::QuadGroup();
+    auto t = vsg::QuadGroup::create();
 
     --numLevels;
 

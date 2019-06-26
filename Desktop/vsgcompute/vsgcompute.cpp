@@ -33,7 +33,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    vsg::ref_ptr<vsg::uintArray> dimensions(new vsg::uintArray{width, height, workgroupSize});
+    auto dimensions = vsg::uintArray::create({width, height, workgroupSize});
     computeStage->setSpecializationMapEntries(vsg::ShaderStage::SpecializationMapEntries{{0, 0, 4}, {1, 4, 4}, {2, 8, 4}});
     computeStage->setSpecializationData(dimensions);
 
@@ -101,7 +101,7 @@ int main(int argc, char** argv)
     if (!outputFilename.empty())
     {
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
-        vsg::ref_ptr<vsg::vec4Array2D> image(new vsg::MappedData<vsg::vec4Array2D>(bufferMemory, 0, 0, width, height)); // deviceMemory, offset, flags and dimensions
+        auto image = vsg::MappedData<vsg::vec4Array2D>::create(bufferMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
         image->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 
         if (outputAsFloat)
@@ -112,7 +112,7 @@ int main(int argc, char** argv)
         else
         {
             // create a unsigned byte version of the image and then copy the texels across converting colours from float to unsigned byte.
-            vsg::ref_ptr<vsg::ubvec4Array2D> dest(new vsg::ubvec4Array2D(width, height));
+            auto dest = vsg::ubvec4Array2D::create(width, height);
             dest->setFormat(VK_FORMAT_R8G8B8A8_UNORM);
             using component_type = uint8_t;
             auto c_itr = dest->begin();

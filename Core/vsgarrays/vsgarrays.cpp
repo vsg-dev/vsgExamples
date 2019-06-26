@@ -42,79 +42,11 @@ struct Unique
 
 };
 
-class Attribute : public vsg::Object
-{
-public:
-    Attribute(const std::string& name, vsg::Object* object=nullptr) : index(getIndex(name)), data(object) {}
-
-    std::size_t               index;
-    vsg::ref_ptr<vsg::Object> data;
-
-    std::size_t getIndex() const { return index; }
-    std::string getName() const { return getName(index); }
-
-    static std::size_t getIndex(const std::string& name);
-    static std::string getName(std::size_t index);
-};
-
-static Unique s_AttributeUnique;
-
-std::size_t Attribute::getIndex(const std::string& name)
-{
-    return s_AttributeUnique.getIndex(name);
-}
-
-std::string Attribute::getName(std::size_t index)
-{
-    return s_AttributeUnique.getName(index);
-}
-
-class Uniform : public vsg::Object
-{
-public:
-    Uniform(const std::string& name, vsg::Object* object=nullptr) : index(getIndex(name)), data(object) {}
-
-    std::size_t               index;
-    vsg::ref_ptr<vsg::Object> data;
-
-    std::size_t getIndex() const { return index; }
-    std::string getName() const { return getName(index); }
-
-    static std::size_t getIndex(const std::string& name);
-    static std::string getName(std::size_t index);
-};
-
-static Unique s_UniformUnique;
-
-std::size_t Uniform::getIndex(const std::string& name)
-{
-    return s_UniformUnique.getIndex(name);
-}
-
-std::string Uniform::getName(std::size_t index)
-{
-    return s_UniformUnique.getName(index);
-}
-
-template<std::size_t NumUniforms, std::size_t NumAttributes>
-class State : public vsg::Object
-{
-public:
-    using Uniforms = std::array< vsg::ref_ptr<Uniform>, NumUniforms >;
-    using Attributes = std::array< vsg::ref_ptr<Attribute>, NumUniforms >;
-
-    Uniforms uniforms;
-    Attributes attributes;
-
-    void set(Uniform* uniform) { uniforms[uniform->index] = uniform; }
-    void set(Attribute* attribute) { attributes[attribute->index] = attribute; }
-};
-
 
 int main(int /*argc*/, char** /*argv*/)
 {
 
-    vsg::ref_ptr<vsg::floatArray> floats(new vsg::floatArray(10));
+    auto floats = vsg::floatArray::create(10);
 
     std::cout<<"floats.size() = "<<floats->size()<<std::endl;
 
@@ -127,7 +59,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"   v[] = "<<v<<std::endl;
     });
 
-    vsg::ref_ptr<vsg::vec4Array> colours(new vsg::vec4Array(40));
+    auto colours = vsg::vec4Array::create(40);
     vsg::vec4 colour(0.25, 0.5, 0.75, 1.0);
     for (std::size_t i=0; i<colours->size(); ++i)
     {
@@ -139,31 +71,8 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"   c[] = "<<c<<std::endl;
     });
 
-    std::cout<<"colours->at(4) = "<<colours->at(4)<<std::endl;
-    std::cout<<"(*colours)[5] = "<<(*colours)[5]<<std::endl;
 
-    vsg::ref_ptr< State<10,10> > state(new State<10,10>);
-    state->set(new Uniform("values", floats.get()));
-    state->set(new Uniform("col", colours.get()));
-    state->set(new Attribute("colours", colours.get()));
-
-
-    std::cout<<"State : "<<std::endl;
-    std::cout<<"Uniforms : "<<std::endl;
-    std::for_each(state->uniforms.begin(), state->uniforms.end(), [](vsg::ref_ptr<Uniform>& uniform)
-    {
-        if (uniform.valid()) std::cout<<"    index="<<uniform->index<<", name="<<uniform->getName()<<", data="<<uniform->data.get()<<std::endl;
-        else std::cout<<"    nullptr"<<std::endl;
-    });
-
-    std::cout<<"Attributes : "<<std::endl;
-    std::for_each(state->attributes.begin(), state->attributes.end(), [](vsg::ref_ptr<Attribute>& attribute)
-    {
-        if (attribute.valid()) std::cout<<"    index="<<attribute->index<<", name="<<attribute->getName()<<", data="<<attribute->data.get()<<std::endl;
-        else std::cout<<"    nullptr"<<std::endl;
-    });
-
-    vsg::ref_ptr<vsg::vec2Array> texCoords(new vsg::vec2Array
+    auto texCoords = vsg::vec2Array::create(
     {
         {1.0f, 2.0f},
         {3.0f, 4.0f},
@@ -176,7 +85,7 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout<<"    tc "<<p.x<<", "<<p.y<<std::endl;
     }
 
-    vsg::ref_ptr<vsg::vec4Array> col(new vsg::vec4Array{{}});
+    auto col = vsg::vec4Array::create({{}});
     std::cout<<"col.size() = "<<col->size()<<std::endl;
     for(auto c : *col)
     {

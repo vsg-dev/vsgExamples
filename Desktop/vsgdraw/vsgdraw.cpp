@@ -91,7 +91,7 @@ int main(int argc, char** argv)
     scenegraph->addChild(transform);
 
     // set up vertex and index arrays
-    vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array
+    auto vertices = vsg::vec3Array::create(
     {
         {-0.5f, -0.5f, 0.0f},
         {0.5f,  -0.5f, 0.05f},
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
         {-0.5f, 0.5f, -0.5}
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    vsg::ref_ptr<vsg::vec3Array> colors(new vsg::vec3Array
+    auto colors = vsg::vec3Array::create(
     {
         {1.0f, 0.0f, 0.0f},
         {0.0f, 1.0f, 0.0f},
@@ -115,7 +115,7 @@ int main(int argc, char** argv)
         {1.0f, 1.0f, 1.0f},
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    vsg::ref_ptr<vsg::vec2Array> texcoords(new vsg::vec2Array
+    auto texcoords = vsg::vec2Array::create(
     {
         {0.0f, 0.0f},
         {1.0f, 0.0f},
@@ -127,7 +127,7 @@ int main(int argc, char** argv)
         {0.0f, 1.0f}
     }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
+    auto indices = vsg::ushortArray::create(
     {
         0, 1, 2,
         2, 3, 0,
@@ -158,9 +158,9 @@ int main(int argc, char** argv)
 
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
-    vsg::ref_ptr<vsg::Perspective> perspective(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0));
-    vsg::ref_ptr<vsg::LookAt> lookAt(new vsg::LookAt(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0)));
-    vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(perspective, lookAt, viewport));
+    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
+    auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
+    auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
     window->addStage(vsg::GraphicsStage::create(scenegraph, camera));

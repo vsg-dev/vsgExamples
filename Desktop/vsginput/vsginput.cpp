@@ -50,10 +50,9 @@ public:
         vsg::ref_ptr<vsg::GraphicsStage> graphicsStage = vsg::ref_ptr<vsg::GraphicsStage>(dynamic_cast<vsg::GraphicsStage*>(window->stages()[0].get()));
         vsg::Camera* camera = graphicsStage->_camera;
 
-        vsg::ref_ptr<vsg::Orthographic> orthographic(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0));
-
-        //camera->setProjectionMatrix(orthographic);
-       // _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - _keyboardInputText->getFontHeight(), 0.0f));
+        // auto orthographic = vsg::Orthographic::create(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0);
+        // camera->setProjectionMatrix(orthographic);
+        // _keyboardInputText->setPosition(vsg::vec3(-(width*0.5f), (height*0.5f) - _keyboardInputText->getFontHeight(), 0.0f));
     }
 
     void apply(vsg::KeyPressEvent& keyPress) override
@@ -221,16 +220,16 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::LookAt> lookAt;
     if (usePerspective)
     {
-        projection = vsg::ref_ptr<vsg::Perspective>(new vsg::Perspective(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 2000.0));
-        lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 100.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
+        projection = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 2000.0);
+        lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, 100.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     }
     else
     {
-        projection = vsg::ref_ptr<vsg::Orthographic>(new vsg::Orthographic(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0));
-        lookAt = vsg::ref_ptr<vsg::LookAt>(new vsg::LookAt(vsg::dvec3(0.0, 0.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0)));
+        projection = vsg::Orthographic::create(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0);
+        lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     }
 
-    vsg::ref_ptr<vsg::Camera> camera(new vsg::Camera(projection, lookAt, viewport));
+    auto camera = vsg::Camera::create(projection, lookAt, viewport);
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
     window->addStage(vsg::GraphicsStage::create(scenegraph, camera));

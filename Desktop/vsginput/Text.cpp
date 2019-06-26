@@ -229,10 +229,10 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
     }
 
      // allocate lookup texture data
-     vsg::ref_ptr<vsg::vec4Array> uvTexels(new vsg::vec4Array(_glyphs.size()));
+     auto uvTexels = vsg::vec4Array::create(_glyphs.size());
      uvTexels->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 
-     vsg::ref_ptr<vsg::vec4Array> sizeTexels(new vsg::vec4Array(_glyphs.size()));
+     auto sizeTexels = vsg::vec4Array::create(_glyphs.size());
      sizeTexels->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 
      float lookupTexelSize = 1.0f / (float)_glyphs.size();
@@ -281,7 +281,7 @@ void GlyphGeometry::compile(Context& context)
     bool failure = false;
 
     // set up vertex and index arrays
-    ref_ptr<vec3Array> vertices(new vec3Array
+    auto vertices = vec3Array::create(
     {
         vec3(0.0f, 1.0f, 0.0f),
         vec3(0.0f, 0.0f, 0.0f),
@@ -289,7 +289,7 @@ void GlyphGeometry::compile(Context& context)
         vec3(1.0f, 0.0f, 0.0f)
     });
 
-    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray
+    auto indices = vsg::ushortArray::create(
     {
         0, 1, 2, 3
     });
@@ -427,7 +427,7 @@ ref_ptr<GlyphGeometry> Text::createInstancedGlyphs()
     uint32_t charcount = static_cast<uint32_t>(_text.size());
 
     // this is a bit wrong at the mo, their might not be charcount instances as we skip new line and space characters
-    ref_ptr<GlyphInstanceDataArray> instancedata(new GlyphInstanceDataArray(charcount));
+    auto instancedata = GlyphInstanceDataArray::create(charcount);
 
     float x = 0.0f;
     float y = 0.0f;
@@ -501,7 +501,7 @@ ref_ptr<GlyphGeometry> TextGroup::createInstancedGlyphs()
     }
 
     // this is a bit wrong at the mo, their might not be charcount instances as we skip new line and space characters
-    ref_ptr<GlyphInstanceDataArray> instancedata(new GlyphInstanceDataArray(charcount));
+    auto instancedata = GlyphInstanceDataArray::create(charcount);
 
     uint32_t instanceCount = 0;
 
