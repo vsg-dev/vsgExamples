@@ -92,9 +92,9 @@ int main(int argc, char** argv)
 
         auto image = vsg::vec4Array2D::create(3, 3);
 
-        for(size_t i=0; i<image->width(); ++i)
+        for(uint32_t i=0; i<image->width(); ++i)
         {
-            for(size_t j=0; j<image->height(); ++j)
+            for(uint32_t j=0; j<image->height(); ++j)
             {
                 image->at(i, j) = vsg::vec4(static_cast<float>(i), static_cast<float>(j), static_cast<float>(i*j), 1.0f);
             }
