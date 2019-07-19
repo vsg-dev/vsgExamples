@@ -8,7 +8,7 @@
 #include <vsg/utils/CommandLine.h>
 
 #include <vsg/io/FileSystem.h>
-#include <vsg/io/ReaderWriter.h>
+#include <vsg/io/ReaderWriter_vsg.h>
 
 #include <iostream>
 #include <vector>
@@ -220,7 +220,7 @@ int main(int argc, char** argv)
 
     if (!inputFilename.empty())
     {
-        vsg::vsgReaderWriter io;
+        vsg::ReaderWriter_vsg io;
         vsg_root = io.read<vsg::Node>(inputFilename);
 
         if (!vsg_root)
@@ -298,7 +298,7 @@ int main(int argc, char** argv)
 
     if (!outputFilename.empty())
     {
-        vsg::vsgReaderWriter io;
+        vsg::ReaderWriter_vsg io;
         io.writeFile(vsg_root, outputFilename);
     }
 

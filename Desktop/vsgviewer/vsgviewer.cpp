@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
     VsgNodes vsgNodes;
 
-    vsg::vsgReaderWriter io;
+    vsg::ReaderWriter_vsg io;
 
     // read any vsg files
     for (int i=1; i<argc; ++i)

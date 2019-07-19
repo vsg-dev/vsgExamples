@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 
     // read texture image
     std::string textureFile("textures/lz.vsgb");
-    vsg::vsgReaderWriter vsgReader;
+    vsg::ReaderWriter_vsg vsgReader;
     auto textureData = vsgReader.read<vsg::Data>(vsg::findFile(textureFile, searchPaths));
     if (!textureData)
     {

@@ -14,7 +14,7 @@
 
 #include <vsg/io/FileSystem.h>
 #include <vsg/io/AsciiOutput.h>
-#include <vsg/io/ReaderWriter.h>
+#include <vsg/io/ReaderWriter_vsg.h>
 
 #include <iostream>
 #include <fstream>
@@ -112,7 +112,7 @@ int main(int argc, char** argv)
     {
         if (vsg::fileExists(inputFilename))
         {
-            vsg::vsgReaderWriter io;
+            vsg::ReaderWriter_vsg io;
             object = io.readFile(inputFilename);
             if (!object)
             {
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
         }
         else
         {
-            vsg::vsgReaderWriter io;
+            vsg::ReaderWriter_vsg io;
             io.writeFile(object, outputFilename);
         }
     }
