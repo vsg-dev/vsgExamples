@@ -1,20 +1,4 @@
-#include <vsg/core/ref_ptr.h>
-#include <vsg/core/observer_ptr.h>
-#include <vsg/core/Object.h>
-#include <vsg/core/Auxiliary.h>
-#include <vsg/core/Array.h>
-#include <vsg/core/Array2D.h>
-#include <vsg/core/Version.h>
-
-#include <vsg/nodes/Group.h>
-#include <vsg/nodes/QuadGroup.h>
-#include <vsg/nodes/StateGroup.h>
-
-#include <vsg/utils/CommandLine.h>
-
-#include <vsg/io/FileSystem.h>
-#include <vsg/io/AsciiOutput.h>
-#include <vsg/io/ReaderWriter.h>
+#include <vsg/all.h>
 
 #include <iostream>
 #include <fstream>
