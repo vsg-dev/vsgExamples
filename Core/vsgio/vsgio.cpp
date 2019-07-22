@@ -1,20 +1,4 @@
-#include <vsg/core/ref_ptr.h>
-#include <vsg/core/observer_ptr.h>
-#include <vsg/core/Object.h>
-#include <vsg/core/Auxiliary.h>
-#include <vsg/core/Array.h>
-#include <vsg/core/Array2D.h>
-#include <vsg/core/Version.h>
-
-#include <vsg/nodes/Group.h>
-#include <vsg/nodes/QuadGroup.h>
-#include <vsg/nodes/StateGroup.h>
-
-#include <vsg/utils/CommandLine.h>
-
-#include <vsg/io/FileSystem.h>
-#include <vsg/io/AsciiOutput.h>
-#include <vsg/io/ReaderWriter_vsg.h>
+#include <vsg/all.h>
 
 #include <iostream>
 #include <fstream>
@@ -92,9 +76,9 @@ int main(int argc, char** argv)
 
         auto image = vsg::vec4Array2D::create(3, 3);
 
-        for(size_t i=0; i<image->width(); ++i)
+        for(uint32_t i=0; i<image->width(); ++i)
         {
-            for(size_t j=0; j<image->height(); ++j)
+            for(uint32_t j=0; j<image->height(); ++j)
             {
                 image->at(i, j) = vsg::vec4(static_cast<float>(i), static_cast<float>(j), static_cast<float>(i*j), 1.0f);
             }

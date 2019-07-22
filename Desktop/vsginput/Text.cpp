@@ -229,10 +229,11 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
     }
 
      // allocate lookup texture data
-     auto uvTexels = vsg::vec4Array::create(_glyphs.size());
+     uint32_t glyphs_size = static_cast<uint32_t>(_glyphs.size());
+     auto uvTexels = vsg::vec4Array::create(glyphs_size);
      uvTexels->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 
-     auto sizeTexels = vsg::vec4Array::create(_glyphs.size());
+     auto sizeTexels = vsg::vec4Array::create(glyphs_size);
      sizeTexels->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
 
      float lookupTexelSize = 1.0f / (float)_glyphs.size();
