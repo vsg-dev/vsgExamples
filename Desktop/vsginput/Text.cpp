@@ -211,8 +211,8 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
 {
     // load glyph atlas
     std::string textureFile("fonts/" + fontname + ".vsgb");
-    vsgReaderWriter vsgReader;
-    auto textureData = vsgReader.read<Data>(findFile(textureFile, searchPaths));
+    ReaderWriter_vsg vsgReader;
+    auto textureData = vsgReader.read_cast<Data>(findFile(textureFile, searchPaths));
     if (!textureData)
     {
         std::cout << "Could not read font texture file : " << textureFile << std::endl;
