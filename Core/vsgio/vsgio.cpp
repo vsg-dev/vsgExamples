@@ -97,7 +97,7 @@ int main(int argc, char** argv)
         if (vsg::fileExists(inputFilename))
         {
             vsg::ReaderWriter_vsg io;
-            object = io.readFile(inputFilename);
+            object = io.read(inputFilename);
             if (!object)
             {
                 std::cout<<"Warning: file not read : "<<inputFilename<<std::endl;
@@ -113,16 +113,15 @@ int main(int argc, char** argv)
 
     if (object)
     {
+        vsg::ReaderWriter_vsg io;
         if (outputFilename.empty())
         {
             // write graph to console
-            vsg::AsciiOutput output(std::cout);
-            output.writeObject("Root", object);
+            io.write(object, std::cout);
         }
         else
         {
-            vsg::ReaderWriter_vsg io;
-            io.writeFile(object, outputFilename);
+            io.write(object, outputFilename);
         }
     }
 

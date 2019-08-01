@@ -107,7 +107,7 @@ int main(int argc, char** argv)
         if (outputAsFloat)
         {
             vsg::ReaderWriter_vsg io;
-            io.writeFile(image, outputFilename);
+            io.write(image, outputFilename);
         }
         else
         {
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
             }
 
             vsg::ReaderWriter_vsg io;
-            io.writeFile(dest, outputFilename);
+            io.write(dest, outputFilename);
         }
     }
 

@@ -211,7 +211,7 @@ int main(int argc, char** argv)
     if (!inputFilename.empty())
     {
         vsg::ReaderWriter_vsg io;
-        vsg_root = io.read<vsg::Node>(inputFilename);
+        vsg_root = io.read_cast<vsg::Node>(inputFilename);
 
         if (!vsg_root)
         {
@@ -289,7 +289,7 @@ int main(int argc, char** argv)
     if (!outputFilename.empty())
     {
         vsg::ReaderWriter_vsg io;
-        io.writeFile(vsg_root, outputFilename);
+        io.write(vsg_root, outputFilename);
     }
 
     clock::time_point after_write = clock::now();

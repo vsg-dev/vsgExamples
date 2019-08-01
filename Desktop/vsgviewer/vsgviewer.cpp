@@ -45,7 +45,7 @@ int main(int argc, char** argv)
     {
         std::string filename = arguments[i];
 
-        auto loaded_scene = io.read<vsg::Node>(filename);
+        auto loaded_scene = io.read_cast<vsg::Node>(filename);
         if (loaded_scene)
         {
             vsgNodes.push_back(loaded_scene);
