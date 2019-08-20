@@ -106,8 +106,7 @@ int main(int argc, char** argv)
 
         if (outputAsFloat)
         {
-            vsg::ReaderWriter_vsg io;
-            io.write(image, outputFilename);
+            vsg::write(image, outputFilename);
         }
         else
         {
@@ -121,8 +120,7 @@ int main(int argc, char** argv)
                 (c_itr++)->set(static_cast<component_type>(colour.r*255.0), static_cast<component_type>(colour.g*255.0), static_cast<component_type>(colour.b*255.0), static_cast<component_type>(colour.a*255.0));
             }
 
-            vsg::ReaderWriter_vsg io;
-            io.write(dest, outputFilename);
+            vsg::write(dest, outputFilename);
         }
     }
 
