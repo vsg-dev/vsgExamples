@@ -101,9 +101,13 @@ int main(int argc, char** argv)
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
+    // set up database pager
+    auto databasePager = vsg::DatabasePager::create();
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(vsg::GraphicsStage::create(vsg_scene, camera));
+    auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
+    graphicsStage->databasePager = databasePager;
+    window->addStage(graphicsStage);
 
     // compile the Vulkan objects
     viewer->compile();
@@ -134,6 +138,8 @@ int main(int argc, char** argv)
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
+        if (databasePager) databasePager->updateSceneGraph();
+
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
