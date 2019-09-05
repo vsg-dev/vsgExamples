@@ -28,6 +28,8 @@ int main(int argc, char** argv)
     if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
+    auto loadLevels = arguments.value(0, "--load-levels");
+    auto useDatabasePager = arguments.read( "--pager");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -38,10 +40,14 @@ int main(int argc, char** argv)
     using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
     VsgNodes vsgNodes;
 
+    vsg::Path path;
+
     // read any vsg files
     for (int i=1; i<argc; ++i)
     {
         vsg::Path filename = arguments[i];
+
+        path = vsg::filePath(filename);
 
         auto loaded_scene = vsg::read_cast<vsg::Node>(filename);
         if (loaded_scene)
@@ -76,6 +82,56 @@ int main(int argc, char** argv)
         return 1;
     }
 
+
+
+    if (loadLevels > 0)
+    {
+        struct LoadAll : public vsg::Visitor
+        {
+            LoadAll(int in_loadLevels, const vsg::Path& in_path) :
+                loadLevels(in_loadLevels),
+                path(in_path) {}
+
+            int loadLevels = 0;
+            int level = 0;
+            unsigned int numTiles = 0;
+            vsg::Path path;
+
+            void apply(vsg::Node& node) override
+            {
+                node.traverse(*this);
+            }
+
+            void apply(vsg::PagedLOD& plod) override
+            {
+
+                if (level < loadLevels && !plod.filename.empty())
+                {
+                    vsg::Path filename = vsg::concatPaths(path, plod.filename);
+
+                    plod.getChild(0).node = vsg::read_cast<vsg::Node>(vsg::concatPaths(path, plod.filename)) ;
+
+                    ++numTiles;
+
+                    filename = vsg::filePath(filename);
+
+                    path.swap(filename);
+
+                    ++level;
+                        plod.traverse(*this);
+                    --level;
+
+                    path.swap(filename);
+                }
+
+            }
+        } loadAll(loadLevels, path);
+
+        vsg_scene->accept(loadAll);
+
+        std::cout<<"No. of tiles loaed "<<loadAll.numTiles<<std::endl;
+    }
+
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -102,7 +158,8 @@ int main(int argc, char** argv)
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
     // set up database pager
-    auto databasePager = vsg::DatabasePager::create();
+    vsg::ref_ptr<vsg::DatabasePager> databasePager;
+    if (useDatabasePager) databasePager = vsg::DatabasePager::create();
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
     auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
