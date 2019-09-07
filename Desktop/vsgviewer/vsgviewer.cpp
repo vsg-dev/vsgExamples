@@ -104,24 +104,15 @@ int main(int argc, char** argv)
 
             void apply(vsg::PagedLOD& plod) override
             {
-
                 if (level < loadLevels && !plod.filename.empty())
                 {
-                    vsg::Path filename = vsg::concatPaths(path, plod.filename);
-
-                    plod.getChild(0).node = vsg::read_cast<vsg::Node>(vsg::concatPaths(path, plod.filename)) ;
+                    plod.getChild(0).node = vsg::read_cast<vsg::Node>(plod.filename) ;
 
                     ++numTiles;
-
-                    filename = vsg::filePath(filename);
-
-                    path.swap(filename);
 
                     ++level;
                         plod.traverse(*this);
                     --level;
-
-                    path.swap(filename);
                 }
 
             }
