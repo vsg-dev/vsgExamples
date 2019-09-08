@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     }
 
     // get the queue for the compute commands
-    VkQueue computeQueue = device->getQueue(physicalDevice->getComputeFamily());
+    auto computeQueue = device->getQueue(physicalDevice->getComputeFamily());
 
     // allocate output storage buffer
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
