@@ -152,7 +152,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::DatabasePager> databasePager;
     if (useDatabasePager) databasePager = vsg::DatabasePager::create();
 
-    // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
+    // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
     auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
     graphicsStage->databasePager = databasePager;
     window->addStage(graphicsStage);
