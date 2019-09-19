@@ -6,7 +6,6 @@
 
 #include "AnimationPath.h"
 
-
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -29,6 +28,7 @@ int main(int argc, char** argv)
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
     auto loadLevels = arguments.value(0, "--load-levels");
+    auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
     auto useDatabasePager = arguments.read( "--pager");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
@@ -83,12 +83,12 @@ int main(int argc, char** argv)
     }
 
 
-
+    // if required pre load specific number of PagedLOD levels.
     if (loadLevels > 0)
     {
-        struct LoadAll : public vsg::Visitor
+        struct LoadTiles : public vsg::Visitor
         {
-            LoadAll(int in_loadLevels, const vsg::Path& in_path) :
+            LoadTiles(int in_loadLevels, const vsg::Path& in_path) :
                 loadLevels(in_loadLevels),
                 path(in_path) {}
 
@@ -116,11 +116,11 @@ int main(int argc, char** argv)
                 }
 
             }
-        } loadAll(loadLevels, path);
+        } loadTiles(loadLevels, path);
 
-        vsg_scene->accept(loadAll);
+        vsg_scene->accept(loadTiles);
 
-        std::cout<<"No. of tiles loaed "<<loadAll.numTiles<<std::endl;
+        std::cout<<"No. of tiles loaed "<<loadTiles.numTiles<<std::endl;
     }
 
     // create the viewer and assign window(s) to it
@@ -144,8 +144,18 @@ int main(int argc, char** argv)
     double nearFarRatio = 0.0001;
 
     // set up the camera
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    if (horizonMountainHeight >= 0.0)
+    {
+        perspective = vsg::EllipsoidPerspective::create(lookAt, vsg::EllipsoidModel::create(), 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+    }
+    else
+    {
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
+    }
+
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
     // set up database pager
@@ -183,10 +193,11 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
+
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
-        if (databasePager) databasePager->updateSceneGraph();
+        if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
 
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
