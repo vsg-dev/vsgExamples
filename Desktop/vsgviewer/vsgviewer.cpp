@@ -29,7 +29,8 @@ int main(int argc, char** argv)
     auto pathFilename = arguments.value(std::string(),"-p");
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
-    auto useDatabasePager = arguments.read( "--pager");
+    auto useDatabasePager = arguments.read("--pager");
+    auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -160,7 +161,11 @@ int main(int argc, char** argv)
 
     // set up database pager
     vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager) databasePager = vsg::DatabasePager::create();
+    if (useDatabasePager)
+    {
+        databasePager = vsg::DatabasePager::create();
+        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
+    }
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
     auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
