@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::Window::Traits::create();
     windowTraits->windowTitle = "vsgraytracing";
-    windowTraits->debugLayer = false;
+    windowTraits->debugLayer = true;
     windowTraits->apiDumpLayer = false;
     windowTraits->width = width;
     windowTraits->height = height;
@@ -160,7 +160,7 @@ int main(int argc, char** argv)
     VkImageCreateInfo storageImageCreateInfo;
     storageImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     storageImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    storageImageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    storageImageCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM;//VK_FORMAT_R8G8B8A8_UNORM;
     storageImageCreateInfo.extent.width = width;
     storageImageCreateInfo.extent.height = height;
     storageImageCreateInfo.extent.depth = 1;
@@ -204,6 +204,7 @@ int main(int argc, char** argv)
     auto storageImageDescriptor = vsg::DescriptorImageView::create(storageImageData, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
     auto raytracingUniformDescriptor = vsg::DescriptorBuffer::create(raytracingUniform, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    raytracingUniformDescriptor->copyDataListToBuffers();
 
     vsg::ref_ptr<vsg::RayTracingShaderBindings> shaderBindings = vsg::RayTracingShaderBindings::create(shaderStages, window->device());
 
