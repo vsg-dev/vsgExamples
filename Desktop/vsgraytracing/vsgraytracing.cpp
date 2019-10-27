@@ -83,6 +83,7 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
+
     // query raytracing properties of device
     VkPhysicalDeviceRayTracingPropertiesNV rayTracingProperties;
     rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
@@ -105,9 +106,9 @@ int main(int argc, char** argv)
     const uint32_t shaderIndexMiss = 1;
     const uint32_t shaderIndexClosestHit = 2;
 
-    vsg::ref_ptr<vsg::ShaderStage> raygenShader = vsg::ShaderStage::read(VK_SHADER_STAGE_RAYGEN_BIT_NV, "main", vsg::findFile("shaders/raygen.rgen.spv", searchPaths));
-    vsg::ref_ptr<vsg::ShaderStage> missShader = vsg::ShaderStage::read(VK_SHADER_STAGE_MISS_BIT_NV, "main", vsg::findFile("shaders/miss.rmiss.spv", searchPaths));
-    vsg::ref_ptr<vsg::ShaderStage> closesthitShader = vsg::ShaderStage::read(VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV, "main", vsg::findFile("shaders/closesthit.rchit.spv", searchPaths));
+    vsg::ref_ptr<vsg::ShaderStage> raygenShader = vsg::ShaderStage::read(VK_SHADER_STAGE_RAYGEN_BIT_NV, "main", vsg::findFile("shaders/simple_raygen.spv", searchPaths));
+    vsg::ref_ptr<vsg::ShaderStage> missShader = vsg::ShaderStage::read(VK_SHADER_STAGE_MISS_BIT_NV, "main", vsg::findFile("shaders/simple_miss.spv", searchPaths));
+    vsg::ref_ptr<vsg::ShaderStage> closesthitShader = vsg::ShaderStage::read(VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV, "main", vsg::findFile("shaders/simple_closesthit.spv", searchPaths));
 
     if (!raygenShader || !missShader || !closesthitShader)
     {
@@ -120,30 +121,30 @@ int main(int argc, char** argv)
     // acceleration structures
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
-        {
-            {-0.5f, -0.5f, 0.0f},
-            {0.5f,  -0.5f, 0.0f},
-            {0.0f , 0.5f, 0.0f}
-        }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+    {
+        {-0.5f, -0.5f, 0.0f},
+        {0.5f,  -0.5f, 0.0f},
+        {0.0f , 0.5f, 0.0f}
+    });
 
     auto colors = vsg::vec3Array::create(
-        {
-            {1.0f, 0.0f, 0.0f},
-            {0.0f, 1.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f}
-        }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+    {
+        {1.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f}
+    });
 
     auto texcoords = vsg::vec3Array::create(
-        {
-            {0.0f, 0.0f, 0.0f },
-            {1.0f, 0.0f, 0.0f},
-            {0.5f, 1.0f, 0.0f}
-        }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+    {
+        {0.0f, 0.0f, 0.0f },
+        {1.0f, 0.0f, 0.0f},
+        {0.5f, 1.0f, 0.0f}
+    });
 
     auto indices = vsg::ushortArray::create(
-        {
-            0, 1, 2
-        }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+    {
+        0, 1, 2
+    });
 
     auto accelGeometry = vsg::AccelerationGeometry::create();
     accelGeometry->_arrays.push_back(vertices);
@@ -177,16 +178,21 @@ int main(int argc, char** argv)
 
     vsg::ImageData storageImageData = createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-    vsg::ref_ptr<RayTracingUniformValue> raytracingUniform(new RayTracingUniformValue());
+    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
+    vsg::mat4 invperspectivemat;
+    perspective->get(invperspectivemat);
+    invperspectivemat = vsg::inverse(invperspectivemat);
 
-    // read texture image
-    /*vsg::Path textureFile("textures/lz.vsgb");
-    auto textureData = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));
-    if (!textureData)
-    {
-        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
-        return 1;
-    }*/
+    auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, 2.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
+    vsg::mat4 invviewemat;
+    lookAt->get(invviewemat);
+    invviewemat = vsg::inverse(invviewemat);
+
+    auto raytracingUniformValues = new RayTracingUniformValue();
+    raytracingUniformValues->value().projInverse = invperspectivemat;
+    raytracingUniformValues->value().viewInverse = invviewemat;
+
+    vsg::ref_ptr<RayTracingUniformValue> raytracingUniform(raytracingUniformValues);
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings
@@ -231,8 +237,6 @@ int main(int argc, char** argv)
 
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
-    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
-    auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)

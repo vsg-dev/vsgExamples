@@ -1,0 +1,33 @@
+#version 460
+#extension GL_NV_ray_tracing : require
+
+layout(binding = 0, set = 0) uniform accelerationStructureNV tlas;
+layout(binding = 1, set = 0, rgba8) uniform image2D outputImage;
+
+layout(binding = 2, set = 0) uniform CameraParams 
+{
+	mat4 inverseViewMatrix;
+	mat4 inverseProjectionMatrix;
+} camParams;
+
+layout(location = 0) rayPayloadNV vec3 hitValue;
+
+void main() 
+{
+	const vec2 pixelCenter = vec2(gl_LaunchIDNV.xy) + vec2(0.5);
+	const vec2 normalisedPixelCoord = pixelCenter/vec2(gl_LaunchSizeNV.xy);
+	vec2 clipSpaceCoord = normalisedPixelCoord * 2.0 - 1.0;
+
+	vec4 worldSpacePos = camParams.inverseViewMatrix * vec4(0,0,0,1);
+	vec4 viewSpaceDir = camParams.inverseProjectionMatrix * vec4(clipSpaceCoord.x, clipSpaceCoord.y, 1, 1) ;
+	vec4 worldSpaceDir = camParams.inverseViewMatrix * vec4(normalize(viewSpaceDir.xyz), 0) ;
+
+	uint rayFlags = gl_RayFlagsOpaqueNV;
+	uint cullMask = 0xff;
+	float tmin = 0.001;
+	float tmax = 10000.0;
+
+	traceNV(tlas, rayFlags, cullMask, 0, 0, 0, worldSpacePos.xyz, tmin, worldSpaceDir.xyz, tmax, 0);
+
+	imageStore(outputImage, ivec2(gl_LaunchIDNV.xy), vec4(hitValue, 0.0));
+}
