@@ -122,36 +122,26 @@ int main(int argc, char** argv)
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
     {
-        {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.0f},
-        {0.0f , 0.5f, 0.0f}
+        {-1.0f, -1.0f, 0.0f},
+        { 1.0f, -1.0f, 0.0f},
+        { 0.0f,  1.0f, 0.0f}
     });
 
-    auto colors = vsg::vec3Array::create(
-    {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f}
-    });
-
-    auto texcoords = vsg::vec3Array::create(
-    {
-        {0.0f, 0.0f, 0.0f },
-        {1.0f, 0.0f, 0.0f},
-        {0.5f, 1.0f, 0.0f}
-    });
-
-    auto indices = vsg::ushortArray::create(
+    auto indices = vsg::uintArray::create(
     {
         0, 1, 2
     });
 
+    // create acceleration geometry
     auto accelGeometry = vsg::AccelerationGeometry::create();
-    accelGeometry->_arrays.push_back(vertices);
+    accelGeometry->_verts = vertices;
     accelGeometry->_indices = indices;
+    
+    // create bottom level acceleration structure using accel geom
     auto blas = vsg::BottomLevelAccelerationStructure::create(window->device());
     blas->_geometries.push_back(accelGeometry);
 
+    // create top level acceleration structure using blas
     auto tlas = vsg::TopLevelAccelerationStructure::create(window->device());
     tlas->_instanceSource = blas;
     tlas->_transform = vsg::dmat4();
@@ -178,12 +168,13 @@ int main(int argc, char** argv)
 
     vsg::ImageData storageImageData = createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
+    // create camera matricies and uniform for shader
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
     vsg::mat4 invperspectivemat;
     perspective->get(invperspectivemat);
     invperspectivemat = vsg::inverse(invperspectivemat);
 
-    auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, 2.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
+    auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, -2.5), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     vsg::mat4 invviewemat;
     lookAt->get(invviewemat);
     invviewemat = vsg::inverse(invviewemat);
