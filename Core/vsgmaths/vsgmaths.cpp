@@ -18,6 +18,28 @@
 #include <chrono>
 #include <cstddef>
 
+template<class M>
+bool test_inverse(const M& m)
+{
+    auto im = vsg::inverse(m);
+    auto m_mult_im = m * im;
+    M identity;
+    typename M::value_type delta = {};
+    for(std::size_t c=0; c<m.columns(); ++c)
+    {
+        for(std::size_t r=0; r<m.rows(); ++r)
+        {
+            delta += std::abs(m_mult_im[c][r] - identity[c][r]);
+        }
+    }
+    std::cout<<"\ntest_inverse()"<<std::endl;
+    std::cout<<"matrix "<<m<<std::endl;
+    std::cout<<"inverse "<<im<<std::endl;
+    std::cout<<"m_mult_im "<<m_mult_im<<std::endl;
+    std::cout<<"delta "<<delta<<std::endl;
+    return true;
+}
+
 int main(int /*argc*/, char** /*argv*/)
 {
 
@@ -195,6 +217,13 @@ int main(int /*argc*/, char** /*argv*/)
     vsg::vec3 pv(1.0, 2.0, 3.0);
     std::cout<<"pv * plane_trans = "<< (pv * plane_trans)<<std::endl;
     std::cout<<"plane_trans * pv = "<< (plane_trans * pv)<<std::endl;
+
+    test_inverse(view);
+    test_inverse(rot);
+    test_inverse(scale);
+    test_inverse(rot_y);
+    test_inverse(rot_z);
+    test_inverse(plane_trans);
 
 
     return 0;

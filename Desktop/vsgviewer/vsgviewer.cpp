@@ -6,7 +6,6 @@
 
 #include "AnimationPath.h"
 
-
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -28,6 +27,10 @@ int main(int argc, char** argv)
     if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
+    auto loadLevels = arguments.value(0, "--load-levels");
+    auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
+    auto useDatabasePager = arguments.read("--pager");
+    auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -38,10 +41,14 @@ int main(int argc, char** argv)
     using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
     VsgNodes vsgNodes;
 
+    vsg::Path path;
+
     // read any vsg files
     for (int i=1; i<argc; ++i)
     {
         vsg::Path filename = arguments[i];
+
+        path = vsg::filePath(filename);
 
         auto loaded_scene = vsg::read_cast<vsg::Node>(filename);
         if (loaded_scene)
@@ -76,6 +83,47 @@ int main(int argc, char** argv)
         return 1;
     }
 
+
+    // if required pre load specific number of PagedLOD levels.
+    if (loadLevels > 0)
+    {
+        struct LoadTiles : public vsg::Visitor
+        {
+            LoadTiles(int in_loadLevels, const vsg::Path& in_path) :
+                loadLevels(in_loadLevels),
+                path(in_path) {}
+
+            int loadLevels = 0;
+            int level = 0;
+            unsigned int numTiles = 0;
+            vsg::Path path;
+
+            void apply(vsg::Node& node) override
+            {
+                node.traverse(*this);
+            }
+
+            void apply(vsg::PagedLOD& plod) override
+            {
+                if (level < loadLevels && !plod.filename.empty())
+                {
+                    plod.getChild(0).node = vsg::read_cast<vsg::Node>(plod.filename) ;
+
+                    ++numTiles;
+
+                    ++level;
+                        plod.traverse(*this);
+                    --level;
+                }
+
+            }
+        } loadTiles(loadLevels, path);
+
+        vsg_scene->accept(loadTiles);
+
+        std::cout<<"No. of tiles loaed "<<loadTiles.numTiles<<std::endl;
+    }
+
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -97,13 +145,32 @@ int main(int argc, char** argv)
     double nearFarRatio = 0.0001;
 
     // set up the camera
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    if (horizonMountainHeight >= 0.0)
+    {
+        perspective = vsg::EllipsoidPerspective::create(lookAt, vsg::EllipsoidModel::create(), 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+    }
+    else
+    {
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
+    }
+
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
+    // set up database pager
+    vsg::ref_ptr<vsg::DatabasePager> databasePager;
+    if (useDatabasePager)
+    {
+        databasePager = vsg::DatabasePager::create();
+        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
+    }
 
-    // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(vsg::GraphicsStage::create(vsg_scene, camera));
+    // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
+    auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
+    graphicsStage->databasePager = databasePager;
+    window->addStage(graphicsStage);
 
     // compile the Vulkan objects
     viewer->compile();
@@ -131,9 +198,12 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
+
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
+        if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
+
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
