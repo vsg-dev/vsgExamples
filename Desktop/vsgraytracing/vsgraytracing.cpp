@@ -170,18 +170,11 @@ int main(int argc, char** argv)
 
     // create camera matrices and uniform for shader
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
-    vsg::mat4 invperspectivemat;
-    perspective->get(invperspectivemat);
-    invperspectivemat = vsg::inverse(invperspectivemat);
-
     auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, -2.5), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
-    vsg::mat4 invviewemat;
-    lookAt->get(invviewemat);
-    invviewemat = vsg::inverse(invviewemat);
 
     auto raytracingUniformValues = new RayTracingUniformValue();
-    raytracingUniformValues->value().projInverse = invperspectivemat;
-    raytracingUniformValues->value().viewInverse = invviewemat;
+    perspective->get_inverse(raytracingUniformValues->value().projInverse);
+    lookAt->get_inverse(raytracingUniformValues->value().viewInverse);
 
     vsg::ref_ptr<RayTracingUniformValue> raytracingUniform(raytracingUniformValues);
 
