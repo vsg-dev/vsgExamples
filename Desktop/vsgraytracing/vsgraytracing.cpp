@@ -14,7 +14,7 @@ vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& i
     vkGetImageMemoryRequirements(*device, *image, &memRequirements);
 
     // allocate memory with out export memory info extension
-    auto[deviceMemory, offset] = context.deviceMemoryBufferPools.reserveMemory(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto[deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     if (!deviceMemory)
     {
