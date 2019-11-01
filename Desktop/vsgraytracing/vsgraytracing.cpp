@@ -168,7 +168,7 @@ int main(int argc, char** argv)
 
     vsg::ImageData storageImageData = createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-    // create camera matricies and uniform for shader
+    // create camera matrices and uniform for shader
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
     vsg::mat4 invperspectivemat;
     perspective->get(invperspectivemat);
