@@ -143,8 +143,12 @@ int main(int argc, char** argv)
 
     // create top level acceleration structure using blas
     auto tlas = vsg::TopLevelAccelerationStructure::create(window->device());
-    tlas->_instanceSource = blas;
-    tlas->_transform = vsg::dmat4();
+    
+    auto geominstance = vsg::GeometryInstance::create();
+    geominstance->_accelerationStructure = blas;
+    geominstance->_transform = vsg::mat4();
+
+    tlas->_geometries.push_back(geominstance);
 
 
     // create storage image to render into
@@ -188,7 +192,7 @@ int main(int argc, char** argv)
 
     vsg::DescriptorSetLayouts descriptorSetLayouts{vsg::DescriptorSetLayout::create(descriptorBindings)};
 
-    // create texture image and associated DescriptorSets and binding
+    // create DescriptorSets and binding to bind our TopLevelAcceleration structure, storage image and camra matrix uniforms
     auto accelDescriptor = vsg::DescriptorAccelerationStructure::create(vsg::AccelerationStructures{tlas}, 0, 0);
 
     auto storageImageDescriptor = vsg::DescriptorImageView::create(storageImageData, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
@@ -212,13 +216,6 @@ int main(int argc, char** argv)
     scenegraph->addChild(bindRayTracingPipeline);
     scenegraph->addChild(bindDescriptorSets);
 
-    // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
-
-    // add transform to root of the scene graph
-    //scenegraph->addChild(transform);
-
-
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
@@ -237,10 +234,6 @@ int main(int argc, char** argv)
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
-
-        // animate the transform
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
         viewer->populateNextFrame();
 
