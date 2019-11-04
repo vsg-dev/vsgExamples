@@ -16,7 +16,7 @@ The [Android](Android/) directory contains examples illustrate how to create And
 * C++17 compliant compiler i.e.. g++ 7.3 or later, Clang 6.0 or later, Visual Studio 2017 or later.
 * [Vulkan](https://vulkan.lunarg.com/) 1.1 or later.
 * [CMake](https://www.cmake.org) 3.7 or later.
-* [VulkanSceneGraphPrototype](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) use master
+* [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraph/) use master
 
 The above dependency versions are known to work so they've been set as the current minimum, it may be possible to build against older versions.  If you find success with older versions let us know and we can update the version info.
 
