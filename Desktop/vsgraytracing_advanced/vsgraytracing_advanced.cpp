@@ -118,38 +118,12 @@ int main(int argc, char** argv)
 
     auto shaderStages = vsg::ShaderStages{ raygenShader, missShader, closesthitShader };
 
+
     // acceleration structures
-    // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create(
-    {
-        {-1.0f, -1.0f, 0.0f},
-        { 1.0f, -1.0f, 0.0f},
-        { 0.0f,  1.0f, 0.0f}
-    });
-
-    auto indices = vsg::uintArray::create(
-    {
-        0, 1, 2
-    });
-
-    // create acceleration geometry
-    auto accelGeometry = vsg::AccelerationGeometry::create();
-    accelGeometry->_verts = vertices;
-    accelGeometry->_indices = indices;
     
-    // create bottom level acceleration structure using accel geom
-    auto blas = vsg::BottomLevelAccelerationStructure::create(window->device());
-    blas->_geometries.push_back(accelGeometry);
-
-    // create top level acceleration structure
-    auto tlas = vsg::TopLevelAccelerationStructure::create(window->device());
-    
-    // add geometry instance to top level acceleration structure that uses the bottom level structure
-    auto geominstance = vsg::GeometryInstance::create();
-    geominstance->_accelerationStructure = blas;
-    geominstance->_transform = vsg::mat4();
-
-    tlas->_geometryInstances.push_back(geominstance);
+    auto loaded_scene = vsg::read_cast<vsg::Node>(vsg::findFile("models/raytracing_scene.vsgt", searchPaths));
+    vsg::AccelerationStructureBuildTraversal buildAccelStruct(window->device());
+    loaded_scene->accept(buildAccelStruct);
 
 
     // create storage image to render into
@@ -175,7 +149,7 @@ int main(int argc, char** argv)
 
     // create camera matrices and uniform for shader
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
-    auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, -2.5), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
+    auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 1.0, -5.0), vsg::dvec3(0.0, 0.5, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
 
     auto raytracingUniformValues = new RayTracingUniformValue();
     perspective->get_inverse(raytracingUniformValues->value().projInverse);
@@ -194,7 +168,7 @@ int main(int argc, char** argv)
     vsg::DescriptorSetLayouts descriptorSetLayouts{vsg::DescriptorSetLayout::create(descriptorBindings)};
 
     // create DescriptorSets and binding to bind our TopLevelAcceleration structure, storage image and camra matrix uniforms
-    auto accelDescriptor = vsg::DescriptorAccelerationStructure::create(vsg::AccelerationStructures{tlas}, 0, 0);
+    auto accelDescriptor = vsg::DescriptorAccelerationStructure::create(vsg::AccelerationStructures{ buildAccelStruct._tlas }, 0, 0);
 
     auto storageImageDescriptor = vsg::DescriptorImageView::create(storageImageData, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
