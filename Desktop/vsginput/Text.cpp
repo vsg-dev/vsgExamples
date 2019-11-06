@@ -253,8 +253,8 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
         i++;
      }
 
-    _glyphUVsTexture = DescriptorImage::create(vsg::Sampler::create(), uvTexels, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    _glyphSizesTexture = DescriptorImage::create(vsg::Sampler::create(), sizeTexels, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    _glyphUVsTexture = DescriptorImage::create(vsg::SamplerImage{ Sampler::create(), uvTexels }, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    _glyphSizesTexture = DescriptorImage::create(vsg::SamplerImage{ Sampler::create(), sizeTexels }, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     // create and bind descriptorset for font texture
     auto& descriptorSetLayouts = pipelineLayout->getDescriptorSetLayouts();
