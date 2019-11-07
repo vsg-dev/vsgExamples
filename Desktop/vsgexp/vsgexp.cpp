@@ -6,6 +6,62 @@
 
 #include "../vsgviewer/AnimationPath.h"
 
+namespace vsg
+{
+    class ExperimentalViewer : public Inherit<Viewer, ExperimentalViewer>
+    {
+    public:
+        ExperimentalViewer()
+        {
+        }
+
+        void addWindow(ref_ptr<Window> window)
+        {
+            Viewer::addWindow(window);
+        }
+
+        bool advanceToNextFrame() override
+        {
+            return Viewer::advanceToNextFrame();
+        }
+
+        void advance() override
+        {
+            Viewer::advance();
+        }
+
+        void handleEvents() override
+        {
+            Viewer::handleEvents();
+        }
+
+        void reassignFrameCache() override
+        {
+            Viewer::reassignFrameCache();
+        }
+
+        bool acquireNextFrame() override
+        {
+            return Viewer::acquireNextFrame();
+        }
+
+        bool populateNextFrame() override
+        {
+            return Viewer::populateNextFrame();
+        }
+
+        bool submitNextFrame() override
+        {
+            return Viewer::submitNextFrame();
+        }
+
+        void compile(BufferPreferences bufferPreferences = {}) override
+        {
+            Viewer::compile(bufferPreferences);
+        }
+    };
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -125,7 +181,7 @@ int main(int argc, char** argv)
     }
 
     // create the viewer and assign window(s) to it
-    auto viewer = vsg::Viewer::create();
+    auto viewer = vsg::ExperimentalViewer::create();
 
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
     if (!window)
@@ -173,6 +229,7 @@ int main(int argc, char** argv)
     window->addStage(graphicsStage);
 
     // compile the Vulkan objects
+
     viewer->compile();
 
     // add close handler to respond the close window button and pressing escape
