@@ -6,61 +6,7 @@
 
 #include "../vsgviewer/AnimationPath.h"
 
-namespace vsg
-{
-    class ExperimentalViewer : public Inherit<Viewer, ExperimentalViewer>
-    {
-    public:
-        ExperimentalViewer()
-        {
-        }
-
-        void addWindow(ref_ptr<Window> window)
-        {
-            Viewer::addWindow(window);
-        }
-
-        bool advanceToNextFrame() override
-        {
-            return Viewer::advanceToNextFrame();
-        }
-
-        void advance() override
-        {
-            Viewer::advance();
-        }
-
-        void handleEvents() override
-        {
-            Viewer::handleEvents();
-        }
-
-        void reassignFrameCache() override
-        {
-            Viewer::reassignFrameCache();
-        }
-
-        bool acquireNextFrame() override
-        {
-            return Viewer::acquireNextFrame();
-        }
-
-        bool populateNextFrame() override
-        {
-            return Viewer::populateNextFrame();
-        }
-
-        bool submitNextFrame() override
-        {
-            return Viewer::submitNextFrame();
-        }
-
-        void compile(BufferPreferences bufferPreferences = {}) override
-        {
-            Viewer::compile(bufferPreferences);
-        }
-    };
-}
+#include "ExperimentalViewer.h"
 
 int main(int argc, char** argv)
 {
