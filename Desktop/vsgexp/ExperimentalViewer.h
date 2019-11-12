@@ -7,6 +7,8 @@ namespace vsg
     public:
         CommandGraph();
 
+        void accept(DispatchTraversal& dispatchTraversal) const override;
+
         // do we buffer commanddBuffer and dispatchTraversal?
         // we need to buffer if existing commadnBuffer is still in use, i.e. fense associated with it hasn't been free yet.
         // do we need a CommandPool and buffer it? buffer per thread?
@@ -15,20 +17,24 @@ namespace vsg
         ref_ptr<DispatchTraversal> dispatchTraversal;
     };
 
+    using Framebuffers = std::vector<ref_ptr<Framebuffer>>;
+
     class RenderGraph : public Inherit<Group, RenderGraph>
     {
     public:
 
         RenderGraph();
 
+        void accept(DispatchTraversal& dispatchTraversal) const override;
+
         using ClearValues = std::vector<VkClearValue>;
 
         // do we buffer frmaebuffer? One per swapchain image
         // do we need a handle to the assciated window to get the nextImageIndex?
         ref_ptr<RenderPass> renderPass;
-        ref_ptr<Framebuffer> framebuffer;
+        Framebuffers framebuffers;
 
-        // has a Camera?
+        ref_ptr<Camera> camera;
         VkRect2D renderArea;
         ClearValues clearValues;
     };

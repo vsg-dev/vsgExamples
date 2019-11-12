@@ -17,6 +17,24 @@ CommandGraph::CommandGraph()
 #endif
 }
 
+void CommandGraph::accept(DispatchTraversal& dispatchTraversal) const
+{
+    VkCommandBuffer vk_commandBuffer = *(commandBuffer);
+
+    // need to set up the command
+    // if we are nested within a CommandBuffer already then use VkCommandBufferInheritanceInfo
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
+    vkBeginCommandBuffer(vk_commandBuffer, &beginInfo);
+
+    // traverse the command graph
+    traverse(dispatchTraversal);
+
+    vkEndCommandBuffer(vk_commandBuffer);
+}
+
 RenderGraph::RenderGraph()
 {
 #if 0
@@ -28,6 +46,39 @@ RenderGraph::RenderGraph()
 }
 
 
+void RenderGraph::accept(DispatchTraversal& dispatchTraversal) const
+{
+    if (camera)
+    {
+        dmat4 projMatrix, viewMatrix;
+        camera->getProjectionMatrix()->get(projMatrix);
+        camera->getViewMatrix()->get(viewMatrix);
+
+        dispatchTraversal.setProjectionAndViewMatrix(projMatrix, viewMatrix);
+    }
+
+    // TODO get next window index from State? DispatchVisitor?
+    uint32_t index = 0;
+
+    VkCommandBuffer vk_commandBuffer = *(dispatchTraversal.state->_commandBuffer);
+
+    VkRenderPassBeginInfo renderPassInfo = {};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = *renderPass;
+    renderPassInfo.framebuffer = *framebuffers[index];
+    renderPassInfo.renderArea = renderArea;
+
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+    vkCmdBeginRenderPass(vk_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    // traverse the command buffer to place the commands into the command buffer.
+    traverse(dispatchTraversal);
+
+    vkCmdEndRenderPass(vk_commandBuffer);
+}
+
+
 VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
 {
     std::vector<VkSemaphore> vk_waitSemaphores;
@@ -35,6 +86,25 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
     std::vector<VkCommandBuffer> vk_commandBuffers;
     std::vector<VkSemaphore> vk_signalSemaphores;
 
+    if (fence)
+    {
+        VkResult result = VK_SUCCESS;
+        while ((result = fence->wait(timeout)) == VK_TIMEOUT)
+        {
+            std::cout << "populateCommandBuffers(" << index << ") fence->wait(" << timeout << ") failed with result = " << result << std::endl;
+            //exit(1);
+            //throw "Window::populateCommandBuffers(uint32_t index, ref_ptr<vsg::FrameStamp> frameStamp) timeout";
+        }
+
+        for (auto& semaphore : fence->dependentSemaphores())
+        {
+            //std::cout<<"Window::populateCommandBuffers(..) "<<*(semaphore->data())<<" "<<semaphore->numDependentSubmissions().load()<<std::endl;
+            semaphore->numDependentSubmissions().exchange(0);
+        }
+
+        fence->dependentSemaphores().clear();
+        fence->reset();
+    }
 
     for(auto& semaphore : waitSemaphores)
     {
@@ -42,26 +112,41 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
         vk_waitStages.emplace_back(semaphore->pipelineStageFlags());
     }
 
+    // need to compute from scene graph
+    uint32_t _maxSlot =2;
+    DatabasePager* databasePager = nullptr;
+
     for(auto& commandGraph : commandGraphs)
     {
-        // pull the command buffer
-        VkCommandBuffer vk_commandBuffer = *(commandGraph->commandBuffer);
+        DispatchTraversal dispatchTraversal(commandGraph->commandBuffer, _maxSlot, frameStamp);
 
-        // need to set up the command
-        // if we are nested within a CommandBuffer already then use VkCommandBufferInheritanceInfo
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        dispatchTraversal.databasePager = databasePager;
+        if (databasePager) dispatchTraversal.culledPagedLODs = databasePager->culledPagedLODs;
 
-        vkBeginCommandBuffer(vk_commandBuffer, &beginInfo);
-
-        // traverse the command graph
-        commandGraph->traverse(*(commandGraph->dispatchTraversal));
-
-        vkEndCommandBuffer(vk_commandBuffer);
-
-        vk_commandBuffers.emplace_back(vk_commandBuffer);
+        commandGraph->accept(dispatchTraversal);
     }
+
+    if (databasePager)
+    {
+        for (auto& semaphore : databasePager->getSemaphores())
+        {
+            if (semaphore->numDependentSubmissions().load() > 1)
+            {
+                std::cout << "    Warning: Viewer::submitNextFrame() waitSemaphore " << *(semaphore->data()) << " " << semaphore->numDependentSubmissions().load() << std::endl;
+            }
+            else
+            {
+                // std::cout<<"    Viewer::submitNextFrame() waitSemaphore "<<*(semaphore->data())<<" "<<semaphore->numDependentSubmissions().load()<<std::endl;
+            }
+
+            vk_waitSemaphores.emplace_back(*semaphore);
+            vk_waitStages.emplace_back(semaphore->pipelineStageFlags());
+
+            semaphore->numDependentSubmissions().fetch_add(1);
+            fence->dependentSemaphores().emplace_back(semaphore);
+        }
+    }
+
 
     for(auto& semaphore : signalSemaphores)
     {
