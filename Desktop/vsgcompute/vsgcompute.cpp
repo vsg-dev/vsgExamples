@@ -88,8 +88,8 @@ int main(int argc, char** argv)
 
     auto startTime =std::chrono::steady_clock::now();
 
-    // dispatch commands
-    vsg::dispatchCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer)
+    // submit commands
+    vsg::submitCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer)
     {
         vsg::DispatchTraversal dispatchTraversals(&commandBuffer);
         commandGraph->accept(dispatchTraversals);
