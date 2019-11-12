@@ -2,7 +2,33 @@
 
 using namespace vsg;
 
-VkResult Submission::submit()
+CommandGraph::CommandGraph()
+{
+#if 0
+    ref_ptr<CommandPool> cp = CommandPool::create(_device, _physicalDevice->getGraphicsFamily());
+    commandBuffer = CommandBuffer::create(_device, cp, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+    // set up the dispatching of the commands into the command buffer
+    dispatchTraversal = DispatchTraversal::create(commandBuffer, _maxSlot, frameStamp);
+    dispatchTraversal->setProjectionAndViewMatrix(_projMatrix->value(), _viewMatrix->value());
+
+    dispatchTraversal->databasePager = databasePager;
+    if (databasePager) dispatchTraversal.culledPagedLODs = databasePager->culledPagedLODs;
+#endif
+}
+
+RenderGraph::RenderGraph()
+{
+#if 0
+    renderPass; // provided by window
+    framebuffer // provided by window/swapchain
+    renderArea; // provide by camera?
+    clearValues; // provide by camera?
+#endif
+}
+
+
+VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
 {
     std::vector<VkSemaphore> vk_waitSemaphores;
     std::vector<VkPipelineStageFlags> vk_waitStages;
@@ -18,13 +44,14 @@ VkResult Submission::submit()
 
     for(auto& commandGraph : commandGraphs)
     {
+        // pull the command buffer
         VkCommandBuffer vk_commandBuffer = *(commandGraph->commandBuffer);
 
         // need to set up the command
+        // if we are nested within a CommandBuffer already then use VkCommandBufferInheritanceInfo
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-        // if we are nested within a CommandBuffer already then use VkCommandBufferInheritanceInfo
 
         vkBeginCommandBuffer(vk_commandBuffer, &beginInfo);
 
@@ -131,12 +158,21 @@ bool ExperimentalViewer::acquireNextFrame()
 bool ExperimentalViewer::populateNextFrame()
 {
     // TODO, need to replace the Window::populate.. calls
+    //       could just do nothing here, rely upon Submission to do the required update.
     return Viewer::populateNextFrame();
 }
 
 bool ExperimentalViewer::submitNextFrame()
 {
     // TODO, need to replace the PerDeviceObjects / Window / Fence and Semaphore handles
+
+    for(auto& submission : submissions)
+    {
+        submission.submit(_frameStamp);
+    }
+
+    if (presentation) presentation->present();
+
     return Viewer::submitNextFrame();
 }
 

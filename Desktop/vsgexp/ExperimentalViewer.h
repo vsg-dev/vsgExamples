@@ -5,17 +5,30 @@ namespace vsg
     class CommandGraph : public Inherit<Group, CommandGraph>
     {
     public:
-        ref_ptr<CommandBuffer> commandBuffer;
+        CommandGraph();
+
+        // do we buffer commanddBuffer and dispatchTraversal?
+        // we need to buffer if existing commadnBuffer is still in use, i.e. fense associated with it hasn't been free yet.
+        // do we need a CommandPool and buffer it? buffer per thread?
+        // need to add FrameStamp
+        ref_ptr<CommandBuffer> commandBuffer; // has a CommandPool
         ref_ptr<DispatchTraversal> dispatchTraversal;
     };
 
     class RenderGraph : public Inherit<Group, RenderGraph>
     {
     public:
+
+        RenderGraph();
+
         using ClearValues = std::vector<VkClearValue>;
 
+        // do we buffer frmaebuffer? One per swapchain image
+        // do we need a handle to the assciated window to get the nextImageIndex?
         ref_ptr<RenderPass> renderPass;
         ref_ptr<Framebuffer> framebuffer;
+
+        // has a Camera?
         VkRect2D renderArea;
         ClearValues clearValues;
     };
@@ -24,7 +37,8 @@ namespace vsg
     {
     public:
 
-        VkResult submit();
+        // Need to add FrameStamp?
+        VkResult submit(ref_ptr<FrameStamp> frameStamp);
 
         using CommandGraphs = std::vector<ref_ptr<CommandGraph>>;
 
@@ -57,13 +71,9 @@ namespace vsg
     {
     public:
 
-        struct FrameObjects
-        {
-            ref_ptr<Submission> submission;
-            ref_ptr<Presentation> presentation;
-        };
-
-        std::vector<FrameObjects> frameObjects;
+        using Submissions = std::vector<Submission>;
+        Submissions submissions;
+        ref_ptr<Presentation> presentation;
 
         ExperimentalViewer();
 
