@@ -7,19 +7,16 @@ CommandGraph::CommandGraph()
 #if 0
     ref_ptr<CommandPool> cp = CommandPool::create(_device, _physicalDevice->getGraphicsFamily());
     commandBuffer = CommandBuffer::create(_device, cp, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
-    // set up the dispatching of the commands into the command buffer
-    dispatchTraversal = DispatchTraversal::create(commandBuffer, _maxSlot, frameStamp);
-    dispatchTraversal->setProjectionAndViewMatrix(_projMatrix->value(), _viewMatrix->value());
-
-    dispatchTraversal->databasePager = databasePager;
-    if (databasePager) dispatchTraversal.culledPagedLODs = databasePager->culledPagedLODs;
 #endif
 }
 
 void CommandGraph::accept(DispatchTraversal& dispatchTraversal) const
 {
-    VkCommandBuffer vk_commandBuffer = *(commandBuffer);
+    // from DispatchTraversal index?
+    uint32_t index = 0;
+
+    // or select index when maps to a dormant CommandBuffer
+    VkCommandBuffer vk_commandBuffer = *(commandBuffers[index]);
 
     // need to set up the command
     // if we are nested within a CommandBuffer already then use VkCommandBufferInheritanceInfo
@@ -88,10 +85,11 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
 
     if (fence)
     {
+        uint64_t timeout = 10000000000;
         VkResult result = VK_SUCCESS;
         while ((result = fence->wait(timeout)) == VK_TIMEOUT)
         {
-            std::cout << "populateCommandBuffers(" << index << ") fence->wait(" << timeout << ") failed with result = " << result << std::endl;
+            std::cout << "Submission::submit(ref_ptr<FrameStamp> frameStamp)) fence->wait(" << timeout << ") failed with result = " << result << std::endl;
             //exit(1);
             //throw "Window::populateCommandBuffers(uint32_t index, ref_ptr<vsg::FrameStamp> frameStamp) timeout";
         }
@@ -113,12 +111,14 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
     }
 
     // need to compute from scene graph
-    uint32_t _maxSlot =2;
+    uint32_t _maxSlot = 2;
+    uint32_t index = 0;
     DatabasePager* databasePager = nullptr;
 
     for(auto& commandGraph : commandGraphs)
     {
-        DispatchTraversal dispatchTraversal(commandGraph->commandBuffer, _maxSlot, frameStamp);
+        // pass the inext to dispatchTraversal visitor?  Only for RenderGraph?
+        DispatchTraversal dispatchTraversal(commandGraph->commandBuffers[index], _maxSlot, frameStamp);
 
         dispatchTraversal.databasePager = databasePager;
         if (databasePager) dispatchTraversal.culledPagedLODs = databasePager->culledPagedLODs;
