@@ -34,6 +34,7 @@ int main(int argc, char** argv)
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    auto useNewViewer = arguments.read("--new");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -169,18 +170,8 @@ int main(int argc, char** argv)
         if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
     }
 
-    // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
-    auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
-    graphicsStage->databasePager = databasePager;
-    window->addStage(graphicsStage);
-
-    // compile the Vulkan objects
-
-    viewer->compile();
-
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
 
     if (pathFilename.empty())
     {
@@ -201,18 +192,110 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
-
-    // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
+    if (useNewViewer)
     {
-        if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
+        // set up the render graph for viewport & scene
+        auto renderGraph = vsg::RenderGraph::create();
+        renderGraph->addChild(vsg_scene);
 
-        // pass any events into EventHandlers assigned to the Viewer
-        viewer->handleEvents();
+        renderGraph->camera = camera;
+        renderGraph->window = window;
 
-        viewer->populateNextFrame();
+        renderGraph->renderArea.offset = {0, 0};
+        renderGraph->renderArea.extent = window->extent2D();
 
-        viewer->submitNextFrame();
+        renderGraph->clearValues.resize(2);
+        renderGraph->clearValues[0].color = VkClearColorValue{0.2f, 0.4f, 0.5f, 1.0f}; // window->clearColor()
+        renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
+
+        // set up commandGraph to rendering viewport
+        auto commandGraph = vsg::CommandGraph::create(window->device(), window->physicalDevice()->getGraphicsFamily());
+        commandGraph->addChild(renderGraph);
+        for(size_t i = 0; i < window->numFrames(); ++i)
+        {
+            commandGraph->commandBuffers.emplace_back(window->commandBuffer(i));
+        }
+
+        auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
+
+        auto queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
+
+        // set up Submission with CommandBuffer and signals
+        auto submission = vsg::Submission::create();
+        submission->commandGraphs.emplace_back(commandGraph);
+        submission->signalSemaphores.emplace_back(renderFinishedSemaphore);
+        submission->databasePager = databasePager;
+        submission->windows = viewer->windows();
+        submission->queue = queue;
+        viewer->submissions.emplace_back(submission);
+
+        auto presentation = vsg::Presentation::create();
+        presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
+        presentation->windows.emplace_back(window);
+        presentation->windows = viewer->windows();
+        presentation->queue = queue;
+        viewer->presentation = presentation;
+
+        // need to do compile of vsg_scene
+        // first compute required resources
+        // allocate required resource
+
+        // TODO work around for comile
+        {
+            // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
+            auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
+            graphicsStage->databasePager = databasePager;
+            window->addStage(graphicsStage);
+
+            // compile the Vulkan objects
+
+            viewer->compile();
+        }
+
+
+        // rendering main loop
+        while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
+        {
+            if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
+
+            // pass any events into EventHandlers assigned to the Viewer
+            viewer->handleEvents();
+
+            vsg::ref_ptr<vsg::FrameStamp> frameStamp(viewer->getFrameStamp());
+
+            for(auto& submission : viewer->submissions)
+            {
+                submission->submit(frameStamp);
+            }
+
+            viewer->presentation->present();
+        }
+
+    }
+    else
+    {
+        // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
+        auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
+        graphicsStage->databasePager = databasePager;
+        window->addStage(graphicsStage);
+
+        // compile the Vulkan objects
+
+        viewer->compile();
+
+
+        // rendering main loop
+        while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
+        {
+            if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
+
+            // pass any events into EventHandlers assigned to the Viewer
+            viewer->handleEvents();
+
+            viewer->populateNextFrame();
+
+            viewer->submitNextFrame();
+        }
     }
 
     // clean up done automatically thanks to ref_ptr<>

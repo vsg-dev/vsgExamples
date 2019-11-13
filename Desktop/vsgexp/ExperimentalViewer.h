@@ -5,11 +5,13 @@ namespace vsg
     class CommandGraph : public Inherit<Group, CommandGraph>
     {
     public:
-        CommandGraph();
+        CommandGraph(Device* device, int family);
 
         void accept(DispatchTraversal& dispatchTraversal) const override;
 
-        CommandBuffers commandBuffers; // assign one per index? Or just use round robin, each has a CommandPool
+        ref_ptr<Device> _device;
+        int _family;
+        mutable CommandBuffers commandBuffers; // assign one per index? Or just use round robin, each has a CommandPool
     };
 
     using Framebuffers = std::vector<ref_ptr<Framebuffer>>;
@@ -22,15 +24,12 @@ namespace vsg
 
         void accept(DispatchTraversal& dispatchTraversal) const override;
 
-        using ClearValues = std::vector<VkClearValue>;
-
-        // do we buffer frmaebuffer? One per swapchain image
-        // do we need a handle to the assciated window to get the nextImageIndex?
-        ref_ptr<RenderPass> renderPass; // one per wndow
-        Framebuffers framebuffers; // onr per swapchain image
-
         ref_ptr<Camera> camera; // camera that the trackball controls
+
+        ref_ptr<Window> window;
         VkRect2D renderArea; // viewport dimensions
+
+        using ClearValues = std::vector<VkClearValue>;
         ClearValues clearValues; // initialize window colour and depth/stencil
     };
 
@@ -43,11 +42,12 @@ namespace vsg
 
         using CommandGraphs = std::vector<ref_ptr<CommandGraph>>;
 
+        Windows windows;
         Semaphores waitSemaphores; //
         CommandGraphs commandGraphs; // assign in application setup
         Semaphores signalSemaphores; // connect to Presentation.waitSemaphores
-        ref_ptr<Fence> fence; // assogn on first frame?
 
+        ref_ptr<DatabasePager> databasePager;
         ref_ptr<Queue> queue; // assign in application for GraphicsQueue from device
     };
 
@@ -57,12 +57,8 @@ namespace vsg
 
         VkResult present();
 
-        using Swapchains = std::vector<ref_ptr<Swapchain>>;
-        using Indices = std::vector<uint32_t>;
-
+        Windows windows;
         Semaphores waitSemaphores;  // taken from Submissions.signalSemaphores
-        Swapchains swapchains; // taaken from each window
-        Indices indices; // taken from each window next frame index
 
         ref_ptr<Queue> queue; // assign in application for GraphicsQueue from device
     };
@@ -72,7 +68,7 @@ namespace vsg
     {
     public:
 
-        using Submissions = std::vector<Submission>;
+        using Submissions = std::vector<ref_ptr<Submission>>;
         Submissions submissions;
         ref_ptr<Presentation> presentation;
 

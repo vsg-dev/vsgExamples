@@ -2,21 +2,36 @@
 
 using namespace vsg;
 
-CommandGraph::CommandGraph()
+CommandGraph::CommandGraph(Device* device, int family) :
+    _device(device),
+    _family(family)
 {
-#if 0
-    ref_ptr<CommandPool> cp = CommandPool::create(_device, _physicalDevice->getGraphicsFamily());
-    commandBuffer = CommandBuffer::create(_device, cp, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-#endif
 }
 
 void CommandGraph::accept(DispatchTraversal& dispatchTraversal) const
 {
-    // from DispatchTraversal index?
-    uint32_t index = 0;
+    ref_ptr<CommandBuffer> commandBuffer;
+    for(auto& cb : commandBuffers)
+    {
+        if (cb->numDependentSubmissions()==0)
+        {
+            commandBuffer = cb;
+        }
+    }
+    if (!commandBuffer)
+    {
+        ref_ptr<CommandPool> cp = CommandPool::create(_device, _family);
+        commandBuffer = CommandBuffer::create(_device, cp, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+        commandBuffers.push_back(commandBuffer);
+    }
+
+    commandBuffer->numDependentSubmissions().fetch_add(1);
+
+    dispatchTraversal.state->_commandBuffer = commandBuffer;
+
 
     // or select index when maps to a dormant CommandBuffer
-    VkCommandBuffer vk_commandBuffer = *(commandBuffers[index]);
+    VkCommandBuffer vk_commandBuffer = *commandBuffer;
 
     // need to set up the command
     // if we are nested within a CommandBuffer already then use VkCommandBufferInheritanceInfo
@@ -54,15 +69,12 @@ void RenderGraph::accept(DispatchTraversal& dispatchTraversal) const
         dispatchTraversal.setProjectionAndViewMatrix(projMatrix, viewMatrix);
     }
 
-    // TODO get next window index from State? DispatchVisitor?
-    uint32_t index = 0;
-
     VkCommandBuffer vk_commandBuffer = *(dispatchTraversal.state->_commandBuffer);
 
     VkRenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = *renderPass;
-    renderPassInfo.framebuffer = *framebuffers[index];
+    renderPassInfo.renderPass = *(window->renderPass());
+    renderPassInfo.framebuffer = *(window->framebuffer(window->nextImageIndex()));
     renderPassInfo.renderArea = renderArea;
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -78,26 +90,51 @@ void RenderGraph::accept(DispatchTraversal& dispatchTraversal) const
 
 VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
 {
+    std::cout<<"Submission::submit()"<<std::endl;
+
     std::vector<VkSemaphore> vk_waitSemaphores;
     std::vector<VkPipelineStageFlags> vk_waitStages;
     std::vector<VkCommandBuffer> vk_commandBuffers;
     std::vector<VkSemaphore> vk_signalSemaphores;
 
+    static bool s_first_frame = true;
+
+    ref_ptr<Fence> fence;
+    for (auto& window : windows)
+    {
+        vk_waitSemaphores.push_back(*(window->frame(window->nextImageIndex()).imageAvailableSemaphore));
+        vk_waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+        fence = window->frame(window->nextImageIndex()).commandsCompletedFence;
+    }
+
     if (fence)
     {
-        uint64_t timeout = 10000000000;
-        VkResult result = VK_SUCCESS;
-        while ((result = fence->wait(timeout)) == VK_TIMEOUT)
-        {
-            std::cout << "Submission::submit(ref_ptr<FrameStamp> frameStamp)) fence->wait(" << timeout << ") failed with result = " << result << std::endl;
-            //exit(1);
-            //throw "Window::populateCommandBuffers(uint32_t index, ref_ptr<vsg::FrameStamp> frameStamp) timeout";
-        }
 
+        if (s_first_frame)
+        {
+            s_first_frame = false;
+            std::cout<<"   first fame"<<std::endl;
+        }
+        else
+        {
+            uint64_t timeout = 1000;
+            VkResult result = VK_SUCCESS;
+            while ((result = fence->wait(timeout)) == VK_TIMEOUT)
+            {
+                std::cout << "Submission::submit(ref_ptr<FrameStamp> frameStamp)) fence->wait(" << timeout << ") failed with result = " << result << std::endl;
+            }
+        }
         for (auto& semaphore : fence->dependentSemaphores())
         {
             //std::cout<<"Window::populateCommandBuffers(..) "<<*(semaphore->data())<<" "<<semaphore->numDependentSubmissions().load()<<std::endl;
             semaphore->numDependentSubmissions().exchange(0);
+        }
+
+        for (auto& commandBuffer : fence->dependentCommandBuffers())
+        {
+            std::cout<<"Submission::submits(..) "<<commandBuffer.get()<<" "<<std::dec<<commandBuffer->numDependentSubmissions().load()<<std::endl;
+            commandBuffer->numDependentSubmissions().exchange(0);
         }
 
         fence->dependentSemaphores().clear();
@@ -110,15 +147,14 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
         vk_waitStages.emplace_back(semaphore->pipelineStageFlags());
     }
 
+
     // need to compute from scene graph
     uint32_t _maxSlot = 2;
-    uint32_t index = 0;
-    DatabasePager* databasePager = nullptr;
 
     for(auto& commandGraph : commandGraphs)
     {
         // pass the inext to dispatchTraversal visitor?  Only for RenderGraph?
-        DispatchTraversal dispatchTraversal(commandGraph->commandBuffers[index], _maxSlot, frameStamp);
+        DispatchTraversal dispatchTraversal(nullptr, _maxSlot, frameStamp);
 
         dispatchTraversal.databasePager = databasePager;
         if (databasePager) dispatchTraversal.culledPagedLODs = databasePager->culledPagedLODs;
@@ -172,6 +208,8 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
 
 VkResult Presentation::present()
 {
+    std::cout<<"Presentation::present()"<<std::endl;
+
     std::vector<VkSemaphore> vk_semaphores;
     for(auto& semaphore : waitSemaphores)
     {
@@ -179,9 +217,12 @@ VkResult Presentation::present()
     }
 
     std::vector<VkSwapchainKHR> vk_swapchains;
-    for(auto& swapchain : swapchains)
+    std::vector<uint32_t> indices;
+    for(auto& window : windows)
     {
-        vk_swapchains.emplace_back(*(swapchain));
+        vk_semaphores.push_back(*(window->frame(window->nextImageIndex()).imageAvailableSemaphore));
+        vk_swapchains.emplace_back(*(window->swapchain()));
+        indices.emplace_back(window->nextImageIndex());
     }
 
     VkPresentInfoKHR presentInfo = {};
@@ -253,7 +294,7 @@ bool ExperimentalViewer::submitNextFrame()
 
     for(auto& submission : submissions)
     {
-        submission.submit(_frameStamp);
+        submission->submit(_frameStamp);
     }
 
     if (presentation) presentation->present();
