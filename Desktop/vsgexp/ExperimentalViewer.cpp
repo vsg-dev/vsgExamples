@@ -90,6 +90,7 @@ void RenderGraph::accept(DispatchTraversal& dispatchTraversal) const
 
 VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
 {
+    std::cout<<"\n.....................................................\n";
     std::cout<<"Submission::submit()"<<std::endl;
 
     std::vector<VkSemaphore> vk_waitSemaphores;
@@ -97,7 +98,7 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
     std::vector<VkCommandBuffer> vk_commandBuffers;
     std::vector<VkSemaphore> vk_signalSemaphores;
 
-    static bool s_first_frame = true;
+    static int s_first_frame = 0;
 
     ref_ptr<Fence> fence;
     for (auto& window : windows)
@@ -110,15 +111,10 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
 
     if (fence)
     {
-
-        if (s_first_frame)
+        if ((fence->dependentSemaphores().size() + fence->dependentCommandBuffers().size()) > 0)
         {
-            s_first_frame = false;
-            std::cout<<"   first fame"<<std::endl;
-        }
-        else
-        {
-            uint64_t timeout = 1000;
+            std::cout<<"    wait on fence = "<<fence.get()<<" "<<fence->dependentSemaphores().size()<<", "<<fence->dependentCommandBuffers().size()<<std::endl;
+            uint64_t timeout = 10000000000;
             VkResult result = VK_SUCCESS;
             while ((result = fence->wait(timeout)) == VK_TIMEOUT)
             {
@@ -127,7 +123,7 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
         }
         for (auto& semaphore : fence->dependentSemaphores())
         {
-            //std::cout<<"Window::populateCommandBuffers(..) "<<*(semaphore->data())<<" "<<semaphore->numDependentSubmissions().load()<<std::endl;
+            //std::cout<<"Submission::submits(..) "<<*(semaphore->data())<<" "<<semaphore->numDependentSubmissions().load()<<std::endl;
             semaphore->numDependentSubmissions().exchange(0);
         }
 
@@ -138,6 +134,7 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
         }
 
         fence->dependentSemaphores().clear();
+        fence->dependentCommandBuffers().clear();
         fence->reset();
     }
 
@@ -160,7 +157,13 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
         if (databasePager) dispatchTraversal.culledPagedLODs = databasePager->culledPagedLODs;
 
         commandGraph->accept(dispatchTraversal);
+
+        vk_commandBuffers.push_back(*(dispatchTraversal.state->_commandBuffer));
+
+        fence->dependentCommandBuffers().emplace_back(dispatchTraversal.state->_commandBuffer);
     }
+
+    fence->dependentSemaphores() = signalSemaphores;
 
     if (databasePager)
     {
@@ -203,6 +206,25 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
     submitInfo.signalSemaphoreCount = static_cast<uint32_t>(vk_signalSemaphores.size());
     submitInfo.pSignalSemaphores = vk_signalSemaphores.data();
 
+    std::cout<<"pdo.graphicsQueue->submit(..) fence = "<<fence.get()<<"\n";
+    std::cout<<"    submitInfo.waitSemaphoreCount = "<<submitInfo.waitSemaphoreCount<<"\n";
+    for(uint32_t i=0; i<submitInfo.waitSemaphoreCount; ++i)
+    {
+        std::cout<<"        submitInfo.pWaitSemaphores["<<i<<"] = "<<submitInfo.pWaitSemaphores[i]<<"\n";
+        std::cout<<"        submitInfo.pWaitDstStageMask["<<i<<"] = "<<submitInfo.pWaitDstStageMask[i]<<"\n";
+    }
+    std::cout<<"    submitInfo.commandBufferCount = "<<submitInfo.commandBufferCount<<"\n";
+    for(uint32_t i=0; i<submitInfo.commandBufferCount; ++i)
+    {
+        std::cout<<"        submitInfo.pCommandBuffers["<<i<<"] = "<<submitInfo.pCommandBuffers[i]<<"\n";
+    }
+    std::cout<<"    submitInfo.signalSemaphoreCount = "<<submitInfo.signalSemaphoreCount<<"\n";
+    for(uint32_t i=0; i<submitInfo.signalSemaphoreCount; ++i)
+    {
+        std::cout<<"        submitInfo.pSignalSemaphores["<<i<<"] = "<<submitInfo.pSignalSemaphores[i]<<"\n";
+    }
+    std::cout<<std::endl;
+
     return queue->submit(submitInfo, fence);
 }
 
@@ -220,7 +242,7 @@ VkResult Presentation::present()
     std::vector<uint32_t> indices;
     for(auto& window : windows)
     {
-        vk_semaphores.push_back(*(window->frame(window->nextImageIndex()).imageAvailableSemaphore));
+        //vk_semaphores.push_back(*(window->frame(window->nextImageIndex()).imageAvailableSemaphore));
         vk_swapchains.emplace_back(*(window->swapchain()));
         indices.emplace_back(window->nextImageIndex());
     }
@@ -232,6 +254,25 @@ VkResult Presentation::present()
     presentInfo.swapchainCount = static_cast<uint32_t>(vk_swapchains.size());
     presentInfo.pSwapchains = vk_swapchains.data();
     presentInfo.pImageIndices = indices.data();
+
+    std::cout<<"pdo.presentInfo->present(..) \n";
+    std::cout<<"    presentInfo.waitSemaphoreCount = "<<presentInfo.waitSemaphoreCount<<"\n";
+    for(uint32_t i=0; i<presentInfo.waitSemaphoreCount; ++i)
+    {
+        std::cout<<"        presentInfo.pWaitSemaphores["<<i<<"] = "<<presentInfo.pWaitSemaphores[i]<<"\n";
+    }
+    std::cout<<"    presentInfo.commandBufferCount = "<<presentInfo.swapchainCount<<"\n";
+    for(uint32_t i=0; i<presentInfo.swapchainCount; ++i)
+    {
+        std::cout<<"        presentInfo.pSwapchains["<<i<<"] = "<<presentInfo.pSwapchains[i]<<"\n";
+        std::cout<<"        presentInfo.pImageIndices["<<i<<"] = "<<presentInfo.pImageIndices[i]<<"\n";
+    }
+    std::cout<<std::endl;
+
+    for(auto& window : windows)
+    {
+        window->advanceNextImageIndex();
+    }
 
     return queue->present(presentInfo);
 }
@@ -254,7 +295,12 @@ void ExperimentalViewer::addWindow(ref_ptr<Window> window)
 bool ExperimentalViewer::advanceToNextFrame()
 {
     // Probably OK
-    return Viewer::advanceToNextFrame();
+
+    bool result = Viewer::advanceToNextFrame();
+
+    std::cout<<"ExperimentalViewer::advanceToNextFrame() "<<result<<std::endl;
+
+    return result;
 }
 
 void ExperimentalViewer::advance()

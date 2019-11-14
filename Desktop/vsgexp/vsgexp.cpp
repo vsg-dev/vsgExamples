@@ -218,22 +218,19 @@ int main(int argc, char** argv)
 
         auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
 
-        auto queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
-
         // set up Submission with CommandBuffer and signals
         auto submission = vsg::Submission::create();
         submission->commandGraphs.emplace_back(commandGraph);
         submission->signalSemaphores.emplace_back(renderFinishedSemaphore);
         submission->databasePager = databasePager;
         submission->windows = viewer->windows();
-        submission->queue = queue;
+        submission->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
         viewer->submissions.emplace_back(submission);
 
         auto presentation = vsg::Presentation::create();
         presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
-        presentation->windows.emplace_back(window);
         presentation->windows = viewer->windows();
-        presentation->queue = queue;
+        presentation->queue = window->device()->getQueue(window->physicalDevice()->getPresentFamily());
         viewer->presentation = presentation;
 
         // need to do compile of vsg_scene
@@ -269,6 +266,8 @@ int main(int argc, char** argv)
             }
 
             viewer->presentation->present();
+
+            viewer->presentation->queue->waitIdle();
         }
 
     }
