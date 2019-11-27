@@ -237,7 +237,7 @@ int main(int argc, char** argv)
         // first compute required resources
         // allocate required resource
 
-        // TODO work around for comile
+        // TODO work around for compile
         {
             // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
             auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
