@@ -1,6 +1,110 @@
 #include <vsg/all.h>
 #include <iostream>
 
+#include "../vsgexp/ExperimentalViewer.h"
+
+
+namespace vsg
+{
+
+class CopyImageViewToWindow : public Inherit<Command, CopyImageViewToWindow>
+{
+public:
+
+    ref_ptr<ImageView> srcImageView;
+    ref_ptr<Window> window;
+    VkExtent2D _extent2D;
+
+
+    CopyImageViewToWindow(ref_ptr<ImageView> in_srcImageView, ref_ptr<Window> in_window) :
+        srcImageView(in_srcImageView),
+        window(in_window)
+    {
+        _extent2D = window->extent2D();
+    }
+
+    void dispatch(CommandBuffer& commandBuffer) const override;
+};
+
+void CopyImageViewToWindow::dispatch(CommandBuffer& commandBuffer) const
+{
+    auto imageView = window->imageView(window->nextImageIndex());
+
+    //  transition image layouts for copy
+    auto imb_transitionSwapChainToWriteDest = ImageMemoryBarrier::create(
+        0, VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        ref_ptr<Image>(imageView->getImage()),
+        VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+
+    auto pb_transitionSwapChainToWriteDest = PipelineBarrier::create(
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        0, imb_transitionSwapChainToWriteDest);
+
+    pb_transitionSwapChainToWriteDest->dispatch(commandBuffer);
+
+    auto ibm_transitionStorageImageToReadSrc = vsg::ImageMemoryBarrier::create(
+        0, VK_ACCESS_TRANSFER_READ_BIT,
+        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        ref_ptr<Image>(srcImageView->getImage()),
+        VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+
+    auto pb_transitionStorageImageToReadSrc = PipelineBarrier::create(
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        0, ibm_transitionStorageImageToReadSrc);
+
+    pb_transitionStorageImageToReadSrc->dispatch(commandBuffer);
+
+    // copy image
+    VkImageCopy copyRegion{};
+    copyRegion.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copyRegion.srcOffset = {0, 0, 0};
+    copyRegion.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copyRegion.dstOffset = {0, 0, 0};
+    copyRegion.extent = {_extent2D.width, _extent2D.height, 1};
+
+    auto copyImage = CopyImage::create();
+    copyImage->srcImage = srcImageView->getImage();
+    copyImage->srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    copyImage->dstImage = imageView->getImage();
+    copyImage->dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    copyImage->regions.emplace_back(copyRegion);
+
+    copyImage->dispatch(commandBuffer);
+
+    // transition image layouts back
+    auto imb_transitionSwapChainToOriginal = ImageMemoryBarrier::create(
+        VK_ACCESS_TRANSFER_WRITE_BIT, 0,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        ref_ptr<Image>(imageView->getImage()),
+        VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+
+    auto pb_transitionSwapChainToOriginal = PipelineBarrier::create(
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        0, imb_transitionSwapChainToOriginal);
+
+    pb_transitionSwapChainToOriginal->dispatch(commandBuffer);
+
+    auto imb_transitionStorageImageToOriginal = ImageMemoryBarrier::create(
+        VK_ACCESS_TRANSFER_READ_BIT, 0,
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED,
+        ref_ptr<Image>(srcImageView->getImage()),
+        VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+
+    auto pb_transitionStorageImageToOriginal = PipelineBarrier::create(
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        0, imb_transitionStorageImageToOriginal);
+
+    pb_transitionStorageImageToOriginal->dispatch(commandBuffer);
+}
+
+}
+
+
 vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& imageCreateInfo, VkImageAspectFlags aspectFlags, VkImageLayout targetImageLayout)
 {
     vsg::Device* device = context.device;
@@ -48,13 +152,14 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1280, 720), {"--window", "-w"});
+    auto useNewViewer = arguments.read("--new");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     // create the viewer and assign window(s) to it
-    auto viewer = vsg::Viewer::create();
+    auto viewer = vsg::ExperimentalViewer::create();
 
     auto windowTraits = vsg::Window::Traits::create();
     windowTraits->windowTitle = "vsgraytracing";
@@ -251,23 +356,93 @@ int main(int argc, char** argv)
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(vsg::RayTracingStage::create(scenegraph, storageImageData._imageView, VkExtent2D{ width, height }, camera));
-
-    // compile the Vulkan objects
-    viewer->compile();
 
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-    // main frame loop
-    while (viewer->advanceToNextFrame())
+    if (useNewViewer)
     {
-        // pass any events into EventHandlers assigned to the Viewer
-        viewer->handleEvents();
+        // set up commandGraph to rendering viewport
+        auto commandGraph = vsg::CommandGraph::create(window->device(), window->physicalDevice()->getGraphicsFamily());
+        for(size_t i = 0; i < window->numFrames(); ++i)
+        {
+            commandGraph->commandBuffers.emplace_back(window->commandBuffer(i));
+        }
 
-        viewer->populateNextFrame();
+        auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageData._imageView, window);
 
-        viewer->submitNextFrame();
+        commandGraph->addChild(scenegraph);
+        commandGraph->addChild(copyImageViewToWindow);
+
+
+        auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
+
+        // set up Submission with CommandBuffer and signals
+        auto submission = vsg::Submission::create();
+        submission->commandGraphs.emplace_back(commandGraph);
+        submission->signalSemaphores.emplace_back(renderFinishedSemaphore);
+        submission->windows = viewer->windows();
+        submission->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
+        viewer->submissions.emplace_back(submission);
+
+        auto presentation = vsg::Presentation::create();
+        presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
+        presentation->windows = viewer->windows();
+        presentation->queue = window->device()->getQueue(window->physicalDevice()->getPresentFamily());
+        viewer->presentation = presentation;
+
+        // need to do compile of vsg_scene
+        // first compute required resources
+        // allocate required resource
+
+        // TODO work around for compile
+        {
+            // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
+            auto graphicsStage = vsg::GraphicsStage::create(scenegraph, camera);
+            window->addStage(graphicsStage);
+
+            // compile the Vulkan objects
+
+            viewer->compile();
+        }
+
+
+        // rendering main loop
+        while (viewer->advanceToNextFrame())
+        {
+            // pass any events into EventHandlers assigned to the Viewer
+            viewer->handleEvents();
+
+            vsg::ref_ptr<vsg::FrameStamp> frameStamp(viewer->getFrameStamp());
+
+            for(auto& submission : viewer->submissions)
+            {
+                submission->submit(frameStamp);
+            }
+
+            viewer->presentation->present();
+
+            viewer->presentation->queue->waitIdle();
+        }
+
+    }
+    else
+    {
+        window->addStage(vsg::RayTracingStage::create(scenegraph, storageImageData._imageView, VkExtent2D{ width, height }, camera));
+
+        // compile the Vulkan objects
+        viewer->compile();
+
+        // main frame loop
+        while (viewer->advanceToNextFrame())
+        {
+            // pass any events into EventHandlers assigned to the Viewer
+            viewer->handleEvents();
+
+            viewer->populateNextFrame();
+
+            viewer->submitNextFrame();
+        }
     }
 
     // clean up done automatically thanks to ref_ptr<>
