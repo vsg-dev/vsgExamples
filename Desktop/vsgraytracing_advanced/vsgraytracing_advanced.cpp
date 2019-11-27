@@ -119,6 +119,22 @@ int main(int argc, char** argv)
     auto shaderStages = vsg::ShaderStages{ raygenShader, missShader, closesthitShader };
 
 
+    // set up shader groups
+    auto raygenShaderGroup = vsg::RayTracingShaderGroup::create();
+    raygenShaderGroup->type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+    raygenShaderGroup->generalShader = 0;
+
+    auto missShaderGroup = vsg::RayTracingShaderGroup::create();
+    missShaderGroup->type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_NV;
+    missShaderGroup->generalShader = 1;
+
+    auto closestHitShaderGroup = vsg::RayTracingShaderGroup::create();
+    closestHitShaderGroup->type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
+    closestHitShaderGroup->closestHitShader = 2;
+
+    auto shaderGroups = vsg::RayTracingShaderGroups{ raygenShaderGroup, missShaderGroup, closestHitShaderGroup };
+
+
     // acceleration structures
     
     auto loaded_scene = vsg::read_cast<vsg::Node>(vsg::findFile("models/raytracing_scene.vsgt", searchPaths));
@@ -175,10 +191,8 @@ int main(int argc, char** argv)
     auto raytracingUniformDescriptor = vsg::DescriptorBuffer::create(raytracingUniform, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     raytracingUniformDescriptor->copyDataListToBuffers();
 
-    vsg::ref_ptr<vsg::RayTracingShaderBindings> shaderBindings = vsg::RayTracingShaderBindings::create(shaderStages, window->device());
-
     auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, vsg::PushConstantRanges{});
-    auto raytracingPipeline = vsg::RayTracingPipeline::create(pipelineLayout, shaderStages, shaderBindings);
+    auto raytracingPipeline = vsg::RayTracingPipeline::create(pipelineLayout, shaderStages, shaderGroups);
     auto bindRayTracingPipeline = vsg::BindRayTracingPipeline::create(raytracingPipeline);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, vsg::Descriptors{ accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor });
@@ -191,12 +205,23 @@ int main(int argc, char** argv)
     scenegraph->addChild(bindRayTracingPipeline);
     scenegraph->addChild(bindDescriptorSets);
 
+    // setup tracing of rays
+    auto traceRays = vsg::TraceRays::create();
+    traceRays->raygen = raygenShaderGroup;
+    traceRays->missShader = missShaderGroup;
+    traceRays->hitShader = closestHitShaderGroup;
+    traceRays->width = width;
+    traceRays->height = height;
+    traceRays->depth = 1;
+
+    scenegraph->addChild(traceRays);
+
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(vsg::RayTracingStage::create(scenegraph, shaderBindings, storageImageData._imageView, VkExtent2D{ width, height }, camera));
+    window->addStage(vsg::RayTracingStage::create(scenegraph, storageImageData._imageView, VkExtent2D{ width, height }, camera));
 
     // compile the Vulkan objects
     viewer->compile();
