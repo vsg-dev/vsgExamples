@@ -88,10 +88,10 @@ void RenderGraph::accept(DispatchTraversal& dispatchTraversal) const
 }
 
 
-VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
+VkResult RecordAndSubmitTask::submit(ref_ptr<FrameStamp> frameStamp)
 {
     std::cout<<"\n.....................................................\n";
-    std::cout<<"Submission::submit()"<<std::endl;
+    std::cout<<"RecordAndSubmitTask::submit()"<<std::endl;
 
     std::vector<VkSemaphore> vk_waitSemaphores;
     std::vector<VkPipelineStageFlags> vk_waitStages;
@@ -100,6 +100,7 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
 
     static int s_first_frame = 0;
 
+    // aquire fence
     ref_ptr<Fence> fence;
     for (auto& window : windows)
     {
@@ -109,6 +110,7 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
         fence = window->frame(window->nextImageIndex()).commandsCompletedFence;
     }
 
+    // wait on fence and clear semaphores and command buffers
     if (fence)
     {
         if ((fence->dependentSemaphores().size() + fence->dependentCommandBuffers().size()) > 0)
@@ -118,18 +120,18 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
             VkResult result = VK_SUCCESS;
             while ((result = fence->wait(timeout)) == VK_TIMEOUT)
             {
-                std::cout << "Submission::submit(ref_ptr<FrameStamp> frameStamp)) fence->wait(" << timeout << ") failed with result = " << result << std::endl;
+                std::cout << "RecordAndSubmitTask::submit(ref_ptr<FrameStamp> frameStamp)) fence->wait(" << timeout << ") failed with result = " << result << std::endl;
             }
         }
         for (auto& semaphore : fence->dependentSemaphores())
         {
-            //std::cout<<"Submission::submits(..) "<<*(semaphore->data())<<" "<<semaphore->numDependentSubmissions().load()<<std::endl;
+            //std::cout<<"RecordAndSubmitTask::submits(..) "<<*(semaphore->data())<<" "<<semaphore->numDependentSubmissions().load()<<std::endl;
             semaphore->numDependentSubmissions().exchange(0);
         }
 
         for (auto& commandBuffer : fence->dependentCommandBuffers())
         {
-            std::cout<<"Submission::submits(..) "<<commandBuffer.get()<<" "<<std::dec<<commandBuffer->numDependentSubmissions().load()<<std::endl;
+            std::cout<<"RecordAndSubmitTask::submits(..) "<<commandBuffer.get()<<" "<<std::dec<<commandBuffer->numDependentSubmissions().load()<<std::endl;
             commandBuffer->numDependentSubmissions().exchange(0);
         }
 
@@ -148,6 +150,7 @@ VkResult Submission::submit(ref_ptr<FrameStamp> frameStamp)
     // need to compute from scene graph
     uint32_t _maxSlot = 2;
 
+    // record the commands in the command buffer
     for(auto& commandGraph : commandGraphs)
     {
         // pass the inext to dispatchTraversal visitor?  Only for RenderGraph?
@@ -338,7 +341,7 @@ bool ExperimentalViewer::submitNextFrame()
 {
     // TODO, need to replace the PerDeviceObjects / Window / Fence and Semaphore handles
 
-    for(auto& submission : submissions)
+    for(auto& submission : recordAndSubmitTasks)
     {
         submission->submit(_frameStamp);
     }

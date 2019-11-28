@@ -33,7 +33,9 @@ namespace vsg
         ClearValues clearValues; // initialize window colour and depth/stencil
     };
 
-    class Submission : public Inherit<Object, Submission>
+
+    // RecordAndSubmitTask
+    class RecordAndSubmitTask : public Inherit<Object, RecordAndSubmitTask>
     {
     public:
 
@@ -58,7 +60,7 @@ namespace vsg
         VkResult present();
 
         Windows windows;
-        Semaphores waitSemaphores;  // taken from Submissions.signalSemaphores
+        Semaphores waitSemaphores;  // taken from RecordAndSubmitTasks.signalSemaphores
 
         ref_ptr<Queue> queue; // assign in application for GraphicsQueue from device
     };
@@ -68,8 +70,8 @@ namespace vsg
     {
     public:
 
-        using Submissions = std::vector<ref_ptr<Submission>>;
-        Submissions submissions;
+        using RecordAndSubmitTasks = std::vector<ref_ptr<RecordAndSubmitTask>>;
+        RecordAndSubmitTasks recordAndSubmitTasks;
         ref_ptr<Presentation> presentation;
 
         ExperimentalViewer();
