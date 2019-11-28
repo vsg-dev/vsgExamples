@@ -146,15 +146,11 @@ VkResult RecordAndSubmitTask::submit(ref_ptr<FrameStamp> frameStamp)
         vk_waitStages.emplace_back(semaphore->pipelineStageFlags());
     }
 
-
-    // need to compute from scene graph
-    uint32_t _maxSlot = 2;
-
     // record the commands in the command buffer
     for(auto& commandGraph : commandGraphs)
     {
         // pass the inext to dispatchTraversal visitor?  Only for RenderGraph?
-        DispatchTraversal dispatchTraversal(nullptr, _maxSlot, frameStamp);
+        DispatchTraversal dispatchTraversal(nullptr, commandGraph->_maxSlot, frameStamp);
 
         dispatchTraversal.databasePager = databasePager;
         if (databasePager) dispatchTraversal.culledPagedLODs = databasePager->culledPagedLODs;

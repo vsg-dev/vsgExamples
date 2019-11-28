@@ -208,8 +208,11 @@ int main(int argc, char** argv)
         renderGraph->clearValues[0].color = VkClearColorValue{0.2f, 0.4f, 0.5f, 1.0f}; // window->clearColor()
         renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
 
+        auto device = window->device();
+        auto physicalDevice = window->physicalDevice();
+
         // set up commandGraph to rendering viewport
-        auto commandGraph = vsg::CommandGraph::create(window->device(), window->physicalDevice()->getGraphicsFamily());
+        auto commandGraph = vsg::CommandGraph::create(device, physicalDevice->getGraphicsFamily());
         commandGraph->addChild(renderGraph);
         for(size_t i = 0; i < window->numFrames(); ++i)
         {
@@ -233,106 +236,48 @@ int main(int argc, char** argv)
         presentation->queue = window->device()->getQueue(window->physicalDevice()->getPresentFamily());
         viewer->presentation = presentation;
 
-        // need to do compile of vsg_scene
-        // first compute required resources
-        // allocate required resource
-
-        // TODO work around for compile
+        // work around for compile
         {
-            // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
-            auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
-            graphicsStage->databasePager = databasePager;
-            window->addStage(graphicsStage);
+            // collect stats
+            vsg::CollectDescriptorStats collectStats;
+            //commandGraph->accept(collectStats);
+            commandGraph->traverse(collectStats);
 
-            // compile the Vulkan objects
-            viewer->compile();
+            uint32_t maxSets = collectStats.computeNumDescriptorSets();
+            vsg::DescriptorPoolSizes descriptorPoolSizes = collectStats.computeDescriptorPoolSizes();
 
-#if 0
-            for (auto& window : _windows)
+            // defaults to use for memory sizes
+            vsg::BufferPreferences bufferPreferences;
+
+            // run compile
+            vsg::ref_ptr<vsg::CompileTraversal> compile(new vsg::CompileTraversal(device, bufferPreferences));
+            compile->context.commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
+            compile->context.renderPass = window->renderPass();
+            compile->context.graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
+
+            if (maxSets > 0) compile->context.descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
+
+            commandGraph->_maxSlot = collectStats.maxSlot;
+
+            if (camera)
             {
-                // compile the Vulkan objects
-                // create high level Vulkan objects associated the main window
-                vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice(window->physicalDevice());
-                vsg::ref_ptr<vsg::Device> device(window->device());
-
-                CollectDescriptorStats collectStats;
-                for (auto& stage : window->stages())
-                {
-                    GraphicsStage* gs = dynamic_cast<GraphicsStage*>(stage.get());
-                    if (gs)
-                    {
-                        gs->_commandGraph->accept(collectStats);
-                    }
-                    RayTracingStage* rts = dynamic_cast<RayTracingStage*>(stage.get());
-                    if (rts)
-                    {
-                        rts->_commandGraph->accept(collectStats);
-                    }
-                }
-
-                uint32_t maxSets = collectStats.computeNumDescriptorSets();
-                DescriptorPoolSizes descriptorPoolSizes = collectStats.computeDescriptorPoolSizes();
-
-        #if 0
-                std::cout << "maxSlot = " << collectStats.maxSlot << std::endl;
-                std::cout << "maxSets = " << maxSets << std::endl;
-                std::cout << "    type\tcount" << std::endl;
-                for (auto& [type, count] : descriptorPoolSizes)
-                {
-                    std::cout << "    " << type << "\t\t" << count << std::endl;
-                }
-        #endif
-                ref_ptr<CompileTraversal> compile(new CompileTraversal(device, bufferPreferences));
-                compile->context.commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
-                compile->context.renderPass = window->renderPass();
-                compile->context.graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
-
-                if (maxSets > 0) compile->context.descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
-
-                for (auto& stage : window->stages())
-                {
-                    GraphicsStage* gs = dynamic_cast<GraphicsStage*>(stage.get());
-                    RayTracingStage* rts = dynamic_cast<RayTracingStage*>(stage.get());
-                    if (gs)
-                    {
-                        gs->_maxSlot = collectStats.maxSlot;
-
-                        if (gs->_camera->getViewportState())
-                            compile->context.viewport = gs->_camera->getViewportState();
-                        else if (gs->_viewport)
-                            compile->context.viewport = gs->_viewport;
-                        else
-                            compile->context.viewport = vsg::ViewportState::create(window->extent2D());
-
-                        // std::cout << "Compiling GraphicsStage " << compile.context.viewport << std::endl;
-
-                        gs->_commandGraph->accept(*compile);
-
-                        compile->context.dispatch();
-                        compile->context.waitForCompletion();
-
-                        if (gs->databasePager)
-                        {
-                            gs->databasePager->compileTraversal = compile;
-                            gs->databasePager->start();
-                        }
-                    }
-                    else if (rts)
-                    {
-                        rts->_maxSlot = collectStats.maxSlot;
-
-                        rts->_commandGraph->accept(*compile);
-
-                        compile->context.dispatch();
-                        compile->context.waitForCompletion();
-                    }
-                    else
-                    {
-                        std::cout << "Warning : Viewer::compile() has not handled Stage : " << stage->className() << std::endl;
-                    }
-                }
+                compile->context.viewport = camera->getViewportState();
             }
-#endif
+            else
+            {
+                compile->context.viewport = vsg::ViewportState::create(window->extent2D());
+            }
+
+            commandGraph->accept(*compile);
+
+            compile->context.dispatch();
+            compile->context.waitForCompletion();
+
+            if (databasePager)
+            {
+                databasePager->compileTraversal = compile;
+                databasePager->start();
+            }
         }
 
 

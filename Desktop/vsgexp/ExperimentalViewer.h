@@ -7,10 +7,13 @@ namespace vsg
     public:
         CommandGraph(Device* device, int family);
 
+        using Group::accept;
+
         void accept(DispatchTraversal& dispatchTraversal) const override;
 
         ref_ptr<Device> _device;
-        int _family;
+        int _family = 0;
+        uint32_t _maxSlot = 2;
         mutable CommandBuffers commandBuffers; // assign one per index? Or just use round robin, each has a CommandPool
     };
 
@@ -21,6 +24,8 @@ namespace vsg
     public:
 
         RenderGraph();
+
+        using Group::accept;
 
         void accept(DispatchTraversal& dispatchTraversal) const override;
 
