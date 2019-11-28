@@ -377,13 +377,13 @@ int main(int argc, char** argv)
 
         auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
 
-        // set up Submission with CommandBuffer and signals
-        auto submission = vsg::Submission::create();
-        submission->commandGraphs.emplace_back(commandGraph);
-        submission->signalSemaphores.emplace_back(renderFinishedSemaphore);
-        submission->windows = viewer->windows();
-        submission->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
-        viewer->submissions.emplace_back(submission);
+        // set up RecordAndSubmitTask with CommandBuffer and signals
+        auto recordAndSubmitTask = vsg::RecordAndSubmitTask::create();
+        recordAndSubmitTask->commandGraphs.emplace_back(commandGraph);
+        recordAndSubmitTask->signalSemaphores.emplace_back(renderFinishedSemaphore);
+        recordAndSubmitTask->windows = viewer->windows();
+        recordAndSubmitTask->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
+        viewer->recordAndSubmitTasks.emplace_back(recordAndSubmitTask);
 
         auto presentation = vsg::Presentation::create();
         presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
@@ -415,9 +415,9 @@ int main(int argc, char** argv)
 
             vsg::ref_ptr<vsg::FrameStamp> frameStamp(viewer->getFrameStamp());
 
-            for(auto& submission : viewer->submissions)
+            for(auto& recordAndSubmitTask : viewer->recordAndSubmitTasks)
             {
-                submission->submit(frameStamp);
+                recordAndSubmitTask->submit(frameStamp);
             }
 
             viewer->presentation->present();
