@@ -2,92 +2,6 @@
 
 using namespace vsg;
 
-CommandGraph::CommandGraph(Device* device, int family) :
-    _device(device),
-    _family(family)
-{
-}
-
-void CommandGraph::accept(DispatchTraversal& dispatchTraversal) const
-{
-    ref_ptr<CommandBuffer> commandBuffer;
-    for(auto& cb : commandBuffers)
-    {
-        if (cb->numDependentSubmissions()==0)
-        {
-            commandBuffer = cb;
-        }
-    }
-    if (!commandBuffer)
-    {
-        ref_ptr<CommandPool> cp = CommandPool::create(_device, _family);
-        commandBuffer = CommandBuffer::create(_device, cp, VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-        commandBuffers.push_back(commandBuffer);
-    }
-
-    commandBuffer->numDependentSubmissions().fetch_add(1);
-
-    dispatchTraversal.state->_commandBuffer = commandBuffer;
-
-
-    // or select index when maps to a dormant CommandBuffer
-    VkCommandBuffer vk_commandBuffer = *commandBuffer;
-
-    // need to set up the command
-    // if we are nested within a CommandBuffer already then use VkCommandBufferInheritanceInfo
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-    vkBeginCommandBuffer(vk_commandBuffer, &beginInfo);
-
-    // traverse the command graph
-    traverse(dispatchTraversal);
-
-    vkEndCommandBuffer(vk_commandBuffer);
-}
-
-RenderGraph::RenderGraph()
-{
-#if 0
-    renderPass; // provided by window
-    framebuffer // provided by window/swapchain
-    renderArea; // provide by camera?
-    clearValues; // provide by camera?
-#endif
-}
-
-
-void RenderGraph::accept(DispatchTraversal& dispatchTraversal) const
-{
-    if (camera)
-    {
-        dmat4 projMatrix, viewMatrix;
-        camera->getProjectionMatrix()->get(projMatrix);
-        camera->getViewMatrix()->get(viewMatrix);
-
-        dispatchTraversal.setProjectionAndViewMatrix(projMatrix, viewMatrix);
-    }
-
-    VkCommandBuffer vk_commandBuffer = *(dispatchTraversal.state->_commandBuffer);
-
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = *(window->renderPass());
-    renderPassInfo.framebuffer = *(window->framebuffer(window->nextImageIndex()));
-    renderPassInfo.renderArea = renderArea;
-
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-    vkCmdBeginRenderPass(vk_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    // traverse the command buffer to place the commands into the command buffer.
-    traverse(dispatchTraversal);
-
-    vkCmdEndRenderPass(vk_commandBuffer);
-}
-
-
 VkResult RecordAndSubmitTask::submit(ref_ptr<FrameStamp> frameStamp)
 {
     std::cout<<"\n.....................................................\n";
@@ -349,6 +263,81 @@ bool ExperimentalViewer::submitNextFrame()
 
 void ExperimentalViewer::compile(BufferPreferences bufferPreferences)
 {
-    // TODO, need to reorganize how Stage + command buffers are handled to collect stats or do final compile
-    Viewer::compile(bufferPreferences);
+    if (recordAndSubmitTasks.empty())
+    {
+        Viewer::compile(bufferPreferences);
+        return;
+    }
+
+    // TODO work out how to manage the pager
+    DatabasePager* databasePager = nullptr;
+
+    struct DeviceResources
+    {
+        vsg::CollectDescriptorStats collectStats;
+        vsg::ref_ptr<vsg::DescriptorPool> descriptorPool;
+        vsg::ref_ptr<vsg::CompileTraversal> compile;
+    };
+
+    // find which devices are available
+    using DeviceResourceMap = std::map<vsg::Device*, DeviceResources>;
+    DeviceResourceMap deviceResourceMap;
+    for(auto& task : recordAndSubmitTasks)
+    {
+        for(auto& commandGraph : task->commandGraphs)
+        {
+            auto& deviceResources = deviceResourceMap[commandGraph->_device];
+            commandGraph->accept(deviceResources.collectStats);
+        }
+    }
+
+    // allocate DescriptorPool for each Device
+    for(auto& [device, deviceResource] : deviceResourceMap)
+    {
+        auto physicalDevice = device->getPhysicalDevice();
+
+        auto& collectStats = deviceResource.collectStats;
+        auto maxSets = collectStats.computeNumDescriptorSets();
+        const auto& descriptorPoolSizes = collectStats.computeDescriptorPoolSizes();
+
+        deviceResource.compile = new vsg::CompileTraversal(device, bufferPreferences);
+        deviceResource.compile->context.descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
+        deviceResource.compile->context.commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
+        deviceResource.compile->context.graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
+
+        // assign the compile traversal settings to the DatabasePager (TODO need to find a proper mechanism)
+        if (databasePager) databasePager->compileTraversal = deviceResource.compile;
+    }
+
+
+    // create the Vulkan objects
+    for(auto& task: recordAndSubmitTasks)
+    {
+        for(auto& commandGraph : task->commandGraphs)
+        {
+            auto& deviceResource = deviceResourceMap[commandGraph->_device];
+            commandGraph->_maxSlot = deviceResource.collectStats.maxSlot;
+            commandGraph->accept(*deviceResource.compile);
+        }
+    }
+
+    // dispatch any transfer commands commands
+    for(auto& [deice, deviceResource] : deviceResourceMap)
+    {
+        std::cout<<"Dispatching compile"<<std::endl;
+        deviceResource.compile->context.dispatch();
+    }
+
+    // wait for the transfers to complete
+    for(auto& [deice, deviceResource] : deviceResourceMap)
+    {
+        std::cout<<"Waiting for compile"<<std::endl;
+        deviceResource.compile->context.waitForCompletion();
+    }
+
+    // start the pager
+    if (databasePager)
+    {
+        databasePager->start();
+    }
 }

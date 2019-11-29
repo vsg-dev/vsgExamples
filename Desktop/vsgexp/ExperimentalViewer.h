@@ -2,43 +2,6 @@
 
 namespace vsg
 {
-    class CommandGraph : public Inherit<Group, CommandGraph>
-    {
-    public:
-        CommandGraph(Device* device, int family);
-
-        using Group::accept;
-
-        void accept(DispatchTraversal& dispatchTraversal) const override;
-
-        ref_ptr<Device> _device;
-        int _family = 0;
-        uint32_t _maxSlot = 2;
-        mutable CommandBuffers commandBuffers; // assign one per index? Or just use round robin, each has a CommandPool
-    };
-
-    using Framebuffers = std::vector<ref_ptr<Framebuffer>>;
-
-    class RenderGraph : public Inherit<Group, RenderGraph>
-    {
-    public:
-
-        RenderGraph();
-
-        using Group::accept;
-
-        void accept(DispatchTraversal& dispatchTraversal) const override;
-
-        ref_ptr<Camera> camera; // camera that the trackball controls
-
-        ref_ptr<Window> window;
-        VkRect2D renderArea; // viewport dimensions
-
-        using ClearValues = std::vector<VkClearValue>;
-        ClearValues clearValues; // initialize window colour and depth/stencil
-    };
-
-
     // RecordAndSubmitTask
     class RecordAndSubmitTask : public Inherit<Object, RecordAndSubmitTask>
     {

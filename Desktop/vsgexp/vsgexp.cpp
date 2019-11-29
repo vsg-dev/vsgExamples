@@ -222,13 +222,13 @@ int main(int argc, char** argv)
         auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
 
         // set up Submission with CommandBuffer and signals
-        auto renderAndSubmitTask = vsg::RecordAndSubmitTask::create();
-        renderAndSubmitTask->commandGraphs.emplace_back(commandGraph);
-        renderAndSubmitTask->signalSemaphores.emplace_back(renderFinishedSemaphore);
-        renderAndSubmitTask->databasePager = databasePager;
-        renderAndSubmitTask->windows = viewer->windows();
-        renderAndSubmitTask->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
-        viewer->recordAndSubmitTasks.emplace_back(renderAndSubmitTask);
+        auto recordAndSubmitTask = vsg::RecordAndSubmitTask::create();
+        recordAndSubmitTask->commandGraphs.emplace_back(commandGraph);
+        recordAndSubmitTask->signalSemaphores.emplace_back(renderFinishedSemaphore);
+        recordAndSubmitTask->databasePager = databasePager;
+        recordAndSubmitTask->windows = viewer->windows();
+        recordAndSubmitTask->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
+        viewer->recordAndSubmitTasks.emplace_back(recordAndSubmitTask);
 
         auto presentation = vsg::Presentation::create();
         presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
@@ -236,118 +236,22 @@ int main(int argc, char** argv)
         presentation->queue = window->device()->getQueue(window->physicalDevice()->getPresentFamily());
         viewer->presentation = presentation;
 
-        // work around for compile
-        {
-
-#if 0
-            // defaults to use for memory sizes
-            vsg::BufferPreferences bufferPreferences;
-
-            // find which devices are available
-            using StatsMap = std::map<vsg::Device*, vsg::CollectDescriptorStats>;
-            StatsMap statsMap;
-            for(auto& task : viewer->recordAndSubmitTasks)
-            {
-                for(auto& commandGraph : task->commandGraphs)
-                {
-                    auto& collectStats = statsMap[commandGraph->_device);
-                    commandGraph->accept(collectStats);
-                }
-            }
-
-            using CompileMap = std::map<vsg::Device*, vsg::ref_ptr<vsg::CompileTraversal>>;
-            CompileMap compileMap;
-            for(auto& [device, stats] : statsMap)
-            {
-                auto physicalDevice = device->getPhysicalDevice();
-
-                compile compile = vsg::CompileTraversal::create(device, bufferPreferences);
-                compile->context.commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
-                compile->context.renderPass = window->renderPass();
-                compile->context.graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
-
-                if (maxSets > 0) compile->context.descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
-
-                commandGraph->_maxSlot = collectStats.maxSlot;
-
-                if (camera)
-                {
-                    compile->context.viewport = camera->getViewportState();
-                }
-                else
-                {
-                    compile->context.viewport = vsg::ViewportState::create(window->extent2D());
-                }
-
-                compileMap[device] = ;
-            }
-
-            for(auto& task: viewer->recordAndSubmitTasks)
-            {
-                for(auto& commandGraph : task->commandGraphs)
-                {
-                    auto& compileTraversal = compileMap[commandGraph->_device);
-                    commandGraph->accept(compileTraversal);
-                }
-            }
-
-#endif
-
-            vsg::BufferPreferences bufferPreferences;
-
-            // collect stats
-            vsg::CollectDescriptorStats collectStats;
-            commandGraph->accept(collectStats);
-
-            uint32_t maxSets = collectStats.computeNumDescriptorSets();
-            vsg::DescriptorPoolSizes descriptorPoolSizes = collectStats.computeDescriptorPoolSizes();
-
-
-            // run compile
-            vsg::ref_ptr<vsg::CompileTraversal> compile(new vsg::CompileTraversal(device, bufferPreferences));
-            compile->context.commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
-            compile->context.renderPass = window->renderPass();
-            compile->context.graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
-
-            if (maxSets > 0) compile->context.descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
-
-            commandGraph->_maxSlot = collectStats.maxSlot;
-
-            if (camera)
-            {
-                compile->context.viewport = camera->getViewportState();
-            }
-            else
-            {
-                compile->context.viewport = vsg::ViewportState::create(window->extent2D());
-            }
-
-            commandGraph->accept(*compile);
-
-            compile->context.dispatch();
-            compile->context.waitForCompletion();
-
-            if (databasePager)
-            {
-                databasePager->compileTraversal = compile;
-                databasePager->start();
-            }
-        }
-
+        viewer->compile();
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
         {
+            vsg::ref_ptr<vsg::FrameStamp> frameStamp(viewer->getFrameStamp());
+
             if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
 
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
-            vsg::ref_ptr<vsg::FrameStamp> frameStamp(viewer->getFrameStamp());
 
-            for(auto& renderAndSubmitTask : viewer->recordAndSubmitTasks)
+            for(auto& recordAndSubmitTask : viewer->recordAndSubmitTasks)
             {
-                renderAndSubmitTask->submit(frameStamp);
+                recordAndSubmitTask->submit(frameStamp);
             }
 
             viewer->presentation->present();
