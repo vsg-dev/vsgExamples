@@ -250,7 +250,7 @@ int main(int argc, char** argv)
 
             viewer->recordAndSubmit();
 
-            viewer->presentation->present();
+            viewer->present();
         }
 
     }
