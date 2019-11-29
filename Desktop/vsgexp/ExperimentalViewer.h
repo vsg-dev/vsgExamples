@@ -62,6 +62,11 @@ namespace vsg
 
         bool submitNextFrame() override;
 
+        // new
         void compile(BufferPreferences bufferPreferences = {}) override;
+
+        void recordAndSubmit();
+
+        void present();
     };
 }

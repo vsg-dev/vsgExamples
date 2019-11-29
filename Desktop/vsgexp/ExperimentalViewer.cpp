@@ -341,3 +341,16 @@ void ExperimentalViewer::compile(BufferPreferences bufferPreferences)
         databasePager->start();
     }
 }
+
+void ExperimentalViewer::recordAndSubmit()
+{
+    for(auto& recordAndSubmitTask : recordAndSubmitTasks)
+    {
+        recordAndSubmitTask->submit(_frameStamp);
+    }
+}
+
+void ExperimentalViewer::present()
+{
+    if (presentation) presentation->present();
+}

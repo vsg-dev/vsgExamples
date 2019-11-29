@@ -248,15 +248,9 @@ int main(int argc, char** argv)
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
-
-            for(auto& recordAndSubmitTask : viewer->recordAndSubmitTasks)
-            {
-                recordAndSubmitTask->submit(frameStamp);
-            }
+            viewer->recordAndSubmit();
 
             viewer->presentation->present();
-
-            viewer->presentation->queue->waitIdle();
         }
 
     }
