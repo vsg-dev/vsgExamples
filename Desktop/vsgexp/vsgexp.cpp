@@ -238,16 +238,70 @@ int main(int argc, char** argv)
 
         // work around for compile
         {
+
+#if 0
+            // defaults to use for memory sizes
+            vsg::BufferPreferences bufferPreferences;
+
+            // find which devices are available
+            using StatsMap = std::map<vsg::Device*, vsg::CollectDescriptorStats>;
+            StatsMap statsMap;
+            for(auto& task : viewer->recordAndSubmitTasks)
+            {
+                for(auto& commandGraph : task->commandGraphs)
+                {
+                    auto& collectStats = statsMap[commandGraph->_device);
+                    commandGraph->accept(collectStats);
+                }
+            }
+
+            using CompileMap = std::map<vsg::Device*, vsg::ref_ptr<vsg::CompileTraversal>>;
+            CompileMap compileMap;
+            for(auto& [device, stats] : statsMap)
+            {
+                auto physicalDevice = device->getPhysicalDevice();
+
+                compile compile = vsg::CompileTraversal::create(device, bufferPreferences);
+                compile->context.commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
+                compile->context.renderPass = window->renderPass();
+                compile->context.graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
+
+                if (maxSets > 0) compile->context.descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
+
+                commandGraph->_maxSlot = collectStats.maxSlot;
+
+                if (camera)
+                {
+                    compile->context.viewport = camera->getViewportState();
+                }
+                else
+                {
+                    compile->context.viewport = vsg::ViewportState::create(window->extent2D());
+                }
+
+                compileMap[device] = ;
+            }
+
+            for(auto& task: viewer->recordAndSubmitTasks)
+            {
+                for(auto& commandGraph : task->commandGraphs)
+                {
+                    auto& compileTraversal = compileMap[commandGraph->_device);
+                    commandGraph->accept(compileTraversal);
+                }
+            }
+
+#endif
+
+            vsg::BufferPreferences bufferPreferences;
+
             // collect stats
             vsg::CollectDescriptorStats collectStats;
-            //commandGraph->accept(collectStats);
-            commandGraph->traverse(collectStats);
+            commandGraph->accept(collectStats);
 
             uint32_t maxSets = collectStats.computeNumDescriptorSets();
             vsg::DescriptorPoolSizes descriptorPoolSizes = collectStats.computeDescriptorPoolSizes();
 
-            // defaults to use for memory sizes
-            vsg::BufferPreferences bufferPreferences;
 
             // run compile
             vsg::ref_ptr<vsg::CompileTraversal> compile(new vsg::CompileTraversal(device, bufferPreferences));
