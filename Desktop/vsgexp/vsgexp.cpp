@@ -212,12 +212,8 @@ int main(int argc, char** argv)
         auto physicalDevice = window->physicalDevice();
 
         // set up commandGraph to rendering viewport
-        auto commandGraph = vsg::CommandGraph::create(device, physicalDevice->getGraphicsFamily());
+        auto commandGraph = vsg::CommandGraph::create(window.get());
         commandGraph->addChild(renderGraph);
-        for(size_t i = 0; i < window->numFrames(); ++i)
-        {
-            commandGraph->commandBuffers.emplace_back(window->commandBuffer(i));
-        }
 
         auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
 

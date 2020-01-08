@@ -227,11 +227,7 @@ int main(int argc, char** argv)
     if (useNewViewer)
     {
         // set up commandGraph to rendering viewport
-        auto commandGraph = vsg::CommandGraph::create(window->device(), window->physicalDevice()->getGraphicsFamily());
-        for(size_t i = 0; i < window->numFrames(); ++i)
-        {
-            commandGraph->commandBuffers.emplace_back(window->commandBuffer(i));
-        }
+        auto commandGraph = vsg::CommandGraph::create(window);
 
         auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageData._imageView, window);
 
