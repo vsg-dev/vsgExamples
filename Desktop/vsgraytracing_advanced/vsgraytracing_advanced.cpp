@@ -201,10 +201,8 @@ int main(int argc, char** argv)
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, vsg::Descriptors{ accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor });
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, raytracingPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
 
-
-    auto scenegraph = vsg::Commands::create();
-
     // state group to bind the pipeline and descriptorset
+    auto scenegraph = vsg::Commands::create();
     scenegraph->addChild(bindRayTracingPipeline);
     scenegraph->addChild(bindDescriptorSets);
 
@@ -225,7 +223,6 @@ int main(int argc, char** argv)
 
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
-
 
     if (useNewViewer)
     {

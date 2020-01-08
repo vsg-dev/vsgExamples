@@ -3,7 +3,6 @@
 
 #include "../vsgexp/ExperimentalViewer.h"
 
-
 vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& imageCreateInfo, VkImageAspectFlags aspectFlags, VkImageLayout targetImageLayout)
 {
     vsg::Device* device = context.device;
@@ -157,14 +156,14 @@ int main(int argc, char** argv)
     auto accelGeometry = vsg::AccelerationGeometry::create();
     accelGeometry->_verts = vertices;
     accelGeometry->_indices = indices;
-    
+
     // create bottom level acceleration structure using accel geom
     auto blas = vsg::BottomLevelAccelerationStructure::create(window->device());
     blas->_geometries.push_back(accelGeometry);
 
     // create top level acceleration structure
     auto tlas = vsg::TopLevelAccelerationStructure::create(window->device());
-    
+
     // add geometry instance to top level acceleration structure that uses the bottom level structure
     auto geominstance = vsg::GeometryInstance::create();
     geominstance->_accelerationStructure = blas;
@@ -223,21 +222,16 @@ int main(int argc, char** argv)
     raytracingUniformDescriptor->copyDataListToBuffers();
 
     auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, vsg::PushConstantRanges{});
-
     auto raytracingPipeline = vsg::RayTracingPipeline::create(pipelineLayout, shaderStages, shaderGroups);
-
     auto bindRayTracingPipeline = vsg::BindRayTracingPipeline::create(raytracingPipeline);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, vsg::Descriptors{ accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor });
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, raytracingPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
 
-
-    auto scenegraph = vsg::Commands::create();
-
     // state group to bind the pipeline and descriptorset
+    auto scenegraph = vsg::Commands::create();
     scenegraph->addChild(bindRayTracingPipeline);
     scenegraph->addChild(bindDescriptorSets);
-
 
     // setup tracing of rays
     auto traceRays = vsg::TraceRays::create();
@@ -253,8 +247,6 @@ int main(int argc, char** argv)
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
-
-    // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
 
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
@@ -307,6 +299,7 @@ int main(int argc, char** argv)
     }
     else
     {
+        // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
         //window->addStage(vsg::RayTracingStage::create(scenegraph, storageImageData._imageView, VkExtent2D{ width, height }, camera));
 
         // compile the Vulkan objects
