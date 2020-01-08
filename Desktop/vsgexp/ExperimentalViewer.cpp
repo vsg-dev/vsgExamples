@@ -81,9 +81,6 @@ void ExperimentalViewer::compile(BufferPreferences bufferPreferences)
         return;
     }
 
-    // TODO work out how to manage the pager
-    DatabasePager* databasePager = nullptr;
-
     struct DeviceResources
     {
         vsg::CollectDescriptorStats collectStats;
@@ -116,20 +113,32 @@ void ExperimentalViewer::compile(BufferPreferences bufferPreferences)
         deviceResource.compile->context.descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
         deviceResource.compile->context.commandPool = vsg::CommandPool::create(device, physicalDevice->getGraphicsFamily());
         deviceResource.compile->context.graphicsQueue = device->getQueue(physicalDevice->getGraphicsFamily());
-
-        // assign the compile traversal settings to the DatabasePager (TODO need to find a proper mechanism)
-        if (databasePager) databasePager->compileTraversal = deviceResource.compile;
     }
 
 
     // create the Vulkan objects
     for(auto& task: recordAndSubmitTasks)
     {
+        std::set<Device*> devices;
+
         for(auto& commandGraph : task->commandGraphs)
         {
+            if (commandGraph->_device) devices.insert(commandGraph->_device);
+
             auto& deviceResource = deviceResourceMap[commandGraph->_device];
             commandGraph->_maxSlot = deviceResource.collectStats.maxSlot;
             commandGraph->accept(*deviceResource.compile);
+        }
+
+        if (task->databasePager)
+        {
+            // crude hack for taking first device as the one for the DatabasePager to compile resourcces for.
+            for(auto& commandGraph : task->commandGraphs)
+            {
+                auto& deviceResource = deviceResourceMap[commandGraph->_device];
+                task->databasePager->compileTraversal = deviceResource.compile;
+                break;
+            }
         }
     }
 
@@ -147,10 +156,24 @@ void ExperimentalViewer::compile(BufferPreferences bufferPreferences)
         deviceResource.compile->context.waitForCompletion();
     }
 
-    // start the pager
-    if (databasePager)
+    // start any DatabasePagers
+    for(auto& task: recordAndSubmitTasks)
     {
-        databasePager->start();
+        if (task->databasePager)
+        {
+            task->databasePager->start();
+        }
+    }
+}
+
+void ExperimentalViewer::update()
+{
+    for(auto& task: recordAndSubmitTasks)
+    {
+        if (task->databasePager)
+        {
+            task->databasePager->updateSceneGraph(_frameStamp);
+        }
     }
 }
 

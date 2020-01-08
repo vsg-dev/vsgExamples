@@ -33,6 +33,8 @@ namespace vsg
         // new
         void compile(BufferPreferences bufferPreferences = {}) override;
 
+        void update();
+
         void recordAndSubmit();
 
         void present();

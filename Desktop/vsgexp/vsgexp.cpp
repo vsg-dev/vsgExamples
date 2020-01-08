@@ -243,10 +243,10 @@ int main(int argc, char** argv)
         {
             vsg::ref_ptr<vsg::FrameStamp> frameStamp(viewer->getFrameStamp());
 
-            if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
-
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
+
+            viewer->update();
 
             viewer->recordAndSubmit();
 
