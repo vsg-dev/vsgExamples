@@ -290,21 +290,7 @@ int main(int argc, char** argv)
         presentation->queue = window->device()->getQueue(window->physicalDevice()->getPresentFamily());
         viewer->presentation = presentation;
 
-        // need to do compile of vsg_scene
-        // first compute required resources
-        // allocate required resource
-
-        // TODO work around for compile
-        {
-            // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
-            auto graphicsStage = vsg::GraphicsStage::create(scenegraph, camera);
-            window->addStage(graphicsStage);
-
-            // compile the Vulkan objects
-
-            viewer->compile();
-        }
-
+        viewer->compile();
 
         // rendering main loop
         while (viewer->advanceToNextFrame())
@@ -312,22 +298,16 @@ int main(int argc, char** argv)
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
-            vsg::ref_ptr<vsg::FrameStamp> frameStamp(viewer->getFrameStamp());
+            viewer->update();
 
-            for(auto& recordAndSubmitTask : viewer->recordAndSubmitTasks)
-            {
-                recordAndSubmitTask->submit(frameStamp);
-            }
+            viewer->recordAndSubmit();
 
-            viewer->presentation->present();
-
-            viewer->presentation->queue->waitIdle();
+            viewer->present();
         }
-
     }
     else
     {
-        window->addStage(vsg::RayTracingStage::create(scenegraph, storageImageData._imageView, VkExtent2D{ width, height }, camera));
+        //window->addStage(vsg::RayTracingStage::create(scenegraph, storageImageData._imageView, VkExtent2D{ width, height }, camera));
 
         // compile the Vulkan objects
         viewer->compile();

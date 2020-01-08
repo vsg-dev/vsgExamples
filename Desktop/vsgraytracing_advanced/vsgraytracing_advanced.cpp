@@ -1,6 +1,8 @@
 #include <vsg/all.h>
 #include <iostream>
 
+#include "../vsgexp/ExperimentalViewer.h"
+
 vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& imageCreateInfo, VkImageAspectFlags aspectFlags, VkImageLayout targetImageLayout)
 {
     vsg::Device* device = context.device;
@@ -48,13 +50,14 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1280, 720), {"--window", "-w"});
+    auto useNewViewer = arguments.read("--new");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     // create the viewer and assign window(s) to it
-    auto viewer = vsg::Viewer::create();
+    auto viewer = vsg::ExperimentalViewer::create();
 
     auto windowTraits = vsg::Window::Traits::create();
     windowTraits->windowTitle = "vsgraytracing";
@@ -220,24 +223,74 @@ int main(int argc, char** argv)
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
-    // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(vsg::RayTracingStage::create(scenegraph, storageImageData._imageView, VkExtent2D{ width, height }, camera));
-
-    // compile the Vulkan objects
-    viewer->compile();
-
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-    // main frame loop
-    while (viewer->advanceToNextFrame())
+
+    if (useNewViewer)
     {
-        // pass any events into EventHandlers assigned to the Viewer
-        viewer->handleEvents();
+        // set up commandGraph to rendering viewport
+        auto commandGraph = vsg::CommandGraph::create(window->device(), window->physicalDevice()->getGraphicsFamily());
+        for(size_t i = 0; i < window->numFrames(); ++i)
+        {
+            commandGraph->commandBuffers.emplace_back(window->commandBuffer(i));
+        }
 
-        viewer->populateNextFrame();
+        auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageData._imageView, window);
 
-        viewer->submitNextFrame();
+        commandGraph->addChild(scenegraph);
+        commandGraph->addChild(copyImageViewToWindow);
+
+
+        auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
+
+        // set up RecordAndSubmitTask with CommandBuffer and signals
+        auto recordAndSubmitTask = vsg::RecordAndSubmitTask::create();
+        recordAndSubmitTask->commandGraphs.emplace_back(commandGraph);
+        recordAndSubmitTask->signalSemaphores.emplace_back(renderFinishedSemaphore);
+        recordAndSubmitTask->windows = viewer->windows();
+        recordAndSubmitTask->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
+        viewer->recordAndSubmitTasks.emplace_back(recordAndSubmitTask);
+
+        auto presentation = vsg::Presentation::create();
+        presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
+        presentation->windows = viewer->windows();
+        presentation->queue = window->device()->getQueue(window->physicalDevice()->getPresentFamily());
+        viewer->presentation = presentation;
+
+        viewer->compile();
+
+        // rendering main loop
+        while (viewer->advanceToNextFrame())
+        {
+            // pass any events into EventHandlers assigned to the Viewer
+            viewer->handleEvents();
+
+            viewer->update();
+
+            viewer->recordAndSubmit();
+
+            viewer->present();
+        }
+    }
+    else
+    {
+        // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
+        //window->addStage(vsg::RayTracingStage::create(scenegraph, storageImageData._imageView, VkExtent2D{ width, height }, camera));
+
+        // compile the Vulkan objects
+        viewer->compile();
+
+        // main frame loop
+        while (viewer->advanceToNextFrame())
+        {
+            // pass any events into EventHandlers assigned to the Viewer
+            viewer->handleEvents();
+
+            viewer->populateNextFrame();
+
+            viewer->submitNextFrame();
+        }
     }
 
     // clean up done automatically thanks to ref_ptr<>

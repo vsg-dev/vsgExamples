@@ -1,4 +1,7 @@
-set(SOURCES vsgraytracing_advanced.cpp)
+set(SOURCES
+    ../vsgexp/ExperimentalViewer.cpp
+    vsgraytracing_advanced.cpp
+)
 
 add_executable(vsgraytracing_advanced ${SOURCES})
 
