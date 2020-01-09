@@ -1,8 +1,6 @@
 #include <vsg/all.h>
 #include <iostream>
 
-#include "../vsgexp/ExperimentalViewer.h"
-
 vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& imageCreateInfo, VkImageAspectFlags aspectFlags, VkImageLayout targetImageLayout)
 {
     vsg::Device* device = context.device;
@@ -56,7 +54,7 @@ int main(int argc, char** argv)
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     // create the viewer and assign window(s) to it
-    auto viewer = vsg::ExperimentalViewer::create();
+    auto viewer = vsg::Viewer::create();
 
     auto windowTraits = vsg::Window::Traits::create();
     windowTraits->windowTitle = "vsgraytracing";

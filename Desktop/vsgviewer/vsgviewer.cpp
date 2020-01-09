@@ -167,17 +167,8 @@ int main(int argc, char** argv)
         if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
     }
 
-    // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
-    auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
-    graphicsStage->databasePager = databasePager;
-    window->addStage(graphicsStage);
-
-    // compile the Vulkan objects
-    viewer->compile();
-
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
 
     if (pathFilename.empty())
     {
@@ -198,18 +189,22 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+
+    viewer->compile();
 
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
-        if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
-
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
-        viewer->populateNextFrame();
+        viewer->update();
 
-        viewer->submitNextFrame();
+        viewer->recordAndSubmit();
+
+        viewer->present();
     }
 
     // clean up done automatically thanks to ref_ptr<>

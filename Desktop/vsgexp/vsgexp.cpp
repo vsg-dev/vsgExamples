@@ -6,8 +6,6 @@
 
 #include "../vsgviewer/AnimationPath.h"
 
-#include "ExperimentalViewer.h"
-
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -127,7 +125,7 @@ int main(int argc, char** argv)
     }
 
     // create the viewer and assign window(s) to it
-    auto viewer = vsg::ExperimentalViewer::create();
+    auto viewer = vsg::Viewer::create();
 
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
     if (!window)

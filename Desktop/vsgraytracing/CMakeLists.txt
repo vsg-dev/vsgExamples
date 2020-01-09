@@ -1,5 +1,4 @@
 set(SOURCES
-    ../vsgexp/ExperimentalViewer.cpp
     vsgraytracing.cpp
 )
 

@@ -1,6 +1,5 @@
 set(SOURCES
     ../vsgviewer/AnimationPath.cpp
-    ExperimentalViewer.cpp
     vsgexp.cpp
 )
 

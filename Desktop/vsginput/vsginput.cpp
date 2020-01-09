@@ -47,8 +47,6 @@ public:
         auto height = configure.height;
 
         vsg::ref_ptr<vsg::Window> window(configure.window);
-        vsg::ref_ptr<vsg::GraphicsStage> graphicsStage = vsg::ref_ptr<vsg::GraphicsStage>(dynamic_cast<vsg::GraphicsStage*>(window->stages()[0].get()));
-        vsg::Camera* camera = graphicsStage->_camera;
 
         // auto orthographic = vsg::Orthographic::create(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0);
         // camera->setProjectionMatrix(orthographic);
@@ -231,9 +229,6 @@ int main(int argc, char** argv)
 
     auto camera = vsg::Camera::create(projection, lookAt, viewport);
 
-    // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(vsg::GraphicsStage::create(scenegraph, camera));
-
     // keyboard input for demo
     vsg::ref_ptr<KeyboardInput> keyboardInput = KeyboardInput::create(viewer, scenegraph, searchPaths);
 
@@ -241,6 +236,9 @@ int main(int argc, char** argv)
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer), keyboardInput});
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
+
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     // compile the Vulkan objects
     viewer->compile();
@@ -253,15 +251,17 @@ int main(int argc, char** argv)
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
+        viewer->update();
+
         if (keyboardInput->shouldRecompile())
         {
             keyboardInput->reset(); // this releases the graphicspipline implementation
             viewer->compile();
         }
 
-        viewer->populateNextFrame();
+        viewer->recordAndSubmit();
 
-        viewer->submitNextFrame();
+        viewer->present();
     }
 
     auto runtime = std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now() - before).count();
