@@ -34,7 +34,6 @@ int main(int argc, char** argv)
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
-    auto useNewViewer = arguments.read("--new");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -192,54 +191,22 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
-    if (useNewViewer)
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+
+    viewer->compile();
+
+    // rendering main loop
+    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        // pass any events into EventHandlers assigned to the Viewer
+        viewer->handleEvents();
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+        viewer->update();
 
-        viewer->compile();
+        viewer->recordAndSubmit();
 
-        // rendering main loop
-        while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
-        {
-            vsg::ref_ptr<vsg::FrameStamp> frameStamp(viewer->getFrameStamp());
-
-            // pass any events into EventHandlers assigned to the Viewer
-            viewer->handleEvents();
-
-            viewer->update();
-
-            viewer->recordAndSubmit();
-
-            viewer->present();
-        }
-
-    }
-    else
-    {
-        // add a GraphicsStage to the Window to do dispatch of the command graph to the command buffer(s)
-        auto graphicsStage = vsg::GraphicsStage::create(vsg_scene, camera);
-        graphicsStage->databasePager = databasePager;
-        window->addStage(graphicsStage);
-
-        // compile the Vulkan objects
-
-        viewer->compile();
-
-
-        // rendering main loop
-        while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
-        {
-            if (databasePager) databasePager->updateSceneGraph(viewer->getFrameStamp());
-
-            // pass any events into EventHandlers assigned to the Viewer
-            viewer->handleEvents();
-
-            viewer->populateNextFrame();
-
-            viewer->submitNextFrame();
-        }
+        viewer->present();
     }
 
     // clean up done automatically thanks to ref_ptr<>
