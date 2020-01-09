@@ -208,9 +208,6 @@ int main(int argc, char** argv)
         renderGraph->clearValues[0].color = VkClearColorValue{0.2f, 0.4f, 0.5f, 1.0f}; // window->clearColor()
         renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
 
-        auto device = window->device();
-        auto physicalDevice = window->physicalDevice();
-
         // set up commandGraph to rendering viewport
         auto commandGraph = vsg::CommandGraph::create(window.get());
         commandGraph->addChild(renderGraph);
