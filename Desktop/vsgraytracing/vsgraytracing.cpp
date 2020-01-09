@@ -261,22 +261,7 @@ int main(int argc, char** argv)
         commandGraph->addChild(scenegraph);
         commandGraph->addChild(copyImageViewToWindow);
 
-
-        auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
-
-        // set up RecordAndSubmitTask with CommandBuffer and signals
-        auto recordAndSubmitTask = vsg::RecordAndSubmitTask::create();
-        recordAndSubmitTask->commandGraphs.emplace_back(commandGraph);
-        recordAndSubmitTask->signalSemaphores.emplace_back(renderFinishedSemaphore);
-        recordAndSubmitTask->windows = viewer->windows();
-        recordAndSubmitTask->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
-        viewer->recordAndSubmitTasks.emplace_back(recordAndSubmitTask);
-
-        auto presentation = vsg::Presentation::create();
-        presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
-        presentation->windows = viewer->windows();
-        presentation->queue = window->device()->getQueue(window->physicalDevice()->getPresentFamily());
-        viewer->presentation = presentation;
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         viewer->compile();
 

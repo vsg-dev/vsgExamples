@@ -73,6 +73,37 @@ bool ExperimentalViewer::submitNextFrame()
     return Viewer::submitNextFrame();
 }
 
+
+//
+// new
+//
+void ExperimentalViewer::assignRecordAndSubmitTaskAndPresentation(CommandGraphs commandGraphs, DatabasePager* databasePager)
+{
+    if (_windows.empty()) return;
+
+    // TODO need to resolve what to do about graphic vs non graphic operations and mulitple windows
+    Window* window = _windows.front();
+    Device* device = window->device();
+    PhysicalDevice* physicalDevice = window->physicalDevice();
+
+    auto renderFinishedSemaphore = vsg::Semaphore::create(device);
+
+    // set up Submission with CommandBuffer and signals
+    auto recordAndSubmitTask = vsg::RecordAndSubmitTask::create();
+    recordAndSubmitTask->commandGraphs = commandGraphs;
+    recordAndSubmitTask->signalSemaphores.emplace_back(renderFinishedSemaphore);
+    recordAndSubmitTask->databasePager = databasePager;
+    recordAndSubmitTask->windows = _windows;
+    recordAndSubmitTask->queue = device->getQueue(physicalDevice->getGraphicsFamily());
+    recordAndSubmitTasks.emplace_back(recordAndSubmitTask);
+
+    presentation = vsg::Presentation::create();
+    presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
+    presentation->windows = _windows;
+    presentation->queue = device->getQueue(physicalDevice->getPresentFamily());
+}
+
+
 void ExperimentalViewer::compile(BufferPreferences bufferPreferences)
 {
     if (recordAndSubmitTasks.empty())

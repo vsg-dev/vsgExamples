@@ -215,22 +215,7 @@ int main(int argc, char** argv)
         auto commandGraph = vsg::CommandGraph::create(window.get());
         commandGraph->addChild(renderGraph);
 
-        auto renderFinishedSemaphore = vsg::Semaphore::create(window->device());
-
-        // set up Submission with CommandBuffer and signals
-        auto recordAndSubmitTask = vsg::RecordAndSubmitTask::create();
-        recordAndSubmitTask->commandGraphs.emplace_back(commandGraph);
-        recordAndSubmitTask->signalSemaphores.emplace_back(renderFinishedSemaphore);
-        recordAndSubmitTask->databasePager = databasePager;
-        recordAndSubmitTask->windows = viewer->windows();
-        recordAndSubmitTask->queue = window->device()->getQueue(window->physicalDevice()->getGraphicsFamily());
-        viewer->recordAndSubmitTasks.emplace_back(recordAndSubmitTask);
-
-        auto presentation = vsg::Presentation::create();
-        presentation->waitSemaphores.emplace_back(renderFinishedSemaphore);
-        presentation->windows = viewer->windows();
-        presentation->queue = window->device()->getQueue(window->physicalDevice()->getPresentFamily());
-        viewer->presentation = presentation;
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
 
         viewer->compile();
 

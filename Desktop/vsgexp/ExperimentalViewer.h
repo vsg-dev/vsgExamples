@@ -31,6 +31,8 @@ namespace vsg
         bool submitNextFrame() override;
 
         // new
+        void assignRecordAndSubmitTaskAndPresentation(CommandGraphs commandGraphs, DatabasePager* databasePager = nullptr);
+
         void compile(BufferPreferences bufferPreferences = {}) override;
 
         void update();
