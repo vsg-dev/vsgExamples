@@ -194,23 +194,7 @@ int main(int argc, char** argv)
 
     if (useNewViewer)
     {
-        // set up the render graph for viewport & scene
-        auto renderGraph = vsg::RenderGraph::create();
-        renderGraph->addChild(vsg_scene);
-
-        renderGraph->camera = camera;
-        renderGraph->window = window;
-
-        renderGraph->renderArea.offset = {0, 0};
-        renderGraph->renderArea.extent = window->extent2D();
-
-        renderGraph->clearValues.resize(2);
-        renderGraph->clearValues[0].color = VkClearColorValue{0.2f, 0.4f, 0.5f, 1.0f}; // window->clearColor()
-        renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
-
-        // set up commandGraph to rendering viewport
-        auto commandGraph = vsg::CommandGraph::create(window.get());
-        commandGraph->addChild(renderGraph);
+        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
 
