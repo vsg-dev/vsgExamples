@@ -87,15 +87,6 @@ int main(int argc, char** argv)
     viewer->addWindow(window);
 
 
-    // query raytracing properties of device
-    VkPhysicalDeviceRayTracingPropertiesNV rayTracingProperties;
-    rayTracingProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
-    rayTracingProperties.pNext = nullptr;
-    VkPhysicalDeviceProperties2 deviceProps2;
-    deviceProps2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-    deviceProps2.pNext = &rayTracingProperties;
-    vkGetPhysicalDeviceProperties2(*window->device()->getPhysicalDevice(), &deviceProps2);
-
     // for convenience create a compile context for creating our storage image
     vsg::CompileTraversal compile(window->device());
     compile.context.commandPool = vsg::CommandPool::create(window->device(), window->device()->getPhysicalDevice()->getGraphicsFamily());
