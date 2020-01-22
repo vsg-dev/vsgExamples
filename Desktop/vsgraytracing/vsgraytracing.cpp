@@ -48,7 +48,10 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1280, 720), {"--window", "-w"});
+    auto filename = arguments.value(std::string(), "-i");
+    if (arguments.read("-m")) filename = "models/raytracing_scene.vsgt";
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
 
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -128,40 +131,57 @@ int main(int argc, char** argv)
 
     auto shaderGroups = vsg::RayTracingShaderGroups{ raygenShaderGroup, missShaderGroup, closestHitShaderGroup };
 
+    // create camera matrices and uniform for shader
+    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
+    vsg::ref_ptr<vsg::LookAt> lookAt;
 
-    // acceleration structures
-    // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create(
+    vsg::ref_ptr<vsg::TopLevelAccelerationStructure> tlas;
+    if (filename.empty())
     {
-        {-1.0f, -1.0f, 0.0f},
-        { 1.0f, -1.0f, 0.0f},
-        { 0.0f,  1.0f, 0.0f}
-    });
+        // acceleration structures
+        // set up vertex and index arrays
+        auto vertices = vsg::vec3Array::create(
+        {
+            {-1.0f, -1.0f, 0.0f},
+            { 1.0f, -1.0f, 0.0f},
+            { 0.0f,  1.0f, 0.0f}
+        });
 
-    auto indices = vsg::uintArray::create(
+        auto indices = vsg::uintArray::create(
+        {
+            0, 1, 2
+        });
+
+        // create acceleration geometry
+        auto accelGeometry = vsg::AccelerationGeometry::create();
+        accelGeometry->_verts = vertices;
+        accelGeometry->_indices = indices;
+
+        // create bottom level acceleration structure using accel geom
+        auto blas = vsg::BottomLevelAccelerationStructure::create(window->device());
+        blas->_geometries.push_back(accelGeometry);
+
+        // create top level acceleration structure
+        tlas = vsg::TopLevelAccelerationStructure::create(window->device());
+
+        // add geometry instance to top level acceleration structure that uses the bottom level structure
+        auto geominstance = vsg::GeometryInstance::create();
+        geominstance->_accelerationStructure = blas;
+        geominstance->_transform = vsg::mat4();
+
+        tlas->_geometryInstances.push_back(geominstance);
+
+        lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, -2.5), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
+    }
+    else
     {
-        0, 1, 2
-    });
+        auto loaded_scene = vsg::read_cast<vsg::Node>(vsg::findFile(filename, searchPaths));
+        vsg::AccelerationStructureBuildTraversal buildAccelStruct(window->device());
+        loaded_scene->accept(buildAccelStruct);
+        tlas = buildAccelStruct._tlas;
 
-    // create acceleration geometry
-    auto accelGeometry = vsg::AccelerationGeometry::create();
-    accelGeometry->_verts = vertices;
-    accelGeometry->_indices = indices;
-
-    // create bottom level acceleration structure using accel geom
-    auto blas = vsg::BottomLevelAccelerationStructure::create(window->device());
-    blas->_geometries.push_back(accelGeometry);
-
-    // create top level acceleration structure
-    auto tlas = vsg::TopLevelAccelerationStructure::create(window->device());
-
-    // add geometry instance to top level acceleration structure that uses the bottom level structure
-    auto geominstance = vsg::GeometryInstance::create();
-    geominstance->_accelerationStructure = blas;
-    geominstance->_transform = vsg::mat4();
-
-    tlas->_geometryInstances.push_back(geominstance);
-
+        lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 1.0, -5.0), vsg::dvec3(0.0, 0.5, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
+    }
 
     // create storage image to render into
     VkImageCreateInfo storageImageCreateInfo;
@@ -184,9 +204,6 @@ int main(int argc, char** argv)
 
     vsg::ImageData storageImageData = createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-    // create camera matrices and uniform for shader
-    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
-    auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, -2.5), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
 
     auto raytracingUniformValues = new RayTracingUniformValue();
     perspective->get_inverse(raytracingUniformValues->value().projInverse);
