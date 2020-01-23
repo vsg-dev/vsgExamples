@@ -195,7 +195,7 @@ int main(int argc, char** argv)
     auto quiet = arguments.read("-q");
     auto inputFilename = arguments.value(std::string(""), "-i");
     auto outputFilename = arguments.value(std::string(""), "-o");
-    vsg::ref_ptr<vsg::DispatchTraversal> vsg_dispatchTraversal(arguments.read("-d") ? new vsg::DispatchTraversal : nullptr);
+    vsg::ref_ptr<vsg::RecordTraversal> vsg_recordTraversal(arguments.read("-d") ? new vsg::RecordTraversal : nullptr);
     vsg::ref_ptr<VsgConstVisitor> vsg_ConstVisitor(arguments.read("-c") ? new VsgConstVisitor : nullptr);
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -238,15 +238,15 @@ int main(int argc, char** argv)
 
     if (vsg_root)
     {
-        if (vsg_dispatchTraversal)
+        if (vsg_recordTraversal)
         {
-            std::cout<<"using DispatchTraversal"<<std::endl;
+            std::cout<<"using RecordTraversal"<<std::endl;
             for(unsigned int i=0; i<numTraversals; ++i)
             {
-                vsg_root->accept(*vsg_dispatchTraversal);
-                //numNodesVisited += vsg_dispatchTraversal->numNodes;
-                //numNodes = vsg_dispatchTraversal->numNodes;
-                //vsg_dispatchTraversal->numNodes = 0;
+                vsg_root->accept(*vsg_recordTraversal);
+                //numNodesVisited += vsg_recordTraversal->numNodes;
+                //numNodes = vsg_recordTraversal->numNodes;
+                //vsg_recordTraversal->numNodes = 0;
             }
         }
         else if (vsg_ConstVisitor)

@@ -91,8 +91,8 @@ int main(int argc, char** argv)
     // submit commands
     vsg::submitCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer)
     {
-        vsg::DispatchTraversal dispatchTraversals(&commandBuffer);
-        commandGraph->accept(dispatchTraversals);
+        vsg::RecordTraversal recordTraversal(&commandBuffer);
+        commandGraph->accept(recordTraversal);
     });
 
     auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();
