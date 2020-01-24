@@ -154,22 +154,22 @@ int main(int argc, char** argv)
 
         // create acceleration geometry
         auto accelGeometry = vsg::AccelerationGeometry::create();
-        accelGeometry->_verts = vertices;
-        accelGeometry->_indices = indices;
+        accelGeometry->verts = vertices;
+        accelGeometry->indices = indices;
 
         // create bottom level acceleration structure using accel geom
         auto blas = vsg::BottomLevelAccelerationStructure::create(window->device());
-        blas->_geometries.push_back(accelGeometry);
+        blas->geometries.push_back(accelGeometry);
 
         // create top level acceleration structure
         tlas = vsg::TopLevelAccelerationStructure::create(window->device());
 
         // add geometry instance to top level acceleration structure that uses the bottom level structure
         auto geominstance = vsg::GeometryInstance::create();
-        geominstance->_accelerationStructure = blas;
-        geominstance->_transform = vsg::mat4();
+        geominstance->accelerationStructure = blas;
+        geominstance->transform = vsg::mat4();
 
-        tlas->_geometryInstances.push_back(geominstance);
+        tlas->geometryInstances.push_back(geominstance);
 
         lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, -2.5), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     }
@@ -178,7 +178,7 @@ int main(int argc, char** argv)
         auto loaded_scene = vsg::read_cast<vsg::Node>(vsg::findFile(filename, searchPaths));
         vsg::AccelerationStructureBuildTraversal buildAccelStruct(window->device());
         loaded_scene->accept(buildAccelStruct);
-        tlas = buildAccelStruct._tlas;
+        tlas = buildAccelStruct.tlas;
 
         lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 1.0, -5.0), vsg::dvec3(0.0, 0.5, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     }
