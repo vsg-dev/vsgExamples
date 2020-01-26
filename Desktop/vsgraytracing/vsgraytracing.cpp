@@ -176,7 +176,7 @@ int main(int argc, char** argv)
     else
     {
         auto loaded_scene = vsg::read_cast<vsg::Node>(vsg::findFile(filename, searchPaths));
-        vsg::AccelerationStructureBuildTraversal buildAccelStruct(window->device());
+        vsg::BuildAccelerationStructureTraversal buildAccelStruct(window->device());
         loaded_scene->accept(buildAccelStruct);
         tlas = buildAccelStruct.tlas;
 
