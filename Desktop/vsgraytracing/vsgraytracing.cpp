@@ -175,7 +175,22 @@ int main(int argc, char** argv)
     }
     else
     {
-        auto loaded_scene = vsg::read_cast<vsg::Node>(vsg::findFile(filename, searchPaths));
+        vsg::Path path = vsg::fileExists(filename) ? filename : vsg::findFile(filename, searchPaths);
+        if (path.empty())
+        {
+            std::cout<<"Could not find file "<<filename<<std::endl;
+            return 1;
+        }
+
+        auto loaded_scene = vsg::read_cast<vsg::Node>(path);
+        if (!loaded_scene) loaded_scene = vsg::read_cast<vsg::Node>(filename);
+
+        if (!loaded_scene)
+        {
+            std::cout<<"Could not load model : "<<filename<<std::endl;
+            return 1;
+        }
+
         vsg::BuildAccelerationStructureTraversal buildAccelStruct(window->device());
         loaded_scene->accept(buildAccelStruct);
         tlas = buildAccelStruct.tlas;
