@@ -1,5 +1,6 @@
 add_subdirectory(vsgcompute)
 add_subdirectory(vsgdraw)
+add_subdirectory(vsgsubpass)
 add_subdirectory(vsgviewer)
 add_subdirectory(vsginput)
 add_subdirectory(vsgraytracing)
