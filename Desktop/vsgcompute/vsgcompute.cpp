@@ -39,17 +39,26 @@ int main(int argc, char** argv)
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
+    // get the physical device that suports the required compute queue
     vsg::ref_ptr<vsg::Instance> instance = vsg::Instance::create(instanceExtensions, validatedNames);
-    vsg::ref_ptr<vsg::PhysicalDevice> physicalDevice = vsg::PhysicalDevice::create(instance, VK_QUEUE_COMPUTE_BIT);
-    vsg::ref_ptr<vsg::Device> device = vsg::Device::create(physicalDevice, validatedNames, deviceExtensions);
+    auto [physicalDevice, computeQueueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_COMPUTE_BIT);
+    if (!physicalDevice || computeQueueFamily<0)
+    {
+        std::cout<<"No vkPhysicalDevice available that supports compute."<<std::endl;
+        return 1;
+    }
+
+    // create the logical device with specified queue, layers and extensions
+    vsg::QueueSettings queueSettings{vsg::QueueSetting{computeQueueFamily, {1.0}}};
+    vsg::ref_ptr<vsg::Device> device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions);
     if (!device)
     {
-        std::cout<<"Unable to create required Vulkan Device."<<std::endl;
+        std::cout<<"Unable to create required vkDevice."<<std::endl;
         return 1;
     }
 
     // get the queue for the compute commands
-    auto computeQueue = device->getQueue(physicalDevice->getComputeFamily());
+    auto computeQueue = device->getQueue(computeQueueFamily);
 
     // allocate output storage buffer
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
@@ -78,7 +87,7 @@ int main(int argc, char** argv)
 
     // compile the Vulkan objects
     vsg::CompileTraversal compileTraversal(device);
-    compileTraversal.context.commandPool = vsg::CommandPool::create(device, physicalDevice->getComputeFamily());
+    compileTraversal.context.commandPool = vsg::CommandPool::create(device, computeQueueFamily);
     compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, {{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
 
     commandGraph->accept(compileTraversal);
@@ -91,8 +100,8 @@ int main(int argc, char** argv)
     // submit commands
     vsg::submitCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer)
     {
-        vsg::DispatchTraversal dispatchTraversals(&commandBuffer);
-        commandGraph->accept(dispatchTraversals);
+        vsg::RecordTraversal recordTraversal(&commandBuffer);
+        commandGraph->accept(recordTraversal);
     });
 
     auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();

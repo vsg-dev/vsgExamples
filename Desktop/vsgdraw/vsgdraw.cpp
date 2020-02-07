@@ -161,8 +161,8 @@ int main(int argc, char** argv)
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
-    // add a GraphicsStage to the Window to do dispatch of the command graph to the commnad buffer(s)
-    window->addStage(vsg::GraphicsStage::create(scenegraph, camera));
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     // compile the Vulkan objects
     viewer->compile();
@@ -180,9 +180,11 @@ int main(int argc, char** argv)
         float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
         transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
-        viewer->populateNextFrame();
+        viewer->update();
 
-        viewer->submitNextFrame();
+        viewer->recordAndSubmit();
+
+        viewer->present();
     }
 
     // clean up done automatically thanks to ref_ptr<>
