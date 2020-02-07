@@ -91,7 +91,7 @@ int main(int argc, char** argv)
 
 
     // for convenience create a compile context for creating our storage image
-    auto queueFamily = window->physicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT, window->surface()); // TODO : could we just use transfer bit?
+    auto queueFamily = window->physicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
     vsg::CompileTraversal compile(window->device());
     compile.context.renderPass = window->renderPass();
     compile.context.commandPool = vsg::CommandPool::create(window->device(), queueFamily);
