@@ -1,5 +1,3 @@
-#include <vsg/all.h>
-
 /* <editor-fold desc="MIT License">
 
 Copyright(c) 2018 Robert Osfield
@@ -12,8 +10,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
+#include <vsg/all.h>
 
-#include <vsg/vk/NextSubPass.h>
 #include <iostream>
 
 vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
