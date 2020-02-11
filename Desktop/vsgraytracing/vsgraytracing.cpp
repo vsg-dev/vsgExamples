@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    auto windowTraits = vsg::Window::Traits::create();
+    auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgraytracing";
     windowTraits->debugLayer = true;
     windowTraits->apiDumpLayer = false;

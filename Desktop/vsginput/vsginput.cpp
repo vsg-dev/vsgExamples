@@ -197,7 +197,7 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::Window::Traits> traits = vsg::Window::Traits::create();
+    vsg::ref_ptr<vsg::WindowTraits> traits = vsg::WindowTraits::create();
     traits->width = width;
     traits->height = height;
     traits->swapchainPreferences.presentMode = VkPresentModeKHR::VK_PRESENT_MODE_IMMEDIATE_KHR;
