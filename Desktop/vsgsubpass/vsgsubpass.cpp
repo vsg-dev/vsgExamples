@@ -1,5 +1,5 @@
 #include <vsg/all.h>
-#pragma once
+
 /* <editor-fold desc="MIT License">
 
 Copyright(c) 2018 Robert Osfield
@@ -17,52 +17,81 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/vk/NextSubPass.h>
 #include <iostream>
 
-class myCreateRenderPassCallback : public vsg::Window::CreateRenderPassCallback
+vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
 {
-public:
-    virtual vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Window& win, vsg::Window::Traits *traits) {
-        std::cout<<"myWindowcreate shaders."<<std::endl;
-        //vsg::Window::initaliseDevice();
-        vsg::SwapChainSupportDetails supportDetails = vsg::querySwapChainSupport(*win.physicalDevice(), *win.surface());
-        VkSurfaceFormatKHR imageFormat = vsg::selectSwapSurfaceFormat(supportDetails);
-        VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT; //VK_FORMAT_D32_SFLOAT; // VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_SFLOAT_S8_UINT
+    std::cout<<"myWindowcreate shaders."<<std::endl;
 
-        vsg::ref_ptr<vsg::PassGraph> graph(vsg::PassGraph::create());
-        //create  default render pass
-        vsg::PassGraph::AttachmentDescription colorAttachment;
+    VkFormat imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
+    VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
-        colorAttachment.format = imageFormat.format;
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    // VkAttachmentDescriptiom
+    // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkAttachmentDescription.html
+    vsg::RenderPass::Attachments attachments;
 
-        vsg::PassGraph::AttachmentDescription depthAttachment;
-        depthAttachment.format = depthFormat;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    VkAttachmentDescription colorAttachment = {};
+    colorAttachment.format = imageFormat;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    attachments.push_back(colorAttachment);
 
-        graph->addAttachmentDescription(colorAttachment);
-        graph->addAttachmentDescription(depthAttachment);
+    VkAttachmentDescription depthAttachment = {};
+    depthAttachment.format = depthFormat;
+    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    attachments.push_back(depthAttachment);
 
-        vsg::ref_ptr<vsg::SubPass > depthpass( graph->createSubPass() );
-        depthpass->addColorAttachmentRef(colorAttachment, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        //depthpass->addDepthStencilAttachmentRef(depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-        depthpass->setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
+    // VkSubpassDescription
+    // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSubpassDescription.html
+    vsg::RenderPass::Subpasses subpasses;
 
-        vsg::ref_ptr<vsg::SubPass > classicpass(graph->createSubPass());
-        classicpass->addColorAttachmentRef(colorAttachment, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        classicpass->addDepthStencilAttachmentRef(depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-        classicpass->setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
+    VkAttachmentReference colorAttachmentRef = {};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        vsg::ref_ptr<vsg::Dependency > classicdep( depthpass->createForwardDependency(classicpass) );
-        classicdep->setSrcAccessMask ( VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT );
-        classicdep->setDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT);
+    VkAttachmentReference depthAttachmentRef = {};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        vsg::ref_ptr<vsg::RenderPass> renderPass = vsg::RenderPass::create(win.device(), graph, traits->allocator);
-        return renderPass;
-    }
-};
+    VkSubpassDescription depth_subpass = {};
+    depth_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    depth_subpass.colorAttachmentCount = 0;
+    depth_subpass.pColorAttachments = nullptr;
+    depth_subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    subpasses.push_back(depth_subpass);
+
+
+    VkSubpassDescription classic_subpass = {};
+    classic_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    classic_subpass.colorAttachmentCount = 1;
+    classic_subpass.pColorAttachments = &colorAttachmentRef;
+    classic_subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    subpasses.push_back(classic_subpass);
+
+    // VkSubpassDependency
+    // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSubpassDependency.html
+    vsg::RenderPass::Dependencies dependencies;
+
+    VkSubpassDependency classic_dependency = {};
+    classic_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    classic_dependency.dstSubpass = 0;
+    classic_dependency.srcStageMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    classic_dependency.srcAccessMask = 0;
+    classic_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    classic_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
+    dependencies.push_back(classic_dependency);
+
+    return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
+}
 
 int main(int argc, char** argv)
 {
@@ -107,38 +136,38 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr< vsg::GraphicsPipeline > graphicsdepthPipeline;
     {
-    // set up graphics pipeline
-    vsg::PushConstantRanges pushConstantRanges
-    {
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
-    };
+        // set up graphics pipeline
+        vsg::PushConstantRanges pushConstantRanges
+        {
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        };
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
-    {
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
-        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-    };
+        vsg::VertexInputState::Bindings vertexBindingsDescriptions
+        {
+            VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+            VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+            VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+        };
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
-    {
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
-    };
+        vsg::VertexInputState::Attributes vertexAttributeDescriptions
+        {
+            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+            VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+            VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+        };
 
-    vsg::GraphicsPipelineStates pipelineStates
-    {
-        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
-        vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
-        vsg::MultisampleState::create(),
-        vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()
-    };
+        vsg::GraphicsPipelineStates pipelineStates
+        {
+            vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+            vsg::InputAssemblyState::create(),
+            vsg::RasterizationState::create(),
+            vsg::MultisampleState::create(),
+            vsg::ColorBlendState::create(),
+            vsg::DepthStencilState::create()
+        };
 
-    auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
-    graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+        auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
+        graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
     }
 
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
@@ -251,14 +280,14 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::Window::Traits> traits(new vsg::Window::Traits());
+    auto traits = vsg::WindowTraits::create();
     traits->width = width;
     traits->height = height;
     //traits->shareWindow = shareWindow;
     traits->debugLayer = debugLayer;
     traits->apiDumpLayer = apiDumpLayer;
-    //traits->allocator = allocator;
-    traits->createRenderPassCB = new myCreateRenderPassCallback();
+    traits->device = vsg::Device::create(traits);
+    traits->renderPass = createRenderPass(traits->device);
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));// width, height, debugLayer, apiDumpLayer));
     if (!window)
     {
