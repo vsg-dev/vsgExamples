@@ -26,16 +26,23 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     if (arguments.read("--or")) windowTraits->overrideRedirect = true;
+    arguments.read("--screen", windowTraits->screenNum);
+    arguments.read("--display", windowTraits->display);
+    auto numScreens = arguments.value<int>(1, {"--screens", "--ns"});
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
+    if (argc<=1)
+    {
+        std::cout<<"Please specify a model to load on command line."<<std::endl;
+        return 1;
+    }
 
     // read shaders
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -43,100 +50,35 @@ int main(int argc, char** argv)
     using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
     VsgNodes vsgNodes;
 
-    vsg::Path path;
+    vsg::Path filename = arguments[1];
+    vsg::Path path = vsg::filePath(filename);
 
-    // read any vsg files
-    for (int i=1; i<argc; ++i)
+    auto loaded_model = vsg::read_cast<vsg::Node>(filename);
+    if (!loaded_model)
     {
-        vsg::Path filename = arguments[i];
-
-        path = vsg::filePath(filename);
-
-        auto loaded_scene = vsg::read_cast<vsg::Node>(filename);
-        if (loaded_scene)
-        {
-            vsgNodes.push_back(loaded_scene);
-            arguments.remove(i, 1);
-            --i;
-        }
+        std::cout<<"Unable to load model "<<filename<<std::endl;
+        return 1;
     }
 
-    // assign the vsg_scene from the loaded nodes
-    vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (vsgNodes.size()>1)
-    {
-        auto vsg_group = vsg::Group::create();
-        for(auto& subgraphs : vsgNodes)
-        {
-            vsg_group->addChild(subgraphs);
-        }
+    vsgNodes.push_back(loaded_model);
 
-        vsg_scene = vsg_group;
-    }
-    else if (vsgNodes.size()==1)
+    // we want a seperate copy of the model for each screen.
+    for(int i=1; i<numScreens; ++i)
     {
-        vsg_scene = vsgNodes.front();
+        auto extra_copy_of_scene = vsg::read_cast<vsg::Node>(filename);
+        if (extra_copy_of_scene) vsgNodes.emplace_back(extra_copy_of_scene);
     }
 
+    std::cout<<"We have loaded "<<vsgNodes.size()<<std::endl;
+
+
+    auto vsg_scene = vsgNodes[0];
 
     if (!vsg_scene)
     {
         std::cout<<"No command graph created."<<std::endl;
         return 1;
     }
-
-
-    // if required pre load specific number of PagedLOD levels.
-    if (loadLevels > 0)
-    {
-        struct LoadTiles : public vsg::Visitor
-        {
-            LoadTiles(int in_loadLevels, const vsg::Path& in_path) :
-                loadLevels(in_loadLevels),
-                path(in_path) {}
-
-            int loadLevels = 0;
-            int level = 0;
-            unsigned int numTiles = 0;
-            vsg::Path path;
-
-            void apply(vsg::Node& node) override
-            {
-                node.traverse(*this);
-            }
-
-            void apply(vsg::PagedLOD& plod) override
-            {
-                if (level < loadLevels && !plod.filename.empty())
-                {
-                    plod.getChild(0).node = vsg::read_cast<vsg::Node>(plod.filename) ;
-
-                    ++numTiles;
-
-                    ++level;
-                        plod.traverse(*this);
-                    --level;
-                }
-
-            }
-        } loadTiles(loadLevels, path);
-
-        vsg_scene->accept(loadTiles);
-
-        std::cout<<"No. of tiles loaed "<<loadTiles.numTiles<<std::endl;
-    }
-
-    // create the viewer and assign window(s) to it
-    auto viewer = vsg::Viewer::create();
-
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
-    if (!window)
-    {
-        std::cout<<"Could not create windows."<<std::endl;
-        return 1;
-    }
-
-    viewer->addWindow(window);
 
 
     // compute the bounds of the scene graph to help position camera
@@ -149,26 +91,59 @@ int main(int argc, char** argv)
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
+    VkExtent2D extents2D{windowTraits->width, windowTraits->height};
+
+
+    // create the wndows;
+    vsg::Windows windows;
+    if (windowTraits->screenNum<0) windowTraits->screenNum = 0;
+    for(int i=0; i<numScreens; ++i)
+    {
+        // create a local copy of the main WindowTraits
+        vsg::ref_ptr<vsg::WindowTraits> local_windowTraits = vsg::WindowTraits::create(*windowTraits);
+
+        // set the screenNum relative to the base one
+        local_windowTraits->screenNum = windowTraits->screenNum + i;
+
+        vsg::ref_ptr<vsg::Window> window(vsg::Window::create(local_windowTraits));
+        if (!window)
+        {
+            std::cout<<"Could not create window."<<std::endl;
+            return 1;
+        }
+
+        extents2D = window->extent2D();
+        windows.emplace_back(window);
+    }
+
+    std::cout<<"Created windows "<<windows.size()<<std::endl;
+
+    if (windows.empty())
+    {
+        std::cout<<"Could not create any windows."<<std::endl;
+        return 1;
+    }
+
+    auto window = windows[0];
+
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (horizonMountainHeight >= 0.0)
     {
-        perspective = vsg::EllipsoidPerspective::create(lookAt, vsg::EllipsoidModel::create(), 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+        perspective = vsg::EllipsoidPerspective::create(lookAt, vsg::EllipsoidModel::create(), 30.0, static_cast<double>(extents2D.width) / static_cast<double>(extents2D.height), nearFarRatio, horizonMountainHeight);
     }
     else
     {
-        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(extents2D.width) / static_cast<double>(extents2D.height), nearFarRatio*radius, radius * 4.5);
     }
 
-    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extents2D));
 
-    // set up database pager
-    vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager)
-    {
-        databasePager = vsg::DatabasePager::create();
-        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
-    }
 
+    // create the viewer and assign window(s) to it
+    auto viewer = vsg::Viewer::create();
+
+
+    viewer->addWindow(window);
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
@@ -189,6 +164,15 @@ int main(int argc, char** argv)
         animationPath->read(in);
 
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
+    }
+
+
+    // set up database pager
+    vsg::ref_ptr<vsg::DatabasePager> databasePager;
+    if (useDatabasePager)
+    {
+        databasePager = vsg::DatabasePager::create();
+        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
     }
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
