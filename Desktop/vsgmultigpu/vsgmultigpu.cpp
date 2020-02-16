@@ -6,6 +6,18 @@
 
 #include "AnimationPath.h"
 
+// TODO
+// 1. Each window to get it's own slave Camera -> need to sync the view/projection matrix + offset
+//    a. RelativeViewMatrix - multiple by an offset matrix
+//    a. RelativeProjectionMatrix - multiple by an offset matrix
+// 2. Each logical Device to have it's own DeviceID
+//
+// 3. All Vulkan objects to be accessed via a DeviceID and to use compile time configured buffering
+// 4. Compile traversal to run for each Logical device/DeviceID - one Context per Logical Device?
+// 5. DatabasePager to handle multiple logical Device
+
+
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -47,39 +59,15 @@ int main(int argc, char** argv)
     // read shaders
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
-    VsgNodes vsgNodes;
-
     vsg::Path filename = arguments[1];
     vsg::Path path = vsg::filePath(filename);
 
-    auto loaded_model = vsg::read_cast<vsg::Node>(filename);
-    if (!loaded_model)
+    auto vsg_scene = vsg::read_cast<vsg::Node>(filename);
+    if (!vsg_scene)
     {
         std::cout<<"Unable to load model "<<filename<<std::endl;
         return 1;
     }
-
-    vsgNodes.push_back(loaded_model);
-
-    // we want a seperate copy of the model for each screen.
-    for(int i=1; i<numScreens; ++i)
-    {
-        auto extra_copy_of_scene = vsg::read_cast<vsg::Node>(filename);
-        if (extra_copy_of_scene) vsgNodes.emplace_back(extra_copy_of_scene);
-    }
-
-    std::cout<<"We have loaded "<<vsgNodes.size()<<std::endl;
-
-
-    auto vsg_scene = vsgNodes[0];
-
-    if (!vsg_scene)
-    {
-        std::cout<<"No command graph created."<<std::endl;
-        return 1;
-    }
-
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
@@ -124,7 +112,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto window = windows[0];
 
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (horizonMountainHeight >= 0.0)
@@ -143,7 +130,6 @@ int main(int argc, char** argv)
     auto viewer = vsg::Viewer::create();
 
 
-    viewer->addWindow(window);
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
@@ -174,6 +160,16 @@ int main(int argc, char** argv)
         databasePager = vsg::DatabasePager::create();
         if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
     }
+
+    auto window = windows[0];
+#if 0
+    for(auto& window : windows)
+    {
+        viewer->addWindow(window);
+    }
+#else
+    viewer->addWindow(window);
+#endif
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
