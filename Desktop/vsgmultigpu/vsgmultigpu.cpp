@@ -10,7 +10,7 @@
 // 1. Each window to get it's own slave Camera -> need to sync the view/projection matrix + offset
 //    a. RelativeViewMatrix - multiple by an offset matrix
 //    a. RelativeProjectionMatrix - multiple by an offset matrix
-// 2. Each logical Device to have it's own DeviceID
+// 2. Each logical Device to have it's own DeviceID : DONE
 //
 // 3. All Vulkan objects to be accessed via a DeviceID and to use compile time configured buffering
 // 4. Compile traversal to run for each Logical device/DeviceID - one Context per Logical Device?
@@ -76,14 +76,56 @@ int main(int argc, char** argv)
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
     double nearFarRatio = 0.0001;
 
-    // set up the camera
+    // create master camera
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
-    VkExtent2D extents2D{windowTraits->width, windowTraits->height};
+    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    double aspectRatio = windowTraits->fullscreen ? (1920.0/1080.0) : static_cast<double>(windowTraits->width)/static_cast<double>(windowTraits->height);
+    if (horizonMountainHeight >= 0.0)
+    {
+        perspective = vsg::EllipsoidPerspective::create(lookAt, vsg::EllipsoidModel::create(), 30.0, aspectRatio, nearFarRatio, horizonMountainHeight);
+    }
+    else
+    {
+        perspective = vsg::Perspective::create(30.0, aspectRatio, nearFarRatio*radius, radius * 4.5);
+    }
+
+    auto master_camera = vsg::Camera::create(perspective, lookAt);
+
+    // create the viewer and assign window(s) to it
+    auto viewer = vsg::Viewer::create();
+
+    // add close handler to respond the close window button and pressing escape
+    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
+    if (pathFilename.empty())
+    {
+        viewer->addEventHandler(vsg::Trackball::create(master_camera));
+    }
+    else
+    {
+        std::ifstream in(pathFilename);
+        if (!in)
+        {
+            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
+            return 1;
+        }
+
+        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
+        animationPath->read(in);
+
+        viewer->addEventHandler(vsg::AnimationPathHandler::create(master_camera, animationPath, viewer->start_point()));
+    }
 
 
-    // create the wndows;
-    vsg::Windows windows;
+    // set up database pager
+    vsg::ref_ptr<vsg::DatabasePager> databasePager;
+    if (useDatabasePager)
+    {
+        databasePager = vsg::DatabasePager::create();
+        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
+    }
+
     if (windowTraits->screenNum<0) windowTraits->screenNum = 0;
     for(int i=0; i<numScreens; ++i)
     {
@@ -100,79 +142,11 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        extents2D = window->extent2D();
-        windows.emplace_back(window);
-    }
-
-    std::cout<<"Created windows "<<windows.size()<<std::endl;
-
-    if (windows.empty())
-    {
-        std::cout<<"Could not create any windows."<<std::endl;
-        return 1;
-    }
-
-
-    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-    if (horizonMountainHeight >= 0.0)
-    {
-        perspective = vsg::EllipsoidPerspective::create(lookAt, vsg::EllipsoidModel::create(), 30.0, static_cast<double>(extents2D.width) / static_cast<double>(extents2D.height), nearFarRatio, horizonMountainHeight);
-    }
-    else
-    {
-        perspective = vsg::Perspective::create(30.0, static_cast<double>(extents2D.width) / static_cast<double>(extents2D.height), nearFarRatio*radius, radius * 4.5);
-    }
-
-    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extents2D));
-
-
-    // create the viewer and assign window(s) to it
-    auto viewer = vsg::Viewer::create();
-
-
-    // add close handler to respond the close window button and pressing escape
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-    if (pathFilename.empty())
-    {
-        viewer->addEventHandler(vsg::Trackball::create(camera));
-    }
-    else
-    {
-        std::ifstream in(pathFilename);
-        if (!in)
-        {
-            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
-            return 1;
-        }
-
-        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
-        animationPath->read(in);
-
-        viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
-    }
-
-
-    // set up database pager
-    vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager)
-    {
-        databasePager = vsg::DatabasePager::create();
-        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
-    }
-
-    auto window = windows[0];
-#if 0
-    for(auto& window : windows)
-    {
+        auto local_scene = vsg::read_cast<vsg::Node>(filename);
+        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+        viewer->assignRecordAndSubmitTaskAndPresentation({vsg::createCommandGraphForView(window, camera, local_scene)}, databasePager);
         viewer->addWindow(window);
     }
-#else
-    viewer->addWindow(window);
-#endif
-
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
 
     viewer->compile();
 
