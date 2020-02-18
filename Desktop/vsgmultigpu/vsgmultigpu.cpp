@@ -8,15 +8,13 @@
 
 // TODO
 // 1. Each window to get it's own slave Camera -> need to sync the view/projection matrix + offset
-//    a. RelativeViewMatrix - multiple by an offset matrix
-//    a. RelativeProjectionMatrix - multiple by an offset matrix
+//    a. RelativeViewMatrix - multiple by an offset matrix DONE
+//    a. RelativeProjectionMatrix - multiple by an offset matrix  DONE
 // 2. Each logical Device to have it's own DeviceID : DONE
 //
 // 3. All Vulkan objects to be accessed via a DeviceID and to use compile time configured buffering
 // 4. Compile traversal to run for each Logical device/DeviceID - one Context per Logical Device?
 // 5. DatabasePager to handle multiple logical Device
-
-
 
 int main(int argc, char** argv)
 {
@@ -47,6 +45,7 @@ int main(int argc, char** argv)
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
+    auto powerWall = arguments.read({"--power-wall","--pw"});
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -143,7 +142,23 @@ int main(int argc, char** argv)
         }
 
         auto local_scene = vsg::read_cast<vsg::Node>(filename);
-        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+        vsg::ref_ptr<vsg::Camera> camera;
+        if (powerWall)
+        {
+            // assume a power wall layout
+            auto relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(double(numScreens-1) - 2.0*double(i), 0.0, 0.0));
+            camera = vsg::Camera::create(relative_perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+        }
+        else
+        {
+            // assume monitor are rotate around the viewer
+            double fovY = 30.0;
+            double fovX = atan(tan(vsg::radians(fovY) * 0.5) * aspectRatio) * 2.0;
+            double angle = fovX*(double(i)-double(numScreens-1)/2.0);
+            auto relative_view = vsg::RelativeView::create(lookAt, vsg::rotate(angle, 0.0, 1.0, 0.0));
+            camera = vsg::Camera::create(perspective, relative_view, vsg::ViewportState::create(window->extent2D()));
+        }
+
         viewer->assignRecordAndSubmitTaskAndPresentation({vsg::createCommandGraphForView(window, camera, local_scene)}, databasePager);
         viewer->addWindow(window);
     }
