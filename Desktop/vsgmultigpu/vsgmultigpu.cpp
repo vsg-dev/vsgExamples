@@ -155,7 +155,7 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgviewer";
+    windowTraits->windowTitle = "vsgmultigpu";
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -171,9 +171,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     if (arguments.read("--or")) windowTraits->overrideRedirect = true;
-    arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
-    auto numScreens = arguments.value<int>(1, {"--screens", "--ns"});
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
     auto loadLevels = arguments.value(0, "--load-levels");
@@ -181,7 +179,18 @@ int main(int argc, char** argv)
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     auto powerWall = arguments.read({"--power-wall","--pw"});
-    auto sharedScene = arguments.read({"--shared","-s"});
+    auto sharedScene = arguments.read({"--shared"});
+
+    std::vector<int> screensToUse;
+    int screen = -1;
+    while(arguments.read({"--screen", "-s"}, screen))
+    {
+        screensToUse.push_back(screen);
+    }
+
+    // if now screens are assign use screen 0
+    if (screensToUse.empty()) screensToUse.push_back(0);
+
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -252,14 +261,16 @@ int main(int argc, char** argv)
         if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
     }
 
-    if (windowTraits->screenNum<0) windowTraits->screenNum = 0;
-    for(int i=0; i<numScreens; ++i)
+    int numScreens = screensToUse.size();
+    for(int i = 0; i<screensToUse.size(); ++i)
     {
+        int screenNum = screensToUse[i];
+
         // create a local copy of the main WindowTraits
         vsg::ref_ptr<vsg::WindowTraits> local_windowTraits = vsg::WindowTraits::create(*windowTraits);
 
         // set the screenNum relative to the base one
-        local_windowTraits->screenNum = windowTraits->screenNum + i;
+        local_windowTraits->screenNum = screenNum;
 
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(local_windowTraits));
         if (!window)
