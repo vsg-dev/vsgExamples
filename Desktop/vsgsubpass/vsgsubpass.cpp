@@ -53,12 +53,13 @@ public:
 
         vsg::ref_ptr<vsg::SubPass > classicpass(graph->createSubPass());
         classicpass->addColorAttachmentRef(colorAttachment, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        classicpass->addDepthStencilAttachmentRef(depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+        // removing depth attachement avoid theorical zfight with first pass
+        //classicpass->addDepthStencilAttachmentRef(depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
         classicpass->setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
 
         vsg::ref_ptr<vsg::Dependency > classicdep( depthpass->createForwardDependency(classicpass) );
         classicdep->setSrcAccessMask (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);// VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT );
-       // classicdep->setDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
+        // classicdep->setDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
 
         vsg::ref_ptr<vsg::RenderPass> renderPass = vsg::RenderPass::create(win.device(), graph, traits->allocator);
         return renderPass;
@@ -108,72 +109,72 @@ int main(int argc, char** argv)
     vsg::ref_ptr< vsg::GraphicsPipeline > graphicsPipelinepass2;
 
     {
-    // set up graphics pipeline
-    vsg::PushConstantRanges pushConstantRanges
-    {
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
-    };
+        // set up graphics pipeline
+        vsg::PushConstantRanges pushConstantRanges
+        {
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        };
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
-    {
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
-        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-    };
+        vsg::VertexInputState::Bindings vertexBindingsDescriptions
+        {
+            VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+            VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+            VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+        };
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
-    {
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
-    };
+        vsg::VertexInputState::Attributes vertexAttributeDescriptions
+        {
+            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+            VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+            VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+        };
 
-    vsg::GraphicsPipelineStates pipelineStates
-    {
-        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
-        vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
-        vsg::MultisampleState::create(),
-        vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()
-    };
+        vsg::GraphicsPipelineStates pipelineStates
+        {
+            vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+            vsg::InputAssemblyState::create(),
+            vsg::RasterizationState::create(),
+            vsg::MultisampleState::create(),
+            vsg::ColorBlendState::create(),
+            vsg::DepthStencilState::create()
+        };
 
-    auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
-    graphicsPipelinepass1 = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates,0);
+        auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
+        graphicsPipelinepass1 = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates,0);
     }
     {
-    // set up graphics pipeline
-    vsg::PushConstantRanges pushConstantRanges
-    {
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
-    };
+        // set up graphics pipeline
+        vsg::PushConstantRanges pushConstantRanges
+        {
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        };
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
-    {
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
-        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-    };
+        vsg::VertexInputState::Bindings vertexBindingsDescriptions
+        {
+            VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+            VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+            VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+        };
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
-    {
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
-    };
+        vsg::VertexInputState::Attributes vertexAttributeDescriptions
+        {
+            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+            VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+            VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+        };
 
-    vsg::GraphicsPipelineStates pipelineStates
-    {
-        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
-        vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
-        vsg::MultisampleState::create(),
-        vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()
-    };
+        vsg::GraphicsPipelineStates pipelineStates
+        {
+            vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+            vsg::InputAssemblyState::create(),
+            vsg::RasterizationState::create(),
+            vsg::MultisampleState::create(),
+            vsg::ColorBlendState::create(),
+            vsg::DepthStencilState::create()
+        };
 
-    auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
-    graphicsPipelinepass2 = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates,1);
+        auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
+        graphicsPipelinepass2 = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates,1);
     }
 
     auto bindGraphicsPipeline1 = vsg::BindGraphicsPipeline::create(graphicsPipelinepass1);
@@ -188,8 +189,8 @@ int main(int argc, char** argv)
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::Group::create();
-  //  scenegraph->add(bindGraphicsPipeline);
- //   scenegraph->add(bindDescriptorSets);
+    //  scenegraph->add(bindGraphicsPipeline);
+//   scenegraph->add(bindDescriptorSets);
 
     auto scenegraph1 = vsg::StateGroup::create();
     scenegraph1->add(bindGraphicsPipeline1);
@@ -208,11 +209,11 @@ int main(int argc, char** argv)
     {
         {-0.5f, -0.5f, 0.0f},
         {0.5f,  -0.5f, 0.05f},
-        {0.5f , 0.5f, 0.0f},
+        {0.5f, 0.5f, 0.0f},
         {-0.5f, 0.5f, 0.0f},
         {-0.5f, -0.5f, -0.5f},
         {0.5f,  -0.5f, -0.5f},
-        {0.5f , 0.5f, -0.5},
+        {0.5f, 0.5f, -0.5},
         {-0.5f, 0.5f, -0.5}
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
@@ -252,7 +253,7 @@ int main(int argc, char** argv)
     {
         {-0.5f, -0.5f, -0.00f},
         {0.5f,  -0.5f, -0.00},
-        {0.5f , 0.5f, -0.00f}
+        {0.5f, 0.5f, -0.00f}
 
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
@@ -285,10 +286,9 @@ int main(int argc, char** argv)
     drawCommandspass1->addChild(vsg::BindIndexBuffer::create(indices));
     drawCommandspass1->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
 
-
     scenegraph1->addChild(transform);
     transform->addChild(drawCommandspass1);
-   // drawCommands->addChild(vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS));
+    // drawCommands->addChild(vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS));
 
     //drawCommands->addChild(vsg::Cle::create());
 
@@ -325,28 +325,18 @@ int main(int argc, char** argv)
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
-
-
-    auto drawCommandsbbb = vsg::StateGroup::create();
-
-  /* drawCommandsbbb->add(bindGraphicsPipeline1);
-     drawCommandsbbb->add(bindDescriptorSets1);*/
-    auto commandGraph0 = vsg::createCommandGraphForView(window, camera, vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS), VK_COMMAND_BUFFER_LEVEL_SECONDARY);
     auto seccommandGraph1 = vsg::createCommandGraphForView(window, camera, scenegraph1, VK_COMMAND_BUFFER_LEVEL_SECONDARY,0);
     auto seccommandGraph2 = vsg::createCommandGraphForView(window, camera, scenegraph2, VK_COMMAND_BUFFER_LEVEL_SECONDARY,1);
 
     auto  pass1= vsg::ExecuteCommands::create();
-  //  auto  passand= vsg::ExecuteCommands::create();
     auto  pass2= vsg::ExecuteCommands::create();
     pass1 ->addCommandGraph(seccommandGraph1 );
-  // pass1 ->addCommandGraph( commandGraph0);
     pass2 ->addCommandGraph(seccommandGraph2 );
-///passand->addCommandGraph(commandGraph0 );
 
     scenegraph->addChild(pass1);
 
     scenegraph->addChild(drawCommands);
-  drawCommands->addChild(vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS));
+    drawCommands->addChild(vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS));
 
     scenegraph->addChild(pass2);
 
