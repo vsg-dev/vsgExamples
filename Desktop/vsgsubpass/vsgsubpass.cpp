@@ -18,53 +18,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/viewer/ExecuteCommands.h>
 #include <iostream>
 
-class myCreateRenderPassCallback : public vsg::Window::CreateRenderPassCallback
-{
-public:
-    virtual vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Window& win, vsg::Window::Traits *traits) {
-        std::cout<<"myWindowcreate shaders."<<std::endl;
-        //vsg::Window::initaliseDevice();
-        vsg::SwapChainSupportDetails supportDetails = vsg::querySwapChainSupport(*win.physicalDevice(), *win.surface());
-        VkSurfaceFormatKHR imageFormat = vsg::selectSwapSurfaceFormat(supportDetails);
-        VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT; //VK_FORMAT_D32_SFLOAT; // VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_SFLOAT_S8_UINT
-
-        vsg::ref_ptr<vsg::PassGraph> graph(vsg::PassGraph::create());
-        //create  default render pass
-        vsg::PassGraph::AttachmentDescription colorAttachment;
-
-        colorAttachment.format = imageFormat.format;
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        vsg::PassGraph::AttachmentDescription depthAttachment;
-        depthAttachment.format = depthFormat;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        graph->addAttachmentDescription(colorAttachment);
-        graph->addAttachmentDescription(depthAttachment);
-
-        vsg::ref_ptr<vsg::SubPass > depthpass( graph->createSubPass() );
-        depthpass->addColorAttachmentRef(colorAttachment, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        depthpass->addDepthStencilAttachmentRef(depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-        depthpass->setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
-
-        vsg::ref_ptr<vsg::SubPass > classicpass(graph->createSubPass());
-        classicpass->addColorAttachmentRef(colorAttachment, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        // removing depth attachement avoid theorical zfight with first pass
-        //classicpass->addDepthStencilAttachmentRef(depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-        classicpass->setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
-
-        vsg::ref_ptr<vsg::Dependency > classicdep( depthpass->createForwardDependency(classicpass) );
-        classicdep->setSrcAccessMask (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);// VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT );
-        // classicdep->setDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
-
-        vsg::ref_ptr<vsg::RenderPass> renderPass = vsg::RenderPass::create(win.device(), graph, traits->allocator);
-        return renderPass;
-    }
-};
 
 int main(int argc, char** argv)
 {
@@ -302,14 +255,56 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::Window::Traits> traits(new vsg::Window::Traits());
+    vsg::ref_ptr<vsg::WindowTraits> traits(new vsg::WindowTraits());
     traits->width = width;
     traits->height = height;
     //traits->shareWindow = shareWindow;
     traits->debugLayer = debugLayer;
     traits->apiDumpLayer = apiDumpLayer;
     //traits->allocator = allocator;
-    traits->createRenderPassCB = new myCreateRenderPassCallback();
+
+    traits->device = vsg::Device::create(traits);
+
+    VkSurfaceFormatKHR imageFormat; //=  vsg::selectSwapSurfaceFormat(supportDetails);
+    //BAD should be retrieved from surface
+    imageFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+    imageFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
+    VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT; //VK_FORMAT_D32_SFLOAT; // VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_SFLOAT_S8_UINT
+
+    vsg::ref_ptr<vsg::PassGraph> graph(vsg::PassGraph::create());
+    //create  default render pass
+    vsg::PassGraph::AttachmentDescription colorAttachment;
+
+    colorAttachment.format = imageFormat.format;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    vsg::PassGraph::AttachmentDescription depthAttachment;
+    depthAttachment.format = depthFormat;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    graph->addAttachmentDescription(colorAttachment);
+    graph->addAttachmentDescription(depthAttachment);
+
+    vsg::ref_ptr<vsg::SubPass > depthpass( graph->createSubPass() );
+    depthpass->addColorAttachmentRef(colorAttachment, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    depthpass->addDepthStencilAttachmentRef(depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    depthpass->setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+    vsg::ref_ptr<vsg::SubPass > classicpass(graph->createSubPass());
+    classicpass->addColorAttachmentRef(colorAttachment, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // removing depth attachement avoid theorical zfight with first pass
+    //classicpass->addDepthStencilAttachmentRef(depthAttachment, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    classicpass->setBindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS);
+
+    vsg::ref_ptr<vsg::Dependency > classicdep( depthpass->createForwardDependency(classicpass) );
+    classicdep->setSrcAccessMask (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);// VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT );
+    // classicdep->setDstAccessMask(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT);
+
+    traits->renderPass = vsg::RenderPass::create(traits->device, graph, traits->allocator);
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));// width, height, debugLayer, apiDumpLayer));
     if (!window)
     {
