@@ -336,8 +336,8 @@ int main(int argc, char** argv)
     scenegraph->addChild(pass2);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
-    commandGraph->_secondaries.push_back(seccommandGraph1);
-    commandGraph->_secondaries.push_back(seccommandGraph2);
+    //commandGraph->_secondaries.push_back(seccommandGraph1);
+   // commandGraph->_secondaries.push_back(seccommandGraph2);
     viewer->assignRecordAndSubmitTaskAndPresentation({ /*seccommandGraph1,seccommandGraph2,*/commandGraph});
 
     // compile the Vulkan objects

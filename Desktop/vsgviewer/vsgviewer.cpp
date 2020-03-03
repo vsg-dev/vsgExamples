@@ -9,7 +9,7 @@
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
-    auto windowTraits = vsg::Window::Traits::create();
+    auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgviewer";
 
     // set up defaults and read command line arguments to override them

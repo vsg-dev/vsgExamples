@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    auto windowTraits = vsg::Window::Traits::create();
+    auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgraytracing";
     windowTraits->debugLayer = true;
     windowTraits->apiDumpLayer = false;
@@ -91,10 +91,11 @@ int main(int argc, char** argv)
 
 
     // for convenience create a compile context for creating our storage image
+    auto queueFamily = window->physicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
     vsg::CompileTraversal compile(window->device());
-    compile.context.commandPool = vsg::CommandPool::create(window->device(), window->device()->getPhysicalDevice()->getGraphicsFamily());
     compile.context.renderPass = window->renderPass();
-    compile.context.graphicsQueue = window->device()->getQueue(window->device()->getPhysicalDevice()->getGraphicsFamily());
+    compile.context.commandPool = vsg::CommandPool::create(window->device(), queueFamily);
+    compile.context.graphicsQueue = window->device()->getQueue(queueFamily);
 
 
     // load shaders
