@@ -93,13 +93,13 @@ int main(int argc, char** argv)
     auto vertices = vsg::vec3Array::create(
     {
         {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.05f},
+        {0.5f,  -0.5f, 0.0f},
         {0.5f , 0.5f, 0.0f},
         {-0.5f, 0.5f, 0.0f},
         {-0.5f, -0.5f, -0.5f},
         {0.5f,  -0.5f, -0.5f},
-        {0.5f , 0.5f, -0.5},
-        {-0.5f, 0.5f, -0.5}
+        {0.5f , 0.5f, -0.5f},
+        {-0.5f, 0.5f, -0.5f}
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(
