@@ -1,5 +1,5 @@
 #include <vsg/all.h>
-#pragma once
+
 /* <editor-fold desc="MIT License">
 
 Copyright(c) 2018 Robert Osfield
@@ -13,9 +13,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 </editor-fold> */
 
 
-#include <vsg/vk/PassGraph.h>
-#include <vsg/vk/NextSubPass.h>
-#include <vsg/viewer/ExecuteCommands.h>
 #include <iostream>
 
 
