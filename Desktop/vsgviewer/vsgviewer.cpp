@@ -1,5 +1,10 @@
 #include <vsg/all.h>
 
+#ifdef USE_VSGXCHANGE
+#include <vsgXchange/ReaderWriter_all.h>
+#include <vsgXchange/ShaderCompiler.h>
+#endif
+
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -9,6 +14,7 @@
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
+    auto options = vsg::Options::create();
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgviewer";
 
@@ -40,6 +46,11 @@ int main(int argc, char** argv)
     // read shaders
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
+#ifdef USE_VSGXCHANGE
+    // add use of vsgXchange's support for reading and writing 3rd party file formats
+    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+#endif
+
     using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
     VsgNodes vsgNodes;
 
@@ -52,7 +63,7 @@ int main(int argc, char** argv)
 
         path = vsg::filePath(filename);
 
-        auto loaded_scene = vsg::read_cast<vsg::Node>(filename);
+        auto loaded_scene = vsg::read_cast<vsg::Node>(filename, options);
         if (loaded_scene)
         {
             vsgNodes.push_back(loaded_scene);
