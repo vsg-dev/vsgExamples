@@ -68,12 +68,12 @@ int main(int argc, char** argv)
 
     // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
     vsg::DescriptorSetLayoutBindings descriptorBindings { {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} };
-    vsg::DescriptorSetLayouts descriptorSetLayouts { vsg::DescriptorSetLayout::create(descriptorBindings) };
+    vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
     vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) };
 
-    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, descriptors);
-    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, vsg::PushConstantRanges{});
-    vsg::ref_ptr<vsg::BindDescriptorSets> bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, vsg::DescriptorSets{descriptorSet});
+    vsg::ref_ptr<vsg::DescriptorSet> descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
+    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
+    vsg::ref_ptr<vsg::BindDescriptorSet> bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
 
     // set up the compute pipeline
     vsg::ref_ptr<vsg::ComputePipeline> pipeline = vsg::ComputePipeline::create(pipelineLayout, computeStage);
@@ -82,7 +82,7 @@ int main(int argc, char** argv)
     // assign to a CommandGraph that binds the Pipeline and DescritorSets and calls Dispatch
     vsg::ref_ptr<vsg::StateGroup> commandGraph = vsg::StateGroup::create();
     commandGraph->add(bindPipeline);
-    commandGraph->add(bindDescriptorSets);
+    commandGraph->add(bindDescriptorSet);
     commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width)/float(workgroupSize))), uint32_t(ceil(float(height)/float(workgroupSize))), 1));
 
     // compile the Vulkan objects
