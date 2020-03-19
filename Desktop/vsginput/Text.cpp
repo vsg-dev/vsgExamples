@@ -259,9 +259,9 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
     // create and bind descriptorset for font texture
     auto& descriptorSetLayouts = pipelineLayout->getDescriptorSetLayouts();
 
-    DescriptorSetLayouts fontDescriptorSetLayouts =  { descriptorSetLayouts[0] };
+    auto fontDescriptorSetLayout = descriptorSetLayouts[0];
 
-    _descriptorSets = DescriptorSets{ DescriptorSet::create(fontDescriptorSetLayouts, Descriptors{ _glyphUVsTexture, _glyphSizesTexture, _atlasTexture }) };
+    _descriptorSets = DescriptorSets{ DescriptorSet::create(fontDescriptorSetLayout, Descriptors{ _glyphUVsTexture, _glyphSizesTexture, _atlasTexture }) };
 }
 
 //
@@ -362,14 +362,13 @@ TextBase::TextBase(Font* font, GraphicsPipeline* pipeline, Allocator* allocator)
 
     // create and bind descriptorset for text metrix uniform
     auto& descriptorSetLayouts = pipeline->getPipelineLayout()->getDescriptorSetLayouts();
+    auto textDescriptorSetLayout = descriptorSetLayouts[1];
 
-    DescriptorSetLayouts textDescriptorSetLayouts = { descriptorSetLayouts[1] };
+    auto descriptorSet = DescriptorSet::create(textDescriptorSetLayout, Descriptors{ _textMetricsUniform });
+    auto bindDescriptorSet = BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 1, descriptorSet);
+    bindDescriptorSet->setSlot(2); // Font goes to slot 1, so use slot 2
 
-    auto descriptorSet = DescriptorSet::create(textDescriptorSetLayouts, Descriptors{ _textMetricsUniform });
-    auto bindDescriptorSets = BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 1, DescriptorSets{ descriptorSet });
-    bindDescriptorSets->setSlot(2); // Font goes to slot 1, so use slot 2
-
-    add(bindDescriptorSets);
+    add(bindDescriptorSet);
 }
 
 void TextBase::setFont(Font* font)
