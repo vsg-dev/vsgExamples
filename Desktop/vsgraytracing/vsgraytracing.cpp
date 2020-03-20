@@ -235,7 +235,7 @@ int main(int argc, char** argv)
         {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_NV, nullptr}
     };
 
-    vsg::DescriptorSetLayouts descriptorSetLayouts{vsg::DescriptorSetLayout::create(descriptorBindings)};
+    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     // create DescriptorSets and binding to bind our TopLevelAcceleration structure, storage image and camra matrix uniforms
     auto accelDescriptor = vsg::DescriptorAccelerationStructure::create(vsg::AccelerationStructures{tlas}, 0, 0);
@@ -245,11 +245,11 @@ int main(int argc, char** argv)
     auto raytracingUniformDescriptor = vsg::DescriptorBuffer::create(raytracingUniform, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     raytracingUniformDescriptor->copyDataListToBuffers();
 
-    auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, vsg::PushConstantRanges{});
+    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{ descriptorSetLayout }, vsg::PushConstantRanges{});
     auto raytracingPipeline = vsg::RayTracingPipeline::create(pipelineLayout, shaderStages, shaderGroups);
     auto bindRayTracingPipeline = vsg::BindRayTracingPipeline::create(raytracingPipeline);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, vsg::Descriptors{ accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor });
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{ accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor });
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, raytracingPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
 
     // state group to bind the pipeline and descriptorset
