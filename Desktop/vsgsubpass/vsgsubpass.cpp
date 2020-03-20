@@ -52,8 +52,7 @@ int main(int argc, char** argv)
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
-    vsg::DescriptorSetLayouts descriptorSetLayouts{vsg::DescriptorSetLayout::create(descriptorBindings)};
-
+    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::ref_ptr< vsg::GraphicsPipeline > graphicsPipelinepass1;
     vsg::ref_ptr< vsg::GraphicsPipeline > graphicsPipelinepass2;
@@ -89,7 +88,7 @@ int main(int argc, char** argv)
             vsg::DepthStencilState::create()
         };
 
-        auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
         graphicsPipelinepass1 = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates,0);
     }
     {
@@ -123,7 +122,7 @@ int main(int argc, char** argv)
             vsg::DepthStencilState::create()
         };
 
-        auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
         graphicsPipelinepass2 = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates,1);
     }
 
@@ -133,7 +132,7 @@ int main(int argc, char** argv)
     // create texture image and associated DescriptorSets and binding
     auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayouts, vsg::Descriptors{texture});
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSets1 = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelinepass1->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
     auto bindDescriptorSets2 = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelinepass2->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
 
