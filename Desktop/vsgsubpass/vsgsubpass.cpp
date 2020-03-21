@@ -331,7 +331,8 @@ int main(int argc, char** argv)
 
     scenegraph->addChild(pass2);
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 0, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+
     //commandGraph->_secondaries.push_back(seccommandGraph1);
    // commandGraph->_secondaries.push_back(seccommandGraph2);
     viewer->assignRecordAndSubmitTaskAndPresentation({ /*seccommandGraph1,seccommandGraph2,*/commandGraph});
