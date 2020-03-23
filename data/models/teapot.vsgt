@@ -1,5 +1,5 @@
 #vsga 0.0.0
-Root id=0 vsg::MatrixTransform
+Root id=1000 vsg::MatrixTransform
 {
   NumUserObjects 1
   Key "batch"
@@ -5307,6 +5307,7 @@ Root id=0 vsg::MatrixTransform
       Child id=9 vsg::VertexIndexDraw
       {
         NumUserObjects 0
+        firstBinding 0
         NumArrays 4
         Array id=2
         Array id=3
@@ -5508,7 +5509,7 @@ void main()
                1 2 262205 27 92 64 327809 27 93 91 92 196670
                86 93 131321 85 131320 85 65789 65592            }
             NumSpecializationMapEntries 0
-            SpecializationData id=16 nullptr
+            SpecializationData id=0
           }
           ShaderStage id=17 vsg::ShaderStage
           {
@@ -5689,7 +5690,7 @@ void main()
                110 0 262394 108 109 110 131320 109 65788 131320 110 65789
                65592            }
             NumSpecializationMapEntries 0
-            SpecializationData id=16
+            SpecializationData id=0
           }
           NumPipelineStates 6
           PipelineState id=19 vsg::VertexInputState
@@ -5768,6 +5769,7 @@ void main()
             depthBoundsTestEnable 0
             stencilTestEnable 0
           }
+          subpass 0
         }
       }
       StateCommand id=25 vsg::BindDescriptorSet
@@ -5779,7 +5781,6 @@ void main()
         DescriptorSet id=26 vsg::DescriptorSet
         {
           NumUserObjects 0
-          NumDescriptorSetLayouts 1
           DescriptorSetLayout id=13
           NumDescriptors 1
           Descriptor id=27 vsg::DescriptorBuffer
