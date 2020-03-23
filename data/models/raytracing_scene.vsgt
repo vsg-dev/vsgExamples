@@ -7002,6 +7002,7 @@ Root id=1000 vsg::MatrixTransform
       Child id=30 vsg::VertexIndexDraw
       {
         NumUserObjects 0
+        firstBinding 0
         NumArrays 4
         Array id=3
         Array id=4
@@ -7663,6 +7664,7 @@ void main()
             depthBoundsTestEnable 0
             stencilTestEnable 0
           }
+          subpass 0
         }
       }
       StateCommand id=46 vsg::BindDescriptorSet
@@ -7674,7 +7676,6 @@ void main()
         DescriptorSet id=47 vsg::DescriptorSet
         {
           NumUserObjects 0
-          NumDescriptorSetLayouts 1
           DescriptorSetLayout id=34
           NumDescriptors 2
           Descriptor id=48 vsg::DescriptorImage
@@ -7736,6 +7737,7 @@ void main()
       Child id=54 vsg::VertexIndexDraw
       {
         NumUserObjects 0
+        firstBinding 0
         NumArrays 4
         Array id=9
         Array id=10
@@ -7759,7 +7761,6 @@ void main()
         DescriptorSet id=56 vsg::DescriptorSet
         {
           NumUserObjects 0
-          NumDescriptorSetLayouts 1
           DescriptorSetLayout id=34
           NumDescriptors 2
           Descriptor id=57 vsg::DescriptorImage
@@ -7821,6 +7822,7 @@ void main()
       Child id=63 vsg::VertexIndexDraw
       {
         NumUserObjects 0
+        firstBinding 0
         NumArrays 5
         Array id=15
         Array id=16
@@ -8490,6 +8492,7 @@ void main()
             depthBoundsTestEnable 0
             stencilTestEnable 0
           }
+          subpass 0
         }
       }
       StateCommand id=78 vsg::BindDescriptorSet
@@ -8501,7 +8504,6 @@ void main()
         DescriptorSet id=79 vsg::DescriptorSet
         {
           NumUserObjects 0
-          NumDescriptorSetLayouts 1
           DescriptorSetLayout id=67
           NumDescriptors 2
           Descriptor id=80 vsg::DescriptorImage
@@ -8563,6 +8565,7 @@ void main()
       Child id=86 vsg::VertexIndexDraw
       {
         NumUserObjects 0
+        firstBinding 0
         NumArrays 5
         Array id=22
         Array id=23
@@ -8587,7 +8590,6 @@ void main()
         DescriptorSet id=88 vsg::DescriptorSet
         {
           NumUserObjects 0
-          NumDescriptorSetLayouts 1
           DescriptorSetLayout id=67
           NumDescriptors 2
           Descriptor id=89 vsg::DescriptorImage
