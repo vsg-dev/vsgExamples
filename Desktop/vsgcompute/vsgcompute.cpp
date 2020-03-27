@@ -6,11 +6,11 @@
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
-    auto width = arguments.value(1024u, "--width");
-    auto height = arguments.value(1024u, "--height");
+    auto width = arguments.value(1024, "--width");
+    auto height = arguments.value(1024, "--height");
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
-    auto workgroupSize = arguments.value<uint32_t>(32, "-w");
+    auto workgroupSize = arguments.value(32, "-w");
     auto outputFilename = arguments.value<std::string>("", "-o");
     auto outputAsFloat = arguments.read("-f");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -34,9 +34,9 @@ int main(int argc, char** argv)
     }
 
     computeStage->setSpecializationConstants({
-        {0, vsg::uintValue::create(width)},
-        {1, vsg::uintValue::create(height)},
-        {2, vsg::uintValue::create(workgroupSize)}
+        {0, vsg::intValue::create(width)},
+        {1, vsg::intValue::create(height)},
+        {2, vsg::intValue::create(workgroupSize)}
     });
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
