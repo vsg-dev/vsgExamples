@@ -33,9 +33,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto dimensions = vsg::uintArray::create({width, height, workgroupSize});
-    computeStage->setSpecializationMapEntries(vsg::ShaderStage::SpecializationMapEntries{{0, 0, 4}, {1, 4, 4}, {2, 8, 4}});
-    computeStage->setSpecializationData(dimensions);
+    computeStage->setSpecializationConstants({
+        {0, vsg::uintValue::create(width)},
+        {1, vsg::uintValue::create(height)},
+        {2, vsg::uintValue::create(workgroupSize)}
+    });
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
