@@ -43,9 +43,6 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    // read shaders
-    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-
 #ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
     options->readerWriter = vsgXchange::ReaderWriter_all::create();
