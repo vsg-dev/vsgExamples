@@ -7297,9 +7297,9 @@ void main()
                27 88 87 87 0 1 2 196670 86 88 131321 85
                131320 89 262205 7 90 61 524367 27 91 90 90 0
                1 2 262205 27 92 64 327809 27 93 91 92 196670
-               86 93 131321 85 131320 85 65789 65592            }
-            NumSpecializationMapEntries 0
-            SpecializationData id=0
+               86 93 131321 85 131320 85 65789 65592
+            }
+            NumSpecializationConstants 0
           }
           ShaderStage id=38 vsg::ShaderStage
           {
@@ -7583,9 +7583,9 @@ void main()
                110 131321 87 131320 87 262205 7 113 56 196670 112 113
                327745 114 115 112 94 262205 6 116 115 327860 84 117
                116 70 196855 119 0 262394 117 118 119 131320 118 65788
-               131320 119 65789 65592            }
-            NumSpecializationMapEntries 0
-            SpecializationData id=0
+               131320 119 65789 65592
+            }
+            NumSpecializationConstants 0
           }
           NumPipelineStates 6
           PipelineState id=40 vsg::VertexInputState
@@ -8118,9 +8118,9 @@ void main()
                27 88 87 87 0 1 2 196670 86 88 131321 85
                131320 89 262205 7 90 61 524367 27 91 90 90 0
                1 2 262205 27 92 64 327809 27 93 91 92 196670
-               86 93 131321 85 131320 85 65789 65592            }
-            NumSpecializationMapEntries 0
-            SpecializationData id=0
+               86 93 131321 85 131320 85 65789 65592
+            }
+            NumSpecializationConstants 0
           }
           ShaderStage id=70 vsg::ShaderStage
           {
@@ -8404,9 +8404,9 @@ void main()
                110 131321 87 131320 87 262205 7 113 56 196670 112 113
                327745 114 115 112 94 262205 6 116 115 327860 84 117
                116 70 196855 119 0 262394 117 118 119 131320 118 65788
-               131320 119 65789 65592            }
-            NumSpecializationMapEntries 0
-            SpecializationData id=0
+               131320 119 65789 65592
+            }
+            NumSpecializationConstants 0
           }
           NumPipelineStates 6
           PipelineState id=72 vsg::VertexInputState

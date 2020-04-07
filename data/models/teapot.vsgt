@@ -5507,9 +5507,9 @@ void main()
                27 88 87 87 0 1 2 196670 86 88 131321 85
                131320 89 262205 7 90 61 524367 27 91 90 90 0
                1 2 262205 27 92 64 327809 27 93 91 92 196670
-               86 93 131321 85 131320 85 65789 65592            }
-            NumSpecializationMapEntries 0
-            SpecializationData id=0
+               86 93 131321 85 131320 85 65789 65592
+            }
+            NumSpecializationConstants 0
           }
           ShaderStage id=17 vsg::ShaderStage
           {
@@ -5578,12 +5578,12 @@ void main()
     vec3 ambientColor = vec3(0.1,0.1,0.1);
     vec3 diffuseColor = albedo.color.rgb;
     vec3 specularColor = vec3(0.3,0.3,0.3);
-    float shine = 16.0f;
+    float shininess = 16.0f;
 #else
     vec3 ambientColor = vec3(0.1,0.1,0.1);
     vec3 diffuseColor = vec3(1.0,1.0,1.0);
     vec3 specularColor = vec3(0.3,0.3,0.3);
-    float shine = 16.0;
+    float shininess = 16.0;
 #endif
 #ifdef VSG_AMBIENT_MAP
     ambientColor *= texture(ambientMap, texCoord0.st).r;
@@ -5610,7 +5610,7 @@ void main()
     {
         vec3 halfDir = normalize(ld + vd);
         color.rgb += base.a * specularColor *
-            pow(max(dot(halfDir, nd), 0.0), shine);
+            pow(max(dot(halfDir, nd), 0.0), shininess);
     }
 #else
     vec4 color = base;
@@ -5688,9 +5688,9 @@ void main()
                131320 78 262205 7 104 48 196670 103 104 327745 105 106
                103 85 262205 6 107 106 327860 75 108 107 61 196855
                110 0 262394 108 109 110 131320 109 65788 131320 110 65789
-               65592            }
-            NumSpecializationMapEntries 0
-            SpecializationData id=0
+               65592
+            }
+            NumSpecializationConstants 0
           }
           NumPipelineStates 6
           PipelineState id=19 vsg::VertexInputState
