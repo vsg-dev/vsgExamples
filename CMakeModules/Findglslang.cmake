@@ -25,71 +25,107 @@
 #   glslang_LIBRARY        - the path to the glslang library
 #
 
+if (DEFINED ENV{VULKAN_SDK})
+    if(WIN32)
+        set(ADDITIONAL_PATHS_INCLUDE "$ENV{VULKAN_SDK}/Include")
+        if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+            set(ADDITIONAL_PATHS_LIBS
+                "$ENV{VULKAN_SDK}/Lib"
+                "$ENV{VULKAN_SDK}/Bin"
+            )
+        elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+            set(ADDITIONAL_PATHS_LIBS
+                "$ENV{VULKAN_SDK}/Lib32"
+                "$ENV{VULKAN_SDK}/Bin32"
+            )
+        endif()
+    else()
+        set(ADDITIONAL_PATHS_INCLUDE "$ENV{VULKAN_SDK}/include")
+        set(ADDITIONAL_PATHS_LIBS "$ENV{VULKAN_SDK}/lib")
+    endif()
+endif()
+
 find_path(glslang_INCLUDE_DIR
     NAMES glslang/Public/ShaderLang.h
+    PATHS ${ADDITIONAL_PATHS_INCLUDE}
 )
 
 find_path(spirv_INCLUDE_DIR
     NAMES SPIRV/GlslangToSpv.h
+    PATHS ${ADDITIONAL_PATHS_INCLUDE}
 )
 
 
 find_library(glslang_LIBRARY
     NAMES glslang
+    PATHS ${ADDITIONAL_PATHS_LIBS}
 )
 
 find_library(OSDependent_LIBRARY
     NAMES OSDependent
+    PATHS ${ADDITIONAL_PATHS_LIBS}
 )
 
 find_library(SPIRV_LIBRARY
     NAMES SPIRV
+    PATHS ${ADDITIONAL_PATHS_LIBS}
 )
 
 find_library(SPIRV-Tools_LIBRARY
     NAMES SPIRV-Tools
+    PATHS ${ADDITIONAL_PATHS_LIBS}
 )
 
 find_library(SPIRV-Tools-opt_LIBRARY
     NAMES SPIRV-Tools-opt
+    PATHS ${ADDITIONAL_PATHS_LIBS}
 )
 
 find_library(OGLCompiler_LIBRARY
     NAMES OGLCompiler
+    PATHS ${ADDITIONAL_PATHS_LIBS}
 )
 
 find_library(HLSL_LIBRARY
     NAMES HLSL
+    PATHS ${ADDITIONAL_PATHS_LIBS}
 )
 
 if(WIN32)
 
     find_library(glslang_LIBRARY_debug
         NAMES glslangd
+        PATHS ${ADDITIONAL_PATHS_LIBS}
     )
 
     find_library(OSDependent_LIBRARY_debug
         NAMES OSDependentd
+        PATHS ${ADDITIONAL_PATHS_LIBS}
     )
 
     find_library(SPIRV_LIBRARY_debug
         NAMES SPIRVd
+        PATHS ${ADDITIONAL_PATHS_LIBS}
     )
 
     find_library(SPIRV-Tools_LIBRARY_debug
         NAMES SPIRV-Toolsd
+        PATHS ${ADDITIONAL_PATHS_LIBS}
     )
 
     find_library(SPIRV-Tools-opt_LIBRARY_debug
         NAMES SPIRV-Tools-optd
+        PATHS ${ADDITIONAL_PATHS_LIBS}
     )
 
     find_library(OGLCompiler_LIBRARY_debug
         NAMES OGLCompilerd
+        PATHS ${ADDITIONAL_PATHS_LIBS}
     )
 
     find_library(HLSL_LIBRARY_debug
         NAMES HLSLd
+        PATHS ${ADDITIONAL_PATHS_LIBS}
     )
 endif()
 
