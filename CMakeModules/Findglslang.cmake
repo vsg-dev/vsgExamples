@@ -190,12 +190,13 @@ if(glslang_FOUND AND NOT TARGET glslang::glslang)
         glslang::OGLCompiler
         glslang::HLSL
     )
-    if (SPIRV-Tools_LIBRARY)
-        list(APPEND GLSLANG glslang::SPIRV-Tools)
-    endif()
 
     if (SPIRV-Tools-opt_LIBRARY)
         list(APPEND GLSLANG glslang::SPIRV-Tools-opt)
     endif()
+    if (SPIRV-Tools_LIBRARY)
+        list(APPEND GLSLANG glslang::SPIRV-Tools)
+    endif()
+
 endif()
 
