@@ -17,6 +17,10 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # find the vsg
+if (VULKAN_SDK)
+    set(ENV{VULKAN_SDK} ${VULKAN_SDK})
+endif()
+
 find_package(vsg REQUIRED)
 
 # find the optional vsgXchange that can be used for reading and range of image and 3d model formats and shader compilation
