@@ -188,6 +188,18 @@ int main(int argc, char** argv)
         screensToUse.push_back(screen);
     }
 
+    vsg::Affinity affinity;
+    uint32_t cpu = 0;
+    while(arguments.read({"--cpu", "-c"}, cpu))
+    {
+        affinity.cpus.insert(cpu);
+    }
+
+    if (affinity)
+    {
+        vsg::setAffinity(affinity);
+    }
+
     // if now screens are assign use screen 0
     if (screensToUse.empty()) screensToUse.push_back(0);
 
