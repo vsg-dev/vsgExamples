@@ -180,6 +180,7 @@ int main(int argc, char** argv)
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     auto powerWall = arguments.read({"--power-wall","--pw"});
     auto sharedScene = arguments.read({"--shared"});
+    auto multiThreaded = arguments.read({"--mt"});
 
     std::vector<int> screensToUse;
     int screen = -1;
@@ -312,6 +313,11 @@ int main(int argc, char** argv)
 
         viewer->assignRecordAndSubmitTaskAndPresentation({vsg::createCommandGraphForView(window, camera, local_scene)}, databasePager);
         viewer->addWindow(window);
+    }
+
+    if (multiThreaded)
+    {
+        viewer->setupThreading();
     }
 
     viewer->compile();
