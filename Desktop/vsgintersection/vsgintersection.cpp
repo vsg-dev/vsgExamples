@@ -23,7 +23,7 @@ public:
 
     void apply(const vsg::MatrixTransform& transform) override
     {
-        std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
+        // std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
         // TODO : transform intersectors into local coodinate frame
         transform.traverse(*this);
     }
@@ -33,7 +33,10 @@ public:
         std::cout<<"LOD apply("<<lod.className()<<") "<<std::endl;
         // TODO : test bounding sphere against intersectors
         //        select highest resolution version, or based on onscreen metric?
-        lod.traverse(*this);
+        if (intersects(lod.getBound()))
+        {
+            lod.traverse(*this);
+        }
     }
 
     void apply(const vsg::PagedLOD& plod) override
@@ -42,14 +45,17 @@ public:
         // TODO : test bounding sphere against intersectors
         //        select highest resolution version, or based on onscreen metric?
         //        if an external tile isn't available yet then do we load the tile and then traverse?
-        plod.traverse(*this);
+        if (intersects(plod.getBound()))
+        {
+            plod.traverse(*this);
+        }
     }
 
     void apply(const vsg::CullNode& cn) override
     {
         std::cout<<"CullNode apply("<<cn.className()<<") "<<std::endl;
         // TODO : test bounding sphere of LOD against intersectors
-        cn.traverse(*this);
+        if (intersects(cn.getBound())) cn.traverse(*this);
     }
 
     void apply(const vsg::VertexIndexDraw& vid) override
@@ -63,6 +69,13 @@ public:
         std::cout<<"VertexIndexDraw apply("<<geometry.className()<<") "<<std::endl;
         // TODO : Pass vertex array, indices and draw commands on to interesctors
     }
+
+    bool intersects(const vsg::dsphere& sphere) const
+    {
+        std::cout<<"intersects( center = "<<sphere.center<<", radius = "<<sphere.radius<<")"<<std::endl;
+        return true;
+    }
+
 };
 
 class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
