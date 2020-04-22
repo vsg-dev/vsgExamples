@@ -22,12 +22,12 @@ public:
 
     void apply(vsg::ButtonPressEvent& buttonPressEvent) override
     {
-        std::cout<<"ButtonPressEvent "<<buttonPressEvent.x<<", "<<buttonPressEvent.y<<", "<<buttonPressEvent.button<<std::endl;
+        std::cout<<"ButtonPressEvent z = "<<buttonPressEvent.x<<", y = "<<buttonPressEvent.y<<", button = "<<buttonPressEvent.button<<std::endl;
     }
 
     void apply(vsg::MoveEvent& moveEvent) override
     {
-        std::cout<<"MoveEvent "<<moveEvent.x<<", "<<moveEvent.y<<", "<<moveEvent.mask<<std::endl;
+        std::cout<<"MoveEvent x = "<<moveEvent.x<<", y = "<<moveEvent.y<<", mask = "<<moveEvent.mask<<std::endl;
     }
 };
 
@@ -38,29 +38,18 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgviewer";
+    windowTraits->windowTitle = "vsginteresction";
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
-    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-    if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    if (arguments.read({"-t", "--test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->fullscreen = true; }
-    if (arguments.read({"--st", "--small-test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->width = 192, windowTraits->height = 108; windowTraits->decoration = false; }
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
-    if (arguments.read("--or")) windowTraits->overrideRedirect = true;
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
-    auto numFrames = arguments.value(-1, "-f");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -191,7 +180,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
+    while (viewer->advanceToNextFrame())
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
