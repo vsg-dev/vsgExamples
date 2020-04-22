@@ -13,21 +13,31 @@ class IntersectonHandler : public vsg::Inherit<vsg::Visitor, IntersectonHandler>
 {
 public:
 
+    vsg::ref_ptr<vsg::PointerEvent> lastPointerEvent;
+
     IntersectonHandler() {}
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
         std::cout<<"KeyPress "<<keyPress.keyBase<<", "<<keyPress.keyModified<<std::endl;
+        if (keyPress.keyBase=='i' && lastPointerEvent) interesection(*lastPointerEvent);
     }
 
     void apply(vsg::ButtonPressEvent& buttonPressEvent) override
     {
-        std::cout<<"ButtonPressEvent z = "<<buttonPressEvent.x<<", y = "<<buttonPressEvent.y<<", button = "<<buttonPressEvent.button<<std::endl;
+        lastPointerEvent = &buttonPressEvent;
+        interesection(buttonPressEvent);
     }
 
-    void apply(vsg::MoveEvent& moveEvent) override
+    void apply(vsg::PointerEvent& pointerEvent) override
     {
-        std::cout<<"MoveEvent x = "<<moveEvent.x<<", y = "<<moveEvent.y<<", mask = "<<moveEvent.mask<<std::endl;
+        lastPointerEvent = &pointerEvent;
+    }
+
+    void interesection(vsg::PointerEvent& pointerEvent)
+    {
+        vsg::ref_ptr<vsg::Window> window = pointerEvent.window;
+        std::cout<<"pointer x = "<<pointerEvent.x<<", y = "<<pointerEvent.y<<", mask = "<<pointerEvent.mask<<", window = "<<window.get()<<" "<<pointerEvent.className()<<std::endl;
     }
 };
 
