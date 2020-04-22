@@ -9,14 +9,70 @@
 #include <chrono>
 #include <thread>
 
-class IntersectonHandler : public vsg::Inherit<vsg::Visitor, IntersectonHandler>
+class IntersectionTraversal : public vsg::Inherit<vsg::ConstVisitor, IntersectionTraversal>
+{
+public:
+
+    IntersectionTraversal() {}
+
+    void apply(const vsg::Node& node) override
+    {
+        //std::cout<<"apply("<<node.className()<<")"<<std::endl;
+        node.traverse(*this);
+    }
+
+    void apply(const vsg::MatrixTransform& transform) override
+    {
+        std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
+        // TODO : transform intersectors into local coodinate frame
+        transform.traverse(*this);
+    }
+
+    void apply(const vsg::LOD& lod) override
+    {
+        std::cout<<"LOD apply("<<lod.className()<<") "<<std::endl;
+        // TODO : test bounding sphere against intersectors
+        //        select highest resolution version, or based on onscreen metric?
+        lod.traverse(*this);
+    }
+
+    void apply(const vsg::PagedLOD& plod) override
+    {
+        std::cout<<"PLOD apply("<<plod.className()<<") "<<std::endl;
+        // TODO : test bounding sphere against intersectors
+        //        select highest resolution version, or based on onscreen metric?
+        //        if an external tile isn't available yet then do we load the tile and then traverse?
+        plod.traverse(*this);
+    }
+
+    void apply(const vsg::CullNode& cn) override
+    {
+        std::cout<<"CullNode apply("<<cn.className()<<") "<<std::endl;
+        // TODO : test bounding sphere of LOD against intersectors
+        cn.traverse(*this);
+    }
+
+    void apply(const vsg::VertexIndexDraw& vid) override
+    {
+        std::cout<<"VertexIndexDraw apply("<<vid.className()<<") "<<std::endl;
+        // TODO : Pass vertex array, indices and draw commands on to interesctors
+    }
+
+    void apply(const vsg::Geometry& geometry) override
+    {
+        std::cout<<"VertexIndexDraw apply("<<geometry.className()<<") "<<std::endl;
+        // TODO : Pass vertex array, indices and draw commands on to interesctors
+    }
+};
+
+class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
 {
 public:
 
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::Node> scenegraph;
 
-    IntersectonHandler(vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Node> in_scenegraph) :
+    IntersectionHandler(vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Node> in_scenegraph) :
         camera(in_camera),
         scenegraph(in_scenegraph) {}
 
@@ -40,7 +96,6 @@ public:
     void interesection(vsg::PointerEvent& pointerEvent)
     {
         vsg::ref_ptr<vsg::Window> window = pointerEvent.window;
-
         VkExtent2D extents = window->extent2D();
 
         if (camera)
@@ -85,6 +140,8 @@ public:
             auto latlongheight = elipsoidModel->convertECEFToLatLongHeight(world_near);
             std::cout<<"latlongheight lat = "<<vsg::degrees(latlongheight[0])<<", long = "<<vsg::degrees(latlongheight[1])<<", height "<<latlongheight[2]<<std::endl;
 
+            auto interesectionTraversal = IntersectionTraversal::create();
+            scenegraph->accept(*interesectionTraversal);
         }
     }
 
@@ -234,7 +291,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    viewer->addEventHandler(IntersectonHandler::create(camera, vsg_scene));
+    viewer->addEventHandler(IntersectionHandler::create(camera, vsg_scene));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
