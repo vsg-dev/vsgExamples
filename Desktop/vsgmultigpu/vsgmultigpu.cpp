@@ -196,11 +196,6 @@ int main(int argc, char** argv)
         affinity.cpus.insert(cpu);
     }
 
-    if (affinity)
-    {
-        vsg::setAffinity(affinity);
-    }
-
     // if now screens are assign use screen 0
     if (screensToUse.empty()) screensToUse.push_back(0);
 
@@ -318,7 +313,30 @@ int main(int argc, char** argv)
     if (multiThreaded)
     {
         viewer->setupThreading();
+
+        if (affinity)
+        {
+            auto cpu_itr = affinity.cpus.begin();
+
+            // set affinity of main thread
+            if (cpu_itr != affinity.cpus.end()) vsg::setAffinity(*cpu_itr++);
+
+            for(auto& task : viewer->recordAndSubmitTasks)
+            {
+                if (cpu_itr == affinity.cpus.end()) break;
+
+                // set thread of task
+                vsg::setAffinity(task->thread, *cpu_itr++);
+            }
+        }
+
     }
+    else if (affinity)
+    {
+        vsg::setAffinity(affinity);
+    }
+
+
 
     viewer->compile();
 
