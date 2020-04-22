@@ -9,68 +9,113 @@
 #include <chrono>
 #include <thread>
 
-class IntersectionTraversal : public vsg::Inherit<vsg::ConstVisitor, IntersectionTraversal>
+
+namespace vsg
+{
+
+class Intersector : public Inherit<Object, Intersector>
+{
+public:
+    /// clone and transform this Intersector to provide a new Intersector in local coordinates
+    virtual ref_ptr<Intersector> transform(const dmat4& m) = 0;
+
+    /// check of this intersector instersects with sphere
+    virtual bool intersects(dsphere& sphere) = 0;
+
+    /// check of this intersector instersects with mesh
+    /// vertices, indices and draw command
+    virtual bool intersects() = 0;
+};
+
+class LineSegmentIntersector : public Inherit<Intersector, LineSegmentIntersector>
+{
+public:
+
+    virtual ref_ptr<Intersector> transform(const dmat4& m)
+    {
+        std::cout<<"LineSegmentIntersector::transform() TODO"<<std::endl;
+        auto transformed = LineSegmentIntersector::create(*this);
+        return transformed;
+    }
+
+    /// check of this intersector instersects with sphere
+    virtual bool intersects(dsphere& sphere)
+    {
+        std::cout<<"LineSegmentIntersector::intersects() sphere TODO"<<std::endl;
+    }
+
+    /// check of this intersector instersects with mesh
+    /// vertices, indices and draw command
+    virtual bool intersects()
+    {
+        std::cout<<"LineSegmentIntersector::intersects() mesh TODO"<<std::endl;
+        return false;
+    }
+};
+
+class IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal>
 {
 public:
 
     IntersectionTraversal() {}
 
-    void apply(const vsg::Node& node) override
+    void apply(const Node& node) override
     {
         //std::cout<<"apply("<<node.className()<<")"<<std::endl;
         node.traverse(*this);
     }
 
-    void apply(const vsg::MatrixTransform& transform) override
+    void apply(const MatrixTransform& transform) override
     {
         // std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
         // TODO : transform intersectors into local coodinate frame
         transform.traverse(*this);
     }
 
-    void apply(const vsg::LOD& lod) override
+    void apply(const LOD& lod) override
     {
         std::cout<<"LOD apply("<<lod.className()<<") "<<std::endl;
-        // TODO : test bounding sphere against intersectors
-        //        select highest resolution version, or based on onscreen metric?
         if (intersects(lod.getBound()))
         {
-            lod.traverse(*this);
+            for(auto& child : lod.getChildren())
+            {
+                if (child.child) child.child->accept(*this);
+            }
         }
     }
 
-    void apply(const vsg::PagedLOD& plod) override
+    void apply(const PagedLOD& plod) override
     {
         std::cout<<"PLOD apply("<<plod.className()<<") "<<std::endl;
-        // TODO : test bounding sphere against intersectors
-        //        select highest resolution version, or based on onscreen metric?
-        //        if an external tile isn't available yet then do we load the tile and then traverse?
         if (intersects(plod.getBound()))
         {
-            plod.traverse(*this);
+            for(auto& child : plod.getChildren())
+            {
+                if (child.node) child.node->accept(*this);
+            }
         }
     }
 
-    void apply(const vsg::CullNode& cn) override
+    void apply(const CullNode& cn) override
     {
         std::cout<<"CullNode apply("<<cn.className()<<") "<<std::endl;
         // TODO : test bounding sphere of LOD against intersectors
         if (intersects(cn.getBound())) cn.traverse(*this);
     }
 
-    void apply(const vsg::VertexIndexDraw& vid) override
+    void apply(const VertexIndexDraw& vid) override
     {
         std::cout<<"VertexIndexDraw apply("<<vid.className()<<") "<<std::endl;
         // TODO : Pass vertex array, indices and draw commands on to interesctors
     }
 
-    void apply(const vsg::Geometry& geometry) override
+    void apply(const Geometry& geometry) override
     {
         std::cout<<"VertexIndexDraw apply("<<geometry.className()<<") "<<std::endl;
         // TODO : Pass vertex array, indices and draw commands on to interesctors
     }
 
-    bool intersects(const vsg::dsphere& sphere) const
+    bool intersects(const dsphere& sphere) const
     {
         std::cout<<"intersects( center = "<<sphere.center<<", radius = "<<sphere.radius<<")"<<std::endl;
         return true;
@@ -78,37 +123,37 @@ public:
 
 };
 
-class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
+class IntersectionHandler : public Inherit<Visitor, IntersectionHandler>
 {
 public:
 
-    vsg::ref_ptr<vsg::Camera> camera;
-    vsg::ref_ptr<vsg::Node> scenegraph;
+    ref_ptr<Camera> camera;
+    ref_ptr<Node> scenegraph;
 
-    IntersectionHandler(vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Node> in_scenegraph) :
+    IntersectionHandler(ref_ptr<Camera> in_camera, ref_ptr<Node> in_scenegraph) :
         camera(in_camera),
         scenegraph(in_scenegraph) {}
 
 
-    void apply(vsg::KeyPressEvent& keyPress) override
+    void apply(KeyPressEvent& keyPress) override
     {
         if (keyPress.keyBase=='i' && lastPointerEvent) interesection(*lastPointerEvent);
     }
 
-    void apply(vsg::ButtonPressEvent& buttonPressEvent) override
+    void apply(ButtonPressEvent& buttonPressEvent) override
     {
         lastPointerEvent = &buttonPressEvent;
         interesection(buttonPressEvent);
     }
 
-    void apply(vsg::PointerEvent& pointerEvent) override
+    void apply(PointerEvent& pointerEvent) override
     {
         lastPointerEvent = &pointerEvent;
     }
 
-    void interesection(vsg::PointerEvent& pointerEvent)
+    void interesection(PointerEvent& pointerEvent)
     {
-        vsg::ref_ptr<vsg::Window> window = pointerEvent.window;
+        ref_ptr<Window> window = pointerEvent.window;
         VkExtent2D extents = window->extent2D();
 
         if (camera)
@@ -116,42 +161,42 @@ public:
             auto viewportState = camera->getViewportState();
             VkViewport viewport = viewportState->getViewport();
 
-            vsg::vec2 ndc((static_cast<float>(pointerEvent.x)-viewport.x)/viewport.width, (static_cast<float>(pointerEvent.y)-viewport.y)/viewport.height);
+            vec2 ndc((static_cast<float>(pointerEvent.x)-viewport.x)/viewport.width, (static_cast<float>(pointerEvent.y)-viewport.y)/viewport.height);
 
-            vsg::dvec3 ndc_near(ndc.x, ndc.y, viewport.minDepth);
-            vsg::dvec3 ndc_far(ndc.x, ndc.y, viewport.maxDepth);
+            dvec3 ndc_near(ndc.x, ndc.y, viewport.minDepth);
+            dvec3 ndc_far(ndc.x, ndc.y, viewport.maxDepth);
 
             std::cout<<"\n ndc_near = "<<ndc_near<<", ndc_far ="<<ndc_far<<std::endl;
 
-            vsg::dmat4 projectionMatrix;
+            dmat4 projectionMatrix;
             camera->getProjectionMatrix()->get(projectionMatrix);
 
-            vsg::dmat4 viewMatrix;
+            dmat4 viewMatrix;
             camera->getViewMatrix()->get(viewMatrix);
 
             std::cout<<"projectionMatrix = "<<projectionMatrix<<std::endl;
             std::cout<<"viewMatrix = "<<viewMatrix<<std::endl;
 
-            auto inv_projectionMatrix = vsg::inverse(projectionMatrix);
-            auto inv_viewMatrix = vsg::inverse(viewMatrix);
-            auto inv_projectionViewMatrix = vsg::inverse(projectionMatrix * viewMatrix);
+            auto inv_projectionMatrix = inverse(projectionMatrix);
+            auto inv_viewMatrix = inverse(viewMatrix);
+            auto inv_projectionViewMatrix = inverse(projectionMatrix * viewMatrix);
 
-            vsg::dvec3 eye_near = inv_projectionMatrix * ndc_near;
-            vsg::dvec3 eye_far = inv_projectionMatrix * ndc_far;
+            dvec3 eye_near = inv_projectionMatrix * ndc_near;
+            dvec3 eye_far = inv_projectionMatrix * ndc_far;
 
             std::cout<<"eye_near = "<<eye_near<<std::endl;
             std::cout<<"eye_far = "<<eye_far<<std::endl;
 
-            vsg::dvec3 world_near = inv_projectionViewMatrix * ndc_near;
-            vsg::dvec3 world_far = inv_projectionViewMatrix * ndc_far;
+            dvec3 world_near = inv_projectionViewMatrix * ndc_near;
+            dvec3 world_far = inv_projectionViewMatrix * ndc_far;
 
             std::cout<<"world_near = "<<world_near<<std::endl;
             std::cout<<"world_far = "<<world_far<<std::endl;
 
             // just for testing purposes, assume we are working with a whole earth model.
-            auto elipsoidModel = vsg::EllipsoidModel::create();
+            auto elipsoidModel = EllipsoidModel::create();
             auto latlongheight = elipsoidModel->convertECEFToLatLongHeight(world_near);
-            std::cout<<"latlongheight lat = "<<vsg::degrees(latlongheight[0])<<", long = "<<vsg::degrees(latlongheight[1])<<", height "<<latlongheight[2]<<std::endl;
+            std::cout<<"latlongheight lat = "<<degrees(latlongheight[0])<<", long = "<<degrees(latlongheight[1])<<", height "<<latlongheight[2]<<std::endl;
 
             auto interesectionTraversal = IntersectionTraversal::create();
             scenegraph->accept(*interesectionTraversal);
@@ -159,11 +204,11 @@ public:
     }
 
 protected:
-    vsg::ref_ptr<vsg::PointerEvent> lastPointerEvent;
+    ref_ptr<PointerEvent> lastPointerEvent;
 
 };
 
-
+}
 
 int main(int argc, char** argv)
 {
@@ -304,7 +349,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    viewer->addEventHandler(IntersectionHandler::create(camera, vsg_scene));
+    viewer->addEventHandler(vsg::IntersectionHandler::create(camera, vsg_scene));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
