@@ -9,6 +9,30 @@
 #include <chrono>
 #include <thread>
 
+class IntersectonHandler : public vsg::Inherit<vsg::Visitor, IntersectonHandler>
+{
+public:
+
+    IntersectonHandler() {}
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        std::cout<<"KeyPress "<<keyPress.keyBase<<", "<<keyPress.keyModified<<std::endl;
+    }
+
+    void apply(vsg::ButtonPressEvent& buttonPressEvent) override
+    {
+        std::cout<<"ButtonPressEvent "<<buttonPressEvent.x<<", "<<buttonPressEvent.y<<", "<<buttonPressEvent.button<<std::endl;
+    }
+
+    void apply(vsg::MoveEvent& moveEvent) override
+    {
+        std::cout<<"MoveEvent "<<moveEvent.x<<", "<<moveEvent.y<<", "<<moveEvent.mask<<std::endl;
+    }
+};
+
+
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -158,6 +182,8 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
+
+    viewer->addEventHandler(IntersectonHandler::create());
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
