@@ -37,12 +37,14 @@ namespace vsg
 
         ref_ptr<Intersector> transform(const dmat4& m) override;
 
-        /// check of this intersector instersects with sphere
+        /// check for intersection instersects with sphere
         bool intersects(const dsphere& bs) override;
 
-        /// check of this intersector instersects with mesh
-        /// vertices, indices and draw command
-        bool intersects() override;
+        /// check for intersections with primitives associated with VkDrawDraw command
+        bool intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, uint32_t firstVertex, uint32_t vertexCount) override;
+
+        /// check for intersections with primitives associated with VkDrawDrawIndex command
+        bool intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount) override;
     };
 
 }

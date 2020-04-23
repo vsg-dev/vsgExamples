@@ -14,6 +14,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <vsg/core/ConstVisitor.h>
 #include <vsg/core/Inherit.h>
+#include <vsg/core/Data.h>
 #include <vsg/nodes/Node.h>
 
 #include <list>
@@ -21,7 +22,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsg
 {
 
-    using NodePath = std::vector<ref_ptr<Node>>;
+    using NodePath = std::vector<const Node*>;
 
     class Intersector : public Inherit<Object, Intersector>
     {
@@ -29,23 +30,28 @@ namespace vsg
         /// clone and transform this Intersector to provide a new Intersector in local coordinates
         virtual ref_ptr<Intersector> transform(const dmat4& m) = 0;
 
-        /// check of this intersector instersects with sphere
+        /// check for intersection instersects with sphere
         virtual bool intersects(const dsphere& sphere) = 0;
 
-        /// check of this intersector instersects with mesh
-        /// vertices, indices and draw command
-        virtual bool intersects() = 0;
+        /// check for intersections with primitives associated with VkDrawDraw command
+        virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, uint32_t firstVertex, uint32_t vertexCount) = 0;
+
+        /// check for intersections with primitives associated with VkDrawDrawIndex command
+        virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, ref_ptr<Data> indices, uint32_t firstIndex, uint32_t indexCount) = 0;
     };
 
     class VSG_DECLSPEC IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal>
     {
     public:
 
+        VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         std::list<ref_ptr<Intersector>> intersectorStack;
+        NodePath nodePath;
 
         IntersectionTraversal();
 
         void apply(const Node& node) override;
+        void apply(const StateGroup& stategroup) override;
         void apply(const MatrixTransform& transform) override;
         void apply(const LOD& lod) override;
         void apply(const PagedLOD& plod) override;
@@ -53,7 +59,8 @@ namespace vsg
         void apply(const VertexIndexDraw& vid) override;
         void apply(const Geometry& geometry) override;
 
-        bool intersects(const dsphere& bs) const;
+        inline bool intersects(const dsphere& bs) const { return intersectorStack.back()->intersects(bs); }
+        inline ref_ptr<Intersector> intersector() { return intersectorStack.back(); }
 
     };
 

@@ -38,6 +38,7 @@ public:
     void apply(vsg::PointerEvent& pointerEvent) override
     {
         lastPointerEvent = &pointerEvent;
+        //interesection(pointerEvent);
     }
 
     void interesection(vsg::PointerEvent& pointerEvent)
@@ -55,16 +56,12 @@ public:
             vsg::dvec3 ndc_near(ndc.x, ndc.y, viewport.minDepth);
             vsg::dvec3 ndc_far(ndc.x, ndc.y, viewport.maxDepth);
 
-            std::cout<<"\n ndc_near = "<<ndc_near<<", ndc_far ="<<ndc_far<<std::endl;
 
             vsg::dmat4 projectionMatrix;
             camera->getProjectionMatrix()->get(projectionMatrix);
 
             vsg::dmat4 viewMatrix;
             camera->getViewMatrix()->get(viewMatrix);
-
-            std::cout<<"projectionMatrix = "<<projectionMatrix<<std::endl;
-            std::cout<<"viewMatrix = "<<viewMatrix<<std::endl;
 
             auto inv_projectionMatrix = vsg::inverse(projectionMatrix);
             auto inv_viewMatrix = vsg::inverse(viewMatrix);
@@ -73,19 +70,25 @@ public:
             vsg::dvec3 eye_near = inv_projectionMatrix * ndc_near;
             vsg::dvec3 eye_far = inv_projectionMatrix * ndc_far;
 
-            std::cout<<"eye_near = "<<eye_near<<std::endl;
-            std::cout<<"eye_far = "<<eye_far<<std::endl;
 
             vsg::dvec3 world_near = inv_projectionViewMatrix * ndc_near;
             vsg::dvec3 world_far = inv_projectionViewMatrix * ndc_far;
 
-            std::cout<<"world_near = "<<world_near<<std::endl;
-            std::cout<<"world_far = "<<world_far<<std::endl;
 
             // just for testing purposes, assume we are working with a whole earth model.
             auto elipsoidModel = vsg::EllipsoidModel::create();
             auto latlongheight = elipsoidModel->convertECEFToLatLongHeight(world_near);
+
+            std::cout<<"\n ndc_near = "<<ndc_near<<", ndc_far ="<<ndc_far<<std::endl;
+#if 0
+            std::cout<<"projectionMatrix = "<<projectionMatrix<<std::endl;
+            std::cout<<"viewMatrix = "<<viewMatrix<<std::endl;
+            std::cout<<"eye_near = "<<eye_near<<std::endl;
+            std::cout<<"eye_far = "<<eye_far<<std::endl;
+            std::cout<<"world_near = "<<world_near<<std::endl;
+            std::cout<<"world_far = "<<world_far<<std::endl;
             std::cout<<"latlongheight lat = "<<vsg::degrees(latlongheight[0])<<", long = "<<vsg::degrees(latlongheight[1])<<", height "<<latlongheight[2]<<std::endl;
+#endif
 
             auto interesectionTraversal = vsg::IntersectionTraversal::create();
             interesectionTraversal->intersectorStack.push_back(vsg::LineSegmentIntersector::create(world_near, world_far));

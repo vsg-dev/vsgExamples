@@ -12,12 +12,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "IntersectionTraversal.h"
 
+#include <vsg/nodes/StateGroup.h>
 #include <vsg/nodes/CullNode.h>
 #include <vsg/nodes/LOD.h>
 #include <vsg/nodes/MatrixTransform.h>
 #include <vsg/nodes/PagedLOD.h>
 #include <vsg/nodes/Geometry.h>
 #include <vsg/nodes/VertexIndexDraw.h>
+#include <vsg/vk/Draw.h>
+#include <vsg/maths/transform.h>
 
 #include <iostream>
 
@@ -33,14 +36,21 @@ void IntersectionTraversal::apply(const Node& node)
     node.traverse(*this);
 }
 
+void IntersectionTraversal::apply(const StateGroup& stategroup)
+{
+    // TODO need to check for topology type. GraphicsProgram::InputAssemblyState.topology (VkPrimitiveTopology)
+
+    stategroup.traverse(*this);
+}
+
 void IntersectionTraversal::apply(const MatrixTransform& transform)
 {
     // std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
     // TODO : transform intersectors into local coodinate frame
 
-    intersectorStack.push_back(intersectorStack.back()->transform(transform.getMatrix()));
+    intersectorStack.push_back(intersectorStack.back()->transform( vsg::inverse( transform.getMatrix() ) ) );
 
-    std::cout<<"Transforn : "<<intersectorStack.size()<<std::endl;
+    //std::cout<<"Transforn : "<<intersectorStack.size()<<std::endl;
 
     transform.traverse(*this);
 
@@ -49,7 +59,7 @@ void IntersectionTraversal::apply(const MatrixTransform& transform)
 
 void IntersectionTraversal::apply(const LOD& lod)
 {
-    std::cout<<"LOD apply("<<lod.className()<<") "<<std::endl;
+//    std::cout<<"LOD apply("<<lod.className()<<") "<<std::endl;
     if (intersects(lod.getBound()))
     {
         for(auto& child : lod.getChildren())
@@ -65,7 +75,7 @@ void IntersectionTraversal::apply(const LOD& lod)
 
 void IntersectionTraversal::apply(const PagedLOD& plod)
 {
-    std::cout<<"PLOD apply("<<plod.className()<<") "<<std::endl;
+//    std::cout<<"PLOD apply("<<plod.className()<<") "<<std::endl;
     if (intersects(plod.getBound()))
     {
         for(auto& child : plod.getChildren())
@@ -81,25 +91,45 @@ void IntersectionTraversal::apply(const PagedLOD& plod)
 
 void IntersectionTraversal::apply(const CullNode& cn)
 {
-    std::cout<<"CullNode apply("<<cn.className()<<") "<<std::endl;
+//    std::cout<<"CullNode apply("<<cn.className()<<") "<<std::endl;
     if (intersects(cn.getBound())) cn.traverse(*this);
 }
 
 void IntersectionTraversal::apply(const VertexIndexDraw& vid)
 {
-    std::cout<<"VertexIndexDraw apply("<<vid.className()<<") "<<std::endl;
-    // TODO : Pass vertex array, indices and draw commands on to interesctors
+    intersector()->intersect(topology, vid.arrays, vid.indices, vid.firstIndex, vid.indexCount);
 }
 
 void IntersectionTraversal::apply(const Geometry& geometry)
 {
-    std::cout<<"VertexIndexDraw apply("<<geometry.className()<<") "<<std::endl;
+    struct DrawCommandVisitor : public ConstVisitor
+    {
+        DrawCommandVisitor(VkPrimitiveTopology in_topology, Intersector& in_intersector, const Geometry& in_geometry) :
+            topology(topology),
+            intersector(intersector),
+            geometry(in_geometry) {}
+
+        VkPrimitiveTopology topology;
+        Intersector& intersector;
+        const Geometry& geometry;
+
+        void apply(const Draw& draw) override
+        {
+            intersector.intersect(topology, geometry.arrays, draw.firstVertex, draw.vertexCount);
+        }
+        void apply(const DrawIndexed& drawIndexed) override
+        {
+            intersector.intersect(topology, geometry.arrays, geometry.indices, drawIndexed.firstIndex, drawIndexed.indexCount);
+        }
+    };
+
+    DrawCommandVisitor drawCommandVisitor{topology, *intersector(), geometry};
+
+    for(auto& command : geometry.commands)
+    {
+        command->accept(drawCommandVisitor);
+    }
+
     // TODO : Pass vertex array, indices and draw commands on to interesctors
 }
 
-bool IntersectionTraversal::intersects(const dsphere& bs) const
-{
-    bool result = intersectorStack.back()->intersects(bs);
-    std::cout<<"intersects(bs) <intersectorStack.size() = "<<intersectorStack.size()<<" result = "<<result<<std::endl;
-    return result;
-}

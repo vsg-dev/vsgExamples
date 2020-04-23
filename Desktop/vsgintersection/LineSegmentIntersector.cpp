@@ -22,14 +22,13 @@ LineSegmentIntersector::LineSegmentIntersector(const dvec3& s, const dvec3& e) :
 
 ref_ptr<Intersector> LineSegmentIntersector::transform(const dmat4& m)
 {
-    std::cout<<"LineSegmentIntersector::transform() TODO"<<std::endl;
     auto transformed = LineSegmentIntersector::create(m * start, m * end);
     return transformed;
 }
 
 bool LineSegmentIntersector::intersects(const dsphere& bs)
 {
-    std::cout<<"intersects( center = "<<bs.center<<", radius = "<<bs.radius<<")"<<std::endl;
+    //std::cout<<"intersects( center = "<<bs.center<<", radius = "<<bs.radius<<")"<<std::endl;
 
     // if bs not valid then return true based on the assumption that an invalid sphere is yet to be defined.
     if (!bs.valid()) return true;
@@ -59,8 +58,17 @@ bool LineSegmentIntersector::intersects(const dsphere& bs)
     return true;
 }
 
-bool LineSegmentIntersector::intersects()
+bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, uint32_t firstVertex, uint32_t vertexCount)
 {
-    std::cout<<"LineSegmentIntersector::intersects() mesh TODO"<<std::endl;
+    // TODO
+    std::cout<<"LineSegmentIntersector::intersects( topology "<<topology<<", arrays.size() = "<<arrays.size()<<" firstVertex = "<<firstVertex<<", vertexCount = "<<vertexCount<<")"<<std::endl;
+    return false;
+}
+
+bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount)
+{
+    // TODO
+    std::cout<<"LineSegmentIntersector::intersects( topology "<<topology<<", arrays.size() = "<<arrays.size()<<", indices = "<<indices.get()<<" firstIndex = "<<firstIndex<<", indexCount = "<<indexCount<<")"<<std::endl;
+
     return false;
 }
