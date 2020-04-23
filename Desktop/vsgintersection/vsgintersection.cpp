@@ -133,9 +133,9 @@ public:
         {
             for(auto& child : lod.getChildren())
             {
-                if (child.child)
+                if (child.node)
                 {
-                    child.child->accept(*this);
+                    child.node->accept(*this);
                     break;
                 }
             }
