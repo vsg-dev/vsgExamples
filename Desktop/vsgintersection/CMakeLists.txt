@@ -1,4 +1,6 @@
 set(SOURCES
+    IntersectionTraversal.cpp
+    LineSegmentIntersector.cpp
     vsgintersection.cpp
 )
 
