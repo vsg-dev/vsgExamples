@@ -13,6 +13,8 @@
 namespace vsg
 {
 
+using NodePath = std::vector<ref_ptr<Node>>;
+
 class Intersector : public Inherit<Object, Intersector>
 {
 public:
@@ -20,7 +22,7 @@ public:
     virtual ref_ptr<Intersector> transform(const dmat4& m) = 0;
 
     /// check of this intersector instersects with sphere
-    virtual bool intersects(dsphere& sphere) = 0;
+    virtual bool intersects(const dsphere& sphere) = 0;
 
     /// check of this intersector instersects with mesh
     /// vertices, indices and draw command
@@ -31,17 +33,60 @@ class LineSegmentIntersector : public Inherit<Intersector, LineSegmentIntersecto
 {
 public:
 
+    dvec3 start;
+    dvec3 end;
+
+    LineSegmentIntersector(const dvec3& s, const dvec3& e) :
+        start(s),
+        end(e) {}
+
+    struct Intersection
+    {
+        dvec3 intersection;
+        NodePath nodePath;
+    };
+
+    using Intersections = std::vector<Intersection>;
+    Intersections intersections;
+
     virtual ref_ptr<Intersector> transform(const dmat4& m)
     {
         std::cout<<"LineSegmentIntersector::transform() TODO"<<std::endl;
-        auto transformed = LineSegmentIntersector::create(*this);
+        auto transformed = LineSegmentIntersector::create(m * start, m * end);
         return transformed;
     }
 
     /// check of this intersector instersects with sphere
-    virtual bool intersects(dsphere& sphere)
+    virtual bool intersects(const dsphere& bs)
     {
-        std::cout<<"LineSegmentIntersector::intersects() sphere TODO"<<std::endl;
+        std::cout<<"intersects( center = "<<bs.center<<", radius = "<<bs.radius<<")"<<std::endl;
+
+        // if bs not valid then return true based on the assumption that an invalid sphere is yet to be defined.
+        if (!bs.valid()) return true;
+
+        dvec3 sm = start - bs.center;
+        double c = length2(sm) - bs.radius * bs.radius;
+        if (c<0.0) return true;
+
+        dvec3 se = end-start;
+        double a = length2(se);
+        double b = dot(sm, se)*2.0;
+        double d = b*b-4.0*a*c;
+
+        if (d<0.0) return false;
+
+        d = sqrt(d);
+
+        double div = 1.0/(2.0*a);
+
+        double r1 = (-b-d)*div;
+        double r2 = (-b+d)*div;
+
+        if (r1<=0.0 && r2<=0.0) return false;
+        if (r1>=1.0 && r2>=1.0) return false;
+
+        // passed all the rejection tests so line must intersect bounding sphere, return true.
+        return true;
     }
 
     /// check of this intersector instersects with mesh
@@ -57,6 +102,8 @@ class IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal
 {
 public:
 
+    std::list<ref_ptr<Intersector>> intersectorStack;
+
     IntersectionTraversal() {}
 
     void apply(const Node& node) override
@@ -69,7 +116,14 @@ public:
     {
         // std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
         // TODO : transform intersectors into local coodinate frame
+
+        intersectorStack.push_back(intersectorStack.back()->transform(transform.getMatrix()));
+
+        std::cout<<"Transforn : "<<intersectorStack.size()<<std::endl;
+
         transform.traverse(*this);
+
+        intersectorStack.pop_back();
     }
 
     void apply(const LOD& lod) override
@@ -79,7 +133,11 @@ public:
         {
             for(auto& child : lod.getChildren())
             {
-                if (child.child) child.child->accept(*this);
+                if (child.child)
+                {
+                    child.child->accept(*this);
+                    break;
+                }
             }
         }
     }
@@ -91,7 +149,11 @@ public:
         {
             for(auto& child : plod.getChildren())
             {
-                if (child.node) child.node->accept(*this);
+                if (child.node)
+                {
+                    child.node->accept(*this);
+                    break;
+                }
             }
         }
     }
@@ -99,7 +161,6 @@ public:
     void apply(const CullNode& cn) override
     {
         std::cout<<"CullNode apply("<<cn.className()<<") "<<std::endl;
-        // TODO : test bounding sphere of LOD against intersectors
         if (intersects(cn.getBound())) cn.traverse(*this);
     }
 
@@ -115,10 +176,11 @@ public:
         // TODO : Pass vertex array, indices and draw commands on to interesctors
     }
 
-    bool intersects(const dsphere& sphere) const
+    bool intersects(const dsphere& bs) const
     {
-        std::cout<<"intersects( center = "<<sphere.center<<", radius = "<<sphere.radius<<")"<<std::endl;
-        return true;
+        bool result = intersectorStack.back()->intersects(bs);
+        std::cout<<"intersects(bs) <intersectorStack.size() = "<<intersectorStack.size()<<" result = "<<result<<std::endl;
+        return result;
     }
 
 };
@@ -199,6 +261,7 @@ public:
             std::cout<<"latlongheight lat = "<<degrees(latlongheight[0])<<", long = "<<degrees(latlongheight[1])<<", height "<<latlongheight[2]<<std::endl;
 
             auto interesectionTraversal = IntersectionTraversal::create();
+            interesectionTraversal->intersectorStack.push_back(vsg::LineSegmentIntersector::create(world_near, world_far));
             scenegraph->accept(*interesectionTraversal);
         }
     }
