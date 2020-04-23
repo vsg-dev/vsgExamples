@@ -21,40 +21,40 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsg
 {
 
-using NodePath = std::vector<ref_ptr<Node>>;
+    using NodePath = std::vector<ref_ptr<Node>>;
 
-class Intersector : public Inherit<Object, Intersector>
-{
-public:
-    /// clone and transform this Intersector to provide a new Intersector in local coordinates
-    virtual ref_ptr<Intersector> transform(const dmat4& m) = 0;
+    class Intersector : public Inherit<Object, Intersector>
+    {
+    public:
+        /// clone and transform this Intersector to provide a new Intersector in local coordinates
+        virtual ref_ptr<Intersector> transform(const dmat4& m) = 0;
 
-    /// check of this intersector instersects with sphere
-    virtual bool intersects(const dsphere& sphere) = 0;
+        /// check of this intersector instersects with sphere
+        virtual bool intersects(const dsphere& sphere) = 0;
 
-    /// check of this intersector instersects with mesh
-    /// vertices, indices and draw command
-    virtual bool intersects() = 0;
-};
+        /// check of this intersector instersects with mesh
+        /// vertices, indices and draw command
+        virtual bool intersects() = 0;
+    };
 
-class VSG_DECLSPEC IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal>
-{
-public:
+    class VSG_DECLSPEC IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal>
+    {
+    public:
 
-    std::list<ref_ptr<Intersector>> intersectorStack;
+        std::list<ref_ptr<Intersector>> intersectorStack;
 
-    IntersectionTraversal();
+        IntersectionTraversal();
 
-    void apply(const Node& node) override;
-    void apply(const MatrixTransform& transform) override;
-    void apply(const LOD& lod) override;
-    void apply(const PagedLOD& plod) override;
-    void apply(const CullNode& cn) override;
-    void apply(const VertexIndexDraw& vid) override;
-    void apply(const Geometry& geometry) override;
+        void apply(const Node& node) override;
+        void apply(const MatrixTransform& transform) override;
+        void apply(const LOD& lod) override;
+        void apply(const PagedLOD& plod) override;
+        void apply(const CullNode& cn) override;
+        void apply(const VertexIndexDraw& vid) override;
+        void apply(const Geometry& geometry) override;
 
-    bool intersects(const dsphere& bs) const;
+        bool intersects(const dsphere& bs) const;
 
-};
+    };
 
 }

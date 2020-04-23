@@ -17,32 +17,32 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsg
 {
 
-class VSG_DECLSPEC LineSegmentIntersector : public Inherit<Intersector, LineSegmentIntersector>
-{
-public:
-
-    dvec3 start;
-    dvec3 end;
-
-    LineSegmentIntersector(const dvec3& s, const dvec3& e);
-
-    struct Intersection
+    class VSG_DECLSPEC LineSegmentIntersector : public Inherit<Intersector, LineSegmentIntersector>
     {
-        dvec3 intersection;
-        NodePath nodePath;
+    public:
+
+        dvec3 start;
+        dvec3 end;
+
+        LineSegmentIntersector(const dvec3& s, const dvec3& e);
+
+        struct Intersection
+        {
+            dvec3 intersection;
+            NodePath nodePath;
+        };
+
+        using Intersections = std::vector<Intersection>;
+        Intersections intersections;
+
+        ref_ptr<Intersector> transform(const dmat4& m) override;
+
+        /// check of this intersector instersects with sphere
+        bool intersects(const dsphere& bs) override;
+
+        /// check of this intersector instersects with mesh
+        /// vertices, indices and draw command
+        bool intersects() override;
     };
-
-    using Intersections = std::vector<Intersection>;
-    Intersections intersections;
-
-    ref_ptr<Intersector> transform(const dmat4& m) override;
-
-    /// check of this intersector instersects with sphere
-    bool intersects(const dsphere& bs) override;
-
-    /// check of this intersector instersects with mesh
-    /// vertices, indices and draw command
-    bool intersects() override;
-};
 
 }
