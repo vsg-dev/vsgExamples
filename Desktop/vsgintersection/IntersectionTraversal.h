@@ -24,6 +24,24 @@ namespace vsg
 
     using NodePath = std::vector<const Node*>;
 
+
+    class Spatial : public Inherit<Object, Spatial>
+    {
+    public:
+        ref_ptr<vec3Array> vertices;
+        ref_ptr<ushortArray> indices;
+        VkPrimitiveTopology topology;
+
+        struct Leaf
+        {
+            box boundingBox;
+            uint32_t firstIndex;
+            uint32_t indexCount;
+        };
+
+        std::vector<Leaf> leaves;
+    };
+
     class Intersector : public Inherit<Object, Intersector>
     {
     public:

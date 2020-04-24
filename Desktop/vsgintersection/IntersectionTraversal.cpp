@@ -97,7 +97,37 @@ void IntersectionTraversal::apply(const CullNode& cn)
 
 void IntersectionTraversal::apply(const VertexIndexDraw& vid)
 {
-    intersector()->intersect(topology, vid.arrays, vid.indices, vid.firstIndex, vid.indexCount);
+    if (vid.arrays.empty()) return;
+
+    sphere bound;
+    if (!vid.getValue("bound", bound))
+    {
+        box bb;
+        if (auto vertices = vid.arrays[0].cast<vec3Array>(); vertices)
+        {
+            for(auto& vertex : *vertices) bb.add(vertex);
+        }
+
+        if (bb.valid())
+        {
+            bound.center = (bb.min + bb.max) * 0.5f;
+            bound.radius = length(bb.max - bb.min) * 0.5f;
+
+            // hacky but better to reuse results.  Perhaps use a std::map<> to avoid a breaking const, or make the vistitor non const?
+            const_cast<VertexIndexDraw&>(vid).setValue("bound", bound);
+        }
+
+        std::cout<<"Computed bounding sphere : "<<bound.center<<", "<<bound.radius<<std::endl;
+    }
+    else
+    {
+        std::cout<<"Found bounding sphere : "<<bound.center<<", "<<bound.radius<<std::endl;
+    }
+
+    if (intersector()->intersects(bound))
+    {
+        intersector()->intersect(topology, vid.arrays, vid.indices, vid.firstIndex, vid.indexCount);
+    }
 }
 
 void IntersectionTraversal::apply(const Geometry& geometry)
