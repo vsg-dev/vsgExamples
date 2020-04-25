@@ -24,6 +24,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <iostream>
 
+#include "LineSegmentIntersector.h"
+
 using namespace vsg;
 
 IntersectionTraversal::IntersectionTraversal()
@@ -48,7 +50,13 @@ void IntersectionTraversal::apply(const MatrixTransform& transform)
     // std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
     // TODO : transform intersectors into local coodinate frame
 
+    auto intersector = intersectorStack.back().cast<LineSegmentIntersector>();
+
+    // std::cout<<"   Before intersectorStack.back()->start = "<<intersector->start<<", "<<intersector->end<<std::endl;
+
     intersectorStack.push_back(intersectorStack.back()->transform( vsg::inverse( transform.getMatrix() ) ) );
+
+    // std::cout<<"   After intersectorStack.back()->start = "<<intersector->start<<", "<<intersector->end<<std::endl;
 
     //std::cout<<"Transforn : "<<intersectorStack.size()<<std::endl;
 
@@ -117,11 +125,11 @@ void IntersectionTraversal::apply(const VertexIndexDraw& vid)
             const_cast<VertexIndexDraw&>(vid).setValue("bound", bound);
         }
 
-        std::cout<<"Computed bounding sphere : "<<bound.center<<", "<<bound.radius<<std::endl;
+        // std::cout<<"Computed bounding sphere : "<<bound.center<<", "<<bound.radius<<std::endl;
     }
     else
     {
-        std::cout<<"Found bounding sphere : "<<bound.center<<", "<<bound.radius<<std::endl;
+        // std::cout<<"Found bounding sphere : "<<bound.center<<", "<<bound.radius<<std::endl;
     }
 
     if (intersector()->intersects(bound))

@@ -53,8 +53,8 @@ public:
 
             vsg::vec2 ndc((static_cast<float>(pointerEvent.x)-viewport.x)/viewport.width, (static_cast<float>(pointerEvent.y)-viewport.y)/viewport.height);
 
-            vsg::dvec3 ndc_near(ndc.x, ndc.y, viewport.minDepth);
-            vsg::dvec3 ndc_far(ndc.x, ndc.y, viewport.maxDepth);
+            vsg::dvec3 ndc_near(ndc.x*2.0 - 1.0, ndc.y*2.0 - 1.0, viewport.minDepth*2.0 - 1.0);
+            vsg::dvec3 ndc_far(ndc.x*2.0 - 1.0, ndc.y*2.0 - 1.0, viewport.maxDepth*2.0 - 1.0);
 
 
             vsg::dmat4 projectionMatrix;
@@ -79,8 +79,8 @@ public:
             auto elipsoidModel = vsg::EllipsoidModel::create();
             auto latlongheight = elipsoidModel->convertECEFToLatLongHeight(world_near);
 
-            std::cout<<"\n ndc_near = "<<ndc_near<<", ndc_far ="<<ndc_far<<std::endl;
 #if 0
+            std::cout<<"\n\nndc_near = "<<ndc_near<<", ndc_far ="<<ndc_far<<std::endl;
             std::cout<<"projectionMatrix = "<<projectionMatrix<<std::endl;
             std::cout<<"viewMatrix = "<<viewMatrix<<std::endl;
             std::cout<<"eye_near = "<<eye_near<<std::endl;
@@ -191,13 +191,13 @@ vsg::ref_ptr<vsg::Node> createScene(std::string filename)
     auto vertices = vsg::vec3Array::create(
     {
         {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.05f},
+        {0.5f,  -0.5f, 0.0f},
         {0.5f , 0.5f, 0.0f},
         {-0.5f, 0.5f, 0.0f},
-        {-0.5f, -0.5f, -0.5f},
-        {0.5f,  -0.5f, -0.5f},
-        {0.5f , 0.5f, -0.5},
-        {-0.5f, 0.5f, -0.5}
+        {-0.5f, -0.5f, 1.0},
+        {0.5f,  -0.5f, 1.0},
+        {0.5f , 0.5f, 1.0},
+        {-0.5f, 0.5f, 1.0}
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(

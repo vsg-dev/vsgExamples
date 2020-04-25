@@ -173,14 +173,15 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
 bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount)
 {
     // TODO
-    std::cout<<"LineSegmentIntersector::intersects( topology "<<topology<<", arrays.size() = "<<arrays.size()<<", indices = "<<indices.get()<<" firstIndex = "<<firstIndex<<", indexCount = "<<indexCount<<")"<<std::endl;
+    //std::cout<<"LineSegmentIntersector::intersects( topology "<<topology<<", arrays.size() = "<<arrays.size()<<", indices = "<<indices.get()<<" firstIndex = "<<firstIndex<<", indexCount = "<<indexCount<<")"<<std::endl;
     if (arrays.empty() || !indices || indexCount==0) return false;
 
     auto vertices = arrays[0].cast<vec3Array>();
     auto us_indices = indices.cast<ushortArray>();
 
     if (!vertices || !us_indices) return false;
-    std::cout<<"   "<<vertices->size()<<", us_indices ="<<us_indices->size()<<std::endl;
+
+    //std::cout<<"   "<<vertices->size()<<", us_indices ="<<us_indices->size()<<std::endl;
     size_t previous_size = intersections.size();
 
     uint32_t endIndex = firstIndex + indexCount;
