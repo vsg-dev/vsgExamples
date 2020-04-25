@@ -33,12 +33,16 @@ struct TriangleIntersector
     vec_type _d_invY;
     vec_type _d_invZ;
 
-    TriangleIntersector(const dvec3& s, const dvec3& e)
-    {
-        start = s;
-        end = e;
 
-        _d = e - s;
+    LineSegmentIntersector& intersector;
+
+    TriangleIntersector(LineSegmentIntersector& in_intersector) :
+        intersector(in_intersector)
+    {
+        start = in_intersector.start;
+        end = in_intersector.end;
+
+        _d = end - start;
         _length = length(_d);
         _inverse_length = (_length!=0.0) ? 1.0/_length : 0.0;
         _d *= _inverse_length;
@@ -115,7 +119,9 @@ struct TriangleIntersector
 
         // TODO : handle hit
 
-        std::cout<<"We have a hit r="<<r<<", r0 = "<<r0<<", r1 = "<<r1<<", r2 = "<<r2<<" total = "<<(r0+r1+r2)<<std::endl;
+        dvec3 intersection = dvec3(dvec3(v0)*double(r0) + dvec3(v1)*double(r1) + dvec3(v2)*double(r2));
+        intersector.add(intersection, double(r));
+
         return true;
     }
 };
@@ -186,7 +192,7 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
     {
         case(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST) :
         {
-            TriangleIntersector<double> triIntsector(start, end);
+            TriangleIntersector<double> triIntsector(*this);
             for(uint32_t i = firstIndex; i<endIndex; i+=3)
             {
                 triIntsector.intersect( vertices->at(us_indices->at(i)), vertices->at(us_indices->at(i+1)), vertices->at(us_indices->at(i+2)));
@@ -195,6 +201,8 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
         }
         default: break; // TODO: NOT supported
     }
+
+    std::cout<<"intersections.size() = "<<intersections.size()<<std::endl;
 
     return intersections.size() != previous_size;
 }

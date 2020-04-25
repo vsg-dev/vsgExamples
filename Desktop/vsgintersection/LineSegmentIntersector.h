@@ -29,11 +29,13 @@ namespace vsg
         struct Intersection
         {
             dvec3 intersection;
-            NodePath nodePath;
+            double ratio;
         };
 
         using Intersections = std::vector<Intersection>;
         Intersections intersections;
+
+        void add(const dvec3& intersection, double ratio) { intersections.emplace_back(Intersection{intersection, ratio}); }
 
         ref_ptr<Intersector> transform(const dmat4& m) override;
 
