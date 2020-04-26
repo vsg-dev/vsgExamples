@@ -229,7 +229,10 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
         default: break; // TODO: NOT supported
     }
 
-    std::cout<<"intersections.size() = "<<intersections.size()<<std::endl;
+    for(auto& hit : intersections)
+    {
+        std::cout<<"intersection = "<<hit.intersection<<std::endl;
+    }
 
     return intersections.size() != previous_size;
 }
