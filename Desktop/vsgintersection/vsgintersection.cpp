@@ -23,7 +23,6 @@ public:
         camera(in_camera),
         scenegraph(in_scenegraph) {}
 
-
     void apply(vsg::KeyPressEvent& keyPress) override
     {
         if (keyPress.keyBase=='i' && lastPointerEvent) interesection(*lastPointerEvent);
@@ -38,62 +37,13 @@ public:
     void apply(vsg::PointerEvent& pointerEvent) override
     {
         lastPointerEvent = &pointerEvent;
-        //interesection(pointerEvent);
     }
 
     void interesection(vsg::PointerEvent& pointerEvent)
     {
-        vsg::ref_ptr<vsg::Window> window = pointerEvent.window;
-        VkExtent2D extents = window->extent2D();
-
-        if (camera)
-        {
-            auto viewportState = camera->getViewportState();
-            VkViewport viewport = viewportState->getViewport();
-
-            vsg::vec2 ndc((static_cast<float>(pointerEvent.x)-viewport.x)/viewport.width, (static_cast<float>(pointerEvent.y)-viewport.y)/viewport.height);
-
-            vsg::dvec3 ndc_near(ndc.x*2.0 - 1.0, ndc.y*2.0 - 1.0, viewport.minDepth*2.0 - 1.0);
-            vsg::dvec3 ndc_far(ndc.x*2.0 - 1.0, ndc.y*2.0 - 1.0, viewport.maxDepth*2.0 - 1.0);
-
-
-            vsg::dmat4 projectionMatrix;
-            camera->getProjectionMatrix()->get(projectionMatrix);
-
-            vsg::dmat4 viewMatrix;
-            camera->getViewMatrix()->get(viewMatrix);
-
-            auto inv_projectionMatrix = vsg::inverse(projectionMatrix);
-            auto inv_viewMatrix = vsg::inverse(viewMatrix);
-            auto inv_projectionViewMatrix = vsg::inverse(projectionMatrix * viewMatrix);
-
-            vsg::dvec3 eye_near = inv_projectionMatrix * ndc_near;
-            vsg::dvec3 eye_far = inv_projectionMatrix * ndc_far;
-
-
-            vsg::dvec3 world_near = inv_projectionViewMatrix * ndc_near;
-            vsg::dvec3 world_far = inv_projectionViewMatrix * ndc_far;
-
-
-            // just for testing purposes, assume we are working with a whole earth model.
-            auto elipsoidModel = vsg::EllipsoidModel::create();
-            auto latlongheight = elipsoidModel->convertECEFToLatLongHeight(world_near);
-
-#if 0
-            std::cout<<"\n\nndc_near = "<<ndc_near<<", ndc_far ="<<ndc_far<<std::endl;
-            std::cout<<"projectionMatrix = "<<projectionMatrix<<std::endl;
-            std::cout<<"viewMatrix = "<<viewMatrix<<std::endl;
-            std::cout<<"eye_near = "<<eye_near<<std::endl;
-            std::cout<<"eye_far = "<<eye_far<<std::endl;
-            std::cout<<"world_near = "<<world_near<<std::endl;
-            std::cout<<"world_far = "<<world_far<<std::endl;
-            std::cout<<"latlongheight lat = "<<vsg::degrees(latlongheight[0])<<", long = "<<vsg::degrees(latlongheight[1])<<", height "<<latlongheight[2]<<std::endl;
-#endif
-
-            auto interesectionTraversal = vsg::IntersectionTraversal::create();
-            interesectionTraversal->intersectorStack.push_back(vsg::LineSegmentIntersector::create(world_near, world_far));
-            scenegraph->accept(*interesectionTraversal);
-        }
+        auto interesectionTraversal = vsg::IntersectionTraversal::create();
+        interesectionTraversal->intersectorStack.push_back(vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y));
+        scenegraph->accept(*interesectionTraversal);
     }
 
 protected:

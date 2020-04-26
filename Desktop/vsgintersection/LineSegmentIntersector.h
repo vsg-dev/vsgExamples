@@ -14,6 +14,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "IntersectionTraversal.h"
 
+#include <vsg/viewer/Camera.h>
+
 namespace vsg
 {
 
@@ -25,6 +27,7 @@ namespace vsg
         dvec3 end;
 
         LineSegmentIntersector(const dvec3& s, const dvec3& e);
+        LineSegmentIntersector(const Camera& camera, int32_t x, int32_t y);
 
         struct Intersection
         {
