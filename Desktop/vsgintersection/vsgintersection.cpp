@@ -31,7 +31,11 @@ public:
     void apply(vsg::ButtonPressEvent& buttonPressEvent) override
     {
         lastPointerEvent = &buttonPressEvent;
-        interesection(buttonPressEvent);
+
+        if (buttonPressEvent.button==1)
+        {
+            interesection(buttonPressEvent);
+        }
     }
 
     void apply(vsg::PointerEvent& pointerEvent) override
@@ -50,6 +54,7 @@ public:
             auto ellipsoidModel = scenegraph->getObject<vsg::EllipsoidModel>("EllipsoidModel");
             if (ellipsoidModel)
             {
+                std::cout.precision(10);
                 auto location = ellipsoidModel->convertECEFToLatLongHeight(hit.worldIntersection);
                 std::cout<<" lat = "<<vsg::degrees(location[0])<<", long = "<<vsg::degrees(location[1])<<", hiehght = "<<location[2];
             }
