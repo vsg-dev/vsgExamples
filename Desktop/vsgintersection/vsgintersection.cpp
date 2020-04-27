@@ -64,9 +64,14 @@ public:
                 std::cout<<", distance from previous intersection = "<<vsg::length(intersection.worldIntersection - lastIntersection.worldIntersection);
             }
 
-            lastIntersection = intersection;
+            for(auto& node : intersection.nodePath)
+            {
+                std::cout<<", "<<node->className();
+            }
 
             std::cout<<std::endl;
+
+            lastIntersection = intersection;
         }
     }
 

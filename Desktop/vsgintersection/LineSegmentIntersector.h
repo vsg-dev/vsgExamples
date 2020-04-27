@@ -64,7 +64,7 @@ namespace vsg
         bool intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, uint32_t firstVertex, uint32_t vertexCount) override;
 
         /// check for intersections with primitives associated with VkDrawDrawIndex command
-        bool intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount) override;
+        bool intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<const vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount) override;
     };
 
 }

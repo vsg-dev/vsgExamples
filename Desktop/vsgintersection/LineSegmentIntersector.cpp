@@ -228,13 +228,13 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
     return false;
 }
 
-bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount)
+bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<const vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount)
 {
     std::cout<<"LineSegmentIntersector::intersects( topology "<<topology<<", arrays.size() = "<<arrays.size()<<", indices = "<<indices.get()<<" firstIndex = "<<firstIndex<<", indexCount = "<<indexCount<<")"<<std::endl;
     if (arrays.empty() || !indices || indexCount==0) return false;
 
-    auto vertices = arrays[0].cast<vec3Array>();
-    auto us_indices = indices.cast<ushortArray>();
+    auto vertices = arrays[0].cast<const vec3Array>();
+    auto us_indices = indices.cast<const ushortArray>();
 
     if (!vertices || !us_indices) return false;
 

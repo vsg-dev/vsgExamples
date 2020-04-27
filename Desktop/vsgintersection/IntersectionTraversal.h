@@ -35,6 +35,9 @@ namespace vsg
         using NodePath = std::vector<const Node*>;
         NodePath nodePath;
 
+        DataList arrays;
+        ref_ptr<const Data> indices;
+
         IntersectionTraversal();
 
         void apply(const Node& node) override;
@@ -43,8 +46,15 @@ namespace vsg
         void apply(const LOD& lod) override;
         void apply(const PagedLOD& plod) override;
         void apply(const CullNode& cn) override;
+
         void apply(const VertexIndexDraw& vid) override;
+
         void apply(const Geometry& geometry) override;
+
+        void apply(const BindVertexBuffers& bvb) override;
+        void apply(const BindIndexBuffer& bib) override;
+        void apply(const Draw& draw) override;
+        void apply(const DrawIndexed& drawIndexed) override;
 
         /// clone and transform this Intersector to provide a new Intersector in local coordinates
         virtual void pushTransform(const dmat4& m) = 0;
@@ -58,7 +68,7 @@ namespace vsg
         virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, uint32_t firstVertex, uint32_t vertexCount) = 0;
 
         /// check for intersections with primitives associated with VkDrawDrawIndex command
-        virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, ref_ptr<Data> indices, uint32_t firstIndex, uint32_t indexCount) = 0;
+        virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, ref_ptr<const Data> indices, uint32_t firstIndex, uint32_t indexCount) = 0;
     };
 
 }

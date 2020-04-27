@@ -20,6 +20,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/nodes/Geometry.h>
 #include <vsg/nodes/VertexIndexDraw.h>
 #include <vsg/vk/Draw.h>
+#include <vsg/vk/BindVertexBuffers.h>
+#include <vsg/vk/BindIndexBuffer.h>
 #include <vsg/maths/transform.h>
 
 #include <iostream>
@@ -42,7 +44,6 @@ IntersectionTraversal::IntersectionTraversal()
 
 void IntersectionTraversal::apply(const Node& node)
 {
-    //std::cout<<"apply("<<node.className()<<")"<<std::endl;
     PushPopNode ppn(nodePath, &node);
 
     node.traverse(*this);
@@ -151,6 +152,7 @@ void IntersectionTraversal::apply(const VertexIndexDraw& vid)
 void IntersectionTraversal::apply(const Geometry& geometry)
 {
     PushPopNode ppn(nodePath, &geometry);
+#if 0
 
     struct DrawCommandVisitor : public ConstVisitor
     {
@@ -181,4 +183,43 @@ void IntersectionTraversal::apply(const Geometry& geometry)
 
         command->accept(drawCommandVisitor);
     }
+#else
+
+    arrays = geometry.arrays;
+    indices = geometry.indices;
+
+    for(auto& command : geometry.commands)
+    {
+        command->accept(*this);
+    }
+#endif
+}
+
+
+void IntersectionTraversal::apply(const BindVertexBuffers& bvb)
+{
+    std::cout<<"IntersectionTraversal::apply(const BindVertexBuffers& bvb)"<<std::endl;
+    arrays = bvb.getArrays();
+}
+
+void IntersectionTraversal::apply(const BindIndexBuffer& bib)
+{
+    std::cout<<"IntersectionTraversal::apply(const BindIndexBuffer& bib)"<<std::endl;
+    indices = bib.getIndices();
+}
+
+void IntersectionTraversal::apply(const Draw& draw)
+{
+    PushPopNode ppn(nodePath, &draw);
+
+    std::cout<<"IntersectionTraversal::apply(const Draw& draw)"<<std::endl;
+    intersect(topology, arrays, draw.firstVertex, draw.vertexCount);
+}
+
+void IntersectionTraversal::apply(const DrawIndexed& drawIndexed)
+{
+    PushPopNode ppn(nodePath, &drawIndexed);
+
+    std::cout<<"IntersectionTraversal::apply(const DrawIndexed& drawIndexed)"<<std::endl;
+    intersect(topology, arrays, indices, drawIndexed.firstIndex, drawIndexed.indexCount);
 }
