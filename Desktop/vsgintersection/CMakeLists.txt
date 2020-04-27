@@ -1,6 +1,4 @@
 set(SOURCES
-    Intersector.cpp
-    LineSegmentIntersector.cpp
     vsgintersection.cpp
 )
 

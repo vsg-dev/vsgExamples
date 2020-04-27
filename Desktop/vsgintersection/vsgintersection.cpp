@@ -9,8 +9,6 @@
 #include <chrono>
 #include <thread>
 
-#include "LineSegmentIntersector.h"
-
 class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
 {
 public:
@@ -47,9 +45,10 @@ public:
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
+        std::cout<<std::endl;
         for(auto& intersection : intersector->intersections)
         {
-            std::cout<<"new intersection = "<<intersection.worldIntersection<<" ";
+            std::cout<<"intersection = "<<intersection.worldIntersection<<" ";
             auto ellipsoidModel = scenegraph->getObject<vsg::EllipsoidModel>("EllipsoidModel");
             if (ellipsoidModel)
             {
