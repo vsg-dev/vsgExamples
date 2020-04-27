@@ -61,7 +61,7 @@ void IntersectionTraversal::apply(const MatrixTransform& transform)
 {
     PushPopNode ppn(nodePath, &transform);
 
-    pushTransform(vsg::inverse(transform.getMatrix()));
+    pushTransform(transform.getMatrix());
 
     transform.traverse(*this);
 
@@ -181,7 +181,4 @@ void IntersectionTraversal::apply(const Geometry& geometry)
 
         command->accept(drawCommandVisitor);
     }
-
-    // TODO : Pass vertex array, indices and draw commands on to interesctors
 }
-

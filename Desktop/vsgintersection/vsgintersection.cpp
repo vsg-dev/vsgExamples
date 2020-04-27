@@ -46,8 +46,13 @@ public:
 
         for(auto& hit : intersector->intersections)
         {
-            std::cout<<"new intersection = "<<hit.intersection<<" "<<hit.nodePath.size();
-            for(auto node : hit.nodePath) std::cout<<" "<<node->className();
+            std::cout<<"new intersection = "<<hit.worldIntersection<<" ";
+            auto ellipsoidModel = scenegraph->getObject<vsg::EllipsoidModel>("EllipsoidModel");
+            if (ellipsoidModel)
+            {
+                auto location = ellipsoidModel->convertECEFToLatLongHeight(hit.worldIntersection);
+                std::cout<<" lat = "<<vsg::degrees(location[0])<<", long = "<<vsg::degrees(location[1])<<", hiehght = "<<location[2];
+            }
             std::cout<<std::endl;
         }
     }
@@ -260,8 +265,8 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-
     auto ellipsoidModel = vsg::EllipsoidModel::create();
+    vsg_scene->setObject("EllipsoidModel", ellipsoidModel);
 
     vsg::ref_ptr<vsg::LookAt> lookAt;
 

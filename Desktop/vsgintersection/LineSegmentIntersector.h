@@ -29,25 +29,27 @@ namespace vsg
             dvec3 end;
         };
 
-        std::vector<LineSegment> lineSegments;
+        std::vector<LineSegment> lineSegmentStack;
 
         struct Intersection
         {
-            NodePath nodePath;
-            dvec3 intersection;
+            dvec3 localIntersection;
+            dvec3 worldIntersection;
             double ratio;
+
+            dmat4 localToWord;
+            NodePath nodePath;
         };
 
         using Intersections = std::vector<Intersection>;
         Intersections intersections;
 
 
-
         LineSegmentIntersector(const dvec3& s, const dvec3& e);
         LineSegmentIntersector(const Camera& camera, int32_t x, int32_t y);
 
 
-        void add(const dvec3& intersection, double ratio) { intersections.emplace_back(Intersection{nodePath, intersection, ratio}); }
+        void add(const dvec3& intersection, double ratio);
 
         void pushTransform(const dmat4& m) override;
         void popTransform() override;

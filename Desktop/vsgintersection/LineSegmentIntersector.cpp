@@ -39,7 +39,7 @@ struct TriangleIntersector
     TriangleIntersector(LineSegmentIntersector& in_intersector) :
         intersector(in_intersector)
     {
-        auto& lineSegment = in_intersector.lineSegments.back();
+        auto& lineSegment = in_intersector.lineSegmentStack.back();
         start = lineSegment.start;
         end = lineSegment.end;
 
@@ -129,7 +129,7 @@ struct TriangleIntersector
 
 LineSegmentIntersector::LineSegmentIntersector(const dvec3& s, const dvec3& e)
 {
-    lineSegments.push_back(LineSegment{s,e});
+    lineSegmentStack.push_back(LineSegment{s,e});
 }
 
 LineSegmentIntersector::LineSegmentIntersector(const Camera& camera, int32_t x, int32_t y)
@@ -153,20 +153,38 @@ LineSegmentIntersector::LineSegmentIntersector(const Camera& camera, int32_t x, 
     vsg::dvec3 world_near = inv_projectionViewMatrix * ndc_near;
     vsg::dvec3 world_far = inv_projectionViewMatrix * ndc_far;
 
-    lineSegments.push_back(LineSegment{world_near, world_far});
+    lineSegmentStack.push_back(LineSegment{world_near, world_far});
+}
+
+void LineSegmentIntersector::add(const dvec3& intersection, double ratio)
+{
+    if (matrixStack.empty())
+    {
+        intersections.emplace_back(Intersection{intersection, intersection, ratio, {}, nodePath});
+    }
+    else
+    {
+        auto& localToWorld = matrixStack.back();
+        intersections.emplace_back(Intersection{intersection, localToWorld * intersection, ratio, localToWorld, nodePath});
+    }
 }
 
 void LineSegmentIntersector::pushTransform(const dmat4& m)
 {
-    auto& lineSegment = lineSegments.back();
-    dvec3& start = lineSegment.start;
-    dvec3& end = lineSegment.end;
-    lineSegments.push_back(LineSegment{m * start, m * end});
+
+    dmat4 localToWorld = matrixStack.empty() ? m : (matrixStack.back() * m);
+    dmat4 worldToLocal = inverse(localToWorld);
+
+    matrixStack.push_back(localToWorld);
+
+    auto& worldLineSegment = lineSegmentStack.front();
+    lineSegmentStack.push_back(LineSegment{worldToLocal * worldLineSegment.start, worldToLocal * worldLineSegment.end});
 }
 
 void LineSegmentIntersector::popTransform()
 {
-    lineSegments.pop_back();
+    lineSegmentStack.pop_back();
+    matrixStack.pop_back();
 }
 
 bool LineSegmentIntersector::intersects(const dsphere& bs)
@@ -174,7 +192,7 @@ bool LineSegmentIntersector::intersects(const dsphere& bs)
     //std::cout<<"intersects( center = "<<bs.center<<", radius = "<<bs.radius<<")"<<std::endl;
     if (!bs.valid()) return false;
 
-    auto& lineSegment = lineSegments.back();
+    auto& lineSegment = lineSegmentStack.back();
     dvec3& start = lineSegment.start;
     dvec3& end = lineSegment.end;
 

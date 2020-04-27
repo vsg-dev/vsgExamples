@@ -28,7 +28,11 @@ namespace vsg
     {
     public:
 
+        std::vector<dmat4> matrixStack;
+
+        /// TODO : need to use a topologyStack
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
         NodePath nodePath;
 
         IntersectionTraversal();
