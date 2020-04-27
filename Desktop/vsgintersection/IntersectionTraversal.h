@@ -24,38 +24,9 @@ namespace vsg
 
     using NodePath = std::vector<const Node*>;
 
-
-    class Spatial : public Inherit<Object, Spatial>
-    {
-    public:
-        ref_ptr<vec3Array> vertices;
-        ref_ptr<ushortArray> indices;
-        VkPrimitiveTopology topology;
-
-        struct Leaf
-        {
-            box boundingBox;
-            uint32_t firstIndex;
-            uint32_t indexCount;
-        };
-
-        std::vector<Leaf> leaves;
-    };
-
     class Intersector : public Inherit<Object, Intersector>
     {
     public:
-        /// clone and transform this Intersector to provide a new Intersector in local coordinates
-        virtual ref_ptr<Intersector> transform(const dmat4& m) = 0;
-
-        /// check for intersection instersects with sphere
-        virtual bool intersects(const dsphere& sphere) = 0;
-
-        /// check for intersections with primitives associated with VkDrawDraw command
-        virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, uint32_t firstVertex, uint32_t vertexCount) = 0;
-
-        /// check for intersections with primitives associated with VkDrawDrawIndex command
-        virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, ref_ptr<Data> indices, uint32_t firstIndex, uint32_t indexCount) = 0;
     };
 
     class VSG_DECLSPEC IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal>
@@ -77,9 +48,19 @@ namespace vsg
         void apply(const VertexIndexDraw& vid) override;
         void apply(const Geometry& geometry) override;
 
-        inline bool intersects(const dsphere& bs) const { return intersectorStack.back()->intersects(bs); }
-        inline ref_ptr<Intersector> intersector() { return intersectorStack.back(); }
+        /// clone and transform this Intersector to provide a new Intersector in local coordinates
+        virtual void pushTransform(const dmat4& m) = 0;
 
+        virtual void popTransform() = 0;
+
+        /// check for intersection instersects with sphere
+        virtual bool intersects(const dsphere& sphere) = 0;
+
+        /// check for intersections with primitives associated with VkDrawDraw command
+        virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, uint32_t firstVertex, uint32_t vertexCount) = 0;
+
+        /// check for intersections with primitives associated with VkDrawDrawIndex command
+        virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, ref_ptr<Data> indices, uint32_t firstIndex, uint32_t indexCount) = 0;
     };
 
 }

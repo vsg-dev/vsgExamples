@@ -50,20 +50,14 @@ void IntersectionTraversal::apply(const MatrixTransform& transform)
     // std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
     // TODO : transform intersectors into local coodinate frame
 
-    auto intersector = intersectorStack.back().cast<LineSegmentIntersector>();
-
-    // std::cout<<"   Before intersectorStack.back()->start = "<<intersector->start<<", "<<intersector->end<<std::endl;
-
-    intersectorStack.push_back(intersectorStack.back()->transform( vsg::inverse( transform.getMatrix() ) ) );
-
-    // std::cout<<"   After intersectorStack.back()->start = "<<intersector->start<<", "<<intersector->end<<std::endl;
-
-    //std::cout<<"Transforn : "<<intersectorStack.size()<<std::endl;
+    pushTransform(vsg::inverse(transform.getMatrix()));
 
     transform.traverse(*this);
 
-    intersectorStack.pop_back();
+    popTransform();
 }
+
+
 
 void IntersectionTraversal::apply(const LOD& lod)
 {
@@ -132,9 +126,9 @@ void IntersectionTraversal::apply(const VertexIndexDraw& vid)
         // std::cout<<"Found bounding sphere : "<<bound.center<<", "<<bound.radius<<std::endl;
     }
 
-    if (intersector()->intersects(bound))
+    if (intersects(bound))
     {
-        intersector()->intersect(topology, vid.arrays, vid.indices, vid.firstIndex, vid.indexCount);
+        intersect(topology, vid.arrays, vid.indices, vid.firstIndex, vid.indexCount);
     }
 }
 
@@ -142,26 +136,26 @@ void IntersectionTraversal::apply(const Geometry& geometry)
 {
     struct DrawCommandVisitor : public ConstVisitor
     {
-        DrawCommandVisitor(VkPrimitiveTopology in_topology, Intersector& in_intersector, const Geometry& in_geometry) :
+        DrawCommandVisitor(IntersectionTraversal& it, VkPrimitiveTopology in_topology, const Geometry& in_geometry) :
+            intersectionTraversal(it),
             topology(topology),
-            intersector(intersector),
             geometry(in_geometry) {}
 
+        IntersectionTraversal& intersectionTraversal;
         VkPrimitiveTopology topology;
-        Intersector& intersector;
         const Geometry& geometry;
 
         void apply(const Draw& draw) override
         {
-            intersector.intersect(topology, geometry.arrays, draw.firstVertex, draw.vertexCount);
+            intersectionTraversal.intersect(topology, geometry.arrays, draw.firstVertex, draw.vertexCount);
         }
         void apply(const DrawIndexed& drawIndexed) override
         {
-            intersector.intersect(topology, geometry.arrays, geometry.indices, drawIndexed.firstIndex, drawIndexed.indexCount);
+            intersectionTraversal.intersect(topology, geometry.arrays, geometry.indices, drawIndexed.firstIndex, drawIndexed.indexCount);
         }
     };
 
-    DrawCommandVisitor drawCommandVisitor{topology, *intersector(), geometry};
+    DrawCommandVisitor drawCommandVisitor{*this, topology, geometry};
 
     for(auto& command : geometry.commands)
     {

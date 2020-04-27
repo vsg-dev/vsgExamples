@@ -39,8 +39,9 @@ struct TriangleIntersector
     TriangleIntersector(LineSegmentIntersector& in_intersector) :
         intersector(in_intersector)
     {
-        start = in_intersector.start;
-        end = in_intersector.end;
+        auto& lineSegment = in_intersector.lineSegments.back();
+        start = lineSegment.start;
+        end = lineSegment.end;
 
         _d = end - start;
         _length = length(_d);
@@ -126,10 +127,9 @@ struct TriangleIntersector
     }
 };
 
-LineSegmentIntersector::LineSegmentIntersector(const dvec3& s, const dvec3& e) :
-    start(s),
-    end(e)
+LineSegmentIntersector::LineSegmentIntersector(const dvec3& s, const dvec3& e)
 {
+    lineSegments.push_back(LineSegment{s,e});
 }
 
 LineSegmentIntersector::LineSegmentIntersector(const Camera& camera, int32_t x, int32_t y)
@@ -153,20 +153,30 @@ LineSegmentIntersector::LineSegmentIntersector(const Camera& camera, int32_t x, 
     vsg::dvec3 world_near = inv_projectionViewMatrix * ndc_near;
     vsg::dvec3 world_far = inv_projectionViewMatrix * ndc_far;
 
-    start = world_near;
-    end = world_far;
+    lineSegments.push_back(LineSegment{world_near, world_far});
 }
 
-ref_ptr<Intersector> LineSegmentIntersector::transform(const dmat4& m)
+void LineSegmentIntersector::pushTransform(const dmat4& m)
 {
-    auto transformed = LineSegmentIntersector::create(m * start, m * end);
-    return transformed;
+    auto& lineSegment = lineSegments.back();
+    dvec3& start = lineSegment.start;
+    dvec3& end = lineSegment.end;
+    lineSegments.push_back(LineSegment{m * start, m * end});
+}
+
+void LineSegmentIntersector::popTransform()
+{
+    lineSegments.pop_back();
 }
 
 bool LineSegmentIntersector::intersects(const dsphere& bs)
 {
     //std::cout<<"intersects( center = "<<bs.center<<", radius = "<<bs.radius<<")"<<std::endl;
     if (!bs.valid()) return false;
+
+    auto& lineSegment = lineSegments.back();
+    dvec3& start = lineSegment.start;
+    dvec3& end = lineSegment.end;
 
     dvec3 sm = start - bs.center;
     double c = length2(sm) - bs.radius * bs.radius;
@@ -227,11 +237,6 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
             break;
         }
         default: break; // TODO: NOT supported
-    }
-
-    for(auto& hit : intersections)
-    {
-        std::cout<<"intersection = "<<hit.intersection<<std::endl;
     }
 
     return intersections.size() != previous_size;

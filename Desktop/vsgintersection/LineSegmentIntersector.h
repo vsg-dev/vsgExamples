@@ -19,15 +19,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsg
 {
 
-    class VSG_DECLSPEC LineSegmentIntersector : public Inherit<Intersector, LineSegmentIntersector>
+    class VSG_DECLSPEC LineSegmentIntersector : public Inherit<IntersectionTraversal, LineSegmentIntersector>
     {
     public:
 
-        dvec3 start;
-        dvec3 end;
+        struct LineSegment
+        {
+            dvec3 start;
+            dvec3 end;
+        };
 
-        LineSegmentIntersector(const dvec3& s, const dvec3& e);
-        LineSegmentIntersector(const Camera& camera, int32_t x, int32_t y);
+        std::vector<LineSegment> lineSegments;
 
         struct Intersection
         {
@@ -38,9 +40,16 @@ namespace vsg
         using Intersections = std::vector<Intersection>;
         Intersections intersections;
 
+
+
+        LineSegmentIntersector(const dvec3& s, const dvec3& e);
+        LineSegmentIntersector(const Camera& camera, int32_t x, int32_t y);
+
+
         void add(const dvec3& intersection, double ratio) { intersections.emplace_back(Intersection{intersection, ratio}); }
 
-        ref_ptr<Intersector> transform(const dmat4& m) override;
+        void pushTransform(const dmat4& m) override;
+        void popTransform() override;
 
         /// check for intersection instersects with sphere
         bool intersects(const dsphere& bs) override;

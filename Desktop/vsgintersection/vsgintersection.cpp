@@ -41,9 +41,13 @@ public:
 
     void interesection(vsg::PointerEvent& pointerEvent)
     {
-        auto interesectionTraversal = vsg::IntersectionTraversal::create();
-        interesectionTraversal->intersectorStack.push_back(vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y));
-        scenegraph->accept(*interesectionTraversal);
+        auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
+        scenegraph->accept(*intersector);
+
+        for(auto& hit : intersector->intersections)
+        {
+            std::cout<<"new intersection = "<<hit.intersection<<std::endl;
+        }
     }
 
 protected:
