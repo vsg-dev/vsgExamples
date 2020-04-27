@@ -24,11 +24,6 @@ namespace vsg
 
     using NodePath = std::vector<const Node*>;
 
-    class Intersector : public Inherit<Object, Intersector>
-    {
-    public:
-    };
-
     class VSG_DECLSPEC IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal>
     {
     public:
