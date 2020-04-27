@@ -46,7 +46,9 @@ public:
 
         for(auto& hit : intersector->intersections)
         {
-            std::cout<<"new intersection = "<<hit.intersection<<std::endl;
+            std::cout<<"new intersection = "<<hit.intersection<<" "<<hit.nodePath.size();
+            for(auto node : hit.nodePath) std::cout<<" "<<node->className();
+            std::cout<<std::endl;
         }
     }
 

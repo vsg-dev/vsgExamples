@@ -29,7 +29,6 @@ namespace vsg
     public:
 
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        std::list<ref_ptr<Intersector>> intersectorStack;
         NodePath nodePath;
 
         IntersectionTraversal();

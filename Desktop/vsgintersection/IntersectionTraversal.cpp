@@ -28,6 +28,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 using namespace vsg;
 
+struct PushPopNode
+{
+    NodePath& nodePath;
+
+    PushPopNode(NodePath& np, const Node* node) : nodePath(np) { nodePath.push_back(node); }
+    ~PushPopNode() { nodePath.pop_back(); }
+};
+
 IntersectionTraversal::IntersectionTraversal()
 {
 }
@@ -35,6 +43,8 @@ IntersectionTraversal::IntersectionTraversal()
 void IntersectionTraversal::apply(const Node& node)
 {
     //std::cout<<"apply("<<node.className()<<")"<<std::endl;
+    PushPopNode ppn(nodePath, &node);
+
     node.traverse(*this);
 }
 
@@ -42,13 +52,14 @@ void IntersectionTraversal::apply(const StateGroup& stategroup)
 {
     // TODO need to check for topology type. GraphicsProgram::InputAssemblyState.topology (VkPrimitiveTopology)
 
+    PushPopNode ppn(nodePath, &stategroup);
+
     stategroup.traverse(*this);
 }
 
 void IntersectionTraversal::apply(const MatrixTransform& transform)
 {
-    // std::cout<<"MT apply("<<transform.className()<<") "<<transform.getMatrix()<<std::endl;
-    // TODO : transform intersectors into local coodinate frame
+    PushPopNode ppn(nodePath, &transform);
 
     pushTransform(vsg::inverse(transform.getMatrix()));
 
@@ -61,7 +72,8 @@ void IntersectionTraversal::apply(const MatrixTransform& transform)
 
 void IntersectionTraversal::apply(const LOD& lod)
 {
-//    std::cout<<"LOD apply("<<lod.className()<<") "<<std::endl;
+    PushPopNode ppn(nodePath, &lod);
+
     if (intersects(lod.getBound()))
     {
         for(auto& child : lod.getChildren())
@@ -77,7 +89,8 @@ void IntersectionTraversal::apply(const LOD& lod)
 
 void IntersectionTraversal::apply(const PagedLOD& plod)
 {
-//    std::cout<<"PLOD apply("<<plod.className()<<") "<<std::endl;
+    PushPopNode ppn(nodePath, &plod);
+
     if (intersects(plod.getBound()))
     {
         for(auto& child : plod.getChildren())
@@ -93,13 +106,16 @@ void IntersectionTraversal::apply(const PagedLOD& plod)
 
 void IntersectionTraversal::apply(const CullNode& cn)
 {
-//    std::cout<<"CullNode apply("<<cn.className()<<") "<<std::endl;
+    PushPopNode ppn(nodePath, &cn);
+
     if (intersects(cn.getBound())) cn.traverse(*this);
 }
 
 void IntersectionTraversal::apply(const VertexIndexDraw& vid)
 {
     if (vid.arrays.empty()) return;
+
+    PushPopNode ppn(nodePath, &vid);
 
     sphere bound;
     if (!vid.getValue("bound", bound))
@@ -134,6 +150,8 @@ void IntersectionTraversal::apply(const VertexIndexDraw& vid)
 
 void IntersectionTraversal::apply(const Geometry& geometry)
 {
+    PushPopNode ppn(nodePath, &geometry);
+
     struct DrawCommandVisitor : public ConstVisitor
     {
         DrawCommandVisitor(IntersectionTraversal& it, VkPrimitiveTopology in_topology, const Geometry& in_geometry) :
@@ -159,6 +177,8 @@ void IntersectionTraversal::apply(const Geometry& geometry)
 
     for(auto& command : geometry.commands)
     {
+        PushPopNode ppn(nodePath, command);
+
         command->accept(drawCommandVisitor);
     }
 

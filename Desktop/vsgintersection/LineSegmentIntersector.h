@@ -33,6 +33,7 @@ namespace vsg
 
         struct Intersection
         {
+            NodePath nodePath;
             dvec3 intersection;
             double ratio;
         };
@@ -46,7 +47,7 @@ namespace vsg
         LineSegmentIntersector(const Camera& camera, int32_t x, int32_t y);
 
 
-        void add(const dvec3& intersection, double ratio) { intersections.emplace_back(Intersection{intersection, ratio}); }
+        void add(const dvec3& intersection, double ratio) { intersections.emplace_back(Intersection{nodePath, intersection, ratio}); }
 
         void pushTransform(const dmat4& m) override;
         void popTransform() override;
