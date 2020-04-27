@@ -152,38 +152,6 @@ void IntersectionTraversal::apply(const VertexIndexDraw& vid)
 void IntersectionTraversal::apply(const Geometry& geometry)
 {
     PushPopNode ppn(nodePath, &geometry);
-#if 0
-
-    struct DrawCommandVisitor : public ConstVisitor
-    {
-        DrawCommandVisitor(IntersectionTraversal& it, VkPrimitiveTopology in_topology, const Geometry& in_geometry) :
-            intersectionTraversal(it),
-            topology(in_topology),
-            geometry(in_geometry) {}
-
-        IntersectionTraversal& intersectionTraversal;
-        VkPrimitiveTopology topology;
-        const Geometry& geometry;
-
-        void apply(const Draw& draw) override
-        {
-            intersectionTraversal.intersect(topology, geometry.arrays, draw.firstVertex, draw.vertexCount);
-        }
-        void apply(const DrawIndexed& drawIndexed) override
-        {
-            intersectionTraversal.intersect(topology, geometry.arrays, geometry.indices, drawIndexed.firstIndex, drawIndexed.indexCount);
-        }
-    };
-
-    DrawCommandVisitor drawCommandVisitor{*this, topology, geometry};
-
-    for(auto& command : geometry.commands)
-    {
-        PushPopNode ppn(nodePath, command);
-
-        command->accept(drawCommandVisitor);
-    }
-#else
 
     arrays = geometry.arrays;
     indices = geometry.indices;
@@ -192,19 +160,16 @@ void IntersectionTraversal::apply(const Geometry& geometry)
     {
         command->accept(*this);
     }
-#endif
 }
 
 
 void IntersectionTraversal::apply(const BindVertexBuffers& bvb)
 {
-    std::cout<<"IntersectionTraversal::apply(const BindVertexBuffers& bvb)"<<std::endl;
     arrays = bvb.getArrays();
 }
 
 void IntersectionTraversal::apply(const BindIndexBuffer& bib)
 {
-    std::cout<<"IntersectionTraversal::apply(const BindIndexBuffer& bib)"<<std::endl;
     indices = bib.getIndices();
 }
 
@@ -212,7 +177,6 @@ void IntersectionTraversal::apply(const Draw& draw)
 {
     PushPopNode ppn(nodePath, &draw);
 
-    std::cout<<"IntersectionTraversal::apply(const Draw& draw)"<<std::endl;
     intersect(topology, arrays, draw.firstVertex, draw.vertexCount);
 }
 
@@ -220,6 +184,5 @@ void IntersectionTraversal::apply(const DrawIndexed& drawIndexed)
 {
     PushPopNode ppn(nodePath, &drawIndexed);
 
-    std::cout<<"IntersectionTraversal::apply(const DrawIndexed& drawIndexed)"<<std::endl;
     intersect(topology, arrays, indices, drawIndexed.firstIndex, drawIndexed.indexCount);
 }
