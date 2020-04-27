@@ -55,6 +55,8 @@ void IntersectionTraversal::apply(const StateGroup& stategroup)
 {
     PushPopNode ppn(_nodePath, &stategroup);
 
+    // currently just tracking InputArrayState::topology
+    // TODO : review if we need to track and handle more parameters and handle vertex shaders computing vertex positions other than just using vertex and project and modelview matrix.
     auto previous_topology = topology();
 
     struct FindGraphicsPipelineVisitor : public ConstVisitor
