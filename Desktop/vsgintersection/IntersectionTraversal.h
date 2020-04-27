@@ -22,7 +22,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsg
 {
 
-    using NodePath = std::vector<const Node*>;
 
     class VSG_DECLSPEC IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal>
     {
@@ -33,6 +32,7 @@ namespace vsg
         /// TODO : need to use a topologyStack
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
+        using NodePath = std::vector<const Node*>;
         NodePath nodePath;
 
         IntersectionTraversal();

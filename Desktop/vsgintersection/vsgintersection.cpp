@@ -48,22 +48,31 @@ public:
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
-        for(auto& hit : intersector->intersections)
+        for(auto& intersection : intersector->intersections)
         {
-            std::cout<<"new intersection = "<<hit.worldIntersection<<" ";
+            std::cout<<"new intersection = "<<intersection.worldIntersection<<" ";
             auto ellipsoidModel = scenegraph->getObject<vsg::EllipsoidModel>("EllipsoidModel");
             if (ellipsoidModel)
             {
                 std::cout.precision(10);
-                auto location = ellipsoidModel->convertECEFToLatLongHeight(hit.worldIntersection);
-                std::cout<<" lat = "<<vsg::degrees(location[0])<<", long = "<<vsg::degrees(location[1])<<", hiehght = "<<location[2];
+                auto location = ellipsoidModel->convertECEFToLatLongHeight(intersection.worldIntersection);
+                std::cout<<" lat = "<<vsg::degrees(location[0])<<", long = "<<vsg::degrees(location[1])<<", height = "<<location[2];
             }
+
+            if (lastIntersection)
+            {
+                std::cout<<", distance from previous intersection = "<<vsg::length(intersection.worldIntersection - lastIntersection.worldIntersection);
+            }
+
+            lastIntersection = intersection;
+
             std::cout<<std::endl;
         }
     }
 
 protected:
     vsg::ref_ptr<vsg::PointerEvent> lastPointerEvent;
+    vsg::LineSegmentIntersector::Intersection lastIntersection;
 
 };
 

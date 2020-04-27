@@ -30,9 +30,9 @@ using namespace vsg;
 
 struct PushPopNode
 {
-    NodePath& nodePath;
+    IntersectionTraversal::NodePath& nodePath;
 
-    PushPopNode(NodePath& np, const Node* node) : nodePath(np) { nodePath.push_back(node); }
+    PushPopNode(IntersectionTraversal::NodePath& np, const Node* node) : nodePath(np) { nodePath.push_back(node); }
     ~PushPopNode() { nodePath.pop_back(); }
 };
 

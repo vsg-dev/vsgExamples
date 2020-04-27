@@ -35,10 +35,13 @@ namespace vsg
         {
             dvec3 localIntersection;
             dvec3 worldIntersection;
-            double ratio;
+            double ratio = 0.0;
 
             dmat4 localToWord;
             NodePath nodePath;
+
+            // return true if Intersection is valid
+            operator bool () const { return !nodePath.empty(); }
         };
 
         using Intersections = std::vector<Intersection>;
