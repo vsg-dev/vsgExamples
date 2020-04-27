@@ -223,14 +223,34 @@ bool LineSegmentIntersector::intersects(const dsphere& bs)
 
 bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, uint32_t firstVertex, uint32_t vertexCount)
 {
-    // TODO
-    std::cout<<"LineSegmentIntersector::intersects( topology "<<topology<<", arrays.size() = "<<arrays.size()<<" firstVertex = "<<firstVertex<<", vertexCount = "<<vertexCount<<")"<<std::endl;
-    return false;
+    if (arrays.empty() || vertexCount==0) return false;
+
+    auto vertices = arrays[0].cast<const vec3Array>();
+
+    if (!vertices) return false;
+
+    size_t previous_size = intersections.size();
+
+    uint32_t endVertex = firstVertex + vertexCount;
+    switch(topology)
+    {
+        case(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST) :
+        {
+            TriangleIntersector<double> triIntsector(*this);
+            for(uint32_t i = firstVertex; i<endVertex; i+=3)
+            {
+                triIntsector.intersect( vertices->at(i), vertices->at(i+1), vertices->at(i+2));
+            }
+            break;
+        }
+        default: break; // TODO: NOT supported
+    }
+
+    return intersections.size() != previous_size;
 }
 
 bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<const vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount)
 {
-    std::cout<<"LineSegmentIntersector::intersects( topology "<<topology<<", arrays.size() = "<<arrays.size()<<", indices = "<<indices.get()<<" firstIndex = "<<firstIndex<<", indexCount = "<<indexCount<<")"<<std::endl;
     if (arrays.empty() || !indices || indexCount==0) return false;
 
     auto vertices = arrays[0].cast<const vec3Array>();
@@ -238,7 +258,6 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
 
     if (!vertices || !us_indices) return false;
 
-    //std::cout<<"   "<<vertices->size()<<", us_indices ="<<us_indices->size()<<std::endl;
     size_t previous_size = intersections.size();
 
     uint32_t endIndex = firstIndex + indexCount;

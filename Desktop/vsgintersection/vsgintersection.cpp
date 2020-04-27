@@ -84,6 +84,7 @@ protected:
 enum GeometryType
 {
     DRAW_COMMANDS,
+    DRAW_INDEXED_COMMANDS,
     GEOMETRY,
     VERTEX_INDEX_DRAW
 };
@@ -220,11 +221,30 @@ vsg::ref_ptr<vsg::Node> createScene(std::string filename, GeometryType geometryT
     }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
-
-    // setup geometry
     switch(geometryType)
     {
         case(DRAW_COMMANDS):
+        {
+            // above vertex data is set up assuming that indices will be used, but for this code path we want to rendering using VkCmdDraw without indices
+            auto expanded_vertices = vsg::vec3Array::create(indices->size());
+            auto expanded_colors = vsg::vec3Array::create(indices->size());
+            auto expanded_texcoords = vsg::vec2Array::create(indices->size());
+
+            for(size_t i=0; i<indices->size(); ++i)
+            {
+                expanded_vertices->set(i, vertices->at(indices->at(i)));
+                expanded_colors->set(i, colors->at(indices->at(i)));
+                expanded_texcoords->set(i, texcoords->at(indices->at(i)));
+            }
+
+            auto drawCommands = vsg::Commands::create();
+            drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{expanded_vertices, expanded_colors, expanded_texcoords}));
+            drawCommands->addChild(vsg::Draw::create(expanded_vertices->size(), 1, 0, 0));
+
+            transform->addChild(drawCommands);
+            break;
+        }
+        case(DRAW_INDEXED_COMMANDS):
         {
             auto drawCommands = vsg::Commands::create();
             drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
@@ -282,6 +302,7 @@ int main(int argc, char** argv)
     auto maxPageLOD = arguments.value(-1, "--max-plod");
 
     if (arguments.read("--draw")) geometryType = DRAW_COMMANDS;
+    if (arguments.read("--draw-indexed")) geometryType = DRAW_INDEXED_COMMANDS;
     if (arguments.read({"--geometry", "--geom"})) geometryType = GEOMETRY;
     if (arguments.read("--vid")) geometryType = VERTEX_INDEX_DRAW;
 
