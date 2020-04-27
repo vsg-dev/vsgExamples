@@ -12,14 +12,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-#include "IntersectionTraversal.h"
+#include "Intersector.h"
 
 #include <vsg/viewer/Camera.h>
 
 namespace vsg
 {
 
-    class VSG_DECLSPEC LineSegmentIntersector : public Inherit<IntersectionTraversal, LineSegmentIntersector>
+    class VSG_DECLSPEC LineSegmentIntersector : public Inherit<Intersector, LineSegmentIntersector>
     {
     public:
 

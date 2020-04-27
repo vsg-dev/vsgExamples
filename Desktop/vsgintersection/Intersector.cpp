@@ -10,7 +10,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-#include "IntersectionTraversal.h"
+#include "Intersector.h"
 
 #include <vsg/nodes/StateGroup.h>
 #include <vsg/nodes/CullNode.h>
@@ -27,31 +27,29 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <iostream>
 
-#include "LineSegmentIntersector.h"
-
 using namespace vsg;
 
 struct PushPopNode
 {
-    IntersectionTraversal::NodePath& nodePath;
+    Intersector::NodePath& nodePath;
 
-    PushPopNode(IntersectionTraversal::NodePath& np, const Node* node) : nodePath(np) { nodePath.push_back(node); }
+    PushPopNode(Intersector::NodePath& np, const Node* node) : nodePath(np) { nodePath.push_back(node); }
     ~PushPopNode() { nodePath.pop_back(); }
 };
 
-IntersectionTraversal::IntersectionTraversal()
+Intersector::Intersector()
 {
     _topologyStack.push_back(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 }
 
-void IntersectionTraversal::apply(const Node& node)
+void Intersector::apply(const Node& node)
 {
     PushPopNode ppn(_nodePath, &node);
 
     node.traverse(*this);
 }
 
-void IntersectionTraversal::apply(const StateGroup& stategroup)
+void Intersector::apply(const StateGroup& stategroup)
 {
     PushPopNode ppn(_nodePath, &stategroup);
 
@@ -92,7 +90,7 @@ void IntersectionTraversal::apply(const StateGroup& stategroup)
     }
 }
 
-void IntersectionTraversal::apply(const MatrixTransform& transform)
+void Intersector::apply(const MatrixTransform& transform)
 {
     PushPopNode ppn(_nodePath, &transform);
 
@@ -105,7 +103,7 @@ void IntersectionTraversal::apply(const MatrixTransform& transform)
 
 
 
-void IntersectionTraversal::apply(const LOD& lod)
+void Intersector::apply(const LOD& lod)
 {
     PushPopNode ppn(_nodePath, &lod);
 
@@ -122,7 +120,7 @@ void IntersectionTraversal::apply(const LOD& lod)
     }
 }
 
-void IntersectionTraversal::apply(const PagedLOD& plod)
+void Intersector::apply(const PagedLOD& plod)
 {
     PushPopNode ppn(_nodePath, &plod);
 
@@ -139,14 +137,14 @@ void IntersectionTraversal::apply(const PagedLOD& plod)
     }
 }
 
-void IntersectionTraversal::apply(const CullNode& cn)
+void Intersector::apply(const CullNode& cn)
 {
     PushPopNode ppn(_nodePath, &cn);
 
     if (intersects(cn.getBound())) cn.traverse(*this);
 }
 
-void IntersectionTraversal::apply(const VertexIndexDraw& vid)
+void Intersector::apply(const VertexIndexDraw& vid)
 {
     if (vid.arrays.empty()) return;
 
@@ -183,7 +181,7 @@ void IntersectionTraversal::apply(const VertexIndexDraw& vid)
     }
 }
 
-void IntersectionTraversal::apply(const Geometry& geometry)
+void Intersector::apply(const Geometry& geometry)
 {
     PushPopNode ppn(_nodePath, &geometry);
 
@@ -197,24 +195,24 @@ void IntersectionTraversal::apply(const Geometry& geometry)
 }
 
 
-void IntersectionTraversal::apply(const BindVertexBuffers& bvb)
+void Intersector::apply(const BindVertexBuffers& bvb)
 {
     _arrays = bvb.getArrays();
 }
 
-void IntersectionTraversal::apply(const BindIndexBuffer& bib)
+void Intersector::apply(const BindIndexBuffer& bib)
 {
     _indices = bib.getIndices();
 }
 
-void IntersectionTraversal::apply(const Draw& draw)
+void Intersector::apply(const Draw& draw)
 {
     PushPopNode ppn(_nodePath, &draw);
 
     intersect(topology(), _arrays, draw.firstVertex, draw.vertexCount);
 }
 
-void IntersectionTraversal::apply(const DrawIndexed& drawIndexed)
+void Intersector::apply(const DrawIndexed& drawIndexed)
 {
     PushPopNode ppn(_nodePath, &drawIndexed);
 

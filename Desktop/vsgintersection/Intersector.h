@@ -23,15 +23,17 @@ namespace vsg
 {
 
 
-    class VSG_DECLSPEC IntersectionTraversal : public Inherit<ConstVisitor, IntersectionTraversal>
+    class VSG_DECLSPEC Intersector : public Inherit<ConstVisitor, Intersector>
     {
     public:
 
         using NodePath = std::vector<const Node*>;
 
+        Intersector();
 
-        IntersectionTraversal();
-
+        //
+        // handle traverse of the scene graph
+        //
         void apply(const Node& node) override;
         void apply(const StateGroup& stategroup) override;
         void apply(const MatrixTransform& transform) override;
@@ -40,13 +42,17 @@ namespace vsg
         void apply(const CullNode& cn) override;
 
         void apply(const VertexIndexDraw& vid) override;
-
         void apply(const Geometry& geometry) override;
 
         void apply(const BindVertexBuffers& bvb) override;
         void apply(const BindIndexBuffer& bib) override;
         void apply(const Draw& draw) override;
         void apply(const DrawIndexed& drawIndexed) override;
+
+
+        //
+        // provide virtual functions for concrete Intersector implementations to provide handling of intersection with mesh geometries
+        //
 
         /// clone and transform this Intersector to provide a new Intersector in local coordinates
         virtual void pushTransform(const dmat4& m) = 0;

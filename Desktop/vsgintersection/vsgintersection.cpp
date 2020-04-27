@@ -9,7 +9,6 @@
 #include <chrono>
 #include <thread>
 
-#include "IntersectionTraversal.h"
 #include "LineSegmentIntersector.h"
 
 class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
