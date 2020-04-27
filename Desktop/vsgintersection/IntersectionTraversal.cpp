@@ -156,7 +156,7 @@ void IntersectionTraversal::apply(const Geometry& geometry)
     {
         DrawCommandVisitor(IntersectionTraversal& it, VkPrimitiveTopology in_topology, const Geometry& in_geometry) :
             intersectionTraversal(it),
-            topology(topology),
+            topology(in_topology),
             geometry(in_geometry) {}
 
         IntersectionTraversal& intersectionTraversal;

@@ -76,7 +76,14 @@ protected:
 
 };
 
-vsg::ref_ptr<vsg::Node> createScene(std::string filename)
+enum GeometryType
+{
+    DRAW_COMMANDS,
+    GEOMETRY,
+    VERTEX_INDEX_DRAW
+};
+
+vsg::ref_ptr<vsg::Node> createScene(std::string filename, GeometryType geometryType)
 {
     if (!filename.empty())
     {
@@ -208,13 +215,43 @@ vsg::ref_ptr<vsg::Node> createScene(std::string filename)
     }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
-    auto vid = vsg::VertexIndexDraw::create();
-    vid->arrays = vsg::DataList{vertices, colors, texcoords};
-    vid->indices = indices;
-    vid->indexCount = 12;
-    vid->instanceCount = 1;
 
-    transform->addChild(vid);
+    // setup geometry
+    switch(geometryType)
+    {
+        case(DRAW_COMMANDS):
+        {
+            auto drawCommands = vsg::Commands::create();
+            drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
+            drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+            drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
+
+            transform->addChild(drawCommands);
+            break;
+        }
+        case(GEOMETRY):
+        {
+            auto geometry = vsg::Geometry::create();
+            geometry->arrays = vsg::DataList{vertices, colors, texcoords};
+            geometry->indices = indices;
+            geometry->commands.push_back(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
+
+            transform->addChild(geometry);
+            break;
+        }
+        case(VERTEX_INDEX_DRAW):
+        {
+            auto vid = vsg::VertexIndexDraw::create();
+            vid->arrays = vsg::DataList{vertices, colors, texcoords};
+            vid->indices = indices;
+            vid->indexCount = 12;
+            vid->instanceCount = 1;
+
+            transform->addChild(vid);
+            break;
+        }
+    }
+
 
     return scenegraph;
 }
@@ -226,6 +263,8 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsginteresction";
 
+    GeometryType geometryType = VERTEX_INDEX_DRAW;
+
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
@@ -236,6 +275,10 @@ int main(int argc, char** argv)
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
+
+    if (arguments.read("--draw")) geometryType = DRAW_COMMANDS;
+    if (arguments.read({"--geometry", "--geom"})) geometryType = GEOMETRY;
+    if (arguments.read("--vid")) geometryType = VERTEX_INDEX_DRAW;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -252,7 +295,7 @@ int main(int argc, char** argv)
     vsg::Path filename;
     if (argc>1) filename = arguments[1];
 
-    auto vsg_scene = createScene(filename);
+    auto vsg_scene = createScene(filename, geometryType);
     if (!vsg_scene)
     {
         std::cout<<"Unable to load model."<<std::endl;
