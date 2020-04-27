@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 
     if (!vsg_scene)
     {
-        std::cout<<"No command graph created."<<std::endl;
+        std::cout<<"Please specify a 3d model file on the command line."<<std::endl;
         return 1;
     }
 
