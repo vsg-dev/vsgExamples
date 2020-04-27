@@ -302,14 +302,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-
-    if (!vsg_scene)
-    {
-        std::cout<<"No command graph created."<<std::endl;
-        return 1;
-    }
-
-
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
