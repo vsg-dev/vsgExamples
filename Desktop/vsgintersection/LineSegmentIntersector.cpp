@@ -36,12 +36,11 @@ struct TriangleIntersector
 
     LineSegmentIntersector& intersector;
 
-    TriangleIntersector(LineSegmentIntersector& in_intersector) :
+    TriangleIntersector(LineSegmentIntersector& in_intersector, const dvec3& in_start, const dvec3& in_end) :
         intersector(in_intersector)
     {
-        auto& lineSegment = in_intersector.lineSegmentStack.back();
-        start = lineSegment.start;
-        end = lineSegment.end;
+        start = in_start;
+        end = in_end;
 
         _d = end - start;
         _length = length(_d);
@@ -129,7 +128,7 @@ struct TriangleIntersector
 
 LineSegmentIntersector::LineSegmentIntersector(const dvec3& s, const dvec3& e)
 {
-    lineSegmentStack.push_back(LineSegment{s,e});
+    _lineSegmentStack.push_back(LineSegment{s,e});
 }
 
 LineSegmentIntersector::LineSegmentIntersector(const Camera& camera, int32_t x, int32_t y)
@@ -153,7 +152,7 @@ LineSegmentIntersector::LineSegmentIntersector(const Camera& camera, int32_t x, 
     vsg::dvec3 world_near = inv_projectionViewMatrix * ndc_near;
     vsg::dvec3 world_far = inv_projectionViewMatrix * ndc_far;
 
-    lineSegmentStack.push_back(LineSegment{world_near, world_far});
+    _lineSegmentStack.push_back(LineSegment{world_near, world_far});
 }
 
 void LineSegmentIntersector::add(const dvec3& intersection, double ratio)
@@ -176,13 +175,13 @@ void LineSegmentIntersector::pushTransform(const dmat4& m)
 
     _matrixStack.push_back(localToWorld);
 
-    auto& worldLineSegment = lineSegmentStack.front();
-    lineSegmentStack.push_back(LineSegment{worldToLocal * worldLineSegment.start, worldToLocal * worldLineSegment.end});
+    auto& worldLineSegment = _lineSegmentStack.front();
+    _lineSegmentStack.push_back(LineSegment{worldToLocal * worldLineSegment.start, worldToLocal * worldLineSegment.end});
 }
 
 void LineSegmentIntersector::popTransform()
 {
-    lineSegmentStack.pop_back();
+    _lineSegmentStack.pop_back();
     _matrixStack.pop_back();
 }
 
@@ -191,7 +190,7 @@ bool LineSegmentIntersector::intersects(const dsphere& bs)
     //std::cout<<"intersects( center = "<<bs.center<<", radius = "<<bs.radius<<")"<<std::endl;
     if (!bs.valid()) return false;
 
-    auto& lineSegment = lineSegmentStack.back();
+    auto& lineSegment = _lineSegmentStack.back();
     dvec3& start = lineSegment.start;
     dvec3& end = lineSegment.end;
 
@@ -235,7 +234,8 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
     {
         case(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST) :
         {
-            TriangleIntersector<double> triIntsector(*this);
+            auto& ls = _lineSegmentStack.back();
+            TriangleIntersector<double> triIntsector(*this, ls.start, ls.end);
             for(uint32_t i = firstVertex; i<endVertex; i+=3)
             {
                 triIntsector.intersect( vertices->at(i), vertices->at(i+1), vertices->at(i+2));
@@ -264,7 +264,8 @@ bool LineSegmentIntersector::intersect(VkPrimitiveTopology topology, const vsg::
     {
         case(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST) :
         {
-            TriangleIntersector<double> triIntsector(*this);
+            auto& ls = _lineSegmentStack.back();
+            TriangleIntersector<double> triIntsector(*this, ls.start, ls.end);
             for(uint32_t i = firstIndex; i<endIndex; i+=3)
             {
                 triIntsector.intersect( vertices->at(us_indices->at(i)), vertices->at(us_indices->at(i+1)), vertices->at(us_indices->at(i+2)));

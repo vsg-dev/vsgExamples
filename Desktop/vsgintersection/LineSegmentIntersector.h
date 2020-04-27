@@ -23,14 +23,6 @@ namespace vsg
     {
     public:
 
-        struct LineSegment
-        {
-            dvec3 start;
-            dvec3 end;
-        };
-
-        std::vector<LineSegment> lineSegmentStack;
-
         struct Intersection
         {
             dvec3 localIntersection;
@@ -65,6 +57,18 @@ namespace vsg
 
         /// check for intersections with primitives associated with VkDrawDrawIndex command
         bool intersect(VkPrimitiveTopology topology, const vsg::DataList& arrays, vsg::ref_ptr<const vsg::Data> indices, uint32_t firstIndex, uint32_t indexCount) override;
+
+    protected:
+
+        struct LineSegment
+        {
+            dvec3 start;
+            dvec3 end;
+        };
+
+        std::vector<LineSegment> _lineSegmentStack;
+
+
     };
 
 }
