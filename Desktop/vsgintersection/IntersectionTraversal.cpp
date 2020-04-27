@@ -22,6 +22,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/vk/Draw.h>
 #include <vsg/vk/BindVertexBuffers.h>
 #include <vsg/vk/BindIndexBuffer.h>
+#include <vsg/vk/GraphicsPipeline.h>
 #include <vsg/maths/transform.h>
 
 #include <iostream>
@@ -40,27 +41,58 @@ struct PushPopNode
 
 IntersectionTraversal::IntersectionTraversal()
 {
+    _topologyStack.push_back(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 }
 
 void IntersectionTraversal::apply(const Node& node)
 {
-    PushPopNode ppn(nodePath, &node);
+    PushPopNode ppn(_nodePath, &node);
 
     node.traverse(*this);
 }
 
 void IntersectionTraversal::apply(const StateGroup& stategroup)
 {
-    // TODO need to check for topology type. GraphicsProgram::InputAssemblyState.topology (VkPrimitiveTopology)
+    PushPopNode ppn(_nodePath, &stategroup);
 
-    PushPopNode ppn(nodePath, &stategroup);
+    auto previous_topology = topology();
+
+    struct FindGraphicsPipelineVisitor : public ConstVisitor
+    {
+        VkPrimitiveTopology topology;
+
+        FindGraphicsPipelineVisitor(VkPrimitiveTopology in_topology) : topology(in_topology) {}
+
+        void apply(const BindGraphicsPipeline& bpg) override
+        {
+            for(auto& pipelineState : bpg.getPipeline()->getPipelineStates())
+            {
+                if (auto ias = pipelineState.cast<InputAssemblyState>(); ias) topology = ias->topology;
+            }
+        }
+    } findGraphicsPipeline(previous_topology);
+
+    for(auto& state : stategroup.getStateCommands())
+    {
+        state->accept(findGraphicsPipeline);
+    }
+
+    if (findGraphicsPipeline.topology != previous_topology)
+    {
+        _topologyStack.push_back(findGraphicsPipeline.topology);
+    }
 
     stategroup.traverse(*this);
+
+    if (findGraphicsPipeline.topology != previous_topology)
+    {
+        _topologyStack.pop_back();
+    }
 }
 
 void IntersectionTraversal::apply(const MatrixTransform& transform)
 {
-    PushPopNode ppn(nodePath, &transform);
+    PushPopNode ppn(_nodePath, &transform);
 
     pushTransform(transform.getMatrix());
 
@@ -73,7 +105,7 @@ void IntersectionTraversal::apply(const MatrixTransform& transform)
 
 void IntersectionTraversal::apply(const LOD& lod)
 {
-    PushPopNode ppn(nodePath, &lod);
+    PushPopNode ppn(_nodePath, &lod);
 
     if (intersects(lod.getBound()))
     {
@@ -90,7 +122,7 @@ void IntersectionTraversal::apply(const LOD& lod)
 
 void IntersectionTraversal::apply(const PagedLOD& plod)
 {
-    PushPopNode ppn(nodePath, &plod);
+    PushPopNode ppn(_nodePath, &plod);
 
     if (intersects(plod.getBound()))
     {
@@ -107,7 +139,7 @@ void IntersectionTraversal::apply(const PagedLOD& plod)
 
 void IntersectionTraversal::apply(const CullNode& cn)
 {
-    PushPopNode ppn(nodePath, &cn);
+    PushPopNode ppn(_nodePath, &cn);
 
     if (intersects(cn.getBound())) cn.traverse(*this);
 }
@@ -116,7 +148,7 @@ void IntersectionTraversal::apply(const VertexIndexDraw& vid)
 {
     if (vid.arrays.empty()) return;
 
-    PushPopNode ppn(nodePath, &vid);
+    PushPopNode ppn(_nodePath, &vid);
 
     sphere bound;
     if (!vid.getValue("bound", bound))
@@ -145,16 +177,16 @@ void IntersectionTraversal::apply(const VertexIndexDraw& vid)
 
     if (intersects(bound))
     {
-        intersect(topology, vid.arrays, vid.indices, vid.firstIndex, vid.indexCount);
+        intersect(topology(), vid.arrays, vid.indices, vid.firstIndex, vid.indexCount);
     }
 }
 
 void IntersectionTraversal::apply(const Geometry& geometry)
 {
-    PushPopNode ppn(nodePath, &geometry);
+    PushPopNode ppn(_nodePath, &geometry);
 
-    arrays = geometry.arrays;
-    indices = geometry.indices;
+    _arrays = geometry.arrays;
+    _indices = geometry.indices;
 
     for(auto& command : geometry.commands)
     {
@@ -165,24 +197,24 @@ void IntersectionTraversal::apply(const Geometry& geometry)
 
 void IntersectionTraversal::apply(const BindVertexBuffers& bvb)
 {
-    arrays = bvb.getArrays();
+    _arrays = bvb.getArrays();
 }
 
 void IntersectionTraversal::apply(const BindIndexBuffer& bib)
 {
-    indices = bib.getIndices();
+    _indices = bib.getIndices();
 }
 
 void IntersectionTraversal::apply(const Draw& draw)
 {
-    PushPopNode ppn(nodePath, &draw);
+    PushPopNode ppn(_nodePath, &draw);
 
-    intersect(topology, arrays, draw.firstVertex, draw.vertexCount);
+    intersect(topology(), _arrays, draw.firstVertex, draw.vertexCount);
 }
 
 void IntersectionTraversal::apply(const DrawIndexed& drawIndexed)
 {
-    PushPopNode ppn(nodePath, &drawIndexed);
+    PushPopNode ppn(_nodePath, &drawIndexed);
 
-    intersect(topology, arrays, indices, drawIndexed.firstIndex, drawIndexed.indexCount);
+    intersect(topology(), _arrays, _indices, drawIndexed.firstIndex, drawIndexed.indexCount);
 }

@@ -27,16 +27,8 @@ namespace vsg
     {
     public:
 
-        std::vector<dmat4> matrixStack;
-
-        /// TODO : need to use a topologyStack
-        VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
         using NodePath = std::vector<const Node*>;
-        NodePath nodePath;
 
-        DataList arrays;
-        ref_ptr<const Data> indices;
 
         IntersectionTraversal();
 
@@ -69,6 +61,18 @@ namespace vsg
 
         /// check for intersections with primitives associated with VkDrawDrawIndex command
         virtual bool intersect(VkPrimitiveTopology topology, const DataList& arrays, ref_ptr<const Data> indices, uint32_t firstIndex, uint32_t indexCount) = 0;
+
+    protected:
+
+        std::vector<dmat4> _matrixStack;
+
+        std::vector<VkPrimitiveTopology> _topologyStack;
+        VkPrimitiveTopology topology() const { return _topologyStack.back(); }
+
+        NodePath _nodePath;
+
+        DataList _arrays;
+        ref_ptr<const Data> _indices;
     };
 
 }
