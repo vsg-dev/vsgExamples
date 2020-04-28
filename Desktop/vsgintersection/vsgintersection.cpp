@@ -295,7 +295,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
-    auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
+    auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
 
@@ -338,9 +338,6 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    auto ellipsoidModel = vsg::EllipsoidModel::create();
-    vsg_scene->setObject("EllipsoidModel", ellipsoidModel);
-
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
     // compute the bounds of the scene graph to help position camera
@@ -349,18 +346,31 @@ int main(int argc, char** argv)
     vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
 
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+
     if (pointOfInterest[2] != std::numeric_limits<double>::max())
     {
-        auto ellipsoidModel = vsg::EllipsoidModel::create();
-        auto ecef = ellipsoidModel->convertLatLongHeightToECEF({vsg::radians(pointOfInterest[0]), vsg::radians(pointOfInterest[1]), 0.0});
-        auto ecef_normal = vsg::normalize(ecef);
+        if ( ellipsoidModel)
+        {
+            auto ecef = ellipsoidModel->convertLatLongHeightToECEF({vsg::radians(pointOfInterest[0]), vsg::radians(pointOfInterest[1]), 0.0});
+            auto ecef_normal = vsg::normalize(ecef);
 
-        vsg::dvec3 centre = ecef;
-        vsg::dvec3 eye = centre + ecef_normal * pointOfInterest[2];
-        vsg::dvec3 up = vsg::normalize( vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal) ) );
+            vsg::dvec3 centre = ecef;
+            vsg::dvec3 eye = centre + ecef_normal * pointOfInterest[2];
+            vsg::dvec3 up = vsg::normalize( vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal) ) );
 
-        // set up the camera
-        lookAt = vsg::LookAt::create(eye, centre, up);
+            // set up the camera
+            lookAt = vsg::LookAt::create(eye, centre, up);
+        }
+        else
+        {
+            vsg::dvec3 eye = pointOfInterest;
+            vsg::dvec3 centre = eye - vsg::dvec3(0.0, -radius*3.5, 0.0);
+            vsg::dvec3 up = vsg::dvec3(0.0, 0.0, 1.0);
+
+            // set up the camera
+            lookAt = vsg::LookAt::create(eye, centre, up);
+        }
     }
     else
     {
@@ -370,7 +380,7 @@ int main(int argc, char** argv)
 
     double nearFarRatio = 0.0001;
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-    if (horizonMountainHeight >= 0.0)
+    if (ellipsoidModel)
     {
         perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
     }
