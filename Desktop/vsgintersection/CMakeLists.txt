@@ -1,4 +1,6 @@
 set(SOURCES
+    Builder.h
+    Builder.cpp
     vsgintersection.cpp
 )
 
