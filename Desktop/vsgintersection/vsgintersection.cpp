@@ -13,10 +13,12 @@ class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandle
 {
 public:
 
+    vsg::ref_ptr<Builder> builder;
     vsg::ref_ptr<vsg::Camera> camera;
-    vsg::ref_ptr<vsg::Node> scenegraph;
+    vsg::ref_ptr<vsg::Group> scenegraph;
 
-    IntersectionHandler(vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Node> in_scenegraph) :
+    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph) :
+        builder(in_builder),
         camera(in_camera),
         scenegraph(in_scenegraph) {}
 
@@ -111,26 +113,17 @@ int main(int argc, char** argv)
     options->readerWriter = vsgXchange::ReaderWriter_all::create();
 #endif
 
-    using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
-    VsgNodes vsgNodes;
-
-    vsg::Path path;
-
-
-    vsg::ref_ptr<vsg::Node> vsg_scene;
+    auto scene = vsg::Group::create();
     if (argc>1)
     {
         vsg::Path filename = arguments[1];
-        vsg_scene = vsg::read_cast<vsg::Node>(filename);
-    }
-    else
-    {
-        vsg_scene = builder->createCube();
+        auto model = vsg::read_cast<vsg::Node>(filename);
+        if (model) scene->addChild(model);
     }
 
-    if (!vsg_scene)
+    if (scene->getNumChildren()==0)
     {
-        return 1;
+        scene->addChild(builder->createCube());
     }
 
     // create the viewer and assign window(s) to it
@@ -149,11 +142,11 @@ int main(int argc, char** argv)
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
-    vsg_scene->accept(computeBounds);
+    scene->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
 
-    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
 
     if (pointOfInterest[2] != std::numeric_limits<double>::max())
     {
@@ -206,14 +199,17 @@ int main(int argc, char** argv)
         if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
     }
 
+    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from wtihin the IntersectionHandler
+    builder->setup(window, camera->getViewportState());
+
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    viewer->addEventHandler(IntersectionHandler::create(camera, vsg_scene));
+    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene));
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
 
     viewer->compile();

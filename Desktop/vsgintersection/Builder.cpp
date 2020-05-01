@@ -1,6 +1,40 @@
 #include "Builder.h"
 
-vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& dimensions)
+
+void Builder::setup(vsg::ref_ptr<vsg::Window> window, vsg::ViewportState* viewport, uint32_t maxNumTextures)
+{
+    auto queueFamily = window->physicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
+    _compile = new vsg::CompileTraversal(window->device());
+    _compile->context.renderPass = window->renderPass();
+    _compile->context.commandPool = vsg::CommandPool::create(window->device(), queueFamily);
+    _compile->context.graphicsQueue = window->device()->getQueue(queueFamily);
+    _compile->context.viewport = viewport;
+
+    // for now just allocated enough room for s
+    uint32_t maxSets = maxNumTextures;
+    vsg::DescriptorPoolSizes descriptorPoolSizes{
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxNumTextures}
+    };
+
+    _compile->context.descriptorPool = vsg::DescriptorPool::create(window->device(), maxSets, descriptorPoolSizes);
+
+    _allocatedTextureCount = 0;
+    _maxNumTextures = maxNumTextures;
+}
+
+void Builder::compile(vsg::ref_ptr<vsg::Node> subgraph)
+{
+    std::cout<<"Builder::compile("<<subgraph<<") _compile = "<<_compile<<std::endl;
+    if (_compile)
+    {
+        subgraph->accept(*_compile);
+        _compile->context.dispatch();
+        _compile->context.waitForCompletion();
+    }
+}
+
+
+vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vsg::dvec3& dimensions)
 {
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -183,14 +217,15 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& dimensions)
         }
     }
 
+    compile(scenegraph);
+
     return scenegraph;
 }
 
-vsg::ref_ptr<vsg::Node> Builder::createCube(const vsg::dvec3& dimensions)
+vsg::ref_ptr<vsg::Node> Builder::createCube(const vsg::dvec3& position, const vsg::dvec3& dimensions)
 {
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-
 
     vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
     vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
@@ -345,6 +380,8 @@ vsg::ref_ptr<vsg::Node> Builder::createCube(const vsg::dvec3& dimensions)
 
     // add drawCommands to transform
     transform->addChild(drawCommands);
+
+    compile(scenegraph);
 
     return scenegraph;
 }
