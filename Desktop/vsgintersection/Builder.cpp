@@ -109,12 +109,6 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSets);
 
-    // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
-
-    // add transform to root of the scene graph
-    scenegraph->addChild(transform);
-
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
     {
@@ -167,7 +161,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
             drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{expanded_vertices, expanded_colors, expanded_texcoords}));
             drawCommands->addChild(vsg::Draw::create(expanded_vertices->size(), 1, 0, 0));
 
-            transform->addChild(drawCommands);
+            scenegraph->addChild(drawCommands);
             break;
         }
         case(DRAW_INDEXED_COMMANDS):
@@ -177,7 +171,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
             drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
             drawCommands->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
 
-            transform->addChild(drawCommands);
+            scenegraph->addChild(drawCommands);
             break;
         }
         case(GEOMETRY):
@@ -187,7 +181,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
             geometry->indices = indices;
             geometry->commands.push_back(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
 
-            transform->addChild(geometry);
+            scenegraph->addChild(geometry);
             break;
         }
         case(VERTEX_INDEX_DRAW):
@@ -198,7 +192,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
             vid->indexCount = indices->size();
             vid->instanceCount = 1;
 
-            transform->addChild(vid);
+            scenegraph->addChild(vid);
             break;
         }
     }
@@ -287,12 +281,6 @@ vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSets);
 
-    // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
-
-    // add transform to root of the scene graph
-    scenegraph->addChild(transform);
-
     vsg::vec3 v000(info.position);
     vsg::vec3 v100(info.position + vsg::vec3(info.dimensions.x, 0.0f, 0.0f));
     vsg::vec3 v110(info.position + vsg::vec3(info.dimensions.x, info.dimensions.y, 0.0f));
@@ -367,7 +355,7 @@ vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
     drawCommands->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
 
     // add drawCommands to transform
-    transform->addChild(drawCommands);
+    scenegraph->addChild(drawCommands);
 
     compile(scenegraph);
 
