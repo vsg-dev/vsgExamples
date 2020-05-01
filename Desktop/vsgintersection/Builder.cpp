@@ -34,7 +34,7 @@ void Builder::compile(vsg::ref_ptr<vsg::Node> subgraph)
 }
 
 
-vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vsg::dvec3& dimensions)
+vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
 {
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -118,14 +118,10 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vs
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
     {
-        {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.0f},
-        {0.5f , 0.5f, 0.0f},
-        {-0.5f, 0.5f, 0.0f},
-        {-0.5f, -0.5f, 1.0},
-        {0.5f,  -0.5f, 1.0},
-        {0.5f , 0.5f, 1.0},
-        {-0.5f, 0.5f, 1.0}
+        info.position,
+        info.position + vsg::vec3(info.dimensions.x, 0.0f, 0.0f),
+        info.position + vsg::vec3(info.dimensions.x, info.dimensions.y, 0.0f),
+        info.position + vsg::vec3(0.0, info.dimensions.y, 0.0f)
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(
@@ -133,19 +129,11 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vs
         {1.0f, 0.0f, 0.0f},
         {0.0f, 1.0f, 0.0f},
         {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f}
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto texcoords = vsg::vec2Array::create(
     {
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f},
         {0.0f, 0.0f},
         {1.0f, 0.0f},
         {1.0f, 1.0f},
@@ -156,8 +144,6 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vs
     {
         0, 1, 2,
         2, 3, 0,
-        4, 5, 6,
-        6, 7, 4
     }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
@@ -189,7 +175,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vs
             auto drawCommands = vsg::Commands::create();
             drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
             drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-            drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
+            drawCommands->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
 
             transform->addChild(drawCommands);
             break;
@@ -199,7 +185,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vs
             auto geometry = vsg::Geometry::create();
             geometry->arrays = vsg::DataList{vertices, colors, texcoords};
             geometry->indices = indices;
-            geometry->commands.push_back(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
+            geometry->commands.push_back(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
 
             transform->addChild(geometry);
             break;
@@ -209,7 +195,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vs
             auto vid = vsg::VertexIndexDraw::create();
             vid->arrays = vsg::DataList{vertices, colors, texcoords};
             vid->indices = indices;
-            vid->indexCount = 12;
+            vid->indexCount = indices->size();
             vid->instanceCount = 1;
 
             transform->addChild(vid);
@@ -222,7 +208,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const vsg::dvec3& position, const vs
     return scenegraph;
 }
 
-vsg::ref_ptr<vsg::Node> Builder::createCube(const vsg::dvec3& position, const vsg::dvec3& dimensions)
+vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
 {
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -236,14 +222,16 @@ vsg::ref_ptr<vsg::Node> Builder::createCube(const vsg::dvec3& position, const vs
     }
 
     // read texture image
-    vsg::Path textureFile("textures/lz.vsgb");
-    auto textureData = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));
+
+    auto textureData = info.image;
     if (!textureData)
     {
-        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
-        return {};
+        auto image = vsg::vec4Array2D::create(2, 2, info.color);
+        image->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+        image->set(0, 0, {0.0f, 0.0f, 1.0f, 1.0f});
+        image->set(1, 1, {0.0f, 0.0f, 1.0f, 1.0f});
+        textureData = image;
     }
-
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings
@@ -305,14 +293,14 @@ vsg::ref_ptr<vsg::Node> Builder::createCube(const vsg::dvec3& position, const vs
     // add transform to root of the scene graph
     scenegraph->addChild(transform);
 
-    vsg::vec3 v000(0.0f, 0.0f, 0.0f);
-    vsg::vec3 v100(dimensions.x, 0.0f, 0.0f);
-    vsg::vec3 v110(dimensions.x, dimensions.y, 0.0f);
-    vsg::vec3 v010(0.0f, dimensions.y, 0.0f);
-    vsg::vec3 v001(0.0f, 0.0f, dimensions.z);
-    vsg::vec3 v101(dimensions.x, 0.0f, dimensions.z);
-    vsg::vec3 v111(dimensions.x, dimensions.y, dimensions.z);
-    vsg::vec3 v011(0.0f, dimensions.y, dimensions.z);
+    vsg::vec3 v000(info.position);
+    vsg::vec3 v100(info.position + vsg::vec3(info.dimensions.x, 0.0f, 0.0f));
+    vsg::vec3 v110(info.position + vsg::vec3(info.dimensions.x, info.dimensions.y, 0.0f));
+    vsg::vec3 v010(info.position + vsg::vec3(0.0f, info.dimensions.y, 0.0f));
+    vsg::vec3 v001(info.position + vsg::vec3(0.0f, 0.0f, info.dimensions.z));
+    vsg::vec3 v101(info.position + vsg::vec3(info.dimensions.x, 0.0f, info.dimensions.z));
+    vsg::vec3 v111(info.position + vsg::vec3(info.dimensions.x, info.dimensions.y, info.dimensions.z));
+    vsg::vec3 v011(info.position + vsg::vec3(0.0f, info.dimensions.y, info.dimensions.z));
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(

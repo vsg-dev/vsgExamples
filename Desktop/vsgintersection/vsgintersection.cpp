@@ -16,15 +16,31 @@ public:
     vsg::ref_ptr<Builder> builder;
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::Group> scenegraph;
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
 
-    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph) :
+    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel) :
         builder(in_builder),
         camera(in_camera),
-        scenegraph(in_scenegraph) {}
+        scenegraph(in_scenegraph),
+        ellipsoidModel(in_ellipsoidModel)
+    {
+    }
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
-        if (keyPress.keyBase=='i' && lastPointerEvent) interesection(*lastPointerEvent);
+        if (keyPress.keyBase=='i' && lastPointerEvent)
+        {
+            interesection(*lastPointerEvent);
+
+            if (lastIntersection)
+            {
+                std::cout<<"inserting at = "<<lastIntersection.worldIntersection<<" ";
+                GeometryInfo info;
+                info.dimensions.set(10.0f, 10.0f, 10.0f);
+                info.position = vsg::vec3(lastIntersection.worldIntersection) - info.dimensions*0.5f;
+                scenegraph->addChild( builder->createBox(info) );
+            }
+        }
     }
 
     void apply(vsg::ButtonPressEvent& buttonPressEvent) override
@@ -47,11 +63,15 @@ public:
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
+        if (intersector->intersections.empty()) return;
+
+        // sort the intersectors front to back
+        std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto lhs, auto rhs) { return lhs.ratio <rhs.ratio; });
+
         std::cout<<std::endl;
         for(auto& intersection : intersector->intersections)
         {
             std::cout<<"intersection = "<<intersection.worldIntersection<<" ";
-            auto ellipsoidModel = scenegraph->getObject<vsg::EllipsoidModel>("EllipsoidModel");
             if (ellipsoidModel)
             {
                 std::cout.precision(10);
@@ -70,10 +90,11 @@ public:
             }
 
             std::cout<<std::endl;
-
-            lastIntersection = intersection;
         }
+
+        lastIntersection = intersector->intersections.front();
     }
+
 
 protected:
     vsg::ref_ptr<vsg::PointerEvent> lastPointerEvent;
@@ -113,17 +134,31 @@ int main(int argc, char** argv)
     options->readerWriter = vsgXchange::ReaderWriter_all::create();
 #endif
 
+    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+
     auto scene = vsg::Group::create();
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
+
     if (argc>1)
     {
         vsg::Path filename = arguments[1];
         auto model = vsg::read_cast<vsg::Node>(filename);
-        if (model) scene->addChild(model);
+        if (model)
+        {
+            scene->addChild(model);
+            ellipsoidModel = model->getObject<vsg::EllipsoidModel>("EllipsoidModel");
+        }
     }
 
     if (scene->getNumChildren()==0)
     {
-        scene->addChild(builder->createCube());
+        GeometryInfo info;
+        info.dimensions.set(100.f, 100.0f, 100.0f);
+
+        vsg::Path textureFile("textures/lz.vsgb");
+        info.image = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));
+
+        scene->addChild(builder->createBox(info));
     }
 
     // create the viewer and assign window(s) to it
@@ -145,8 +180,6 @@ int main(int argc, char** argv)
     scene->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
-
-    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
 
     if (pointOfInterest[2] != std::numeric_limits<double>::max())
     {
@@ -207,7 +240,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene));
+    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene, ellipsoidModel));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
