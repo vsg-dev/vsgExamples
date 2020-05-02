@@ -2,4 +2,4 @@ set(SOURCES vsgmaths.cpp)
 
 add_executable(vsgmaths ${SOURCES})
 
-target_link_libraries(vsgmaths vsg::vsg)
+target_link_libraries(vsgmaths vsg)

@@ -21,8 +21,8 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-find_package(vsg REQUIRED)
-
+#find_package(vsg REQUIRED)
+add_subdirectory(deps)
 # find the optional vsgXchange that can be used for reading and range of image and 3d model formats and shader compilation
 find_package(vsgXchange QUIET)
 
@@ -30,9 +30,9 @@ find_package(vsgXchange QUIET)
 set(CMAKE_CXX_STANDARD 17)
 
 # add clobber build target to clear all the non git registered files/directories
-add_custom_target(clobber
-    COMMAND git clean -d -f -x
-)
+#add_custom_target(clobber
+#    COMMAND git clean -d -f -x
+#)
 
 # pure VSG examples
 add_subdirectory(Core)

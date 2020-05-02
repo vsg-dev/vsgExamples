@@ -1,0 +1,3 @@
+[submodule "deps/VulkanSceneGraph"]
+	path = deps/VulkanSceneGraph
+	url = ../../vsg-dev/VulkanSceneGraph.git

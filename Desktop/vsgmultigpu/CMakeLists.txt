@@ -7,4 +7,4 @@ add_executable(vsgmultigpu ${SOURCES})
 
 target_include_directories(vsgmultigpu PRIVATE ../vsgviewer)
 
-target_link_libraries(vsgmultigpu vsg::vsg)
+target_link_libraries(vsgmultigpu vsg)
