@@ -178,10 +178,14 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
-    auto debugLayer = arguments.read({"--debug","-d"});
-    auto apiDumpLayer = arguments.read({"--api","-a"});
+
+    auto windowTraits = vsg::WindowTraits::create();
+    windowTraits->debugLayer = arguments.read({"--debug","-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+
     auto usePerspective = arguments.read({ "--perspective","-p" });
-    auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
@@ -197,12 +201,7 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::WindowTraits> traits = vsg::WindowTraits::create();
-    traits->width = width;
-    traits->height = height;
-    traits->swapchainPreferences.presentMode = VkPresentModeKHR::VK_PRESENT_MODE_IMMEDIATE_KHR;
-
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits, debugLayer, apiDumpLayer));
+    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
     if (!window)
     {
         std::cout<<"Could not create windows."<<std::endl;
@@ -212,18 +211,18 @@ int main(int argc, char** argv)
     viewer->addWindow(window);
 
     // camera related details
-    auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
+    auto viewport = vsg::ViewportState::create(window->extent2D());
 
     vsg::ref_ptr<vsg::ProjectionMatrix> projection;
     vsg::ref_ptr<vsg::LookAt> lookAt;
     if (usePerspective)
     {
-        projection = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 2000.0);
+        projection = vsg::Perspective::create(60.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), 0.1, 2000.0);
         lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, 100.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     }
     else
     {
-        projection = vsg::Orthographic::create(-(width*0.5f), (width*0.5f), -(height*0.5f), (height*0.5f), 0.1, 1000.0);
+        projection = vsg::Orthographic::create(-(window->extent2D().width*0.5f), (window->extent2D().width*0.5f), -(window->extent2D().height*0.5f), (window->extent2D().height*0.5f), 0.1, 1000.0);
         lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     }
 
