@@ -385,8 +385,9 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0),
                                       centre, vsg::dvec3(0.0, 0.0, 1.0));
 
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height),
-                                                nearFarRatio*radius, radius * 4.5);
+    auto perspective = vsg::Perspective::create(30.0,
+                                           static_cast<double>(extent.width) / static_cast<double>(extent.height),
+                                           radius / 4.5, radius / (4.5 * nearFarRatio));
 
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
