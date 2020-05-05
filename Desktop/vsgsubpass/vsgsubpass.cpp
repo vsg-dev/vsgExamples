@@ -282,7 +282,11 @@ int main(int argc, char** argv)
     //traits->shareWindow = shareWindow;
     traits->debugLayer = debugLayer;
     traits->apiDumpLayer = apiDumpLayer;
+
+    // TODO: will need to replace the local setup of Device.
+    vsg::assignSurfaceExtension(traits, "VK_KHR_xcb_surface");
     traits->device = vsg::Device::create(traits);
+
     traits->renderPass = createRenderPass(traits->device);
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));// width, height, debugLayer, apiDumpLayer));
     if (!window)
