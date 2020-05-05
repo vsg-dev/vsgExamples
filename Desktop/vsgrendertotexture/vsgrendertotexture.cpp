@@ -19,38 +19,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <chrono>
 #include <thread>
 
-// Descriptor class for an image whose contents don't need to be
-// initialized by a transfer to memory.
-
-class SimpleDescriptorImage : public vsg::Inherit<vsg::Descriptor, SimpleDescriptorImage>
-{
-public:
-    // Sampler in _imageData manages per-context state, so this class
-    // doesn't need to.
-    vsg::ImageData _imageData;
-    
-    SimpleDescriptorImage(const vsg::ImageData& imageData, uint32_t dstBinding, uint32_t dstArrayElement,
-                          VkDescriptorType descriptorType)
-        : Inherit(dstBinding, dstArrayElement, descriptorType), _imageData(imageData)
-    {}
-
-    void compile(vsg::Context& context) override
-    {
-        _imageData._sampler->compile(context);
-    }
-
-    void assignTo(vsg::Context& context, VkWriteDescriptorSet& wds) const override
-    {
-        Inherit::assignTo(context, wds);
-        auto pImageInfo = context.scratchMemory->allocate<VkDescriptorImageInfo>(1);
-        wds.descriptorCount = 1;
-        wds.pImageInfo = pImageInfo;
-        pImageInfo->imageLayout = _imageData._imageLayout;
-        pImageInfo->imageView = *_imageData._imageView;
-        pImageInfo->sampler = _imageData._sampler->vk(context.deviceID);
-    }
-};
-
 // Render a scene to an image, then use the image as a texture on the
 // faces of quads. This is based on Sascha William's offscreenrender
 // example. 
@@ -296,11 +264,7 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageData& colorImage)
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
     // create texture image and associated DescriptorSets and binding
-#if 0
-    auto texture = SimpleDescriptorImage::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-#else
     auto texture = vsg::DescriptorImageView::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-#endif
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, descriptorSet);
