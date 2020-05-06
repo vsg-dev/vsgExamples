@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     }
 
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-    vsg::ref_ptr<vsg::ShaderStage> computeStage = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
+    auto computeStage = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
     if (!computeStage)
     {
         std::cout<<"Error : No shader loaded."<<std::endl;

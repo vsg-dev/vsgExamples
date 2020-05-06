@@ -9,12 +9,8 @@ vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& i
 
     image = vsg::Image::create(device, imageCreateInfo);
 
-    // get memory requirements
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(*device, *image, &memRequirements);
-
     // allocate memory with out export memory info extension
-    auto[deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto[deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(image->getMemoryRequirements(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     if (!deviceMemory)
     {
@@ -80,7 +76,7 @@ int main(int argc, char** argv)
         VK_NV_RAY_TRACING_EXTENSION_NAME
     };
 
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
+    auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
         std::cout << "Could not create windows." << std::endl;
