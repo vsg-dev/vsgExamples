@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
     // get the physical device that suports the required compute queue
-    vsg::ref_ptr<vsg::Instance> instance = vsg::Instance::create(instanceExtensions, validatedNames);
+    auto instance = vsg::Instance::create(instanceExtensions, validatedNames);
     auto [physicalDevice, computeQueueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_COMPUTE_BIT);
     if (!physicalDevice || computeQueueFamily<0)
     {
@@ -52,12 +52,7 @@ int main(int argc, char** argv)
 
     // create the logical device with specified queue, layers and extensions
     vsg::QueueSettings queueSettings{vsg::QueueSetting{computeQueueFamily, {1.0}}};
-    vsg::ref_ptr<vsg::Device> device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions);
-    if (!device)
-    {
-        std::cout<<"Unable to create required vkDevice."<<std::endl;
-        return 1;
-    }
+    auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions);
 
     // get the queue for the compute commands
     auto computeQueue = device->getQueue(computeQueueFamily);
