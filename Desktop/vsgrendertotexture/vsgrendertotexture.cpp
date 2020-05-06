@@ -76,12 +76,8 @@ vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& i
 
     image = vsg::Image::create(device, imageCreateInfo);
 
-    // get memory requirements
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(*device, *image, &memRequirements);
-
     // allocate memory with out export memory info extension
-    auto[deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto[deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(image->getMemoryRequirements(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     if (!deviceMemory)
     {
@@ -252,8 +248,8 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageData& colorImage)
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     // load shaders
-    vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
-    vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
+    auto vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
+    auto fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
         std::cout<<"Could not create shaders."<<std::endl;
@@ -482,7 +478,7 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
+    auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
         std::cout<<"Could not create windows."<<std::endl;

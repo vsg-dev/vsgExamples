@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     }
 
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-    vsg::ref_ptr<vsg::ShaderStage> computeStage = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
+    auto computeStage = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
     if (!computeStage)
     {
         std::cout<<"Error : No shader loaded."<<std::endl;
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
     // get the physical device that suports the required compute queue
-    vsg::ref_ptr<vsg::Instance> instance = vsg::Instance::create(instanceExtensions, validatedNames);
+    auto instance = vsg::Instance::create(instanceExtensions, validatedNames);
     auto [physicalDevice, computeQueueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_COMPUTE_BIT);
     if (!physicalDevice || computeQueueFamily<0)
     {
@@ -52,28 +52,24 @@ int main(int argc, char** argv)
 
     // create the logical device with specified queue, layers and extensions
     vsg::QueueSettings queueSettings{vsg::QueueSetting{computeQueueFamily, {1.0}}};
-    vsg::ref_ptr<vsg::Device> device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions);
-    if (!device)
-    {
-        std::cout<<"Unable to create required vkDevice."<<std::endl;
-        return 1;
-    }
+    auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions);
 
     // get the queue for the compute commands
     auto computeQueue = device->getQueue(computeQueueFamily);
 
     // allocate output storage buffer
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
-    vsg::ref_ptr<vsg::Buffer> buffer =  vsg::Buffer::create(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
-    vsg::ref_ptr<vsg::DeviceMemory>  bufferMemory = vsg::DeviceMemory::create(device, buffer,  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto buffer = vsg::Buffer::create(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+    auto bufferMemory = vsg::DeviceMemory::create(device, buffer->getMemoryRequirements(),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     buffer->bind(bufferMemory, 0);
 
     // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
     vsg::DescriptorSetLayoutBindings descriptorBindings { {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} };
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-    vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) };
 
+    vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) };
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
+
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
 
@@ -90,12 +86,12 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     vsg::CompileTraversal compileTraversal(device);
     compileTraversal.context.commandPool = vsg::CommandPool::create(device, computeQueueFamily);
-    compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, {{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
+    compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, vsg::DescriptorPoolSizes{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
 
     commandGraph->accept(compileTraversal);
 
     // setup fence
-    vsg::ref_ptr<vsg::Fence> fence = vsg::Fence::create(device);
+    auto fence = vsg::Fence::create(device);
 
     auto startTime =std::chrono::steady_clock::now();
 

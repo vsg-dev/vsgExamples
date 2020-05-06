@@ -279,12 +279,12 @@ int main(int argc, char** argv)
         int screenNum = screensToUse[i];
 
         // create a local copy of the main WindowTraits
-        vsg::ref_ptr<vsg::WindowTraits> local_windowTraits = vsg::WindowTraits::create(*windowTraits);
+        auto local_windowTraits = vsg::WindowTraits::create(*windowTraits);
 
         // set the screenNum relative to the base one
         local_windowTraits->screenNum = screenNum;
 
-        vsg::ref_ptr<vsg::Window> window(vsg::Window::create(local_windowTraits));
+        auto window = vsg::Window::create(local_windowTraits);
         if (!window)
         {
             std::cout<<"Could not create window."<<std::endl;

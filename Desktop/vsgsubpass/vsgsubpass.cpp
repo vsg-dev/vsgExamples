@@ -103,8 +103,8 @@ int main(int argc, char** argv)
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     // load shaders
-    vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
-    vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
+    auto vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
+    auto fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
         std::cout<<"Could not create shaders."<<std::endl;
@@ -285,16 +285,10 @@ int main(int argc, char** argv)
 
     // TODO: will need to replace the local setup of Device.
     vsg::assignSurfaceExtension(traits, "VK_KHR_xcb_surface");
-    traits->device = vsg::Device::create(traits);
+    traits->device = vsg::createDevice(traits);
 
     traits->renderPass = createRenderPass(traits->device);
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));// width, height, debugLayer, apiDumpLayer));
-    if (!window)
-    {
-        std::cout<<"Could not create windows."<<std::endl;
-        return 1;
-    }
-
+    auto window = vsg::Window::create(traits);// width, height, debugLayer, apiDumpLayer));
     viewer->addWindow(window);
 
     // camera related details
