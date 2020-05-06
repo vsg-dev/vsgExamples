@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     vsg::CompileTraversal compileTraversal(device);
     compileTraversal.context.commandPool = vsg::CommandPool::create(device, computeQueueFamily);
-    compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, {{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
+    compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, vsg::DescriptorPoolSizes{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
 
     commandGraph->accept(compileTraversal);
 
