@@ -283,13 +283,11 @@ int main(int argc, char** argv)
     traits->debugLayer = debugLayer;
     traits->apiDumpLayer = apiDumpLayer;
 
-    // TODO: will need to replace the local setup of Device.
-    vsg::assignSurfaceExtension(traits, "VK_KHR_xcb_surface");
-    traits->device = vsg::createDevice(traits);
-
-    traits->renderPass = createRenderPass(traits->device);
     auto window = vsg::Window::create(traits);// width, height, debugLayer, apiDumpLayer));
     viewer->addWindow(window);
+
+    // provide a custom RenderPass
+    window->setRenderPass(createRenderPass(window->getOrCreateDevice()));
 
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
