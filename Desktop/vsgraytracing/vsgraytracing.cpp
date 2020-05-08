@@ -48,7 +48,6 @@ int main(int argc, char** argv)
     if (arguments.read("-m")) filename = "models/raytracing_scene.vsgt";
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
@@ -84,14 +83,6 @@ int main(int argc, char** argv)
     }
 
     viewer->addWindow(window);
-
-
-    // for convenience create a compile context for creating our storage image
-    auto queueFamily = window->physicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
-    vsg::CompileTraversal compile(window->device());
-    compile.context.renderPass = window->renderPass();
-    compile.context.commandPool = vsg::CommandPool::create(window->device(), queueFamily);
-    compile.context.graphicsQueue = window->device()->getQueue(queueFamily);
 
 
     // load shaders
@@ -132,6 +123,8 @@ int main(int argc, char** argv)
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
+    auto device = window->getOrCreateDevice();
+
     vsg::ref_ptr<vsg::TopLevelAccelerationStructure> tlas;
     if (filename.empty())
     {
@@ -155,11 +148,11 @@ int main(int argc, char** argv)
         accelGeometry->indices = indices;
 
         // create bottom level acceleration structure using accel geom
-        auto blas = vsg::BottomLevelAccelerationStructure::create(window->device());
+        auto blas = vsg::BottomLevelAccelerationStructure::create(device);
         blas->geometries.push_back(accelGeometry);
 
         // create top level acceleration structure
-        tlas = vsg::TopLevelAccelerationStructure::create(window->device());
+        tlas = vsg::TopLevelAccelerationStructure::create(device);
 
         // add geometry instance to top level acceleration structure that uses the bottom level structure
         auto geominstance = vsg::GeometryInstance::create();
@@ -188,7 +181,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        vsg::BuildAccelerationStructureTraversal buildAccelStruct(window->device());
+        vsg::BuildAccelerationStructureTraversal buildAccelStruct(device);
         loaded_scene->accept(buildAccelStruct);
         tlas = buildAccelStruct.tlas;
 
@@ -213,6 +206,9 @@ int main(int argc, char** argv)
     storageImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     storageImageCreateInfo.queueFamilyIndexCount = 0;
     storageImageCreateInfo.pNext = nullptr;
+
+    // for convenience create a compile context for creating our storage image
+    vsg::CompileTraversal compile(window);
 
     vsg::ImageData storageImageData = createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL);
 

@@ -491,18 +491,14 @@ int main(int argc, char** argv)
     // storage image
     // XXX How to put ImageData in the scene graph and compile it
     // during a compile traversal? Should RenderGraph support compile()?
-    auto queueFamily = window->physicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
-    vsg::CompileTraversal compile(window->device());
-    compile.context.renderPass = window->renderPass();
-    compile.context.commandPool = vsg::CommandPool::create(window->device(), queueFamily);
-    compile.context.graphicsQueue = window->device()->getQueue(queueFamily);
+    vsg::CompileTraversal compile(window);
 
     // Framebuffer with attachments
     VkExtent2D targetExtent{512, 512};
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
     vsg::ImageData colorImage, depthImage;
     vsg::ref_ptr<vsg::RenderGraph> sceneRenderGraph
-        = createOffscreenRendergraph(window->device(), compile.context, offscreenCamera, targetExtent,
+        = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, offscreenCamera, targetExtent,
                                      colorImage, depthImage);
     sceneRenderGraph->addChild(vsg_scene);
     // Planes geometry that uses the rendered scene as a texture map

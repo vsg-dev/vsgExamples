@@ -3,11 +3,11 @@
 
 void Builder::setup(vsg::ref_ptr<vsg::Window> window, vsg::ViewportState* viewport, uint32_t maxNumTextures)
 {
-    auto queueFamily = window->physicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
-    _compile = new vsg::CompileTraversal(window->device());
-    _compile->context.renderPass = window->renderPass();
-    _compile->context.commandPool = vsg::CommandPool::create(window->device(), queueFamily);
-    _compile->context.graphicsQueue = window->device()->getQueue(queueFamily);
+    auto device = window->getOrCreateDevice();
+    auto queueFamily = device->getPhysicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
+
+    _compile = vsg::CompileTraversal::create(window);
+
     _compile->context.viewport = viewport;
 
     // for now just allocated enough room for s
@@ -16,7 +16,7 @@ void Builder::setup(vsg::ref_ptr<vsg::Window> window, vsg::ViewportState* viewpo
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxNumTextures}
     };
 
-    _compile->context.descriptorPool = vsg::DescriptorPool::create(window->device(), maxSets, descriptorPoolSizes);
+    _compile->context.descriptorPool = vsg::DescriptorPool::create(device, maxSets, descriptorPoolSizes);
 
     _allocatedTextureCount = 0;
     _maxNumTextures = maxNumTextures;
