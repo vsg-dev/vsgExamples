@@ -4,7 +4,6 @@
 void Builder::setup(vsg::ref_ptr<vsg::Window> window, vsg::ViewportState* viewport, uint32_t maxNumTextures)
 {
     auto device = window->getOrCreateDevice();
-    auto queueFamily = device->getPhysicalDevice()->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
 
     _compile = vsg::CompileTraversal::create(window);
 

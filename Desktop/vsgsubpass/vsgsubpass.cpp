@@ -16,8 +16,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
 {
-    std::cout<<"myWindowcreate shaders."<<std::endl;
-
     VkFormat imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
