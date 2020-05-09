@@ -194,13 +194,12 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     fbufCreateInfo.height = extent.height;
     fbufCreateInfo.layers = 1;
     auto fbuf = vsg::Framebuffer::create(device, fbufCreateInfo);
-
     auto rendergraph = vsg::RenderGraph::create();
+    auto frameAssembly = vsg::SingleFrameAssembly::create(fbuf, renderPass, extent);
     rendergraph->camera = camera;
     rendergraph->renderArea.offset = VkOffset2D{0, 0};
     rendergraph->renderArea.extent = extent;
-    rendergraph->renderPass = renderPass;
-    rendergraph->framebuffer = fbuf;
+    rendergraph->frameAssembly = frameAssembly;
     VkClearValue clearValues[2];
     clearValues[0].color = { { 0.4f, 0.2f, 0.2f, 1.0f } };
     clearValues[1].depthStencil = { 1.0f, 0 };
