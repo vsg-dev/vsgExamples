@@ -5,9 +5,12 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
-    auto debugLayer = arguments.read({"--debug","-d"});
-    auto apiDumpLayer = arguments.read({"--api","-a"});
-    auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
+
+    auto windowTraits = vsg::WindowTraits::create();
+    windowTraits->debugLayer = arguments.read({"--debug","-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
@@ -146,7 +149,7 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(width, height, debugLayer, apiDumpLayer));
+    auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
         std::cout<<"Could not create windows."<<std::endl;
@@ -156,8 +159,8 @@ int main(int argc, char** argv)
     viewer->addWindow(window);
 
     // camera related details
-    auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
-    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
+    auto viewport = vsg::ViewportState::create(window->extent2D());
+    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), 0.1, 10.0);
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 

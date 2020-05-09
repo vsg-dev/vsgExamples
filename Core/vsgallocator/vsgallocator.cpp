@@ -1,13 +1,4 @@
-#include <vsg/core/ref_ptr.h>
-#include <vsg/core/observer_ptr.h>
-#include <vsg/core/Object.h>
-#include <vsg/core/Auxiliary.h>
-#include <vsg/core/Value.h>
-#include <vsg/core/Allocator.h>
-
-#include <vsg/nodes/Group.h>
-#include <vsg/nodes/QuadGroup.h>
-#include <vsg/nodes/StateGroup.h>
+#include <vsg/all.h>
 
 #include <iostream>
 #include <vector>

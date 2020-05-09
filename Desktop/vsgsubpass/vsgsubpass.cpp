@@ -16,8 +16,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
 {
-    std::cout<<"myWindowcreate shaders."<<std::endl;
-
     VkFormat imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
@@ -103,8 +101,8 @@ int main(int argc, char** argv)
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     // load shaders
-    vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
-    vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
+    auto vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
+    auto fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
         std::cout<<"Could not create shaders."<<std::endl;
@@ -282,16 +280,12 @@ int main(int argc, char** argv)
     //traits->shareWindow = shareWindow;
     traits->debugLayer = debugLayer;
     traits->apiDumpLayer = apiDumpLayer;
-    traits->device = vsg::Device::create(traits);
-    traits->renderPass = createRenderPass(traits->device);
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(traits));// width, height, debugLayer, apiDumpLayer));
-    if (!window)
-    {
-        std::cout<<"Could not create windows."<<std::endl;
-        return 1;
-    }
 
+    auto window = vsg::Window::create(traits);// width, height, debugLayer, apiDumpLayer));
     viewer->addWindow(window);
+
+    // provide a custom RenderPass
+    window->setRenderPass(createRenderPass(window->getOrCreateDevice()));
 
     // camera related details
     auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
