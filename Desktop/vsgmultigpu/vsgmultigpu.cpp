@@ -180,7 +180,10 @@ int main(int argc, char** argv)
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     auto powerWall = arguments.read({"--power-wall","--pw"});
     auto sharedScene = arguments.read({"--shared"});
-    auto multiThreaded = arguments.read({"--mt"});
+
+    vsg::Viewer::ThreadingModel threadingModel = vsg::Viewer::SINGLE_THREADED;
+    if (arguments.read("--mt")) threadingModel = vsg::Viewer::THREAD_PER_RAS_TASK;
+    if (arguments.read("--mt-cg")) threadingModel = vsg::Viewer::THREAD_PER_COMMAND_GRAPH;
 
     std::vector<int> screensToUse;
     int screen = -1;
@@ -310,9 +313,9 @@ int main(int argc, char** argv)
         viewer->addWindow(window);
     }
 
-    if (multiThreaded)
+    if (threadingModel != vsg::Viewer::SINGLE_THREADED)
     {
-        viewer->setupThreading();
+        viewer->setupThreading(threadingModel);
 
         if (affinity)
         {
@@ -321,12 +324,12 @@ int main(int argc, char** argv)
             // set affinity of main thread
             if (cpu_itr != affinity.cpus.end()) vsg::setAffinity(*cpu_itr++);
 
-            for(auto& task : viewer->recordAndSubmitTasks)
+            for(auto& thread : viewer->threads)
             {
-                if (cpu_itr == affinity.cpus.end()) break;
-
-                // set thread of task
-                vsg::setAffinity(task->thread, *cpu_itr++);
+                if (thread.joinable())
+                {
+                    vsg::setAffinity(thread, *cpu_itr++);
+                }
             }
         }
 
