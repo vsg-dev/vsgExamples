@@ -72,9 +72,7 @@ vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& i
 {
     vsg::Device* device = context.device;
 
-    vsg::ref_ptr<vsg::Image> image;
-
-    image = vsg::Image::create(device, imageCreateInfo);
+    auto image = vsg::Image::create(device, imageCreateInfo);
 
     // allocate memory with out export memory info extension
     auto[deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(image->getMemoryRequirements(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -87,7 +85,7 @@ vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& i
 
     image->bind(deviceMemory, offset);
 
-    vsg::ref_ptr<vsg::ImageView> imageview = vsg::ImageView::create(device, image, VK_IMAGE_VIEW_TYPE_2D, imageCreateInfo.format, aspectFlags);
+    auto imageview = vsg::ImageView::create(device, image, VK_IMAGE_VIEW_TYPE_2D, imageCreateInfo.format, aspectFlags);
 
     return vsg::ImageData(nullptr, imageview, targetImageLayout);
 }
@@ -119,7 +117,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     colorImage = createImageView(context, colorImageCreateInfo,
                                  VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     // Sampler for accessing attachment as a texture
-    vsg::ref_ptr<vsg::Sampler> colorSampler = vsg::Sampler::create();
+    auto colorSampler = vsg::Sampler::create();
     VkSamplerCreateInfo& samplerInfo = colorSampler->info();
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.pNext = nullptr;
@@ -212,8 +210,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-    vsg::ref_ptr<vsg::RenderPass> renderPass = vsg::RenderPass::create(device, attachments,
-                                                                       subpassDescription, dependencies);
+    auto renderPass = vsg::RenderPass::create(device, attachments, subpassDescription, dependencies);
 
     // Framebuffer
     VkImageView imageViewAttachments[2];
@@ -228,8 +225,9 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     fbufCreateInfo.width = extent.width;
     fbufCreateInfo.height = extent.height;
     fbufCreateInfo.layers = 1;
-    vsg::ref_ptr<vsg::Framebuffer> fbuf = vsg::Framebuffer::create(device, fbufCreateInfo);
-    vsg::ref_ptr<vsg::RenderGraph> rendergraph = vsg::RenderGraph::create();
+    auto fbuf = vsg::Framebuffer::create(device, fbufCreateInfo);
+
+    auto rendergraph = vsg::RenderGraph::create();
     rendergraph->camera = camera;
     rendergraph->renderArea.offset = VkOffset2D{0, 0};
     rendergraph->renderArea.extent = extent;
@@ -383,11 +381,8 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0),
                                       centre, vsg::dvec3(0.0, 0.0, 1.0));
 
-    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-
-    perspective = vsg::Perspective::create(30.0,
-                                           static_cast<double>(extent.width) / static_cast<double>(extent.height),
-                                           nearFarRatio*radius, radius * 4.5);
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height),
+                                                nearFarRatio*radius, radius * 4.5);
 
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
@@ -464,12 +459,12 @@ int main(int argc, char** argv)
     }
 
     // A hack for getting the example teapot into the correct orientation
-    vsg::ref_ptr<vsg::MatrixTransform> zUp
-        = vsg::MatrixTransform::create(vsg::dmat4(1.0, 0.0, 0.0, 0.0,
-                                                  0.0, 0.0, -1.0, 0.0,
-                                                  0.0, 1.0, 0.0, 0.0,
-                                                  0.0, 0.0, 0.0, 1.0));
+    auto zUp = vsg::MatrixTransform::create(vsg::dmat4(1.0, 0.0, 0.0, 0.0,
+                                                       0.0, 0.0, -1.0, 0.0,
+                                                       0.0, 1.0, 0.0, 0.0,
+                                                       0.0, 0.0, 0.0, 1.0));
     zUp->addChild(vsg_scene);
+
     // Transform for rotation animation
     auto transform = vsg::MatrixTransform::create();
     transform->addChild(zUp);
@@ -497,13 +492,13 @@ int main(int argc, char** argv)
     VkExtent2D targetExtent{512, 512};
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
     vsg::ImageData colorImage, depthImage;
-    vsg::ref_ptr<vsg::RenderGraph> sceneRenderGraph
-        = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, offscreenCamera, targetExtent,
-                                     colorImage, depthImage);
+    auto sceneRenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, offscreenCamera, targetExtent,
+                                                       colorImage, depthImage);
     sceneRenderGraph->addChild(vsg_scene);
     // Planes geometry that uses the rendered scene as a texture map
     vsg::ref_ptr<vsg::Node> planes = createPlanes(colorImage);
     auto camera = createCameraForScene(planes, window->extent2D());
+
     // set up database pager
     vsg::ref_ptr<vsg::DatabasePager> databasePager;
     if (useDatabasePager)
