@@ -313,6 +313,8 @@ int main(int argc, char** argv)
         viewer->addWindow(window);
     }
 
+    std::cout<<"viewer->setupThreading("<<threadingModel<<")"<<std::endl;
+
     if (threadingModel != vsg::Viewer::SINGLE_THREADED)
     {
         viewer->setupThreading(threadingModel);
@@ -322,12 +324,17 @@ int main(int argc, char** argv)
             auto cpu_itr = affinity.cpus.begin();
 
             // set affinity of main thread
-            if (cpu_itr != affinity.cpus.end()) vsg::setAffinity(*cpu_itr++);
+            if (cpu_itr != affinity.cpus.end())
+            {
+                std::cout<<"vsg::setAffinity() "<<*cpu_itr<<std::endl;
+                vsg::setAffinity(*cpu_itr++);
+            }
 
             for(auto& thread : viewer->threads)
             {
-                if (thread.joinable())
+                if (thread.joinable() && cpu_itr != affinity.cpus.end())
                 {
+                    std::cout<<"vsg::setAffinity("<<thread.get_id()<<") "<<*cpu_itr<<std::endl;
                     vsg::setAffinity(thread, *cpu_itr++);
                 }
             }
