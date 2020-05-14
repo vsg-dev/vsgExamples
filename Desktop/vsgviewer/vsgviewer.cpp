@@ -8,8 +8,62 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 #include "AnimationPath.h"
+
+class InstallMultisamplingVisitor : public vsg::Inherit<vsg::Visitor, InstallMultisamplingVisitor>
+{
+public:
+    InstallMultisamplingVisitor(VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT)
+    {
+        _msState = vsg::MultisampleState::create();
+        _msState->rasterizationSamples = samples;
+    }
+
+    void apply(vsg::Object& object) override
+    {
+        object.traverse(*this);
+    }
+
+    void apply(vsg::StateGroup& object) override
+    {
+        object.traverse(*this);
+        for (auto& command : object.getStateCommands())
+        {
+            command->accept(*this);
+        }
+    }
+
+    void apply(vsg::BindGraphicsPipeline& object) override
+    {
+        object.traverse(*this);
+        if (object.getPipeline())
+        {
+            object.getPipeline()->accept(*this);
+        }
+    }
+
+    void apply(vsg::GraphicsPipeline& pipeline) override
+    {
+        pipeline.traverse(*this);
+        auto& pipeStates = pipeline.getPipelineStates();
+        // XXX If there is already a multisampling state, its values
+        // should be copied over to the new sample count.
+        auto msItr = std::find_if(pipeStates.begin(), pipeStates.end(),
+                                  [](const auto& pState)
+                                  {
+                                      return dynamic_cast<vsg::MultisampleState*>(pState.get());
+                                  });
+        if (msItr != pipeStates.end())
+        {
+            pipeStates.erase(msItr);
+        }
+        pipeStates.push_back(_msState);
+    }
+protected:
+    vsg::ref_ptr<vsg::MultisampleState> _msState;
+};
 
 int main(int argc, char** argv)
 {
@@ -40,6 +94,9 @@ int main(int argc, char** argv)
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
+    // Interpret the samples directly as a VkSampleCountFlagBits
+    // enum. Kind of gross, but it works.
+    arguments.read("--samples", windowTraits->samples);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -146,6 +203,11 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
+    if (window->getFramebufferSamples() > VK_SAMPLE_COUNT_1_BIT)
+    {
+        InstallMultisamplingVisitor msVisitor(window->getFramebufferSamples());
+        vsg_scene->accept(msVisitor);
+    }
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
