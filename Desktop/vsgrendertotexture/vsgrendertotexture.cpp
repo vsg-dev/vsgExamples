@@ -296,7 +296,11 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageData& colorImage)
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
     // create texture image and associated DescriptorSets and binding
+#if 0
     auto texture = SimpleDescriptorImage::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+#else
+    auto texture = vsg::DescriptorImageView::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+#endif
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, descriptorSet);
@@ -408,6 +412,11 @@ int main(int argc, char** argv)
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    bool separateCommandGraph = arguments.read("-s");
+
+    vsg::Viewer::ThreadingModel threadingModel = vsg::Viewer::SINGLE_THREADED;
+    if (arguments.read("--mt")) threadingModel = vsg::Viewer::THREAD_PER_RAS_TASK;
+    if (arguments.read("--mt-cg")) threadingModel = vsg::Viewer::THREAD_PER_COMMAND_GRAPH;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -512,12 +521,30 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, planes);
-    // Place the offscreen RenderGraph before the plane geometry RenderGraph
-    commandGraph->getChildren().emplace(commandGraph->getChildren().begin(), sceneRenderGraph);
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+    if (separateCommandGraph)
+    {
+        std::cout<<"Using separateCommandGraph"<<std::endl;
+        auto renderToTexture_commandGraph = vsg::CommandGraph::create(window);
+        renderToTexture_commandGraph->addChild(sceneRenderGraph);
+
+        auto main_commandGraph = vsg::createCommandGraphForView(window, camera, planes);
+
+        viewer->assignRecordAndSubmitTaskAndPresentation({renderToTexture_commandGraph, main_commandGraph}, databasePager);
+    }
+    else
+    {
+        auto commandGraph = vsg::createCommandGraphForView(window, camera, planes);
+        // Place the offscreen RenderGraph before the plane geometry RenderGraph
+        commandGraph->getChildren().emplace(commandGraph->getChildren().begin(), sceneRenderGraph);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+    }
 
     viewer->compile();
+
+    if (threadingModel != vsg::Viewer::SINGLE_THREADED)
+    {
+        viewer->setupThreading(threadingModel);
+    }
 
     // rendering main loop
     while (viewer->advanceToNextFrame())
