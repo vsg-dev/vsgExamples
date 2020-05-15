@@ -313,8 +313,6 @@ int main(int argc, char** argv)
         viewer->addWindow(window);
     }
 
-    std::cout<<"viewer->setupThreading("<<threadingModel<<")"<<std::endl;
-
     if (threadingModel != vsg::Viewer::SINGLE_THREADED)
     {
         viewer->setupThreading(threadingModel);
@@ -339,14 +337,11 @@ int main(int argc, char** argv)
                 }
             }
         }
-
     }
     else if (affinity)
     {
         vsg::setAffinity(affinity);
     }
-
-
 
     viewer->compile();
 
