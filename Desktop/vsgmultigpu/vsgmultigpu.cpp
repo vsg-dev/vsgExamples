@@ -181,9 +181,7 @@ int main(int argc, char** argv)
     auto powerWall = arguments.read({"--power-wall","--pw"});
     auto sharedScene = arguments.read({"--shared"});
 
-    vsg::Viewer::ThreadingModel threadingModel = vsg::Viewer::SINGLE_THREADED;
-    if (arguments.read("--mt")) threadingModel = vsg::Viewer::THREAD_PER_RAS_TASK;
-    if (arguments.read("--mt-cg")) threadingModel = vsg::Viewer::THREAD_PER_COMMAND_GRAPH;
+    bool multiThreading = arguments.read("--mt");
 
     std::vector<int> screensToUse;
     int screen = -1;
@@ -313,9 +311,9 @@ int main(int argc, char** argv)
         viewer->addWindow(window);
     }
 
-    if (threadingModel != vsg::Viewer::SINGLE_THREADED)
+    if (multiThreading)
     {
-        viewer->setupThreading(threadingModel);
+        viewer->setupThreading();
 
         if (affinity)
         {

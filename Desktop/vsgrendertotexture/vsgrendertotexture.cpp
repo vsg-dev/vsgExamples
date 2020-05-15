@@ -413,10 +413,7 @@ int main(int argc, char** argv)
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
     bool separateCommandGraph = arguments.read("-s");
-
-    vsg::Viewer::ThreadingModel threadingModel = vsg::Viewer::SINGLE_THREADED;
-    if (arguments.read("--mt")) threadingModel = vsg::Viewer::THREAD_PER_RAS_TASK;
-    if (arguments.read("--mt-cg")) threadingModel = vsg::Viewer::THREAD_PER_COMMAND_GRAPH;
+    bool multiThreading = arguments.read("--mt");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -541,9 +538,9 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
-    if (threadingModel != vsg::Viewer::SINGLE_THREADED)
+    if (multiThreading)
     {
-        viewer->setupThreading(threadingModel);
+        viewer->setupThreading();
     }
 
     // rendering main loop
