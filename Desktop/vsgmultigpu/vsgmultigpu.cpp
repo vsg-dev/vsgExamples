@@ -181,6 +181,8 @@ int main(int argc, char** argv)
     auto powerWall = arguments.read({"--power-wall","--pw"});
     auto sharedScene = arguments.read({"--shared"});
 
+    bool multiThreading = arguments.read("--mt");
+
     std::vector<int> screensToUse;
     int screen = -1;
     while(arguments.read({"--screen", "-s"}, screen))
@@ -193,11 +195,6 @@ int main(int argc, char** argv)
     while(arguments.read({"--cpu", "-c"}, cpu))
     {
         affinity.cpus.insert(cpu);
-    }
-
-    if (affinity)
-    {
-        vsg::setAffinity(affinity);
     }
 
     // if now screens are assign use screen 0
@@ -312,6 +309,36 @@ int main(int argc, char** argv)
 
         viewer->assignRecordAndSubmitTaskAndPresentation({vsg::createCommandGraphForView(window, camera, local_scene)}, databasePager);
         viewer->addWindow(window);
+    }
+
+    if (multiThreading)
+    {
+        viewer->setupThreading();
+
+        if (affinity)
+        {
+            auto cpu_itr = affinity.cpus.begin();
+
+            // set affinity of main thread
+            if (cpu_itr != affinity.cpus.end())
+            {
+                std::cout<<"vsg::setAffinity() "<<*cpu_itr<<std::endl;
+                vsg::setAffinity(*cpu_itr++);
+            }
+
+            for(auto& thread : viewer->threads)
+            {
+                if (thread.joinable() && cpu_itr != affinity.cpus.end())
+                {
+                    std::cout<<"vsg::setAffinity("<<thread.get_id()<<") "<<*cpu_itr<<std::endl;
+                    vsg::setAffinity(thread, *cpu_itr++);
+                }
+            }
+        }
+    }
+    else if (affinity)
+    {
+        vsg::setAffinity(affinity);
     }
 
     viewer->compile();
