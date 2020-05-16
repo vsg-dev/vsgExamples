@@ -19,38 +19,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <chrono>
 #include <thread>
 
-// Descriptor class for an image whose contents don't need to be
-// initialized by a transfer to memory.
-
-class SimpleDescriptorImage : public vsg::Inherit<vsg::Descriptor, SimpleDescriptorImage>
-{
-public:
-    // Sampler in _imageData manages per-context state, so this class
-    // doesn't need to.
-    vsg::ImageData _imageData;
-    
-    SimpleDescriptorImage(const vsg::ImageData& imageData, uint32_t dstBinding, uint32_t dstArrayElement,
-                          VkDescriptorType descriptorType)
-        : Inherit(dstBinding, dstArrayElement, descriptorType), _imageData(imageData)
-    {}
-
-    void compile(vsg::Context& context) override
-    {
-        _imageData._sampler->compile(context);
-    }
-
-    void assignTo(vsg::Context& context, VkWriteDescriptorSet& wds) const override
-    {
-        Inherit::assignTo(context, wds);
-        auto pImageInfo = context.scratchMemory->allocate<VkDescriptorImageInfo>(1);
-        wds.descriptorCount = 1;
-        wds.pImageInfo = pImageInfo;
-        pImageInfo->imageLayout = _imageData._imageLayout;
-        pImageInfo->imageView = *_imageData._imageView;
-        pImageInfo->sampler = _imageData._sampler->vk(context.deviceID);
-    }
-};
-
 // Render a scene to an image, then use the image as a texture on the
 // faces of quads. This is based on Sascha William's offscreenrender
 // example. 
@@ -65,30 +33,6 @@ public:
 // In order for this to work correctly in Vulkan, the subpass
 // dependencies of the offscreen RenderPass / RenderGraph need to be
 // set up so that the second RenderGraph can sample the output.
-
-// Create an image. This should probably be in VSG.
-vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& imageCreateInfo,
-                               VkImageAspectFlags aspectFlags, VkImageLayout targetImageLayout)
-{
-    vsg::Device* device = context.device;
-
-    auto image = vsg::Image::create(device, imageCreateInfo);
-
-    // allocate memory with out export memory info extension
-    auto[deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(image->getMemoryRequirements(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if (!deviceMemory)
-    {
-        std::cout << "Warning: Failed allocate memory to reserve slot" << std::endl;
-        return vsg::ImageData();
-    }
-
-    image->bind(deviceMemory, offset);
-
-    auto imageview = vsg::ImageView::create(device, image, VK_IMAGE_VIEW_TYPE_2D, imageCreateInfo.format, aspectFlags);
-
-    return vsg::ImageData(nullptr, imageview, targetImageLayout);
-}
 
 // Rendergraph for rendering to image
 
@@ -114,9 +58,11 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     colorImageCreateInfo.queueFamilyIndexCount = 0;
     colorImageCreateInfo.pNext = nullptr;
-    colorImage = createImageView(context, colorImageCreateInfo,
-                                 VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    auto colorImageView = createImageView(context, colorImageCreateInfo,
+                                          VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     // Sampler for accessing attachment as a texture
+    colorImage._imageView = colorImageView;
+    colorImage._imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     auto colorSampler = vsg::Sampler::create();
     VkSamplerCreateInfo& samplerInfo = colorSampler->info();
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -151,9 +97,11 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     depthImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     depthImageCreateInfo.pNext = nullptr;
     // XXX Does layout matter?
-    depthImage = createImageView(context, depthImageCreateInfo,
-                                 VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-                                 VK_IMAGE_LAYOUT_GENERAL);
+    depthImage._sampler = nullptr;
+    depthImage._imageView = createImageView(context, depthImageCreateInfo,
+                                            VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+                                            VK_IMAGE_LAYOUT_GENERAL);
+    depthImage._imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions
     vsg::RenderPass::Attachments attachments(2);
@@ -226,17 +174,15 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     fbufCreateInfo.height = extent.height;
     fbufCreateInfo.layers = 1;
     auto fbuf = vsg::Framebuffer::create(device, fbufCreateInfo);
-
     auto rendergraph = vsg::RenderGraph::create();
+    vsg::FrameAssembly::ClearValues clearValues(2);
+    clearValues[0].color = { { 0.4f, 0.2f, 0.2f, 1.0f } };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+    auto frameAssembly = vsg::SingleFrameAssembly::create(fbuf, renderPass, clearValues, extent);
     rendergraph->camera = camera;
     rendergraph->renderArea.offset = VkOffset2D{0, 0};
     rendergraph->renderArea.extent = extent;
-    rendergraph->renderPass = renderPass;
-    rendergraph->framebuffer = fbuf;
-    VkClearValue clearValues[2];
-    clearValues[0].color = { { 0.4f, 0.2f, 0.2f, 1.0f } };
-    clearValues[1].depthStencil = { 1.0f, 0 };
-    rendergraph->clearValues.insert(rendergraph->clearValues.begin(), &clearValues[0], &clearValues[2]);
+    rendergraph->frameAssembly = frameAssembly;
     return rendergraph;
 }
 
@@ -296,11 +242,7 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageData& colorImage)
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
     // create texture image and associated DescriptorSets and binding
-#if 0
-    auto texture = SimpleDescriptorImage::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-#else
     auto texture = vsg::DescriptorImageView::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-#endif
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, descriptorSet);
@@ -385,8 +327,9 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0),
                                       centre, vsg::dvec3(0.0, 0.0, 1.0));
 
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height),
-                                                nearFarRatio*radius, radius * 4.5);
+    auto perspective = vsg::Perspective::create(30.0,
+                                           static_cast<double>(extent.width) / static_cast<double>(extent.height),
+                                           radius / 4.5, radius / (4.5 * nearFarRatio));
 
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
