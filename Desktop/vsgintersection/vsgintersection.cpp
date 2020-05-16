@@ -211,7 +211,7 @@ int main(int argc, char** argv)
         lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
     }
 
-    double nearFarRatio = 0.0001;
+    double nearFarRatio = 0.001;
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (ellipsoidModel)
     {
