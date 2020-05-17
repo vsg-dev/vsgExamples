@@ -6,8 +6,7 @@ void Builder::setup(vsg::ref_ptr<vsg::Window> window, vsg::ViewportState* viewpo
     auto device = window->getOrCreateDevice();
 
     _compile = vsg::CompileTraversal::create(window);
-
-    _compile->context.viewport = viewport;
+    _compile->context.graphicsPipelineStates.emplace_back(viewport);
 
     // for now just allocated enough room for s
     uint32_t maxSets = maxNumTextures;
