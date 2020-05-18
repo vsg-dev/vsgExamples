@@ -59,17 +59,16 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
 
     VkSubpassDescription depth_subpass = {};
     depth_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    depth_subpass.colorAttachmentCount = 0;
-    depth_subpass.pColorAttachments = nullptr;
+    depth_subpass.colorAttachmentCount = 1;
+    depth_subpass.pColorAttachments = &colorAttachmentRef;
     depth_subpass.pDepthStencilAttachment = &depthAttachmentRef;
     subpasses.push_back(depth_subpass);
-
 
     VkSubpassDescription classic_subpass = {};
     classic_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     classic_subpass.colorAttachmentCount = 1;
     classic_subpass.pColorAttachments = &colorAttachmentRef;
-    classic_subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    classic_subpass.pDepthStencilAttachment = nullptr;
     subpasses.push_back(classic_subpass);
 
     // VkSubpassDependency
@@ -77,22 +76,14 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
     vsg::RenderPass::Dependencies dependencies;
 
     VkSubpassDependency classic_dependency = {};
-#if 0
-    classic_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    classic_dependency.dstSubpass = 0;
-    classic_dependency.srcStageMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-    classic_dependency.srcAccessMask = 0;
-    classic_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    classic_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
-#else
-    classic_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    classic_dependency.dstSubpass = 0;
+    classic_dependency.srcSubpass = 0;
+    classic_dependency.dstSubpass = 1;
     classic_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     classic_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    classic_dependency.srcAccessMask = 0;
-    classic_dependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+    classic_dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+    classic_dependency.dstAccessMask = 0;
     classic_dependency.dependencyFlags = 0;
-#endif
+
     dependencies.push_back(classic_dependency);
 
     return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
