@@ -59,8 +59,8 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
 
     VkSubpassDescription depth_subpass = {};
     depth_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    depth_subpass.colorAttachmentCount = 1;
-    depth_subpass.pColorAttachments = &colorAttachmentRef;
+    depth_subpass.colorAttachmentCount = 0;
+    depth_subpass.pColorAttachments = nullptr;
     depth_subpass.pDepthStencilAttachment = &depthAttachmentRef;
     subpasses.push_back(depth_subpass);
 
@@ -69,7 +69,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
     classic_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     classic_subpass.colorAttachmentCount = 1;
     classic_subpass.pColorAttachments = &colorAttachmentRef;
-    classic_subpass.pDepthStencilAttachment = nullptr;
+    classic_subpass.pDepthStencilAttachment = &depthAttachmentRef;
     subpasses.push_back(classic_subpass);
 
     // VkSubpassDependency
@@ -86,11 +86,11 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
     classic_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
 #else
     classic_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    classic_dependency.dstSubpass = VK_SUBPASS_EXTERNAL;
-    classic_dependency.srcStageMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-    classic_dependency.srcAccessMask = 0;
+    classic_dependency.dstSubpass = 0;
+    classic_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     classic_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    classic_dependency.dstAccessMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    classic_dependency.srcAccessMask = 0;
+    classic_dependency.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
     classic_dependency.dependencyFlags = 0;
 #endif
     dependencies.push_back(classic_dependency);
@@ -231,9 +231,6 @@ int main(int argc, char** argv)
 
     // set up model transformation node
     auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
-
-    // add transform to root of the scene graph
-    scenegraph->addChild(transform);
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
