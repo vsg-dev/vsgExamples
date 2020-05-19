@@ -337,7 +337,7 @@ int main(int argc, char** argv)
 
     scenegraph->addChild(scenegraph1);
 
-    scenegraph->addChild(vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS));
+    scenegraph->addChild(vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_INLINE));
 
     scenegraph->addChild(scenegraph2);
 
