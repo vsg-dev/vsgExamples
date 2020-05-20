@@ -58,8 +58,8 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     colorImageCreateInfo.queueFamilyIndexCount = 0;
     colorImageCreateInfo.pNext = nullptr;
-    auto colorImageView = createImageView(context, colorImageCreateInfo,
-                                          VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    auto colorImageView = createImageView(context, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
+
     // Sampler for accessing attachment as a texture
     colorImage._imageView = colorImageView;
     colorImage._imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -98,9 +98,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     depthImageCreateInfo.pNext = nullptr;
     // XXX Does layout matter?
     depthImage._sampler = nullptr;
-    depthImage._imageView = createImageView(context, depthImageCreateInfo,
-                                            VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
-                                            VK_IMAGE_LAYOUT_GENERAL);
+    depthImage._imageView = createImageView(context, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
     depthImage._imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions

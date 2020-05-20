@@ -213,7 +213,7 @@ int main(int argc, char** argv)
     vsg::CompileTraversal compile(window);
 
     vsg::ImageData storageImageData{nullptr,
-                                    createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL),
+                                    createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT),
                                     VK_IMAGE_LAYOUT_GENERAL};
 
 
