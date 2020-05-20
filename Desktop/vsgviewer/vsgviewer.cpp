@@ -8,6 +8,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 #include "AnimationPath.h"
 
@@ -40,6 +41,9 @@ int main(int argc, char** argv)
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
+    // Interpret the samples directly as a VkSampleCountFlagBits
+    // enum. Kind of gross, but it works.
+    arguments.read("--samples", windowTraits->samples);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -145,7 +149,6 @@ int main(int argc, char** argv)
     }
 
     viewer->addWindow(window);
-
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;

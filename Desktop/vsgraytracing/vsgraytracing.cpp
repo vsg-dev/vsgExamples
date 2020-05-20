@@ -1,6 +1,7 @@
 #include <vsg/all.h>
 #include <iostream>
 
+#if 0
 vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& imageCreateInfo, VkImageAspectFlags aspectFlags, VkImageLayout targetImageLayout)
 {
     vsg::Device* device = context.device;
@@ -24,6 +25,7 @@ vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& i
 
     return vsg::ImageData(nullptr, imageview, targetImageLayout);
 }
+#endif
 
 struct RayTracingUniform
 {
@@ -210,7 +212,9 @@ int main(int argc, char** argv)
     // for convenience create a compile context for creating our storage image
     vsg::CompileTraversal compile(window);
 
-    vsg::ImageData storageImageData = createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_GENERAL);
+    vsg::ImageData storageImageData{nullptr,
+                                    createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT),
+                                    VK_IMAGE_LAYOUT_GENERAL};
 
 
     auto raytracingUniformValues = new RayTracingUniformValue();
