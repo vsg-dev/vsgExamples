@@ -172,15 +172,17 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     fbufCreateInfo.height = extent.height;
     fbufCreateInfo.layers = 1;
     auto fbuf = vsg::Framebuffer::create(device, fbufCreateInfo);
+
     auto rendergraph = vsg::RenderGraph::create();
-    vsg::FrameAssembly::ClearValues clearValues(2);
-    clearValues[0].color = { { 0.4f, 0.2f, 0.2f, 1.0f } };
-    clearValues[1].depthStencil = { 1.0f, 0 };
-    auto frameAssembly = vsg::SingleFrameAssembly::create(fbuf, renderPass, clearValues, extent);
     rendergraph->camera = camera;
     rendergraph->renderArea.offset = VkOffset2D{0, 0};
     rendergraph->renderArea.extent = extent;
-    rendergraph->frameAssembly = frameAssembly;
+    rendergraph->renderPass = renderPass;
+    rendergraph->framebuffer = fbuf;
+    VkClearValue clearValues[2];
+    clearValues[0].color = { { 0.4f, 0.2f, 0.2f, 1.0f } };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+    rendergraph->clearValues.insert(rendergraph->clearValues.begin(), &clearValues[0], &clearValues[2]);
     return rendergraph;
 }
 
@@ -325,9 +327,8 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0),
                                       centre, vsg::dvec3(0.0, 0.0, 1.0));
 
-    auto perspective = vsg::Perspective::create(30.0,
-                                           static_cast<double>(extent.width) / static_cast<double>(extent.height),
-                                           radius / 4.5, radius / (4.5 * nearFarRatio));
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height),
+                                                nearFarRatio*radius, radius * 4.5);
 
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
