@@ -440,12 +440,13 @@ int main(int argc, char** argv)
     VkExtent2D targetExtent{512, 512};
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
     vsg::ImageData colorImage, depthImage;
-    auto sceneRenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, offscreenCamera, targetExtent,
-                                                       colorImage, depthImage);
-    sceneRenderGraph->addChild(vsg_scene);
+    auto rtt_RenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, offscreenCamera, targetExtent, colorImage, depthImage);
+    rtt_RenderGraph->addChild(vsg_scene);
+
     // Planes geometry that uses the rendered scene as a texture map
     vsg::ref_ptr<vsg::Node> planes = createPlanes(colorImage);
     auto camera = createCameraForScene(planes, window->extent2D());
+    auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, planes);
 
     // set up database pager
     vsg::ref_ptr<vsg::DatabasePager> databasePager;
@@ -460,21 +461,24 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
+
     if (separateCommandGraph)
     {
-        std::cout<<"Using separateCommandGraph"<<std::endl;
-        auto renderToTexture_commandGraph = vsg::CommandGraph::create(window);
-        renderToTexture_commandGraph->addChild(sceneRenderGraph);
+        auto rtt_commandGraph = vsg::CommandGraph::create(window);
+        rtt_commandGraph->addChild(rtt_RenderGraph);
 
-        auto main_commandGraph = vsg::createCommandGraphForView(window, camera, planes);
+        auto main_commandGraph = vsg::CommandGraph::create(window);
+        main_commandGraph->addChild(main_RenderGraph);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({renderToTexture_commandGraph, main_commandGraph}, databasePager);
+        viewer->assignRecordAndSubmitTaskAndPresentation({rtt_commandGraph, main_commandGraph}, databasePager);
     }
     else
     {
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, planes);
         // Place the offscreen RenderGraph before the plane geometry RenderGraph
-        commandGraph->getChildren().emplace(commandGraph->getChildren().begin(), sceneRenderGraph);
+        auto commandGraph = vsg::CommandGraph::create(window);
+        commandGraph->addChild(rtt_RenderGraph);
+        commandGraph->addChild(main_RenderGraph);
+
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
     }
 
