@@ -23,6 +23,7 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
+    bool multiThreading = arguments.read("--mt");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
@@ -214,6 +215,8 @@ int main(int argc, char** argv)
     auto commandGraphwin2 = vsg::createCommandGraphForView(window2, camera, scenegraphwin2, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({seccommandGraph1, commandGraphwin1, commandGraphwin2});
+
+    if (multiThreading) viewer->setupThreading();
 
     // compile the Vulkan objects
     viewer->compile();
