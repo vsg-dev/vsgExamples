@@ -201,11 +201,11 @@ int main(int argc, char** argv)
 
     auto scenegraphwin1 = vsg::Group::create();
     auto pass1= vsg::ExecuteCommands::create();
-    pass1->addCommandGraph(seccommandGraph1 );
+    pass1->connect(seccommandGraph1 );
 
     auto scenegraphwin2 = vsg::Group::create();
     auto pass2= vsg::ExecuteCommands::create();
-    pass2->addCommandGraph(seccommandGraph1 );
+    pass2->connect(seccommandGraph1 );
 
     scenegraphwin1->addChild(pass1);
     scenegraphwin2->addChild(pass2);
