@@ -261,7 +261,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout<<"Using Seperate Windows"<<std::endl;
+        std::cout<<"Using Windows with separate full CommandGraph."<<std::endl;
         auto commandGraphwin1 = vsg::createCommandGraphForView(window1, camera, vsg_scene);
         auto commandGraphwin2 = vsg::createCommandGraphForView(window2, camera, vsg_scene);
 
