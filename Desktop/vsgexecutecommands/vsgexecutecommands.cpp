@@ -240,7 +240,7 @@ int main(int argc, char** argv)
 
     if (useExecuteCommands)
     {
-        std::cout<<"Using Secodary CommandGraph and ExecuteCommands"<<std::endl;
+        std::cout<<"Using Secondary CommandGraph and ExecuteCommands"<<std::endl;
         auto seccommandGraph1 = vsg::createSecondaryCommandGraphForView(window1, camera, vsg_scene, 0);
 
         auto scenegraphwin1 = vsg::Group::create();
