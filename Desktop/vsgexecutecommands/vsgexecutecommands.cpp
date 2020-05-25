@@ -176,6 +176,7 @@ int main(int argc, char** argv)
     bool multiThreading = arguments.read("--mt");
     bool useDatabasePager = arguments.read("--pager");
     bool useExecuteCommands = !arguments.read("--no-ec"); // by default use ExecuteCommands, but allow it to be disabled using --no-ec
+    auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -296,7 +297,7 @@ int main(int argc, char** argv)
     }
 
     // main frame loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
