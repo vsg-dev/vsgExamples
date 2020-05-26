@@ -39,6 +39,8 @@ int main(int argc, char** argv)
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
+    bool orthoProjection = false;
+    if (arguments.read({"--ortho"})) orthoProjection = true;
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
     // Interpret the samples directly as a VkSampleCountFlagBits
@@ -160,17 +162,35 @@ int main(int argc, char** argv)
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
-    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    vsg::ref_ptr<vsg::ProjectionMatrix> projection;
+    double aspectRatio = static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height);
     if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
     {
-        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+        projection = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, aspectRatio, nearFarRatio, horizonMountainHeight);
+    }
+    else if (orthoProjection)
+    {
+ǧs        double halfDim = radius * 1.1;
+        double halfHeight, halfWidth;
+        if (window->extent2D().width > window->extent2D().height)
+        {
+            halfHeight = halfDim;
+            halfWidth = halfDim * aspectRatio;
+        }
+        else
+        {
+            halfWidth = halfDim;
+            halfHeight = halfDim / aspectRatio;
+        }
+        projection = vsg::Orthographic::create(-halfWidth, halfWidth, halfHeight, -halfHeight,
+                                               nearFarRatio*radius, radius * 4.5);
     }
     else
     {
-        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
+        projection = vsg::Perspective::create(30.0, aspectRatio, nearFarRatio*radius, radius * 4.5);
     }
 
-    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+    auto camera = vsg::Camera::create(projection, lookAt, vsg::ViewportState::create(window->extent2D()));
 
     // set up database pager
     vsg::ref_ptr<vsg::DatabasePager> databasePager;
