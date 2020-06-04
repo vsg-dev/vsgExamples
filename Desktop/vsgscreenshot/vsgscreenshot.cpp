@@ -17,6 +17,8 @@ class ScreenshotHandler : public vsg::Inherit<vsg::Visitor, ScreenshotHandler>
 {
 public:
 
+    uint32_t sourceSwapChainIndex = 0;
+
     ScreenshotHandler()
     {
     }
@@ -70,12 +72,21 @@ public:
 
     void screenshot(vsg::ref_ptr<vsg::Window> window)
     {
+        printInfo(window);
+
         auto width = window->extent2D().width;
         auto height = window->extent2D().height;
 
         auto device = window->getDevice();
         auto physicalDevice = window->getPhysicalDevice();
         auto swapchain = window->getSwapchain();
+
+        std::cout<<"sourceSwapChainIndex = "<<sourceSwapChainIndex<<std::endl;
+
+        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(sourceSwapChainIndex)->getImage());
+
+        std::cout<<"sourceImage = "<<sourceImage<<std::endl;
+
 
     // 1)
         VkFormatProperties srcFormatProperties;
@@ -113,13 +124,121 @@ public:
 
     // 3) create command buffer and submit to graphcis queue
 
-        // 3.a) tranisistion destinationImage to transfer destination initialLayout
-        // 3.b) transition swapChainImage from present to transfer source initialLayout
-        // 3.c.1) if blit using VkCmdBliImage
-        // 3.c.2) else use VkVmdCopyImage
-        // 3.d) tranisition destinate image from transder destination layout to general laytout to enable mapping to image DeviceMemory
-        // 3.e) transition sawp chain image back to present
+        auto commands = vsg::Commands::create();
 
+        // 3.a) tranisistion destinationImage to transfer destination initialLayout
+        auto transitionDestinationImageToDestinationLayoutBarrier = vsg::ImageMemoryBarrier::create(
+            0, // srcAccessMask
+            VK_ACCESS_TRANSFER_WRITE_BIT, // dstAccessMask
+            VK_IMAGE_LAYOUT_UNDEFINED, // oldLayout
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, // newLayout
+            VK_QUEUE_FAMILY_IGNORED, // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED, // dstQueueFamilyIndex
+            destinationImage, // image
+            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // subresourceRange
+        );
+
+        auto cmd_transitionDestinationImageToDestinationLayoutBarrier = vsg::PipelineBarrier::create(
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
+            0, // dependencyFlags
+            transitionDestinationImageToDestinationLayoutBarrier // barrier
+        );
+
+        commands->addChild(cmd_transitionDestinationImageToDestinationLayoutBarrier);
+
+
+        // 3.b) transition swapChainImage from present to transfer source initialLayout
+        auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
+            VK_ACCESS_MEMORY_READ_BIT, // srcAccessMask
+            VK_ACCESS_TRANSFER_READ_BIT, // dstAccessMask
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, // oldLayout
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, // newLayout
+            VK_QUEUE_FAMILY_IGNORED, // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED, // dstQueueFamilyIndex
+            sourceImage, // image
+            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // subresourceRange
+        );
+
+        auto cmd_transitionSourceImageToTransferSourceLayoutBarrier = vsg::PipelineBarrier::create(
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
+            0, // dependencyFlags
+            transitionDestinationImageToDestinationLayoutBarrier // barrier
+        );
+
+        commands->addChild(cmd_transitionSourceImageToTransferSourceLayoutBarrier);
+
+        if (supportsBlit)
+        {
+            // 3.c.1) if blit using VkCmdBliImage
+
+            // TODO : Need to create vsG::BlitImage command class
+        }
+        else
+        {
+            // 3.c.2) else use VkVmdCopyImage
+
+            VkImageCopy region{};
+            region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.srcSubresource.layerCount = 1;
+            region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.dstSubresource.layerCount = 1;
+            region.extent.width = width;
+            region.extent.height = height;
+            region.extent.depth = 1;
+
+            auto copyImage = vsg::CopyImage::create();
+            copyImage->srcImage = sourceImage;
+            copyImage->srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            copyImage->dstImage = destinationImage;
+            copyImage->dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            copyImage->regions.push_back(region);
+
+            commands->addChild(copyImage);
+        }
+
+        // 3.d) tranisition destinate image from transder destination layout to general laytout to enable mapping to image DeviceMemory
+        auto transitionDestinationImageToMemoryReadBarrier = vsg::ImageMemoryBarrier::create(
+            VK_ACCESS_TRANSFER_WRITE_BIT, // srcAccessMask
+            VK_ACCESS_MEMORY_READ_BIT, // dstAccessMask
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, // oldLayout
+            VK_IMAGE_LAYOUT_GENERAL, // newLayout
+            VK_QUEUE_FAMILY_IGNORED, // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED, // dstQueueFamilyIndex
+            destinationImage, // image
+            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // subresourceRange
+        );
+
+        auto cmd_transitionDestinationImageToMemoryReadBarrier = vsg::PipelineBarrier::create(
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
+            0, // dependencyFlags
+            transitionDestinationImageToMemoryReadBarrier // barrier
+        );
+
+        commands->addChild(cmd_transitionDestinationImageToMemoryReadBarrier);
+
+        // 3.e) transition sawp chain image back to present
+        auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
+            VK_ACCESS_TRANSFER_READ_BIT, // srcAccessMask
+            VK_ACCESS_MEMORY_READ_BIT, // dstAccessMask
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, // oldLayout
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, // newLayout
+            VK_QUEUE_FAMILY_IGNORED, // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED, // dstQueueFamilyIndex
+            sourceImage, // image
+            VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // subresourceRange
+        );
+
+        auto cmd_transitionSourceImageBackToPresentBarrier = vsg::PipelineBarrier::create(
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
+            0, // dependencyFlags
+            transitionSourceImageBackToPresentBarrier // barrier
+        );
+
+        commands->addChild(cmd_transitionSourceImageToTransferSourceLayoutBarrier);
 
     // 4) map image and copy
 
@@ -128,7 +247,7 @@ public:
         vkGetImageSubresourceLayout(*device, *destinationImage, &subResource, &subResourceLayout);
 
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
-        auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
+        auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, width, height); // deviceMemory, offset, flags and dimensions
         imageData->setFormat(VK_FORMAT_R8G8B8A8_UNORM);
 
         vsg::Path outputFilename("screenshot.vsgt");
@@ -227,12 +346,16 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
     // Adde ScreenshotHandler to respond to keyboard and mosue events.
-    viewer->addEventHandler(ScreenshotHandler::create());
+    auto screenshotHandler = ScreenshotHandler::create();
+    viewer->addEventHandler(screenshotHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
 
     viewer->compile();
+
+
+    screenshotHandler->sourceSwapChainIndex = 0;
 
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
@@ -244,7 +367,10 @@ int main(int argc, char** argv)
 
         viewer->recordAndSubmit();
 
+        screenshotHandler->sourceSwapChainIndex = window->nextImageIndex();
+
         viewer->present();
+
     }
 
     // clean up done automatically thanks to ref_ptr<>
