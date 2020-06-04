@@ -247,11 +247,7 @@ public:
 
         vsg::submitCommandsToQueue(device, commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer)
         {
-            vsg::RecordTraversal recordTraversal(&commandBuffer);
-            for(auto& command : commands->getChildren())
-            {
-                command->dispatch(commandBuffer);
-            }
+            commands->dispatch(commandBuffer);
         });
 
 
