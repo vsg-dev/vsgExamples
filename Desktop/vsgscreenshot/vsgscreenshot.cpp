@@ -52,91 +52,16 @@ int main(int argc, char** argv)
     options->readerWriter = vsgXchange::ReaderWriter_all::create();
 #endif
 
-    using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
-    VsgNodes vsgNodes;
+    vsg::Path filename;
+    if (argc>1) filename = arguments[1];
 
-    vsg::Path path;
-
-    // read any vsg files
-    for (int i=1; i<argc; ++i)
-    {
-        vsg::Path filename = arguments[i];
-
-        path = vsg::filePath(filename);
-
-        auto loaded_scene = vsg::read_cast<vsg::Node>(filename, options);
-        if (loaded_scene)
-        {
-            vsgNodes.push_back(loaded_scene);
-            arguments.remove(i, 1);
-            --i;
-        }
-    }
-
-    // assign the vsg_scene from the loaded nodes
-    vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (vsgNodes.size()>1)
-    {
-        auto vsg_group = vsg::Group::create();
-        for(auto& subgraphs : vsgNodes)
-        {
-            vsg_group->addChild(subgraphs);
-        }
-
-        vsg_scene = vsg_group;
-    }
-    else if (vsgNodes.size()==1)
-    {
-        vsg_scene = vsgNodes.front();
-    }
-
-
+    auto vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
     if (!vsg_scene)
     {
         std::cout<<"Please specify a 3d model file on the command line."<<std::endl;
         return 1;
     }
 
-
-    // if required pre load specific number of PagedLOD levels.
-    if (loadLevels > 0)
-    {
-        struct LoadTiles : public vsg::Visitor
-        {
-            LoadTiles(int in_loadLevels, const vsg::Path& in_path) :
-                loadLevels(in_loadLevels),
-                path(in_path) {}
-
-            int loadLevels = 0;
-            int level = 0;
-            unsigned int numTiles = 0;
-            vsg::Path path;
-
-            void apply(vsg::Node& node) override
-            {
-                node.traverse(*this);
-            }
-
-            void apply(vsg::PagedLOD& plod) override
-            {
-                if (level < loadLevels && !plod.filename.empty())
-                {
-                    plod.getChild(0).node = vsg::read_cast<vsg::Node>(plod.filename) ;
-
-                    ++numTiles;
-
-                    ++level;
-                        plod.traverse(*this);
-                    --level;
-                }
-
-            }
-        } loadTiles(loadLevels, path);
-
-        vsg_scene->accept(loadTiles);
-
-        std::cout<<"No. of tiles loaed "<<loadTiles.numTiles<<std::endl;
-    }
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
