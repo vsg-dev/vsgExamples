@@ -38,7 +38,7 @@ public:
         }
     }
 
-    void screenshot(vsg::ref_ptr<vsg::Window> window)
+    void printInfo(vsg::ref_ptr<vsg::Window> window)
     {
         auto device = window->getDevice();
         auto physicalDevice = window->getPhysicalDevice();
@@ -64,6 +64,75 @@ public:
 
         std::cout<<"    nextImageIndex() = "<<window->nextImageIndex()<<std::endl;
 
+        std::cout<<"    surfaceFormat() = "<<window->surfaceFormat().format<<", "<<window->surfaceFormat().colorSpace<<std::endl;
+        std::cout<<"    depthFormat() = "<<window->depthFormat()<<std::endl;
+    }
+
+    void screenshot(vsg::ref_ptr<vsg::Window> window)
+    {
+        auto width = window->extent2D().width;
+        auto height = window->extent2D().height;
+
+        auto device = window->getDevice();
+        auto physicalDevice = window->getPhysicalDevice();
+        auto swapchain = window->getSwapchain();
+
+    // 1)
+        VkFormatProperties srcFormatProperties;
+        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), swapchain->getImageFormat(), &srcFormatProperties);
+
+        VkFormatProperties destFormatProperties;
+        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), VK_FORMAT_R8G8B8A8_UNORM, &destFormatProperties);
+
+        bool supportsBlit = ((srcFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) != 0) &&
+                            ((destFormatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) != 0);
+
+        std::cout<<"supportsBlit = "<<supportsBlit<<std::endl;
+
+    // 2)  crete imageview
+
+        VkImageCreateInfo imageCreateInfo = {};
+        imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageCreateInfo.extent.width = width;
+        imageCreateInfo.extent.height = height;
+        imageCreateInfo.extent.depth = 1;
+        imageCreateInfo.arrayLayers = 1;
+        imageCreateInfo.mipLevels = 1;
+        imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
+        imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        auto destinationImage = vsg::Image::create(device, imageCreateInfo);
+
+        auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        destinationImage->bind(deviceMemory, 0);
+
+        std::cout<<"destinationImage = "<<destinationImage<<std::endl;
+
+    // 3) create command buffer and submit to graphcis queue
+
+        // 3.a) tranisistion destinationImage to transfer destination initialLayout
+        // 3.b) transition swapChainImage from present to transfer source initialLayout
+        // 3.c.1) if blit using VkCmdBliImage
+        // 3.c.2) else use VkVmdCopyImage
+        // 3.d) tranisition destinate image from transder destination layout to general laytout to enable mapping to image DeviceMemory
+        // 3.e) transition sawp chain image back to present
+
+
+    // 4) map image and copy
+
+        VkImageSubresource subResource { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+        VkSubresourceLayout subResourceLayout;
+        vkGetImageSubresourceLayout(*device, *destinationImage, &subResource, &subResourceLayout);
+
+        // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
+        auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
+        imageData->setFormat(VK_FORMAT_R8G8B8A8_UNORM);
+
+        vsg::Path outputFilename("screenshot.vsgt");
+        vsg::write(imageData, outputFilename);
     }
 };
 
