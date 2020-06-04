@@ -240,7 +240,23 @@ public:
 
         commands->addChild(cmd_transitionSourceImageToTransferSourceLayoutBarrier);
 
+        auto fence = vsg::Fence::create(device);
+        auto queueFamilyIndex = physicalDevice->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
+        auto commandPool = vsg::CommandPool::create(device, queueFamilyIndex);
+        auto queue = device->getQueue(queueFamilyIndex);
+
+        vsg::submitCommandsToQueue(device, commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer)
+        {
+            vsg::RecordTraversal recordTraversal(&commandBuffer);
+            for(auto& command : commands->getChildren())
+            {
+                command->dispatch(commandBuffer);
+            }
+        });
+
+
     // 4) map image and copy
+
 
         VkImageSubresource subResource { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
         VkSubresourceLayout subResourceLayout;
