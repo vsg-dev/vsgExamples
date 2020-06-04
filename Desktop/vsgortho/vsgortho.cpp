@@ -73,7 +73,8 @@ int main(int argc, char** argv)
         halfWidth = halfDim;
         halfHeight = halfDim / aspectRatio;
     }
-    auto projection = vsg::Orthographic::create(-halfWidth, halfWidth, -halfHeight, halfHeight,
+    auto projection = vsg::Orthographic::create(-halfWidth, halfWidth,
+                                                -halfHeight, halfHeight,
                                                 nearFarRatio*radius, radius * 4.5);
 
     auto camera = vsg::Camera::create(projection, lookAt, vsg::ViewportState::create(window->extent2D()));
