@@ -12,12 +12,68 @@
 
 #include "../vsgviewer/AnimationPath.h"
 
+
+class ScreenshotHandler : public vsg::Inherit<vsg::Visitor, ScreenshotHandler>
+{
+public:
+
+    ScreenshotHandler()
+    {
+    }
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (keyPress.keyBase=='s')
+        {
+            screenshot(keyPress.window);
+        }
+    }
+
+    void apply(vsg::ButtonPressEvent& buttonPressEvent) override
+    {
+        if (buttonPressEvent.button==1)
+        {
+            vsg::ref_ptr<vsg::Window> window = buttonPressEvent.window;
+            std::cout<<"Need to read pixel at " <<buttonPressEvent.x<<", "<<buttonPressEvent.y<<", "<<window<<std::endl;
+        }
+    }
+
+    void screenshot(vsg::ref_ptr<vsg::Window> window)
+    {
+        auto device = window->getDevice();
+        auto physicalDevice = window->getPhysicalDevice();
+        auto swapchain = window->getSwapchain();
+        std::cout<<"\nNeed to take screenshot " <<window<<std::endl;
+        std::cout<<"    device = " <<device<<std::endl;
+        std::cout<<"    physicalDevice = " <<physicalDevice<<std::endl;
+        std::cout<<"    swapchain = " <<swapchain<<std::endl;
+        std::cout<<"        swapchain->getImageFormat() = " <<swapchain->getImageFormat()<<std::endl;
+        std::cout<<"        swapchain->getExtent() = " <<swapchain->getExtent().width<<", "<<swapchain->getExtent().height<<std::endl;
+
+        for(auto& imageView : swapchain->getImageViews())
+        {
+            std::cout<<"        imageview = " <<imageView<<std::endl;
+        }
+
+        std::cout<<"    numFrames() = "<<window->numFrames()<<std::endl;
+        for(size_t i = 0; i<window->numFrames(); ++i)
+        {
+            std::cout<<"        imageview["<<i<<"] = " <<window->imageView(i)<<std::endl;
+            std::cout<<"        framebuffer["<<i<<"] = " <<window->framebuffer(i)<<std::endl;
+        }
+
+        std::cout<<"    nextImageIndex() = "<<window->nextImageIndex()<<std::endl;
+
+    }
+};
+
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgviewer";
+    windowTraits->windowTitle = "vsgscreenshot";
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -27,22 +83,13 @@ int main(int argc, char** argv)
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
     if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    if (arguments.read({"-t", "--test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->fullscreen = true; }
-    if (arguments.read({"--st", "--small-test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->width = 192, windowTraits->height = 108; windowTraits->decoration = false; }
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
-    if (arguments.read("--or")) windowTraits->overrideRedirect = true;
     auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value(std::string(),"-p");
-    auto loadLevels = arguments.value(0, "--load-levels");
-    auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
-    // Interpret the samples directly as a VkSampleCountFlagBits
-    // enum. Kind of gross, but it works.
     arguments.read("--samples", windowTraits->samples);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -88,7 +135,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
     {
-        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, 0.0);
     }
     else
     {
@@ -108,24 +155,10 @@ int main(int argc, char** argv)
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    if (pathFilename.empty())
-    {
-        viewer->addEventHandler(vsg::Trackball::create(camera));
-    }
-    else
-    {
-        std::ifstream in(pathFilename);
-        if (!in)
-        {
-            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
-            return 1;
-        }
+    viewer->addEventHandler(vsg::Trackball::create(camera));
 
-        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
-        animationPath->read(in);
-
-        viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
-    }
+    // Adde ScreenshotHandler to respond to keyboard and mosue events.
+    viewer->addEventHandler(ScreenshotHandler::create());
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
