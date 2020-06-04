@@ -78,9 +78,9 @@ int main(int argc, char** argv)
     auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
 
     // assign to a CommandGraph that binds the Pipeline and DescritorSets and calls Dispatch
-    auto commandGraph = vsg::StateGroup::create();
-    commandGraph->add(bindPipeline);
-    commandGraph->add(bindDescriptorSet);
+    auto commandGraph = vsg::Commands::create();
+    commandGraph->addChild(bindPipeline);
+    commandGraph->addChild(bindDescriptorSet);
     commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width)/float(workgroupSize))), uint32_t(ceil(float(height)/float(workgroupSize))), 1));
 
     // compile the Vulkan objects
@@ -98,8 +98,7 @@ int main(int argc, char** argv)
     // submit commands
     vsg::submitCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer)
     {
-        vsg::RecordTraversal recordTraversal(&commandBuffer);
-        commandGraph->accept(recordTraversal);
+        commandGraph->dispatch(commandBuffer);
     });
 
     auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();
