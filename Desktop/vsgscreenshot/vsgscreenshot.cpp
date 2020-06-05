@@ -85,26 +85,33 @@ public:
 
         vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(sourceSwapChainIndex)->getImage());
 
-        std::cout<<"sourceImage = "<<sourceImage<<std::endl;
-
+        VkFormat sourceImageFormat = swapchain->getImageFormat();
+        VkFormat targetImageFormat = sourceImageFormat;
 
     // 1)
         VkFormatProperties srcFormatProperties;
         vkGetPhysicalDeviceFormatProperties(*(physicalDevice), swapchain->getImageFormat(), &srcFormatProperties);
 
         VkFormatProperties destFormatProperties;
-        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), VK_FORMAT_R8G8B8A8_UNORM, &destFormatProperties);
+        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), targetImageFormat, &destFormatProperties);
 
         bool supportsBlit = ((srcFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) != 0) &&
                             ((destFormatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) != 0);
 
+
+        if (supportsBlit)
+        {
+            // we can automatically convert the image format when blit, so take advantage of it to ensure RGBA
+            targetImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        }
+        //supportsBlit = true;
         std::cout<<"supportsBlit = "<<supportsBlit<<std::endl;
 
     // 2)  crete imageview
 
         VkImageCreateInfo imageCreateInfo = {};
         imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageCreateInfo.format = targetImageFormat;
         imageCreateInfo.extent.width = width;
         imageCreateInfo.extent.height = height;
         imageCreateInfo.extent.depth = 1;
@@ -172,8 +179,25 @@ public:
         if (supportsBlit)
         {
             // 3.c.1) if blit using VkCmdBliImage
+            VkImageBlit region{};
+            region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.srcSubresource.layerCount = 1;
+            region.srcOffsets[0] = VkOffset3D{0, 0, 0};
+            region.srcOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 0};
+            region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.dstSubresource.layerCount = 1;
+            region.dstOffsets[0] = VkOffset3D{0, 0, 0};
+            region.dstOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 0};
 
-            // TODO : Need to create vsG::BlitImage command class
+            auto blitImage = vsg::BlitImage::create();
+            blitImage->srcImage = sourceImage;
+            blitImage->srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            blitImage->dstImage = destinationImage;
+            blitImage->dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            blitImage->regions.push_back(region);
+            blitImage->filter = VK_FILTER_NEAREST;
+
+            commands->addChild(blitImage);
         }
         else
         {
@@ -253,14 +277,14 @@ public:
 
     // 4) map image and copy
 
-
         VkImageSubresource subResource { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
         VkSubresourceLayout subResourceLayout;
         vkGetImageSubresourceLayout(*device, *destinationImage, &subResource, &subResourceLayout);
 
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
         auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, width, height); // deviceMemory, offset, flags and dimensions
-        imageData->setFormat(VK_FORMAT_R8G8B8A8_UNORM);
+
+        imageData->setFormat(targetImageFormat);
 
         vsg::Path outputFilename("screenshot.vsgt");
         vsg::write(imageData, outputFilename);
