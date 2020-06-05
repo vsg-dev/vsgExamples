@@ -110,6 +110,7 @@ public:
     // 2)  crete imageview
 
         VkImageCreateInfo imageCreateInfo = {};
+        imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
         imageCreateInfo.format = targetImageFormat;
         imageCreateInfo.extent.width = width;
