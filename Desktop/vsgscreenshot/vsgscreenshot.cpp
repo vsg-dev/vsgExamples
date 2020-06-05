@@ -299,6 +299,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgscreenshot";
+    windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
