@@ -52,8 +52,8 @@ int main(int argc, char** argv)
     options->readerWriter = vsgXchange::ReaderWriter_all::create();
 #endif
 
-    using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
-    VsgNodes vsgNodes;
+
+    auto group = vsg::Group::create();
 
     vsg::Path path;
 
@@ -61,41 +61,26 @@ int main(int argc, char** argv)
     for (int i=1; i<argc; ++i)
     {
         vsg::Path filename = arguments[i];
-
         path = vsg::filePath(filename);
 
         auto loaded_scene = vsg::read_cast<vsg::Node>(filename, options);
         if (loaded_scene)
         {
-            vsgNodes.push_back(loaded_scene);
+            group->addChild(loaded_scene);
             arguments.remove(i, 1);
             --i;
         }
     }
 
-    // assign the vsg_scene from the loaded nodes
-    vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (vsgNodes.size()>1)
-    {
-        auto vsg_group = vsg::Group::create();
-        for(auto& subgraphs : vsgNodes)
-        {
-            vsg_group->addChild(subgraphs);
-        }
-
-        vsg_scene = vsg_group;
-    }
-    else if (vsgNodes.size()==1)
-    {
-        vsg_scene = vsgNodes.front();
-    }
-
-
-    if (!vsg_scene)
+    if (group->getNumChildren()==0)
     {
         std::cout<<"Please specify a 3d model file on the command line."<<std::endl;
         return 1;
     }
+
+    vsg::ref_ptr<vsg::Node> vsg_scene;
+    if (group->getChildren().size()==1) vsg_scene = group->getChild(0);
+    else vsg_scene = group;
 
 
     // if required pre load specific number of PagedLOD levels.
