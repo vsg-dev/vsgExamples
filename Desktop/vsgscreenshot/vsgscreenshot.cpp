@@ -172,7 +172,7 @@ public:
             VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
             VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
             0, // dependencyFlags
-            transitionDestinationImageToDestinationLayoutBarrier // barrier
+            transitionSourceImageToTransferSourceLayoutBarrier // barrier
         );
 
         commands->addChild(cmd_transitionSourceImageToTransferSourceLayoutBarrier);
