@@ -27,7 +27,11 @@ public:
     {
         if (keyPress.keyBase=='s')
         {
-            screenshot(keyPress.window);
+            screenshot_image(keyPress.window);
+        }
+        if (keyPress.keyBase=='d')
+        {
+            screenshot_depth(keyPress.window);
         }
     }
 
@@ -71,7 +75,7 @@ public:
         std::cout<<"sourceSwapChainIndex = "<<sourceSwapChainIndex<<std::endl;
     }
 
-    void screenshot(vsg::ref_ptr<vsg::Window> window)
+    void screenshot_image(vsg::ref_ptr<vsg::Window> window)
     {
         // printInfo(window);
 
@@ -93,10 +97,10 @@ public:
         // 1) Check to see of Blit is supported.
         //
         VkFormatProperties srcFormatProperties;
-        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), swapchain->getImageFormat(), &srcFormatProperties);
+        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), sourceImageFormat, &srcFormatProperties);
 
         VkFormatProperties destFormatProperties;
-        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), targetImageFormat, &destFormatProperties);
+        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), VK_FORMAT_R8G8B8A8_UNORM, &destFormatProperties);
 
         bool supportsBlit = ((srcFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) != 0) &&
                             ((destFormatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) != 0);
@@ -129,6 +133,7 @@ public:
         auto destinationImage = vsg::Image::create(device, imageCreateInfo);
 
         auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
         destinationImage->bind(deviceMemory, 0);
 
         //
@@ -291,6 +296,117 @@ public:
         vsg::Path outputFilename("screenshot.vsgt");
         vsg::write(imageData, outputFilename);
     }
+
+    void screenshot_depth(vsg::ref_ptr<vsg::Window> window)
+    {
+        //printInfo(window);
+
+        auto width = window->extent2D().width;
+        auto height = window->extent2D().height;
+
+        auto device = window->getDevice();
+        auto physicalDevice = window->getPhysicalDevice();
+
+        vsg::ref_ptr<vsg::Image> sourceImage(window->getDepthImage());
+
+        VkFormat sourceImageFormat = window->depthFormat();
+        VkFormat targetImageFormat = sourceImageFormat;
+
+        auto memoryRequirements = sourceImage->getMemoryRequirements();
+
+        // 1. create buffer to copy to.
+
+        vsg::ref_ptr<vsg::Buffer> destinationBuffer = vsg::Buffer::create(device, memoryRequirements.size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE);
+        vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        destinationBuffer->bind(destinationMemory, 0);
+
+        VkImageAspectFlags imageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+
+
+        // 2.a) tranition depth image for reading
+        auto commands = vsg::Commands::create();
+        auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, // srcAccessMask
+            VK_ACCESS_TRANSFER_READ_BIT, // dstAccessMask
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // oldLayout
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, // newLayout
+            VK_QUEUE_FAMILY_IGNORED, // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED, // dstQueueFamilyIndex
+            sourceImage, // image
+            VkImageSubresourceRange{ imageAspectFlags, 0, 1, 0, 1 } // subresourceRange
+        );
+
+        auto cmd_transitionSourceImageToTransferSourceLayoutBarrier = vsg::PipelineBarrier::create(
+            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStageMask
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
+            0, // dependencyFlags
+            transitionSourceImageToTransferSourceLayoutBarrier // barrier
+        );
+        commands->addChild(cmd_transitionSourceImageToTransferSourceLayoutBarrier);
+
+        // 2.b) copy image to buffer
+        {
+            VkBufferImageCopy region{};
+            region.bufferOffset;
+            region.bufferRowLength = width; // need to figure out actual row lenght from somewhere...
+            region.bufferImageHeight = height;
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            region.imageSubresource.layerCount = 1;
+            region.imageOffset = VkOffset3D{0, 0, 0};
+            region.imageExtent = VkExtent3D{width, height, 1};
+
+            auto copyImage = vsg::CopyImageToBuffer::create();
+            copyImage->srcImage = sourceImage;
+            copyImage->srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            copyImage->dstBuffer = destinationBuffer;
+            copyImage->regions.push_back(region);
+
+            commands->addChild(copyImage);
+        }
+
+
+        // 2.c) transition dpeth image back for rendering
+        auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
+            VK_ACCESS_TRANSFER_READ_BIT, // srcAccessMask
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, // dstAccessMask
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, // oldLayout
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, // newLayout
+            VK_QUEUE_FAMILY_IGNORED, // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED, // dstQueueFamilyIndex
+            sourceImage, // image
+            VkImageSubresourceRange{ imageAspectFlags, 0, 1, 0, 1 } // subresourceRange
+        );
+
+        auto cmd_transitionSourceImageBackToPresentBarrier = vsg::PipelineBarrier::create(
+            VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // dstStageMask
+            0, // dependencyFlags
+            transitionSourceImageBackToPresentBarrier // barrier
+        );
+
+        commands->addChild(cmd_transitionSourceImageBackToPresentBarrier);
+
+        auto fence = vsg::Fence::create(device);
+        auto queueFamilyIndex = physicalDevice->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
+        auto commandPool = vsg::CommandPool::create(device, queueFamilyIndex);
+        auto queue = device->getQueue(queueFamilyIndex);
+
+        vsg::submitCommandsToQueue(device, commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer)
+        {
+            commands->dispatch(commandBuffer);
+        });
+
+        // 3. map buffer and copy data.
+
+        // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
+        auto imageData = vsg::MappedData<vsg::uintArray2D>::create(destinationMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
+
+        imageData->setFormat(targetImageFormat);
+
+        vsg::Path outputFilename("depth.vsgt");
+        vsg::write(imageData, outputFilename);
+    }
+
 };
 
 
@@ -300,7 +416,10 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgscreenshot";
+
+    // enable transfer from the colour and deth buffer images
     windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    windowTraits->depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
