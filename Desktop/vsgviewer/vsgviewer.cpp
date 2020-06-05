@@ -102,12 +102,17 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> textureData)
         {1.0f, 1.0f, 1.0f}
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
+    uint8_t origin = textureData->getLayout().origin; // in Vulkan the origin is by default top left.
+    float left = (origin & 1) ? 1.0 : 0.0; // first bit of origin is for x axis
+    float right = (origin & 1) ? 0.0 : 1.0;
+    float top = (origin & 2) ? 1.0 : 0.0; // seceond bit of origin is for the y axis
+    float bottom = (origin & 2) ? 0.0 : 1.0;
     auto texcoords = vsg::vec2Array::create(
     {
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f}
+        {left, bottom},
+        {right, bottom},
+        {right, top},
+        {left, top}
     }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto indices = vsg::ushortArray::create(
