@@ -68,11 +68,12 @@ public:
 
         std::cout<<"    surfaceFormat() = "<<window->surfaceFormat().format<<", "<<window->surfaceFormat().colorSpace<<std::endl;
         std::cout<<"    depthFormat() = "<<window->depthFormat()<<std::endl;
+        std::cout<<"sourceSwapChainIndex = "<<sourceSwapChainIndex<<std::endl;
     }
 
     void screenshot(vsg::ref_ptr<vsg::Window> window)
     {
-        printInfo(window);
+        // printInfo(window);
 
         auto width = window->extent2D().width;
         auto height = window->extent2D().height;
@@ -81,14 +82,16 @@ public:
         auto physicalDevice = window->getPhysicalDevice();
         auto swapchain = window->getSwapchain();
 
-        std::cout<<"sourceSwapChainIndex = "<<sourceSwapChainIndex<<std::endl;
+
 
         vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(sourceSwapChainIndex)->getImage());
 
         VkFormat sourceImageFormat = swapchain->getImageFormat();
         VkFormat targetImageFormat = sourceImageFormat;
 
-    // 1)
+        //
+        // 1) Check to see of Blit is supported.
+        //
         VkFormatProperties srcFormatProperties;
         vkGetPhysicalDeviceFormatProperties(*(physicalDevice), swapchain->getImageFormat(), &srcFormatProperties);
 
@@ -98,17 +101,17 @@ public:
         bool supportsBlit = ((srcFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) != 0) &&
                             ((destFormatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) != 0);
 
-
         if (supportsBlit)
         {
             // we can automatically convert the image format when blit, so take advantage of it to ensure RGBA
             targetImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
         }
-        //supportsBlit = true;
-        std::cout<<"supportsBlit = "<<supportsBlit<<std::endl;
 
-    // 2)  crete imageview
+        //std::cout<<"supportsBlit = "<<supportsBlit<<std::endl;
 
+        //
+        // 2) create image to write to
+        //
         VkImageCreateInfo imageCreateInfo = {};
         imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -128,10 +131,9 @@ public:
         auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         destinationImage->bind(deviceMemory, 0);
 
-        std::cout<<"destinationImage = "<<destinationImage<<std::endl;
-
-    // 3) create command buffer and submit to graphcis queue
-
+        //
+        // 3) create command buffer and submit to graphcis queue
+        //
         auto commands = vsg::Commands::create();
 
         // 3.a) tranisistion destinationImage to transfer destination initialLayout
@@ -154,7 +156,6 @@ public:
         );
 
         commands->addChild(cmd_transitionDestinationImageToDestinationLayoutBarrier);
-
 
         // 3.b) transition swapChainImage from present to transfer source initialLayout
         auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
@@ -263,7 +264,7 @@ public:
             transitionSourceImageBackToPresentBarrier // barrier
         );
 
-        commands->addChild(cmd_transitionSourceImageToTransferSourceLayoutBarrier);
+        commands->addChild(cmd_transitionSourceImageBackToPresentBarrier);
 
         auto fence = vsg::Fence::create(device);
         auto queueFamilyIndex = physicalDevice->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
@@ -275,9 +276,9 @@ public:
             commands->dispatch(commandBuffer);
         });
 
-
-    // 4) map image and copy
-
+        //
+        // 4) map image and copy
+        //
         VkImageSubresource subResource { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
         VkSubresourceLayout subResourceLayout;
         vkGetImageSubresourceLayout(*device, *destinationImage, &subResource, &subResourceLayout);
@@ -395,9 +396,17 @@ int main(int argc, char** argv)
 
     screenshotHandler->sourceSwapChainIndex = 0;
 
+    uint32_t swapchainIndices[3] = {0, 1, 2};
+    uint32_t frame = 0;
+
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
+        // make sure the screenshot event handler uses the oldest active swapchain image for the screenshot.
+        swapchainIndices[frame % 3] = window->nextImageIndex();
+        screenshotHandler->sourceSwapChainIndex = swapchainIndices[(frame+1) % 3];
+        ++frame;
+
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
@@ -405,7 +414,6 @@ int main(int argc, char** argv)
 
         viewer->recordAndSubmit();
 
-        screenshotHandler->sourceSwapChainIndex = window->nextImageIndex();
 
         viewer->present();
 
