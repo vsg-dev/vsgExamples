@@ -332,11 +332,11 @@ void GlyphGeometry::compile(Context& context)
     _renderImplementation.emplace_back(DrawIndexed::create(4, static_cast<uint32_t>(_glyphInstances->valueCount()), 0, 0, 0));
 }
 
-void GlyphGeometry::dispatch(CommandBuffer& commandBuffer) const
+void GlyphGeometry::record(CommandBuffer& commandBuffer) const
 {
     for (auto& command : _renderImplementation)
     {
-        command->dispatch(commandBuffer);
+        command->record(commandBuffer);
     }
 }
 

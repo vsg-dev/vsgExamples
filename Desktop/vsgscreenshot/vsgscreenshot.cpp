@@ -278,7 +278,7 @@ public:
 
         vsg::submitCommandsToQueue(device, commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer)
         {
-            commands->dispatch(commandBuffer);
+            commands->record(commandBuffer);
         });
 
         //
@@ -393,7 +393,7 @@ public:
 
         vsg::submitCommandsToQueue(device, commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer)
         {
-            commands->dispatch(commandBuffer);
+            commands->record(commandBuffer);
         });
 
         // 3. map buffer and copy data.

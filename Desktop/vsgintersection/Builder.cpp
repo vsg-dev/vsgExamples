@@ -25,7 +25,7 @@ void Builder::compile(vsg::ref_ptr<vsg::Node> subgraph)
     if (_compile)
     {
         subgraph->accept(*_compile);
-        _compile->context.dispatch();
+        _compile->context.record();
         _compile->context.waitForCompletion();
     }
 }
