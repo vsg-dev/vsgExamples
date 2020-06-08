@@ -136,7 +136,7 @@ namespace vsg
         GlyphGeometry(Allocator* allocator = nullptr);
 
         void compile(Context& context) override;
-        void dispatch(CommandBuffer& commandBuffer) const override;
+        void record(CommandBuffer& commandBuffer) const override;
 
         // settings
         ref_ptr<Data> _glyphInstances;
