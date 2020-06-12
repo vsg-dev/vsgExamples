@@ -217,47 +217,6 @@ int main(int argc, char** argv)
     if (group->getChildren().size()==1) vsg_scene = group->getChild(0);
     else vsg_scene = group;
 
-
-    // if required pre load specific number of PagedLOD levels.
-    if (loadLevels > 0)
-    {
-        struct LoadTiles : public vsg::Visitor
-        {
-            LoadTiles(int in_loadLevels, const vsg::Path& in_path) :
-                loadLevels(in_loadLevels),
-                path(in_path) {}
-
-            int loadLevels = 0;
-            int level = 0;
-            unsigned int numTiles = 0;
-            vsg::Path path;
-
-            void apply(vsg::Node& node) override
-            {
-                node.traverse(*this);
-            }
-
-            void apply(vsg::PagedLOD& plod) override
-            {
-                if (level < loadLevels && !plod.filename.empty())
-                {
-                    plod.getChild(0).node = vsg::read_cast<vsg::Node>(plod.filename) ;
-
-                    ++numTiles;
-
-                    ++level;
-                        plod.traverse(*this);
-                    --level;
-                }
-
-            }
-        } loadTiles(loadLevels, path);
-
-        vsg_scene->accept(loadTiles);
-
-        std::cout<<"No. of tiles loaed "<<loadTiles.numTiles<<std::endl;
-    }
-
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -320,6 +279,19 @@ int main(int argc, char** argv)
         animationPath->read(in);
 
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
+    }
+
+    // if required pre load specific number of PagedLOD levels.
+    if (loadLevels > 0)
+    {
+        vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
+
+        auto startTime =std::chrono::steady_clock::now();
+
+        vsg_scene->accept(loadPagedLOD);
+
+        auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();
+        std::cout<<"No. of tiles loaed "<<loadPagedLOD.numTiles<<" in "<<time<<"ms."<<std::endl;
     }
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
