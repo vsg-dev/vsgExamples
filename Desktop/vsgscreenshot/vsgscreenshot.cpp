@@ -512,7 +512,6 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
-
     screenshotHandler->sourceSwapChainIndex = 0;
 
     uint32_t swapchainIndices[3] = {0, 1, 2};
