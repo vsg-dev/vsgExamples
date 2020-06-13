@@ -503,7 +503,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    // Adde ScreenshotHandler to respond to keyboard and mosue events.
+    // Add ScreenshotHandler to respond to keyboard and mouse events.
     auto screenshotHandler = ScreenshotHandler::create();
     viewer->addEventHandler(screenshotHandler);
 
