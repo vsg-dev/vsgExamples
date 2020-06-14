@@ -348,7 +348,7 @@ public:
         {
             VkBufferImageCopy region{};
             region.bufferOffset;
-            region.bufferRowLength = width; // need to figure out actual row lenght from somewhere...
+            region.bufferRowLength = width; // need to figure out actual row length from somewhere...
             region.bufferImageHeight = height;
             region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
             region.imageSubresource.layerCount = 1;
