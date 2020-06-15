@@ -153,15 +153,6 @@ public:
             VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // subresourceRange
         );
 
-        auto cmd_transitionDestinationImageToDestinationLayoutBarrier = vsg::PipelineBarrier::create(
-            VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
-            VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
-            0, // dependencyFlags
-            transitionDestinationImageToDestinationLayoutBarrier // barrier
-        );
-
-        commands->addChild(cmd_transitionDestinationImageToDestinationLayoutBarrier);
-
         // 3.b) transition swapChainImage from present to transfer source initialLayout
         auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
             VK_ACCESS_MEMORY_READ_BIT, // srcAccessMask
@@ -174,14 +165,15 @@ public:
             VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // subresourceRange
         );
 
-        auto cmd_transitionSourceImageToTransferSourceLayoutBarrier = vsg::PipelineBarrier::create(
+        auto cmd_transitionForTransferBarrier = vsg::PipelineBarrier::create(
             VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
             VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
             0, // dependencyFlags
+            transitionDestinationImageToDestinationLayoutBarrier, // barrier
             transitionSourceImageToTransferSourceLayoutBarrier // barrier
         );
 
-        commands->addChild(cmd_transitionSourceImageToTransferSourceLayoutBarrier);
+        commands->addChild(cmd_transitionForTransferBarrier);
 
         if (supportsBlit)
         {
@@ -241,15 +233,6 @@ public:
             VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // subresourceRange
         );
 
-        auto cmd_transitionDestinationImageToMemoryReadBarrier = vsg::PipelineBarrier::create(
-            VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
-            VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
-            0, // dependencyFlags
-            transitionDestinationImageToMemoryReadBarrier // barrier
-        );
-
-        commands->addChild(cmd_transitionDestinationImageToMemoryReadBarrier);
-
         // 3.e) transition sawp chain image back to present
         auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
             VK_ACCESS_TRANSFER_READ_BIT, // srcAccessMask
@@ -262,14 +245,15 @@ public:
             VkImageSubresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 } // subresourceRange
         );
 
-        auto cmd_transitionSourceImageBackToPresentBarrier = vsg::PipelineBarrier::create(
+        auto cmd_transitionFromTransferBarrier = vsg::PipelineBarrier::create(
             VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
             VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
             0, // dependencyFlags
+            transitionDestinationImageToMemoryReadBarrier, // barrier
             transitionSourceImageBackToPresentBarrier // barrier
         );
 
-        commands->addChild(cmd_transitionSourceImageBackToPresentBarrier);
+        commands->addChild(cmd_transitionFromTransferBarrier);
 
         auto fence = vsg::Fence::create(device);
         auto queueFamilyIndex = physicalDevice->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
@@ -315,7 +299,7 @@ public:
         auto memoryRequirements = sourceImage->getMemoryRequirements();
 
         // 1. create buffer to copy to.
-
+        VkDeviceSize bufferSize = memoryRequirements.size;
         vsg::ref_ptr<vsg::Buffer> destinationBuffer = vsg::Buffer::create(device, memoryRequirements.size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE);
         vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         destinationBuffer->bind(destinationMemory, 0);
@@ -336,11 +320,22 @@ public:
             VkImageSubresourceRange{ imageAspectFlags, 0, 1, 0, 1 } // subresourceRange
         );
 
+        auto transitionDestinationBufferToTransferWriteBarrier = vsg::BufferMemoryBarrier::create(
+            VK_ACCESS_MEMORY_READ_BIT, // srcAccessMask
+            VK_ACCESS_TRANSFER_WRITE_BIT, // dstAccessMask
+            VK_QUEUE_FAMILY_IGNORED, // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED, // dstQueueFamilyIndex
+            destinationBuffer, // buffer
+            0, // offset
+            bufferSize // size
+        );
+
         auto cmd_transitionSourceImageToTransferSourceLayoutBarrier = vsg::PipelineBarrier::create(
             VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStageMask
             VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
             0, // dependencyFlags
-            transitionSourceImageToTransferSourceLayoutBarrier // barrier
+            transitionSourceImageToTransferSourceLayoutBarrier, // barrier
+            transitionDestinationBufferToTransferWriteBarrier // barrier
         );
         commands->addChild(cmd_transitionSourceImageToTransferSourceLayoutBarrier);
 
@@ -377,11 +372,22 @@ public:
             VkImageSubresourceRange{ imageAspectFlags, 0, 1, 0, 1 } // subresourceRange
         );
 
+        auto transitionDestinationBufferToMemoryReadBarrier = vsg::BufferMemoryBarrier::create(
+            VK_ACCESS_TRANSFER_WRITE_BIT, // srcAccessMask
+            VK_ACCESS_MEMORY_READ_BIT, // dstAccessMask
+            VK_QUEUE_FAMILY_IGNORED, // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED, // dstQueueFamilyIndex
+            destinationBuffer, // buffer
+            0, // offset
+            bufferSize // size
+        );
+
         auto cmd_transitionSourceImageBackToPresentBarrier = vsg::PipelineBarrier::create(
             VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
             VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // dstStageMask
             0, // dependencyFlags
-            transitionSourceImageBackToPresentBarrier // barrier
+            transitionSourceImageBackToPresentBarrier, // barrier
+            transitionDestinationBufferToMemoryReadBarrier // barrier
         );
 
         commands->addChild(cmd_transitionSourceImageBackToPresentBarrier);
