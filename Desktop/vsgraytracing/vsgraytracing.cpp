@@ -125,7 +125,16 @@ int main(int argc, char** argv)
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
-    auto device = window->getOrCreateDevice();
+    vsg::ref_ptr<vsg::Device> device;
+    try
+    {
+        device = window->getOrCreateDevice();
+    }
+    catch(vsg::Exception exception)
+    {
+        std::cout<<exception.message<<" VkResult = "<<exception.result<<std::endl;
+        return 0;
+    }
 
     vsg::ref_ptr<vsg::TopLevelAccelerationStructure> tlas;
     if (filename.empty())
