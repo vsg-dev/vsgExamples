@@ -17,9 +17,13 @@ class ScreenshotHandler : public vsg::Inherit<vsg::Visitor, ScreenshotHandler>
 {
 public:
 
-    uint32_t sourceSwapChainIndex = 0;
+    bool do_image_capture = false;
+    bool do_depth_capture = false;
+    vsg::ref_ptr<vsg::Event> event;
+    bool eventDebugTest = false;
 
-    ScreenshotHandler()
+    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event) :
+        event(in_event)
     {
     }
 
@@ -27,20 +31,11 @@ public:
     {
         if (keyPress.keyBase=='s')
         {
-            screenshot_image(keyPress.window);
+            do_image_capture = true;
         }
         if (keyPress.keyBase=='d')
         {
-            screenshot_depth(keyPress.window);
-        }
-    }
-
-    void apply(vsg::ButtonPressEvent& buttonPressEvent) override
-    {
-        if (buttonPressEvent.button==1)
-        {
-            vsg::ref_ptr<vsg::Window> window = buttonPressEvent.window;
-            std::cout<<"Need to read pixel at " <<buttonPressEvent.x<<", "<<buttonPressEvent.y<<", "<<window<<std::endl;
+            do_depth_capture = true;
         }
     }
 
@@ -72,12 +67,25 @@ public:
 
         std::cout<<"    surfaceFormat() = "<<window->surfaceFormat().format<<", "<<window->surfaceFormat().colorSpace<<std::endl;
         std::cout<<"    depthFormat() = "<<window->depthFormat()<<std::endl;
-        std::cout<<"sourceSwapChainIndex = "<<sourceSwapChainIndex<<std::endl;
     }
 
     void screenshot_image(vsg::ref_ptr<vsg::Window> window)
     {
         // printInfo(window);
+
+        do_image_capture = false;
+
+        if (eventDebugTest && event && event->status()==VK_EVENT_RESET)
+        {
+            std::cout<<"event->status() == VK_EVENT_RESET"<<std::endl;
+            // manually wait for the event to be signaled
+            while(event->status()==VK_EVENT_RESET)
+            {
+                std::cout<<"w";
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            std::cout<<std::endl;
+        }
 
         auto width = window->extent2D().width;
         auto height = window->extent2D().height;
@@ -86,9 +94,7 @@ public:
         auto physicalDevice = window->getPhysicalDevice();
         auto swapchain = window->getSwapchain();
 
-
-
-        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(sourceSwapChainIndex)->getImage());
+        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(window->nextImageIndex())->getImage());
 
         VkFormat sourceImageFormat = swapchain->getImageFormat();
         VkFormat targetImageFormat = sourceImageFormat;
@@ -140,6 +146,12 @@ public:
         // 3) create command buffer and submit to graphcis queue
         //
         auto commands = vsg::Commands::create();
+
+        if (event)
+        {
+            commands->addChild(vsg::WaitEvents::create(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, event));
+            commands->addChild(vsg::ResetEvent::create(event, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT));
+        }
 
         // 3.a) tranisistion destinationImage to transfer destination initialLayout
         auto transitionDestinationImageToDestinationLayoutBarrier = vsg::ImageMemoryBarrier::create(
@@ -283,7 +295,20 @@ public:
 
     void screenshot_depth(vsg::ref_ptr<vsg::Window> window)
     {
+        do_depth_capture = false;
+
         //printInfo(window);
+        if (eventDebugTest && event && event->status()==VK_EVENT_RESET)
+        {
+            std::cout<<"event->status() == VK_EVENT_RESET"<<std::endl;
+            // manually wait for the event to be signaled
+            while(event->status()==VK_EVENT_RESET)
+            {
+                std::cout<<"w";
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            std::cout<<std::endl;
+        }
 
         auto width = window->extent2D().width;
         auto height = window->extent2D().height;
@@ -301,7 +326,7 @@ public:
         // 1. create buffer to copy to.
         VkDeviceSize bufferSize = memoryRequirements.size;
         vsg::ref_ptr<vsg::Buffer> destinationBuffer = vsg::Buffer::create(device, memoryRequirements.size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE);
-        vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
         destinationBuffer->bind(destinationMemory, 0);
 
         VkImageAspectFlags imageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
@@ -309,6 +334,13 @@ public:
 
         // 2.a) tranition depth image for reading
         auto commands = vsg::Commands::create();
+
+        if (event)
+        {
+            commands->addChild(vsg::WaitEvents::create(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, event));
+            commands->addChild(vsg::ResetEvent::create(event, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT));
+        }
+
         auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, // srcAccessMask
             VK_ACCESS_TRANSFER_READ_BIT, // dstAccessMask
@@ -405,12 +437,33 @@ public:
         // 3. map buffer and copy data.
 
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
-        auto imageData = vsg::MappedData<vsg::uintArray2D>::create(destinationMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
+        if (targetImageFormat==VK_FORMAT_D32_SFLOAT || targetImageFormat==VK_FORMAT_D32_SFLOAT_S8_UINT)
+        {
+            auto imageData = vsg::MappedData<vsg::floatArray2D>::create(destinationMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
+            imageData->setFormat(targetImageFormat);
 
-        imageData->setFormat(targetImageFormat);
+            size_t num_set_depth = 0;
+            size_t num_unset_depth = 0;
+            for(auto& value : *imageData)
+            {
+                if (value==1.0f) ++num_unset_depth;
+                else ++num_set_depth;
+            }
 
-        vsg::Path outputFilename("depth.vsgt");
-        vsg::write(imageData, outputFilename);
+            std::cout<<"num_unset_depth = "<<num_unset_depth<<std::endl;
+            std::cout<<"num_set_depth = "<<num_set_depth<<std::endl;
+
+            vsg::Path outputFilename("depth.vsgt");
+            vsg::write(imageData, outputFilename);
+        }
+        else
+        {
+            auto imageData = vsg::MappedData<vsg::uintArray2D>::create(destinationMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
+            imageData->setFormat(targetImageFormat);
+
+            vsg::Path outputFilename("depth.vsgt");
+            vsg::write(imageData, outputFilename);
+        }
     }
 
 };
@@ -437,6 +490,7 @@ int main(int argc, char** argv)
     if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    if (arguments.read("--float")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
     auto numFrames = arguments.value(-1, "-f");
     auto useDatabasePager = arguments.read("--pager");
     auto maxPageLOD = arguments.value(-1, "--max-plod");
@@ -479,7 +533,7 @@ int main(int argc, char** argv)
     vsg_scene->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
-    double nearFarRatio = 0.001;
+    double nearFarRatio = 0.1;
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -509,28 +563,22 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
+    vsg::ref_ptr<vsg::Event> event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignled state
+
     // Add ScreenshotHandler to respond to keyboard and mouse events.
-    auto screenshotHandler = ScreenshotHandler::create();
+    auto screenshotHandler = ScreenshotHandler::create(event);
     viewer->addEventHandler(screenshotHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+    if (event) commandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT));
+
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
 
     viewer->compile();
 
-    screenshotHandler->sourceSwapChainIndex = 0;
-
-    uint32_t swapchainIndices[3] = {0, 1, 2};
-    uint32_t frame = 0;
-
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
-        // make sure the screenshot event handler uses the oldest active swapchain image for the screenshot.
-        swapchainIndices[frame % 3] = window->nextImageIndex();
-        screenshotHandler->sourceSwapChainIndex = swapchainIndices[(frame+1) % 3];
-        ++frame;
-
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
@@ -538,9 +586,10 @@ int main(int argc, char** argv)
 
         viewer->recordAndSubmit();
 
+        if (screenshotHandler->do_image_capture) screenshotHandler->screenshot_image(window);
+        if (screenshotHandler->do_depth_capture) screenshotHandler->screenshot_depth(window);
 
         viewer->present();
-
     }
 
     // clean up done automatically thanks to ref_ptr<>
