@@ -336,11 +336,10 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "rendertotexture";
-
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
