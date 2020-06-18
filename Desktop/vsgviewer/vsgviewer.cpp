@@ -13,8 +13,58 @@
 #include "AnimationPath.h"
 
 
-vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> textureData)
+vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
 {
+    struct ConvertToRGBA : public vsg::Visitor
+    {
+        vsg::ref_ptr<vsg::Data> textureData;
+
+        void apply(vsg::Data& data) override
+        {
+            textureData = &data;
+        }
+
+        void apply(vsg::uintArray2D& fa) override
+        {
+            // treat as a 24bit depth buffer
+            float div = 1.0f / static_cast<float>(1<<24);
+
+            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height());
+            rgba->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+            auto dest_itr = rgba->begin();
+            for(auto& v : fa)
+            {
+                float m = static_cast<float>(v) * div;
+                (*dest_itr++).set(m, m, m, 1.0);
+            }
+            textureData = rgba;
+        }
+
+        void apply(vsg::floatArray2D& fa) override
+        {
+            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height());
+            rgba->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+            auto dest_itr = rgba->begin();
+            for(auto& v : fa)
+            {
+                (*dest_itr++).set(v, v, v, 1.0);
+            }
+            textureData = rgba;
+        }
+
+        vsg::ref_ptr<vsg::Data> convert(vsg::ref_ptr<vsg::Data> data)
+        {
+            data->accept(*this);
+            return textureData;
+        }
+
+
+    } convertToRGBA;
+
+    auto textureData = convertToRGBA.convert(sourceData);
+    if (!textureData) return {};
+
+
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
