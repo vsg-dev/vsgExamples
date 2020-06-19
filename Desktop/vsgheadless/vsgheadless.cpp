@@ -82,19 +82,7 @@ vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> devic
 
     auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat);
 
-    VkImageView imageViewAttachments[2];
-    imageViewAttachments[0] = *colorImageView;
-    imageViewAttachments[1] = *depthImageView;
-
-    VkFramebufferCreateInfo fbufCreateInfo= {};
-    fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    fbufCreateInfo.renderPass = *renderPass;
-    fbufCreateInfo.attachmentCount = 2;
-    fbufCreateInfo.pAttachments = imageViewAttachments;
-    fbufCreateInfo.width = extent.width;
-    fbufCreateInfo.height = extent.height;
-    fbufCreateInfo.layers = 1;
-    auto framebuffer = vsg::Framebuffer::create(device, fbufCreateInfo);
+    auto framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
 
     auto renderGraph = vsg::RenderGraph::create();
 
@@ -107,9 +95,6 @@ vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> devic
     renderGraph->clearValues.resize(2);
     renderGraph->clearValues[0].color = { {0.2f, 0.2f, 0.4f, 1.0f} };
     renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
-
-    renderGraph->setValue("colorBuffer", colorImageView);
-    renderGraph->setValue("depthBuffer", depthImageView);
 
     return renderGraph;
 }

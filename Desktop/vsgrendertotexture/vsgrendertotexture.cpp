@@ -80,6 +80,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     samplerInfo.maxLod = 1.0f;
     samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     colorImage._sampler = colorSampler;
+
     // create depth buffer
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
     VkImageCreateInfo depthImageCreateInfo = {};
@@ -159,19 +160,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     auto renderPass = vsg::RenderPass::create(device, attachments, subpassDescription, dependencies);
 
     // Framebuffer
-    VkImageView imageViewAttachments[2];
-    imageViewAttachments[0] = *colorImage._imageView;
-    imageViewAttachments[1] = *depthImage._imageView;
-
-    VkFramebufferCreateInfo fbufCreateInfo= {};
-    fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    fbufCreateInfo.renderPass = *renderPass;
-    fbufCreateInfo.attachmentCount = 2;
-    fbufCreateInfo.pAttachments = imageViewAttachments;
-    fbufCreateInfo.width = extent.width;
-    fbufCreateInfo.height = extent.height;
-    fbufCreateInfo.layers = 1;
-    auto fbuf = vsg::Framebuffer::create(device, fbufCreateInfo);
+    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImage._imageView, depthImage._imageView}, extent.width, extent.height, 1);
 
     auto rendergraph = vsg::RenderGraph::create();
     rendergraph->camera = camera;
@@ -179,10 +168,11 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     rendergraph->renderArea.extent = extent;
     rendergraph->renderPass = renderPass;
     rendergraph->framebuffer = fbuf;
-    VkClearValue clearValues[2];
-    clearValues[0].color = { { 0.4f, 0.2f, 0.2f, 1.0f } };
-    clearValues[1].depthStencil = { 1.0f, 0 };
-    rendergraph->clearValues.insert(rendergraph->clearValues.begin(), &clearValues[0], &clearValues[2]);
+
+    rendergraph->clearValues.resize(2);
+    rendergraph->clearValues[0].color = { {0.4f, 0.2f, 0.4f, 1.0f} };
+    rendergraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
+
     return rendergraph;
 }
 
@@ -262,7 +252,7 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageData& colorImage)
     auto vertices = vsg::vec3Array::create(
     {
         {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.05f},
+        {0.5f,  -0.5f, 0.0f},
         {0.5f , 0.5f, 0.0f},
         {-0.5f, 0.5f, 0.0f},
         {-0.5f, -0.5f, -0.5f},
