@@ -10,7 +10,7 @@
 #include <thread>
 #include <algorithm>
 
-#include "../vsgviewer/AnimationPath.h"
+#include "../shared/AnimationPath.h"
 
 
 class ScreenshotHandler : public vsg::Inherit<vsg::Visitor, ScreenshotHandler>

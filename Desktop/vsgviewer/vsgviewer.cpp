@@ -10,7 +10,7 @@
 #include <thread>
 #include <algorithm>
 
-#include "AnimationPath.h"
+#include "../shared/AnimationPath.h"
 
 
 vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)

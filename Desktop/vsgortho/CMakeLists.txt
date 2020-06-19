@@ -4,6 +4,4 @@ set(SOURCES
 
 add_executable(vsgortho ${SOURCES})
 
-target_include_directories(vsgortho PRIVATE ../vsgviewer)
-
 target_link_libraries(vsgortho vsg::vsg)

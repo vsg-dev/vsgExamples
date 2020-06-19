@@ -4,7 +4,7 @@
 #include <chrono>
 #include <thread>
 
-#include "AnimationPath.h"
+#include "../shared/AnimationPath.h"
 
 
 vsg::ref_ptr<vsg::Node> createScene(std::string filename)

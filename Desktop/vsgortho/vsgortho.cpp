@@ -5,8 +5,6 @@
 #include <thread>
 #include <algorithm>
 
-#include "AnimationPath.h"
-
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
