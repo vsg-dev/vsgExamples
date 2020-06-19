@@ -94,13 +94,14 @@ int main(int argc, char** argv)
     VkExtent2D extent{1920, 1020};
 
     vsg::CommandLine arguments(&argc, argv);
-    arguments.read("--extent", extent.width, extent.height);
+    arguments.read({"--extent", "-w"}, extent.width, extent.height);
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
     auto numFrames = arguments.value(100, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
-    bool multiThreading = arguments.read("--mt");
+    auto multiThreading = arguments.read("--mt");
+    if (arguments.read("--st")) extent = VkExtent2D{192,108};
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
