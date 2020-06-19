@@ -108,6 +108,9 @@ vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> devic
     renderGraph->clearValues[0].color = { {0.2f, 0.2f, 0.4f, 1.0f} };
     renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
 
+    renderGraph->setValue("colorBuffer", colorImageView);
+    renderGraph->setValue("depthBuffer", depthImageView);
+
     return renderGraph;
 }
 
