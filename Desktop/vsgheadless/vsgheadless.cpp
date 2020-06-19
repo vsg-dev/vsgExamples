@@ -15,26 +15,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <vsg/all.h>
 
+#ifdef USE_VSGXCHANGE
+#include <vsgXchange/ReaderWriter_all.h>
+#include <vsgXchange/ShaderCompiler.h>
+#endif
+
 #include <iostream>
 #include <chrono>
 #include <thread>
 
-// Render a scene to an image, then use the image as a texture on the
-// faces of quads. This is based on Sascha William's offscreenrender
-// example. 
-//
-// In VSG / Vulkan terms, we first create a frame buffer that uses
-// the image as an attachment. Next, create a RenderGraph that uses that
-// frame buffer and the scene graph for the scene. Another RenderGraph
-// contains the scene graph for the quads. The quads use the rendered
-// image's descriptor. Finally, create the command graph that records those
-// two render graphs.
-//
-// In order for this to work correctly in Vulkan, the subpass
-// dependencies of the offscreen RenderPass / RenderGraph need to be
-// set up so that the second RenderGraph can sample the output.
-
-// Rendergraph for rendering to image
+#include "../shared/AnimationPath.h"
 
 vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent)
 {
@@ -98,32 +88,18 @@ vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> devic
     return renderGraph;
 }
 
-vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkExtent2D& extent)
-{
-    // compute the bounds of the scene graph to help position camera
-    vsg::ComputeBounds computeBounds;
-    scenegraph->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
-    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
-    double nearFarRatio = 0.001;
-
-    // set up the camera
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0),
-                                      centre, vsg::dvec3(0.0, 0.0, 1.0));
-
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height),
-                                                nearFarRatio*radius, radius * 4.5);
-
-    return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
-}
-
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
+    VkExtent2D extent{1920, 1020};
+
     vsg::CommandLine arguments(&argc, argv);
+    arguments.read("--extent", extent.width, extent.height);
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
+    auto numFrames = arguments.value(100, "-f");
+    auto pathFilename = arguments.value(std::string(),"-p");
     bool multiThreading = arguments.read("--mt");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -134,29 +110,24 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto vsg_scene = vsg::read_cast<vsg::Node>(argv[1]);
+    auto options = vsg::Options::create();
+#ifdef USE_VSGXCHANGE
+    // add use of vsgXchange's support for reading and writing 3rd party file formats
+    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+#endif
+
+    auto vsg_scene = vsg::read_cast<vsg::Node>(argv[1], options);
     if (!vsg_scene)
     {
         std::cout<<"No command graph created."<<std::endl;
         return 1;
     }
 
-    // A hack for getting the example teapot into the correct orientation
-    auto zUp = vsg::MatrixTransform::create(vsg::dmat4(1.0, 0.0, 0.0, 0.0,
-                                                       0.0, 0.0, -1.0, 0.0,
-                                                       0.0, 1.0, 0.0, 0.0,
-                                                       0.0, 0.0, 0.0, 1.0));
-    zUp->addChild(vsg_scene);
-
-    // Transform for rotation animation
-    auto transform = vsg::MatrixTransform::create();
-    transform->addChild(zUp);
-    vsg_scene = transform;
 
     // create instance
     vsg::Names instanceExtensions;
     vsg::Names requestedLayers;
-    if (debugLayer)
+    if (debugLayer || apiDumpLayer)
     {
         instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         requestedLayers.push_back("VK_LAYER_LUNARG_standard_validation");
@@ -164,11 +135,8 @@ int main(int argc, char** argv)
     }
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
+
     auto instance = vsg::Instance::create(instanceExtensions, validatedNames, nullptr);
-
-
-    std::cout<<"instance = "<<instance<<std::endl;
-
     auto [physicalDevice, queueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_GRAPHICS_BIT);
     if (!physicalDevice || queueFamily < 0)
     {
@@ -180,12 +148,30 @@ int main(int argc, char** argv)
     vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}};
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, nullptr);
 
-    std::cout<<"device = "<<device<<std::endl;
 
-    VkExtent2D extent{1920, 1020};
+    // compute the bounds of the scene graph to help position camera
+    vsg::ComputeBounds computeBounds;
+    vsg_scene->accept(computeBounds);
+    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
+    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+    double nearFarRatio = 0.001;
 
-    auto camera = createCameraForScene(vsg_scene, extent);
+    // set up the camera
+    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
+    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
+    {
+        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height), nearFarRatio, 0.0);
+    }
+    else
+    {
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height), nearFarRatio*radius, radius * 4.5);
+    }
+
+    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
+
+    // set up the Rendergraph to manage the rendering
     auto renderGraph = createRenderGraph(device, extent);
     renderGraph->camera = camera;
     renderGraph->addChild(vsg_scene);
@@ -196,8 +182,23 @@ int main(int argc, char** argv)
     // create the viewer
     auto viewer = vsg::Viewer::create();
 
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+    if (!pathFilename.empty())
+    {
+        std::ifstream in(pathFilename);
+        if (!in)
+        {
+            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
+            return 1;
+        }
 
+        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
+        animationPath->read(in);
+
+        viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
+    }
+
+
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
 
     viewer->compile();
 
@@ -207,14 +208,10 @@ int main(int argc, char** argv)
     }
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames--)>0)
     {
-        // animate the offscreen scenegraph
-
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
-
-        std::cout<<"viewer->getFrameStamp() "<<viewer->getFrameStamp()->frameCount<<" "<<time<<std::endl;
+        // pass any events into EventHandlers assigned to the Viewer, this includes Frame events generated by the viewer each frame
+        viewer->handleEvents();
 
         viewer->update();
 
