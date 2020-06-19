@@ -86,7 +86,6 @@ vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> devic
 
     auto renderGraph = vsg::RenderGraph::create();
 
-    renderGraph->renderPass = renderPass;
     renderGraph->framebuffer = framebuffer;
 
     renderGraph->renderArea.offset = {0, 0};

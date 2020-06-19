@@ -166,7 +166,6 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     rendergraph->camera = camera;
     rendergraph->renderArea.offset = VkOffset2D{0, 0};
     rendergraph->renderArea.extent = extent;
-    rendergraph->renderPass = renderPass;
     rendergraph->framebuffer = fbuf;
 
     rendergraph->clearValues.resize(2);
