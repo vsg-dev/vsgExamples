@@ -332,17 +332,9 @@ int main(int argc, char** argv)
     windowTraits->windowTitle = "rendertotexture";
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
-    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-    if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    if (arguments.read({"-t", "--test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->fullscreen = true; }
-    if (arguments.read({"--st", "--small-test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->width = 192, windowTraits->height = 108; windowTraits->decoration = false; }
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
-    auto useDatabasePager = arguments.read("--pager");
-    auto maxPageLOD = arguments.value(-1, "--max-plod");
-    arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+
+    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
     bool separateCommandGraph = arguments.read("-s");
     bool multiThreading = arguments.read("--mt");
 
@@ -437,13 +429,6 @@ int main(int argc, char** argv)
     auto camera = createCameraForScene(planes, window->extent2D());
     auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, planes);
 
-    // set up database pager
-    vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager)
-    {
-        databasePager = vsg::DatabasePager::create();
-        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
-    }
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));

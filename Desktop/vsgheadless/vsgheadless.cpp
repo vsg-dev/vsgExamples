@@ -124,8 +124,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
-    auto useDatabasePager = arguments.read("--pager");
-    auto maxPageLOD = arguments.value(-1, "--max-plod");
+    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
     bool multiThreading = arguments.read("--mt");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -154,15 +153,6 @@ int main(int argc, char** argv)
     auto transform = vsg::MatrixTransform::create();
     transform->addChild(zUp);
     vsg_scene = transform;
-    
-    // set up database pager
-    vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager)
-    {
-        databasePager = vsg::DatabasePager::create();
-        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
-    }
-
 
     // create instance
     vsg::Names instanceExtensions;

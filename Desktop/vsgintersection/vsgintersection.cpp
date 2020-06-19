@@ -119,8 +119,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-    auto useDatabasePager = arguments.read("--pager");
-    auto maxPageLOD = arguments.value(-1, "--max-plod");
+    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
 
     if (arguments.read("--draw")) builder->geometryType = Builder::DRAW_COMMANDS;
     if (arguments.read("--draw-indexed")) builder->geometryType = Builder::DRAW_INDEXED_COMMANDS;
@@ -223,14 +222,6 @@ int main(int argc, char** argv)
     }
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-
-    // set up database pager
-    vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager)
-    {
-        databasePager = vsg::DatabasePager::create();
-        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
-    }
 
     // set up the compilation support in builder to allow us to interactively create and compile subgraphs from wtihin the IntersectionHandler
     builder->setup(window, camera->getViewportState());

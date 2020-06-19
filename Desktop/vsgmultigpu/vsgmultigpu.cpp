@@ -176,8 +176,7 @@ int main(int argc, char** argv)
     auto pathFilename = arguments.value(std::string(),"-p");
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
-    auto useDatabasePager = arguments.read("--pager");
-    auto maxPageLOD = arguments.value(-1, "--max-plod");
+    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
     auto powerWall = arguments.read({"--power-wall","--pw"});
     auto sharedScene = arguments.read({"--shared"});
 
@@ -259,15 +258,6 @@ int main(int argc, char** argv)
         animationPath->read(in);
 
         viewer->addEventHandler(vsg::AnimationPathHandler::create(master_camera, animationPath, viewer->start_point()));
-    }
-
-
-    // set up database pager
-    vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager)
-    {
-        databasePager = vsg::DatabasePager::create();
-        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
     }
 
     int numScreens = screensToUse.size();

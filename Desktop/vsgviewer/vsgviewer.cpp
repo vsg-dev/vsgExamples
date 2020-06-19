@@ -205,17 +205,16 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     if (arguments.read("--or")) windowTraits->overrideRedirect = true;
+    arguments.read("--screen", windowTraits->screenNum);
+    arguments.read("--display", windowTraits->display);
+    arguments.read("--samples", windowTraits->samples);
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-    auto useDatabasePager = arguments.read("--pager");
-    auto maxPageLOD = arguments.value(-1, "--max-plod");
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
-    // Interpret the samples directly as a VkSampleCountFlagBits
-    // enum. Kind of gross, but it works.
-    arguments.read("--samples", windowTraits->samples);
+    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
+    if (auto maxPageLOD = arguments.value(-1, "--max-plod"); maxPageLOD>=0 && databasePager) { databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD; }
+
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -300,14 +299,6 @@ int main(int argc, char** argv)
     }
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-
-    // set up database pager
-    vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager)
-    {
-        databasePager = vsg::DatabasePager::create();
-        if (maxPageLOD>=0) databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD;
-    }
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
