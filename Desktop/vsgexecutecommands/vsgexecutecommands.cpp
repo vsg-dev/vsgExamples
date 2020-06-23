@@ -174,7 +174,6 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, traits->width, traits->height)) { traits->fullscreen = false; }
     if (arguments.read({"-t", "--test"})) { traits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; }
     bool multiThreading = arguments.read("--mt");
-    bool useDatabasePager = arguments.read("--pager");
     bool useExecuteCommands = !arguments.read("--no-ec"); // by default use ExecuteCommands, but allow it to be disabled using --no-ec
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
@@ -189,12 +188,6 @@ int main(int argc, char** argv)
     {
         std::cout<<"Unable to load model."<<std::endl;
         return 1;
-    }
-
-    vsg::ref_ptr<vsg::DatabasePager> databasePager;
-    if (useDatabasePager)
-    {
-        databasePager = vsg::DatabasePager::create();
     }
 
 
@@ -258,7 +251,7 @@ int main(int argc, char** argv)
         auto commandGraphwin1 = vsg::createCommandGraphForView(window1, camera, scenegraphwin1, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
         auto commandGraphwin2 = vsg::createCommandGraphForView(window2, camera, scenegraphwin2, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({seccommandGraph1, commandGraphwin1, commandGraphwin2}, databasePager);
+        viewer->assignRecordAndSubmitTaskAndPresentation({seccommandGraph1, commandGraphwin1, commandGraphwin2});
     }
     else
     {
@@ -266,7 +259,7 @@ int main(int argc, char** argv)
         auto commandGraphwin1 = vsg::createCommandGraphForView(window1, camera, vsg_scene);
         auto commandGraphwin2 = vsg::createCommandGraphForView(window2, camera, vsg_scene);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraphwin1, commandGraphwin2}, databasePager);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraphwin1, commandGraphwin2});
     }
 
     if (multiThreading) viewer->setupThreading();

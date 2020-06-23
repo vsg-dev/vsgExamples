@@ -119,7 +119,6 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
 
     if (arguments.read("--draw")) builder->geometryType = Builder::DRAW_COMMANDS;
     if (arguments.read("--draw-indexed")) builder->geometryType = Builder::DRAW_INDEXED_COMMANDS;
@@ -234,7 +233,7 @@ int main(int argc, char** argv)
     viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene, ellipsoidModel));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
 

@@ -333,7 +333,6 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
-    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
     bool separateCommandGraph = arguments.read("-s");
     bool multiThreading = arguments.read("--mt");
 
@@ -443,7 +442,7 @@ int main(int argc, char** argv)
         auto main_commandGraph = vsg::CommandGraph::create(window);
         main_commandGraph->addChild(main_RenderGraph);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({rtt_commandGraph, main_commandGraph}, databasePager);
+        viewer->assignRecordAndSubmitTaskAndPresentation({rtt_commandGraph, main_commandGraph});
     }
     else
     {
@@ -452,7 +451,7 @@ int main(int argc, char** argv)
         commandGraph->addChild(rtt_RenderGraph);
         commandGraph->addChild(main_RenderGraph);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
     }
 
     viewer->compile();

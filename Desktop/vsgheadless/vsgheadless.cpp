@@ -197,7 +197,7 @@ int main(int argc, char** argv)
     }
 
 
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
 
