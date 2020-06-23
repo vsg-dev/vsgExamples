@@ -26,12 +26,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "../shared/AnimationPath.h"
 
-vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent)
+vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat imageFormat, VkFormat depthFormat)
 {
-    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
-
-
     VkExtent3D attachmentExtent{extent.width, extent.height, 1};
     // Attachments
     // create image for color attachment
@@ -92,6 +88,8 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     VkExtent2D extent{1920, 1020};
+    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
     vsg::CommandLine arguments(&argc, argv);
     arguments.read({"--extent", "-w"}, extent.width, extent.height);
@@ -173,7 +171,7 @@ int main(int argc, char** argv)
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 
     // set up the Rendergraph to manage the rendering
-    auto renderGraph = createRenderGraph(device, extent);
+    auto renderGraph = createRenderGraph(device, extent, imageFormat, depthFormat);
     renderGraph->camera = camera;
     renderGraph->addChild(vsg_scene);
 
