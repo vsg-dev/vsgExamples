@@ -63,8 +63,6 @@ public:
             std::cout<<"        framebuffer["<<i<<"] = " <<window->framebuffer(i)<<std::endl;
         }
 
-        std::cout<<"    nextImageIndex() = "<<window->nextImageIndex()<<std::endl;
-
         std::cout<<"    surfaceFormat() = "<<window->surfaceFormat().format<<", "<<window->surfaceFormat().colorSpace<<std::endl;
         std::cout<<"    depthFormat() = "<<window->depthFormat()<<std::endl;
     }
