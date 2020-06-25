@@ -195,6 +195,8 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
+    if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
@@ -334,6 +336,7 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
 
     viewer->compile();
 
