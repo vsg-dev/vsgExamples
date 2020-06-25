@@ -558,7 +558,7 @@ int main(int argc, char** argv)
     viewer->addEventHandler(screenshotHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-    if (event) commandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT));
+    if (event) commandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT));
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
