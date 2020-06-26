@@ -363,6 +363,8 @@ int main(int argc, char** argv)
     VkExtent2D extent{1920, 1020};
     VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+    vsg::Path colorFilename("screenshot.vsgb");
+    vsg::Path depthFilename("depth.vsgb");
 
     vsg::CommandLine arguments(&argc, argv);
     arguments.read({"--extent", "-w"}, extent.width, extent.height);
@@ -513,7 +515,7 @@ int main(int argc, char** argv)
             // wait for completion.
             for(auto& recordAndSubmitTask : viewer->recordAndSubmitTasks)
             {
-                recordAndSubmitTask->fences[recordAndSubmitTask->index]->wait(std::numeric_limits<uint64_t>::max());
+                recordAndSubmitTask->fence()->wait(std::numeric_limits<uint64_t>::max());
             }
 
             if (copiedColorBuffer)
@@ -529,8 +531,7 @@ int main(int argc, char** argv)
 
                 imageData->setFormat(imageFormat);
 
-                vsg::Path outputFilename("screenshot.vsgb");
-                vsg::write(imageData, outputFilename);
+                vsg::write(imageData, colorFilename);
             }
 
             if (copiedDepthBuffer)
@@ -552,19 +553,16 @@ int main(int argc, char** argv)
                         else ++num_set_depth;
                     }
 
-                    std::cout<<"num_unset_depth = "<<num_unset_depth<<std::endl;
-                    std::cout<<"num_set_depth = "<<num_set_depth<<std::endl;
+                    std::cout<<"num_unset_depth = "<<num_unset_depth<<"\t"<<"num_set_depth = "<<num_set_depth<<std::endl;
 
-                    vsg::Path outputFilename("depth.vsgb");
-                    vsg::write(imageData, outputFilename);
+                    vsg::write(imageData, depthFilename);
                 }
                 else
                 {
                     auto imageData = vsg::MappedData<vsg::uintArray2D>::create(deviceMemory, 0, 0, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
                     imageData->setFormat(depthFormat);
 
-                    vsg::Path outputFilename("depth.vsgb");
-                    vsg::write(imageData, outputFilename);
+                    vsg::write(imageData, depthFilename);
                 }
             }
         }

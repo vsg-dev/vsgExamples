@@ -92,7 +92,7 @@ public:
         auto physicalDevice = window->getPhysicalDevice();
         auto swapchain = window->getSwapchain();
 
-        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(window->nextImageIndex())->getImage());
+        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(window->imageIndex())->getImage());
 
         VkFormat sourceImageFormat = swapchain->getImageFormat();
         VkFormat targetImageFormat = sourceImageFormat;
