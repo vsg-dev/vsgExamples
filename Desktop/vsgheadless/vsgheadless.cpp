@@ -37,13 +37,19 @@ vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> devi
     colorImageCreateInfo.arrayLayers = 1;
     colorImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     colorImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     colorImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorImageCreateInfo.flags = 0;
     colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     colorImageCreateInfo.queueFamilyIndexCount = 0;
     colorImageCreateInfo.pNext = nullptr;
     return vsg::createImageView(device, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+VkImageAspectFlags computeAspectFlagsForDepthFormat(VkFormat depthFormat)
+{
+    if (depthFormat==VK_FORMAT_D24_UNORM_S8_UINT) return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    else return VK_IMAGE_ASPECT_DEPTH_BIT;
 }
 
 vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat depthFormat)
@@ -57,71 +63,13 @@ vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> devi
     depthImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     depthImageCreateInfo.format = depthFormat;
     depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     depthImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depthImageCreateInfo.flags = 0;
     depthImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     depthImageCreateInfo.pNext = nullptr;
 
-    return vsg::createImageView(device, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-}
-
-vsg::ref_ptr<vsg::RenderGraph> createRenderGraph(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat imageFormat, VkFormat depthFormat)
-{
-    VkExtent3D attachmentExtent{extent.width, extent.height, 1};
-    // Attachments
-    // create image for color attachment
-    VkImageCreateInfo colorImageCreateInfo;
-    colorImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    colorImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    colorImageCreateInfo.format = imageFormat;
-    colorImageCreateInfo.extent = attachmentExtent;
-    colorImageCreateInfo.mipLevels = 1;
-    colorImageCreateInfo.arrayLayers = 1;
-    colorImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    colorImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorImageCreateInfo.flags = 0;
-    colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    colorImageCreateInfo.queueFamilyIndexCount = 0;
-    colorImageCreateInfo.pNext = nullptr;
-    auto colorImageView = vsg::createImageView(device, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    // create depth buffer
-    VkImageCreateInfo depthImageCreateInfo = {};
-    depthImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    depthImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    depthImageCreateInfo.extent = attachmentExtent;
-    depthImageCreateInfo.mipLevels = 1;
-    depthImageCreateInfo.arrayLayers = 1;
-    depthImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthImageCreateInfo.format = depthFormat;
-    depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    depthImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthImageCreateInfo.flags = 0;
-    depthImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    depthImageCreateInfo.pNext = nullptr;
-
-    auto depthImageView = vsg::createImageView(device, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-
-    auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat);
-
-    auto framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
-
-    auto renderGraph = vsg::RenderGraph::create();
-
-    renderGraph->framebuffer = framebuffer;
-
-    renderGraph->renderArea.offset = {0, 0};
-    renderGraph->renderArea.extent = extent;
-
-    renderGraph->clearValues.resize(2);
-    renderGraph->clearValues[0].color = { {0.2f, 0.2f, 0.4f, 1.0f} };
-    renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
-
-    return renderGraph;
+    return vsg::createImageView(device, depthImageCreateInfo, computeAspectFlagsForDepthFormat(depthFormat));
 }
 
 std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapture(const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
@@ -317,7 +265,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
     destinationBuffer->bind(destinationMemory, 0);
 
-    VkImageAspectFlags imageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    VkImageAspectFlags imageAspectFlags = computeAspectFlagsForDepthFormat(sourceImageFormat);
 
     // 2.a) tranition depth image for reading
     auto commands = vsg::Commands::create();
@@ -405,16 +353,6 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
 
     commands->addChild(cmd_transitionSourceImageBackToPresentBarrier);
 
-    auto fence = vsg::Fence::create(device);
-    auto queueFamilyIndex = physicalDevice->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
-    auto commandPool = vsg::CommandPool::create(device, queueFamilyIndex);
-    auto queue = device->getQueue(queueFamilyIndex);
-
-    vsg::submitCommandsToQueue(device, commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer)
-    {
-        commands->record(commandBuffer);
-    });
-
     return {commands, destinationBuffer};
 }
 
@@ -433,7 +371,6 @@ int main(int argc, char** argv)
     auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
     auto numFrames = arguments.value(100, "-f");
     auto pathFilename = arguments.value(std::string(),"-p");
-    auto multiThreading = arguments.read("--mt");
     if (arguments.read("--st")) extent = VkExtent2D{192,108};
     if (arguments.read("--float")) depthFormat = VK_FORMAT_D32_SFLOAT;
 
@@ -531,12 +468,10 @@ int main(int argc, char** argv)
     auto [colorBufferCapture, copiedColorBuffer] = createColorCapture(extent, vsg::ref_ptr<vsg::Image>(colorImageView->getImage()), imageFormat);
     auto [depthBufferCapture, copiedDepthBuffer] = createDepthCapture(extent, vsg::ref_ptr<vsg::Image>(depthImageView->getImage()), depthFormat);
 
-    std::cout<<"colorBufferCapture "<<colorBufferCapture<<std::endl;
-    std::cout<<"copiedColorBuffer "<<copiedColorBuffer<<std::endl;
-
     auto commandGraph = vsg::CommandGraph::create(device, queueFamily);
     commandGraph->addChild(renderGraph);
     if (colorBufferCapture) commandGraph->addChild(colorBufferCapture);
+    if (depthBufferCapture) commandGraph->addChild(depthBufferCapture);
 
     // create the viewer
     auto viewer = vsg::Viewer::create();
@@ -561,11 +496,6 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
-    if (multiThreading)
-    {
-        viewer->setupThreading();
-    }
-
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames--)>0)
     {
@@ -578,7 +508,7 @@ int main(int argc, char** argv)
 
         viewer->recordAndSubmit();
 
-        if (copiedColorBuffer)
+        if (copiedColorBuffer || copiedDepthBuffer)
         {
             // wait for completion.
             for(auto& recordAndSubmitTask : viewer->recordAndSubmitTasks)
@@ -625,7 +555,7 @@ int main(int argc, char** argv)
                     std::cout<<"num_unset_depth = "<<num_unset_depth<<std::endl;
                     std::cout<<"num_set_depth = "<<num_set_depth<<std::endl;
 
-                    vsg::Path outputFilename("depth.vsgt");
+                    vsg::Path outputFilename("depth.vsgb");
                     vsg::write(imageData, outputFilename);
                 }
                 else
@@ -633,7 +563,7 @@ int main(int argc, char** argv)
                     auto imageData = vsg::MappedData<vsg::uintArray2D>::create(deviceMemory, 0, 0, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
                     imageData->setFormat(depthFormat);
 
-                    vsg::Path outputFilename("depth.vsgt");
+                    vsg::Path outputFilename("depth.vsgb");
                     vsg::write(imageData, outputFilename);
                 }
             }
