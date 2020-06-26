@@ -214,9 +214,6 @@ int main(int argc, char** argv)
     auto pathFilename = arguments.value(std::string(),"-p");
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
-    if (auto maxPageLOD = arguments.value(-1, "--max-plod"); maxPageLOD>=0 && databasePager) { databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPageLOD; }
-
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -338,7 +335,7 @@ int main(int argc, char** argv)
     }
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
 
     viewer->compile();

@@ -176,7 +176,6 @@ int main(int argc, char** argv)
     auto pathFilename = arguments.value(std::string(),"-p");
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
-    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
     auto powerWall = arguments.read({"--power-wall","--pw"});
     auto sharedScene = arguments.read({"--shared"});
 
@@ -305,7 +304,7 @@ int main(int argc, char** argv)
 
         auto local_scene = sharedScene ? vsg_scene : createScene(filename);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({vsg::createCommandGraphForView(window, camera, local_scene)}, databasePager);
+        viewer->assignRecordAndSubmitTaskAndPresentation({vsg::createCommandGraphForView(window, camera, local_scene)});
         viewer->addWindow(window);
     }
 

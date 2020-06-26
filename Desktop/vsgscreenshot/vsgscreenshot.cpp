@@ -92,7 +92,7 @@ public:
         auto physicalDevice = window->getPhysicalDevice();
         auto swapchain = window->getSwapchain();
 
-        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(window->nextImageIndex())->getImage());
+        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(window->imageIndex())->getImage());
 
         VkFormat sourceImageFormat = swapchain->getImageFormat();
         VkFormat targetImageFormat = sourceImageFormat;
@@ -493,7 +493,6 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read("--float")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
     auto numFrames = arguments.value(-1, "-f");
-    auto databasePager = vsg::DatabasePager::create_if( arguments.read("--pager") );
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -559,9 +558,9 @@ int main(int argc, char** argv)
     viewer->addEventHandler(screenshotHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-    if (event) commandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT));
+    if (event) commandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT));
 
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph}, databasePager);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
 
