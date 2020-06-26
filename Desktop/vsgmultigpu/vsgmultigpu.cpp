@@ -189,15 +189,23 @@ int main(int argc, char** argv)
         screensToUse.push_back(screen);
     }
 
+    // if now screens are assign use screen 0
+    if (screensToUse.empty()) screensToUse.push_back(0);
+
+    if (screensToUse.size()>vsg::Device::maxNumDevices())
+    {
+        std::cout<<"VulkanSceneGraph built with VSG_MAX_DEVICES = "<<VSG_MAX_DEVICES<<", "<<
+                   "which is unsufficient to handle the number of screens desired.\n"<<
+                   "Please rebuild the VulkanSceneGraph with set VSG_MAX_DEVICES, via CMake, to the required size."<<std::endl;
+        return 1;
+    }
+
     vsg::Affinity affinity;
     uint32_t cpu = 0;
     while(arguments.read({"--cpu", "-c"}, cpu))
     {
         affinity.cpus.insert(cpu);
     }
-
-    // if now screens are assign use screen 0
-    if (screensToUse.empty()) screensToUse.push_back(0);
 
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
