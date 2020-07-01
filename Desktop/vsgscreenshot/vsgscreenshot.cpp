@@ -92,7 +92,8 @@ public:
         auto physicalDevice = window->getPhysicalDevice();
         auto swapchain = window->getSwapchain();
 
-        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(window->imageIndex())->getImage());
+        // get the colour buffer image of the previous rendered frame as the current frame hasn't been rendered yet.  The 1 in window->imageIndex(1) means image from 1 frame ago.
+        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(window->imageIndex(1))->getImage());
 
         VkFormat sourceImageFormat = swapchain->getImageFormat();
         VkFormat targetImageFormat = sourceImageFormat;
