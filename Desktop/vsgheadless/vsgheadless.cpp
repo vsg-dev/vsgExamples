@@ -356,6 +356,35 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     return {commands, destinationBuffer};
 }
 
+vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(vsg::Device* device, VkFormat imageFormat, VkFormat depthFormat)
+{
+    auto colorAttachmet = vsg::defaultColorAttachment(imageFormat);
+    auto depthAttachment = vsg::defaultDepthAttachment(depthFormat);
+
+    // by deault storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    vsg::RenderPass::Attachments attachments{colorAttachmet, depthAttachment};
+
+    vsg::SubpassDescription subpass = {};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachments.emplace_back(VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+    subpass.depthStencilAttachments.emplace_back(VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+
+    vsg::RenderPass::Subpasses subpasses{subpass};
+
+    VkSubpassDependency dependency = {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    vsg::RenderPass::Dependencies dependencies{dependency};
+
+    return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
+}
 
 int main(int argc, char** argv)
 {
@@ -429,7 +458,7 @@ int main(int argc, char** argv)
     vsg_scene->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
-    double nearFarRatio = 0.001;
+    double nearFarRatio = 0.01;
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -449,7 +478,7 @@ int main(int argc, char** argv)
     // set up the Rendergraph to manage the rendering
     auto colorImageView = createColorImageView(device, extent, imageFormat);
     auto depthImageView = createDepthImageView(device, extent, depthFormat);
-    auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat);
+    auto renderPass = createRenderPassCompatibleWithReadingDepthBuffer(device, imageFormat, depthFormat);
     auto framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
 
     auto renderGraph = vsg::RenderGraph::create();
@@ -544,16 +573,6 @@ int main(int argc, char** argv)
                 {
                     auto imageData = vsg::MappedData<vsg::floatArray2D>::create(deviceMemory, 0, 0, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
                     imageData->setFormat(depthFormat);
-
-                    size_t num_set_depth = 0;
-                    size_t num_unset_depth = 0;
-                    for(auto& value : *imageData)
-                    {
-                        if (value==1.0f) ++num_unset_depth;
-                        else ++num_set_depth;
-                    }
-
-                    std::cout<<"num_unset_depth = "<<num_unset_depth<<"\t"<<"num_set_depth = "<<num_set_depth<<std::endl;
 
                     vsg::write(imageData, depthFilename);
                 }
