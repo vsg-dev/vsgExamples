@@ -21,7 +21,6 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
 
     // VkAttachmentDescriptiom
     // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkAttachmentDescription.html
-    vsg::RenderPass::Attachments attachments;
 
     VkAttachmentDescription colorAttachment = {};
     colorAttachment.format = imageFormat;
@@ -32,7 +31,6 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    attachments.push_back(colorAttachment);
 
     VkAttachmentDescription depthAttachment = {};
     depthAttachment.format = depthFormat;
@@ -43,11 +41,11 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    attachments.push_back(depthAttachment);
+
+    vsg::RenderPass::Attachments attachments{colorAttachment, depthAttachment};
 
     // VkSubpassDescription
     // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSubpassDescription.html
-    vsg::RenderPass::Subpasses subpasses;
 
     VkAttachmentReference colorAttachmentRef = {};
     colorAttachmentRef.attachment = 0;
@@ -57,23 +55,19 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDescription depth_subpass = {};
+    vsg::SubpassDescription depth_subpass;
     depth_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    depth_subpass.colorAttachmentCount = 1;
-    depth_subpass.pColorAttachments = &colorAttachmentRef;
-    depth_subpass.pDepthStencilAttachment = &depthAttachmentRef;
-    subpasses.push_back(depth_subpass);
+    depth_subpass.colorAttachments.emplace_back(colorAttachmentRef);
+    depth_subpass.depthStencilAttachments.emplace_back(depthAttachmentRef);
 
-    VkSubpassDescription classic_subpass = {};
+    vsg::SubpassDescription classic_subpass;
     classic_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    classic_subpass.colorAttachmentCount = 1;
-    classic_subpass.pColorAttachments = &colorAttachmentRef;
-    classic_subpass.pDepthStencilAttachment = nullptr;
-    subpasses.push_back(classic_subpass);
+    classic_subpass.colorAttachments.emplace_back(colorAttachmentRef);
+
+    vsg::RenderPass::Subpasses subpasses{depth_subpass, classic_subpass};
 
     // VkSubpassDependency
     // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSubpassDependency.html
-    vsg::RenderPass::Dependencies dependencies;
 
     VkSubpassDependency classic_dependency = {};
     classic_dependency.srcSubpass = 0;
@@ -84,7 +78,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
     classic_dependency.dstAccessMask = 0;
     classic_dependency.dependencyFlags = 0;
 
-    dependencies.push_back(classic_dependency);
+    vsg::RenderPass::Dependencies dependencies{classic_dependency};
 
     return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
 }
