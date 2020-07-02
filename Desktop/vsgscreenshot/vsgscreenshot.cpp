@@ -467,6 +467,35 @@ public:
 
 };
 
+vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(vsg::Device* device, VkFormat imageFormat, VkFormat depthFormat)
+{
+    auto colorAttachmet = vsg::defaultColorAttachment(imageFormat);
+    auto depthAttachment = vsg::defaultDepthAttachment(depthFormat);
+
+    // by deault storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+    vsg::RenderPass::Attachments attachments{colorAttachmet, depthAttachment};
+
+    vsg::SubpassDescription subpass = {};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachments.emplace_back(VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+    subpass.depthStencilAttachments.emplace_back(VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
+
+    vsg::RenderPass::Subpasses subpasses{subpass};
+
+    VkSubpassDependency dependency = {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    vsg::RenderPass::Dependencies dependencies{dependency};
+
+    return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
+}
 
 int main(int argc, char** argv)
 {
@@ -522,6 +551,11 @@ int main(int argc, char** argv)
         std::cout<<"Could not create windows."<<std::endl;
         return 1;
     }
+
+    auto device = window->getOrCreateDevice();
+
+    // provide a custom RenderPass to ensure we can read from the depth buffer, only required by the 'd' dpeth screenshot code path
+    window->setRenderPass(createRenderPassCompatibleWithReadingDepthBuffer(device, window->surfaceFormat().format, window->depthFormat()));
 
     viewer->addWindow(window);
 
