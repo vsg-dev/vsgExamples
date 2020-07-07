@@ -284,9 +284,7 @@ public:
         vkGetImageSubresourceLayout(*device, *destinationImage, &subResource, &subResourceLayout);
 
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
-        auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, width, height); // deviceMemory, offset, flags and dimensions
-
-        imageData->setFormat(targetImageFormat);
+        auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
         vsg::Path outputFilename("screenshot.vsgt");
         vsg::write(imageData, outputFilename);
@@ -438,8 +436,7 @@ public:
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
         if (targetImageFormat==VK_FORMAT_D32_SFLOAT || targetImageFormat==VK_FORMAT_D32_SFLOAT_S8_UINT)
         {
-            auto imageData = vsg::MappedData<vsg::floatArray2D>::create(destinationMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
-            imageData->setFormat(targetImageFormat);
+            auto imageData = vsg::MappedData<vsg::floatArray2D>::create(destinationMemory, 0, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
             size_t num_set_depth = 0;
             size_t num_unset_depth = 0;
@@ -457,8 +454,7 @@ public:
         }
         else
         {
-            auto imageData = vsg::MappedData<vsg::uintArray2D>::create(destinationMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
-            imageData->setFormat(targetImageFormat);
+            auto imageData = vsg::MappedData<vsg::uintArray2D>::create(destinationMemory, 0, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
             vsg::Path outputFilename("depth.vsgt");
             vsg::write(imageData, outputFilename);

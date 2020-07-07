@@ -217,8 +217,7 @@ vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
     auto textureData = info.image;
     if (!textureData)
     {
-        auto image = vsg::vec4Array2D::create(2, 2, info.color);
-        image->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+        auto image = vsg::vec4Array2D::create(2, 2, info.color, vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
         image->set(0, 0, {0.0f, 0.0f, 1.0f, 1.0f});
         image->set(1, 1, {0.0f, 0.0f, 1.0f, 1.0f});
         textureData = image;

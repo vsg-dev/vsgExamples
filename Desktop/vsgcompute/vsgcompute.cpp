@@ -107,8 +107,7 @@ int main(int argc, char** argv)
     if (!outputFilename.empty())
     {
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
-        auto image = vsg::MappedData<vsg::vec4Array2D>::create(bufferMemory, 0, 0, width, height); // deviceMemory, offset, flags and dimensions
-        image->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+        auto image = vsg::MappedData<vsg::vec4Array2D>::create(bufferMemory, 0, 0, vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT}, width, height); // deviceMemory, offset, flags an d dimensions
 
         if (outputAsFloat)
         {
@@ -117,8 +116,8 @@ int main(int argc, char** argv)
         else
         {
             // create a unsigned byte version of the image and then copy the texels across converting colours from float to unsigned byte.
-            auto dest = vsg::ubvec4Array2D::create(width, height);
-            dest->setFormat(VK_FORMAT_R8G8B8A8_UNORM);
+            auto dest = vsg::ubvec4Array2D::create(width, height, vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
+
             using component_type = uint8_t;
             auto c_itr = dest->begin();
             for(auto& colour : *image)

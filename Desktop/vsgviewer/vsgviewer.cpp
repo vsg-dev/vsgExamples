@@ -29,8 +29,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
             // treat as a 24bit depth buffer
             float div = 1.0f / static_cast<float>(1<<24);
 
-            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height());
-            rgba->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
             auto dest_itr = rgba->begin();
             for(auto& v : fa)
             {
@@ -42,8 +41,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
 
         void apply(vsg::floatArray2D& fa) override
         {
-            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height());
-            rgba->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
             auto dest_itr = rgba->begin();
             for(auto& v : fa)
             {
