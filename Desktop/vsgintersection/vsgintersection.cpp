@@ -63,6 +63,8 @@ public:
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
+        std::cout<<"interesection("<<pointerEvent.x << ", "<<pointerEvent.y<<") "<<intersector->intersections.size()<<")"<<std::endl;
+
         if (intersector->intersections.empty()) return;
 
         // sort the intersectors front to back
@@ -88,6 +90,18 @@ public:
             {
                 std::cout<<", "<<node->className();
             }
+
+            std::cout<<", Arrays[ ";
+            for(auto& array : intersection.arrays)
+            {
+                std::cout<<array<<" ";
+            }
+            std::cout<<"] [";
+            for(auto& ir : intersection.indexRatios)
+            {
+                std::cout<<"{"<<ir.index<<", "<<ir.ratio<<"} ";
+            }
+            std::cout<<"]";
 
             std::cout<<std::endl;
         }
