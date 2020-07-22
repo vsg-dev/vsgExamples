@@ -17,13 +17,16 @@ public:
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::Group> scenegraph;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
+    double scale;
 
-    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel) :
+    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale) :
         builder(in_builder),
         camera(in_camera),
         scenegraph(in_scenegraph),
-        ellipsoidModel(in_ellipsoidModel)
+        ellipsoidModel(in_ellipsoidModel),
+        scale(in_scale)
     {
+        if (scale>10.0) scale = 10.0;
     }
 
     void apply(vsg::KeyPressEvent& keyPress) override
@@ -36,7 +39,7 @@ public:
             {
                 std::cout<<"inserting at = "<<lastIntersection.worldIntersection<<" ";
                 GeometryInfo info;
-                info.dimensions.set(10.0f, 10.0f, 10.0f);
+                info.dimensions.set(scale, scale, scale);
                 info.position = vsg::vec3(lastIntersection.worldIntersection) - info.dimensions*0.5f;
                 scenegraph->addChild( builder->createBox(info) );
             }
@@ -244,7 +247,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene, ellipsoidModel));
+    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene, ellipsoidModel, radius*0.1));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
