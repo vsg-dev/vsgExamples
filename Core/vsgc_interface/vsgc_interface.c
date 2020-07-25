@@ -1,9 +1,15 @@
+#include <vsg/core/Version.h>
 #include <vsg/introspection/c_interface.h>
 
 #include <stdio.h>
 
 int main(int argc, char** argv)
 {
+    struct VsgVersion version = vsgGetVersion();
+
+    printf("Version = %i, %i, %i, %i\n", version.major, version.minor, version.patch, version.soversion);
+
+
     struct Property bool_property;
     bool_property.type = TYPE_bool;
     bool_property.value._bool = 1;
