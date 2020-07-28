@@ -181,11 +181,20 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
+
     // compile the Vulkan objects
     viewer->compile();
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
-    viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
+    // texture has been filled in so it's now safe to get the ImageData that holds the handles to the texture's
+    vsg::ImageData textureImageData;
+    if (!texture->getImageList(0).empty()) textureImageData = texture->getImageList(0)[0]; // contextID=0, and only one imageData
+
+    std::size_t copy_cmd_pos = commandGraph->getNumChildren(); // signify unset status
+
+    // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
+    vsg::Context context(window->getOrCreateDevice());
 
     // main frame loop
     while (viewer->advanceToNextFrame())
@@ -199,20 +208,21 @@ int main(int argc, char** argv)
 
         update(*textureData, sin(time));
 
-
-        std::cout<<"Need to udpate texture "<<texture<<std::endl;
-        for(auto samplerImage : texture->getSamplerImages())
+        // set up the copy to staging buffer, and copy from staging buffer to texture image
         {
-            if (samplerImage.data == textureData)
+            // if previously assigned remove it.
+            if (copy_cmd_pos < commandGraph->getNumChildren())
             {
-                std::cout<<"   source "<<samplerImage.sampler<<", "<<samplerImage.data<<std::endl;
+                // TODO : need to think about waiting to make sure previous frame has completed, or multi-buffer the commands
+                commandGraph->removeChild(copy_cmd_pos);
             }
 
-            for(auto& imageData : texture->getImageList(0))
-            {
-                std::cout<<"   vulkan "<<imageData.sampler<<", "<<imageData.imageView<<", "<<imageData.imageLayout<< std::endl;
+            auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
+            auto mipLevels = vsg::computeNumMipMapLevels(textureData, textureImageData.sampler);
+            auto copyCmd = vsg::CopyAndReleaseImageDataCommand::create(stagingBufferData, textureImageData, mipLevels);
 
-            }
+            // add the command to the commandGraph to ve invoked by viewer->recordAndSubmit();
+            copy_cmd_pos = commandGraph->addChild(copyCmd);
         }
 
         // need to update DescriptorImage
