@@ -3,15 +3,15 @@
 
 void update(vsg::vec4Array2D& image, float value)
 {
-    std::cout<<"value = "<<value<<std::endl;
     for(size_t r = 0; r < image.height(); ++r)
     {
         float r_ratio = static_cast<float>(r)/static_cast<float>(image.height()-1);
         for(size_t c = 0; c < image.width(); ++c)
         {
             float c_ratio = static_cast<float>(c)/static_cast<float>(image.width()-1);
-            float intensity = (1.0f - ((r_ratio-0.5f)*(r_ratio-0.5f) + (c_ratio-0.5f)*(c_ratio-0.5f))) * value;
-            image.set(c, r, vsg::vec4(intensity*intensity, intensity, intensity*intensity, 1.0f));
+            float distance_from_center = sqrtf(4.0f*((r_ratio-0.5f)*(r_ratio-0.5f) + (c_ratio-0.5f)*(c_ratio-0.5f)));
+            float intensity = (sin(20.0f * distance_from_center+3.0*value) + 1.0f)*0.5f;
+            image.set(c, r, vsg::vec4(intensity*intensity, intensity, intensity, 1.0f));
         }
     }
 }
@@ -206,7 +206,7 @@ int main(int argc, char** argv)
         float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
         transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
-        update(*textureData, sin(time));
+        update(*textureData, time);
 
         // set up the copy to staging buffer, and copy from staging buffer to texture image
         {
