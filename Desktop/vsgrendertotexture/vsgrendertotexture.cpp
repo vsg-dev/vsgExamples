@@ -61,8 +61,8 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     auto colorImageView = createImageView(context, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
 
     // Sampler for accessing attachment as a texture
-    colorImage._imageView = colorImageView;
-    colorImage._imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    colorImage.imageView = colorImageView;
+    colorImage.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     auto colorSampler = vsg::Sampler::create();
     VkSamplerCreateInfo& samplerInfo = colorSampler->info();
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -79,7 +79,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = 1.0f;
     samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    colorImage._sampler = colorSampler;
+    colorImage.sampler = colorSampler;
 
     // create depth buffer
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
@@ -98,9 +98,9 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     depthImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     depthImageCreateInfo.pNext = nullptr;
     // XXX Does layout matter?
-    depthImage._sampler = nullptr;
-    depthImage._imageView = createImageView(context, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-    depthImage._imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    depthImage.sampler = nullptr;
+    depthImage.imageView = createImageView(context, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    depthImage.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions
     vsg::RenderPass::Attachments attachments(2);
@@ -159,7 +159,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     auto renderPass = vsg::RenderPass::create(device, attachments, subpassDescription, dependencies);
 
     // Framebuffer
-    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImage._imageView, depthImage._imageView}, extent.width, extent.height, 1);
+    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImage.imageView, depthImage.imageView}, extent.width, extent.height, 1);
 
     auto rendergraph = vsg::RenderGraph::create();
     rendergraph->camera = camera;
