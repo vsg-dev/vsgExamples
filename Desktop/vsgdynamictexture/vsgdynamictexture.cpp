@@ -185,6 +185,10 @@ int main(int argc, char** argv)
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
+
+    auto copyCmd = vsg::CopyAndReleaseImageDataCommand::create();
+    commandGraph->addChild(copyCmd);
+
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     // add event handlers
@@ -197,8 +201,6 @@ int main(int argc, char** argv)
     // texture has been filled in so it's now safe to get the ImageData that holds the handles to the texture's
     vsg::ImageData textureImageData;
     if (!texture->getImageList(0).empty()) textureImageData = texture->getImageList(0)[0]; // contextID=0, and only one imageData
-
-    std::size_t copy_cmd_pos = commandGraph->getNumChildren(); // signify unset status
 
     // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
     vsg::Context context(window->getOrCreateDevice());
@@ -215,24 +217,11 @@ int main(int argc, char** argv)
 
         update(*textureData, time);
 
-        // set up the copy to staging buffer, and copy from staging buffer to texture image
+        // set up the copy to staging buffer and copy from staging buffer to texture image
         {
-            // if previously assigned remove it.
-            if (copy_cmd_pos < commandGraph->getNumChildren())
-            {
-                // TODO : need to think about waiting to make sure previous frame has completed, or multi-buffer the commands
-                commandGraph->removeChild(copy_cmd_pos);
-            }
-
             auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
-            auto mipLevels = vsg::computeNumMipMapLevels(textureData, textureImageData.sampler);
-            auto copyCmd = vsg::CopyAndReleaseImageDataCommand::create(stagingBufferData, textureImageData, mipLevels);
-
-            // add the command to the commandGraph to ve invoked by viewer->recordAndSubmit();
-            copy_cmd_pos = commandGraph->addChild(copyCmd);
+            copyCmd->add(stagingBufferData, textureImageData);
         }
-
-        // need to update DescriptorImage
 
         viewer->update();
 
