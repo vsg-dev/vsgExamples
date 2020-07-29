@@ -9,8 +9,14 @@ void update(vsg::vec4Array2D& image, float value)
         for(size_t c = 0; c < image.width(); ++c)
         {
             float c_ratio = static_cast<float>(c)/static_cast<float>(image.width()-1);
-            float distance_from_center = sqrtf(4.0f*((r_ratio-0.5f)*(r_ratio-0.5f) + (c_ratio-0.5f)*(c_ratio-0.5f)));
-            float intensity = (sin(20.0f * distance_from_center+3.0*value) + 1.0f)*0.5f;
+
+            vsg::vec2 delta((r_ratio-0.5f), (c_ratio-0.5f));
+
+            float angle = atan2(delta.x, delta.y);
+
+            float distance_from_center = vsg::length(delta);
+
+            float intensity = (sin(1.0 * angle + 30.0f * distance_from_center+10.0*value) + 1.0f)*0.5f;
             image.set(c, r, vsg::vec4(intensity*intensity, intensity, intensity, 1.0f));
         }
     }
@@ -181,7 +187,8 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    // add event handlers
+    viewer->addEventHandler(vsg::Trackball::create(camera));
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     // compile the Vulkan objects
