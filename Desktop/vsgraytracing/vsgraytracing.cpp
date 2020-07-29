@@ -283,7 +283,7 @@ int main(int argc, char** argv)
     // set up commandGraph to rendering viewport
     auto commandGraph = vsg::CommandGraph::create(window);
 
-    auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageData._imageView, window);
+    auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageData.imageView, window);
 
     commandGraph->addChild(scenegraph);
     commandGraph->addChild(copyImageViewToWindow);
