@@ -125,17 +125,7 @@ int main(int argc, char** argv)
         {-0.5f, 0.5f, -0.5f}
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    auto colors = vsg::vec3Array::create(
-    {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+    auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
 
     auto texcoords = vsg::vec2Array::create(
     {
@@ -215,13 +205,14 @@ int main(int argc, char** argv)
         float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
         transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
+        // update texture data
         update(*textureData, time);
 
-        // set up the copy to staging buffer and copy from staging buffer to texture image
-        {
-            auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
-            copyCmd->add(stagingBufferData, textureImageData);
-        }
+        // transfer data to staging buffer
+        auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
+
+        // schedule a copy command to do the staging buffer to the texture image, this copy command is recorded to the appropriate command buffer by viewer->recordAndSubmit().
+        copyCmd->add(stagingBufferData, textureImageData);
 
         viewer->update();
 
