@@ -63,22 +63,20 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     // Sampler for accessing attachment as a texture
     colorImage.imageView = colorImageView;
     colorImage.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
     auto colorSampler = vsg::Sampler::create();
-    VkSamplerCreateInfo& samplerInfo = colorSampler->info();
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.pNext = nullptr;
-    samplerInfo.flags = 0;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = samplerInfo.addressModeU;
-    samplerInfo.addressModeW = samplerInfo.addressModeU;
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.maxAnisotropy = 1.0f;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 1.0f;
-    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+    colorSampler->flags = 0;
+    colorSampler->magFilter = VK_FILTER_LINEAR;
+    colorSampler->minFilter = VK_FILTER_LINEAR;
+    colorSampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    colorSampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    colorSampler->addressModeV = colorSampler->addressModeU;
+    colorSampler->addressModeW = colorSampler->addressModeU;
+    colorSampler->mipLodBias = 0.0f;
+    colorSampler->maxAnisotropy = 1.0f;
+    colorSampler->minLod = 0.0f;
+    colorSampler->maxLod = 1.0f;
+    colorSampler->borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     colorImage.sampler = colorSampler;
 
     // create depth buffer
