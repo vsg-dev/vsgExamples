@@ -254,8 +254,7 @@ Font::Font(PipelineLayout* pipelineLayout, const std::string& fontname, Paths se
     _glyphSizesTexture = DescriptorImage::create(vsg::Sampler::create(), sizeTexels, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     // create and bind descriptorset for font texture
-    auto& descriptorSetLayouts = pipelineLayout->getDescriptorSetLayouts();
-
+    auto& descriptorSetLayouts = pipelineLayout->setLayouts;
     auto fontDescriptorSetLayout = descriptorSetLayouts[0];
 
     _descriptorSets = DescriptorSets{ DescriptorSet::create(fontDescriptorSetLayout, Descriptors{ _glyphUVsTexture, _glyphSizesTexture, _atlasTexture }) };
@@ -358,7 +357,7 @@ TextBase::TextBase(Font* font, GraphicsPipeline* pipeline, Allocator* allocator)
     _textMetricsUniform = vsg::DescriptorBuffer::create(_textMetrics,3);
 
     // create and bind descriptorset for text metrix uniform
-    auto& descriptorSetLayouts = pipeline->getPipelineLayout()->getDescriptorSetLayouts();
+    auto& descriptorSetLayouts = pipeline->getPipelineLayout()->setLayouts;
     auto textDescriptorSetLayout = descriptorSetLayouts[1];
 
     auto descriptorSet = DescriptorSet::create(textDescriptorSetLayout, Descriptors{ _textMetricsUniform });
