@@ -33,11 +33,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    computeStage->setSpecializationConstants({
+    computeStage->specializationConstants = vsg::ShaderStage::SpecializationConstants{
         {0, vsg::intValue::create(width)},
         {1, vsg::intValue::create(height)},
         {2, vsg::intValue::create(workgroupSize)}
-    });
+    };
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
