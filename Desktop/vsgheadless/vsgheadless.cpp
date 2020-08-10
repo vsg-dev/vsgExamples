@@ -72,12 +72,11 @@ vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> devi
     return vsg::createImageView(device, depthImageCreateInfo, computeAspectFlagsForDepthFormat(depthFormat));
 }
 
-std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapture(const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
+std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapture(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
 {
     auto width = extent.width;
     auto height = extent.height;
 
-    auto device = sourceImage->getDevice();
     auto physicalDevice = device->getPhysicalDevice();
 
     VkFormat targetImageFormat = sourceImageFormat;
@@ -121,7 +120,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
 
     auto destinationImage = vsg::Image::create(device, imageCreateInfo);
 
-    auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(device->deviceID),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     destinationImage->bind(deviceMemory, 0);
 
@@ -247,17 +246,16 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     return {commands, destinationImage};
 }
 
-std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCapture(const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
+std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCapture(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
 {
     auto width = extent.width;
     auto height = extent.height;
 
-    auto device = sourceImage->getDevice();
     auto physicalDevice = device->getPhysicalDevice();
 
     VkFormat targetImageFormat = sourceImageFormat;
 
-    auto memoryRequirements = sourceImage->getMemoryRequirements();
+    auto memoryRequirements = sourceImage->getMemoryRequirements(device->deviceID);
 
     // 1. create buffer to copy to.
     VkDeviceSize bufferSize = memoryRequirements.size;
@@ -496,8 +494,8 @@ int main(int argc, char** argv)
 
     // create supoort for copying the color buffer
     vsg::ref_ptr<vsg::Image> colorImage;
-    auto [colorBufferCapture, copiedColorBuffer] = createColorCapture(extent, vsg::ref_ptr<vsg::Image>(colorImageView->getImage()), imageFormat);
-    auto [depthBufferCapture, copiedDepthBuffer] = createDepthCapture(extent, vsg::ref_ptr<vsg::Image>(depthImageView->getImage()), depthFormat);
+    auto [colorBufferCapture, copiedColorBuffer] = createColorCapture(device, extent, vsg::ref_ptr<vsg::Image>(colorImageView->getImage()), imageFormat);
+    auto [depthBufferCapture, copiedDepthBuffer] = createDepthCapture(device, extent, vsg::ref_ptr<vsg::Image>(depthImageView->getImage()), depthFormat);
 
     auto commandGraph = vsg::CommandGraph::create(device, queueFamily);
     commandGraph->addChild(renderGraph);
@@ -551,9 +549,9 @@ int main(int argc, char** argv)
             {
                 VkImageSubresource subResource { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
                 VkSubresourceLayout subResourceLayout;
-                vkGetImageSubresourceLayout(*device, *copiedColorBuffer, &subResource, &subResourceLayout);
+                vkGetImageSubresourceLayout(*device, copiedColorBuffer->vk(device->deviceID), &subResource, &subResourceLayout);
 
-                auto deviceMemory = copiedColorBuffer->getDeviceMemory();
+                auto deviceMemory = copiedColorBuffer->getDeviceMemory(device->deviceID);
 
                 // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
                 auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Layout{imageFormat}, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
