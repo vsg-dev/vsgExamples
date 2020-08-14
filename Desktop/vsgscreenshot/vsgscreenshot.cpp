@@ -121,19 +121,18 @@ public:
         //
         // 2) create image to write to
         //
-        VkImageCreateInfo imageCreateInfo = {};
-        imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageCreateInfo.format = targetImageFormat;
-        imageCreateInfo.extent.width = width;
-        imageCreateInfo.extent.height = height;
-        imageCreateInfo.extent.depth = 1;
-        imageCreateInfo.arrayLayers = 1;
-        imageCreateInfo.mipLevels = 1;
-        imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
-        imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        auto imageCreateInfo = vsg::Image::CreateInfo::create();
+        imageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
+        imageCreateInfo->format = targetImageFormat;
+        imageCreateInfo->extent.width = width;
+        imageCreateInfo->extent.height = height;
+        imageCreateInfo->extent.depth = 1;
+        imageCreateInfo->arrayLayers = 1;
+        imageCreateInfo->mipLevels = 1;
+        imageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCreateInfo->tiling = VK_IMAGE_TILING_LINEAR;
+        imageCreateInfo->usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
         auto destinationImage = vsg::Image::create(device, imageCreateInfo);
 

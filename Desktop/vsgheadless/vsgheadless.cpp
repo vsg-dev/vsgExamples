@@ -28,21 +28,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat imageFormat)
 {
-   VkImageCreateInfo colorImageCreateInfo;
-    colorImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    colorImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    colorImageCreateInfo.format = imageFormat;
-    colorImageCreateInfo.extent = VkExtent3D{extent.width, extent.height, 1};
-    colorImageCreateInfo.mipLevels = 1;
-    colorImageCreateInfo.arrayLayers = 1;
-    colorImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    colorImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorImageCreateInfo.flags = 0;
-    colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    colorImageCreateInfo.queueFamilyIndexCount = 0;
-    colorImageCreateInfo.pNext = nullptr;
+    auto colorImageCreateInfo = vsg::Image::CreateInfo::create();
+    colorImageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
+    colorImageCreateInfo->format = imageFormat;
+    colorImageCreateInfo->extent = VkExtent3D{extent.width, extent.height, 1};
+    colorImageCreateInfo->mipLevels = 1;
+    colorImageCreateInfo->arrayLayers = 1;
+    colorImageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
+    colorImageCreateInfo->tiling = VK_IMAGE_TILING_OPTIMAL;
+    colorImageCreateInfo->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    colorImageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorImageCreateInfo->flags = 0;
+    colorImageCreateInfo->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
     return vsg::createImageView(device, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
@@ -54,20 +52,18 @@ VkImageAspectFlags computeAspectFlagsForDepthFormat(VkFormat depthFormat)
 
 vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat depthFormat)
 {
-    VkImageCreateInfo depthImageCreateInfo = {};
-    depthImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    depthImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    depthImageCreateInfo.extent = VkExtent3D{extent.width, extent.height, 1};
-    depthImageCreateInfo.mipLevels = 1;
-    depthImageCreateInfo.arrayLayers = 1;
-    depthImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthImageCreateInfo.format = depthFormat;
-    depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    depthImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthImageCreateInfo.flags = 0;
-    depthImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    depthImageCreateInfo.pNext = nullptr;
+    auto depthImageCreateInfo = vsg::Image::CreateInfo::create();
+    depthImageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
+    depthImageCreateInfo->extent = VkExtent3D{extent.width, extent.height, 1};
+    depthImageCreateInfo->mipLevels = 1;
+    depthImageCreateInfo->arrayLayers = 1;
+    depthImageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
+    depthImageCreateInfo->format = depthFormat;
+    depthImageCreateInfo->tiling = VK_IMAGE_TILING_OPTIMAL;
+    depthImageCreateInfo->usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    depthImageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthImageCreateInfo->flags = 0;
+    depthImageCreateInfo->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     return vsg::createImageView(device, depthImageCreateInfo, computeAspectFlagsForDepthFormat(depthFormat));
 }
@@ -104,19 +100,18 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     //
     // 2) create image to write to
     //
-    VkImageCreateInfo imageCreateInfo = {};
-    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.format = targetImageFormat;
-    imageCreateInfo.extent.width = width;
-    imageCreateInfo.extent.height = height;
-    imageCreateInfo.extent.depth = 1;
-    imageCreateInfo.arrayLayers = 1;
-    imageCreateInfo.mipLevels = 1;
-    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
-    imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    auto imageCreateInfo = vsg::Image::CreateInfo::create();
+    imageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
+    imageCreateInfo->format = targetImageFormat;
+    imageCreateInfo->extent.width = width;
+    imageCreateInfo->extent.height = height;
+    imageCreateInfo->extent.depth = 1;
+    imageCreateInfo->arrayLayers = 1;
+    imageCreateInfo->mipLevels = 1;
+    imageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
+    imageCreateInfo->tiling = VK_IMAGE_TILING_LINEAR;
+    imageCreateInfo->usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     auto destinationImage = vsg::Image::create(device, imageCreateInfo);
 

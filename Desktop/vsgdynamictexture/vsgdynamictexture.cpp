@@ -190,7 +190,7 @@ int main(int argc, char** argv)
 
     // texture has been filled in so it's now safe to get the ImageData that holds the handles to the texture's
     vsg::ImageData textureImageData;
-    if (!texture->getImageList(0).empty()) textureImageData = texture->getImageList(0)[0]; // contextID=0, and only one imageData
+    if (!texture->getImageDataList().empty()) textureImageData = texture->getImageDataList()[0]; // contextID=0, and only one imageData
 
     // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
     vsg::Context context(window->getOrCreateDevice());

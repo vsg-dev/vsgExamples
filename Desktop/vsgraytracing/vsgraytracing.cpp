@@ -199,32 +199,30 @@ int main(int argc, char** argv)
         lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 1.0, -5.0), vsg::dvec3(0.0, 0.5, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     }
 
-    // create storage image to render into
-    VkImageCreateInfo storageImageCreateInfo;
-    storageImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    storageImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    storageImageCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM;//VK_FORMAT_R8G8B8A8_UNORM;
-    storageImageCreateInfo.extent.width = width;
-    storageImageCreateInfo.extent.height = height;
-    storageImageCreateInfo.extent.depth = 1;
-    storageImageCreateInfo.mipLevels = 1;
-    storageImageCreateInfo.arrayLayers = 1;
-    storageImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    storageImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    storageImageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
-    storageImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    storageImageCreateInfo.flags = 0;
-    storageImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    storageImageCreateInfo.queueFamilyIndexCount = 0;
-    storageImageCreateInfo.pNext = nullptr;
+
 
     // for convenience create a compile context for creating our storage image
     vsg::CompileTraversal compile(window);
 
+    // create storage image to render into
+    auto storageImageCreateInfo = vsg::Image::CreateInfo::create();
+    storageImageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
+    storageImageCreateInfo->format = VK_FORMAT_B8G8R8A8_UNORM;//VK_FORMAT_R8G8B8A8_UNORM;
+    storageImageCreateInfo->extent.width = width;
+    storageImageCreateInfo->extent.height = height;
+    storageImageCreateInfo->extent.depth = 1;
+    storageImageCreateInfo->mipLevels = 1;
+    storageImageCreateInfo->arrayLayers = 1;
+    storageImageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
+    storageImageCreateInfo->tiling = VK_IMAGE_TILING_OPTIMAL;
+    storageImageCreateInfo->usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+    storageImageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    storageImageCreateInfo->flags = 0;
+    storageImageCreateInfo->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
     vsg::ImageData storageImageData{nullptr,
                                     createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT),
                                     VK_IMAGE_LAYOUT_GENERAL};
-
 
     auto raytracingUniformValues = new RayTracingUniformValue();
     perspective->get_inverse(raytracingUniformValues->value().projInverse);
