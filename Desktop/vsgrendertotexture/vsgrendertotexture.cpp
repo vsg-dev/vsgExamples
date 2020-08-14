@@ -43,21 +43,18 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     VkExtent3D attachmentExtent{extent.width, extent.height, 1};
     // Attachments
     // create image for color attachment
-    VkImageCreateInfo colorImageCreateInfo;
-    colorImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    colorImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    colorImageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    colorImageCreateInfo.extent = attachmentExtent;
-    colorImageCreateInfo.mipLevels = 1;
-    colorImageCreateInfo.arrayLayers = 1;
-    colorImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    colorImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorImageCreateInfo.flags = 0;
-    colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    colorImageCreateInfo.queueFamilyIndexCount = 0;
-    colorImageCreateInfo.pNext = nullptr;
+    auto colorImageCreateInfo = vsg::Image::CreateInfo::create();
+    colorImageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
+    colorImageCreateInfo->format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorImageCreateInfo->extent = attachmentExtent;
+    colorImageCreateInfo->mipLevels = 1;
+    colorImageCreateInfo->arrayLayers = 1;
+    colorImageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
+    colorImageCreateInfo->tiling = VK_IMAGE_TILING_OPTIMAL;
+    colorImageCreateInfo->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    colorImageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorImageCreateInfo->flags = 0;
+    colorImageCreateInfo->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     auto colorImageView = createImageView(context, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
 
     // Sampler for accessing attachment as a texture
@@ -81,23 +78,21 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
 
     // create depth buffer
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
-    VkImageCreateInfo depthImageCreateInfo = {};
-    depthImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    depthImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    depthImageCreateInfo.extent = attachmentExtent;
-    depthImageCreateInfo.mipLevels = 1;
-    depthImageCreateInfo.arrayLayers = 1;
-    depthImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthImageCreateInfo.format = depthFormat;
-    depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    depthImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthImageCreateInfo.flags = 0;
-    depthImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    depthImageCreateInfo.pNext = nullptr;
+    auto depthImageCreateInfo = vsg::Image::CreateInfo::create();
+    depthImageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
+    depthImageCreateInfo->extent = attachmentExtent;
+    depthImageCreateInfo->mipLevels = 1;
+    depthImageCreateInfo->arrayLayers = 1;
+    depthImageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
+    depthImageCreateInfo->format = depthFormat;
+    depthImageCreateInfo->tiling = VK_IMAGE_TILING_OPTIMAL;
+    depthImageCreateInfo->usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    depthImageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthImageCreateInfo->flags = 0;
+    depthImageCreateInfo->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     // XXX Does layout matter?
     depthImage.sampler = nullptr;
-    depthImage.imageView = createImageView(context, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    depthImage.imageView = vsg::createImageView(context, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
     depthImage.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions
