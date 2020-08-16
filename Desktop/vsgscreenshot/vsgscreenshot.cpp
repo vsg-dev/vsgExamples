@@ -93,7 +93,7 @@ public:
         auto swapchain = window->getSwapchain();
 
         // get the colour buffer image of the previous rendered frame as the current frame hasn't been rendered yet.  The 1 in window->imageIndex(1) means image from 1 frame ago.
-        vsg::ref_ptr<vsg::Image> sourceImage(window->imageView(window->imageIndex(1))->getImage());
+        auto sourceImage = window->imageView(window->imageIndex(1))->image;
 
         VkFormat sourceImageFormat = swapchain->getImageFormat();
         VkFormat targetImageFormat = sourceImageFormat;
@@ -121,20 +121,20 @@ public:
         //
         // 2) create image to write to
         //
-        auto imageCreateInfo = vsg::Image::CreateInfo::create();
-        imageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
-        imageCreateInfo->format = targetImageFormat;
-        imageCreateInfo->extent.width = width;
-        imageCreateInfo->extent.height = height;
-        imageCreateInfo->extent.depth = 1;
-        imageCreateInfo->arrayLayers = 1;
-        imageCreateInfo->mipLevels = 1;
-        imageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        imageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
-        imageCreateInfo->tiling = VK_IMAGE_TILING_LINEAR;
-        imageCreateInfo->usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        auto destinationImage = vsg::Image::create();
+        destinationImage->imageType = VK_IMAGE_TYPE_2D;
+        destinationImage->format = targetImageFormat;
+        destinationImage->extent.width = width;
+        destinationImage->extent.height = height;
+        destinationImage->extent.depth = 1;
+        destinationImage->arrayLayers = 1;
+        destinationImage->mipLevels = 1;
+        destinationImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        destinationImage->samples = VK_SAMPLE_COUNT_1_BIT;
+        destinationImage->tiling = VK_IMAGE_TILING_LINEAR;
+        destinationImage->usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-        auto destinationImage = vsg::Image::create(device, imageCreateInfo);
+        destinationImage->compile(device);
 
         auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(device->deviceID),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 

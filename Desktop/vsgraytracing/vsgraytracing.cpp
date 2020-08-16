@@ -205,23 +205,23 @@ int main(int argc, char** argv)
     vsg::CompileTraversal compile(window);
 
     // create storage image to render into
-    auto storageImageCreateInfo = vsg::Image::CreateInfo::create();
-    storageImageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
-    storageImageCreateInfo->format = VK_FORMAT_B8G8R8A8_UNORM;//VK_FORMAT_R8G8B8A8_UNORM;
-    storageImageCreateInfo->extent.width = width;
-    storageImageCreateInfo->extent.height = height;
-    storageImageCreateInfo->extent.depth = 1;
-    storageImageCreateInfo->mipLevels = 1;
-    storageImageCreateInfo->arrayLayers = 1;
-    storageImageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
-    storageImageCreateInfo->tiling = VK_IMAGE_TILING_OPTIMAL;
-    storageImageCreateInfo->usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
-    storageImageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    storageImageCreateInfo->flags = 0;
-    storageImageCreateInfo->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    auto storageImage = vsg::Image::create();
+    storageImage->imageType = VK_IMAGE_TYPE_2D;
+    storageImage->format = VK_FORMAT_B8G8R8A8_UNORM;//VK_FORMAT_R8G8B8A8_UNORM;
+    storageImage->extent.width = width;
+    storageImage->extent.height = height;
+    storageImage->extent.depth = 1;
+    storageImage->mipLevels = 1;
+    storageImage->arrayLayers = 1;
+    storageImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    storageImage->tiling = VK_IMAGE_TILING_OPTIMAL;
+    storageImage->usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+    storageImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    storageImage->flags = 0;
+    storageImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     vsg::ImageData storageImageData{nullptr,
-                                    createImageView(compile.context, storageImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT),
+                                    createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT),
                                     VK_IMAGE_LAYOUT_GENERAL};
 
     auto raytracingUniformValues = new RayTracingUniformValue();

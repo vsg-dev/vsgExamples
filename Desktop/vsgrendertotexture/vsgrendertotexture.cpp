@@ -38,29 +38,26 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, vsg::Context& context, vsg::Camera* camera,
                                                           const VkExtent2D& extent,
-                                                     vsg::ImageData& colorImage, vsg::ImageData& depthImage)
+                                                          vsg::ImageData& colorImageData, vsg::ImageData& depthImageData)
 {
     VkExtent3D attachmentExtent{extent.width, extent.height, 1};
     // Attachments
     // create image for color attachment
-    auto colorImageCreateInfo = vsg::Image::CreateInfo::create();
-    colorImageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
-    colorImageCreateInfo->format = VK_FORMAT_R8G8B8A8_UNORM;
-    colorImageCreateInfo->extent = attachmentExtent;
-    colorImageCreateInfo->mipLevels = 1;
-    colorImageCreateInfo->arrayLayers = 1;
-    colorImageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
-    colorImageCreateInfo->tiling = VK_IMAGE_TILING_OPTIMAL;
-    colorImageCreateInfo->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    colorImageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorImageCreateInfo->flags = 0;
-    colorImageCreateInfo->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    auto colorImageView = createImageView(context, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
+    auto colorImage = vsg::Image::create();
+    colorImage->imageType = VK_IMAGE_TYPE_2D;
+    colorImage->format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorImage->extent = attachmentExtent;
+    colorImage->mipLevels = 1;
+    colorImage->arrayLayers = 1;
+    colorImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    colorImage->tiling = VK_IMAGE_TILING_OPTIMAL;
+    colorImage->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    colorImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorImage->flags = 0;
+    colorImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    auto colorImageView = createImageView(context, colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
 
     // Sampler for accessing attachment as a texture
-    colorImage.imageView = colorImageView;
-    colorImage.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
     auto colorSampler = vsg::Sampler::create();
     colorSampler->flags = 0;
     colorSampler->magFilter = VK_FILTER_LINEAR;
@@ -74,26 +71,30 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     colorSampler->minLod = 0.0f;
     colorSampler->maxLod = 1.0f;
     colorSampler->borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    colorImage.sampler = colorSampler;
+
+    colorImageData.imageView = colorImageView;
+    colorImageData.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    colorImageData.sampler = colorSampler;
 
     // create depth buffer
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
-    auto depthImageCreateInfo = vsg::Image::CreateInfo::create();
-    depthImageCreateInfo->imageType = VK_IMAGE_TYPE_2D;
-    depthImageCreateInfo->extent = attachmentExtent;
-    depthImageCreateInfo->mipLevels = 1;
-    depthImageCreateInfo->arrayLayers = 1;
-    depthImageCreateInfo->samples = VK_SAMPLE_COUNT_1_BIT;
-    depthImageCreateInfo->format = depthFormat;
-    depthImageCreateInfo->tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImageCreateInfo->usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    depthImageCreateInfo->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthImageCreateInfo->flags = 0;
-    depthImageCreateInfo->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    auto depthImage = vsg::Image::create();
+    depthImage->imageType = VK_IMAGE_TYPE_2D;
+    depthImage->extent = attachmentExtent;
+    depthImage->mipLevels = 1;
+    depthImage->arrayLayers = 1;
+    depthImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    depthImage->format = depthFormat;
+    depthImage->tiling = VK_IMAGE_TILING_OPTIMAL;
+    depthImage->usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    depthImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthImage->flags = 0;
+    depthImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
     // XXX Does layout matter?
-    depthImage.sampler = nullptr;
-    depthImage.imageView = vsg::createImageView(context, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-    depthImage.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    depthImageData.sampler = nullptr;
+    depthImageData.imageView = vsg::createImageView(context, depthImage, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    depthImageData.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions
     vsg::RenderPass::Attachments attachments(2);
@@ -152,7 +153,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     auto renderPass = vsg::RenderPass::create(device, attachments, subpassDescription, dependencies);
 
     // Framebuffer
-    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImage.imageView, depthImage.imageView}, extent.width, extent.height, 1);
+    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageData.imageView, depthImageData.imageView}, extent.width, extent.height, 1);
 
     auto rendergraph = vsg::RenderGraph::create();
     rendergraph->camera = camera;
