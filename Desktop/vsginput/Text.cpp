@@ -357,11 +357,11 @@ TextBase::TextBase(Font* font, GraphicsPipeline* pipeline, Allocator* allocator)
     _textMetricsUniform = vsg::DescriptorBuffer::create(_textMetrics,3);
 
     // create and bind descriptorset for text metrix uniform
-    auto& descriptorSetLayouts = pipeline->getPipelineLayout()->setLayouts;
+    auto& descriptorSetLayouts = pipeline->layout->setLayouts;
     auto textDescriptorSetLayout = descriptorSetLayouts[1];
 
     auto descriptorSet = DescriptorSet::create(textDescriptorSetLayout, Descriptors{ _textMetricsUniform });
-    auto bindDescriptorSet = BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipelineLayout(), 1, descriptorSet);
+    auto bindDescriptorSet = BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 1, descriptorSet);
     bindDescriptorSet->setSlot(2); // Font goes to slot 1, so use slot 2
 
     add(bindDescriptorSet);

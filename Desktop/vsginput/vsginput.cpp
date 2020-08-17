@@ -25,7 +25,7 @@ public:
         stategroup->add(vsg::BindGraphicsPipeline::create(textPipelineBuilder->getGraphicsPipeline()));
 
         // any text attached below the font node will use it's atlas and lookup texture descriptor set (0)
-        _font = vsg::Font::create(textPipelineBuilder->getGraphicsPipeline()->getPipelineLayout(), "roboto", searchPaths);
+        _font = vsg::Font::create(textPipelineBuilder->getGraphicsPipeline()->layout, "roboto", searchPaths);
         stategroup->add(_font);
 
         _keyboardInputText = vsg::Text::create(_font, textPipelineBuilder->getGraphicsPipeline());
