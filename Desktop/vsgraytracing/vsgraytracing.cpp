@@ -243,7 +243,7 @@ int main(int argc, char** argv)
     // create DescriptorSets and binding to bind our TopLevelAcceleration structure, storage image and camra matrix uniforms
     auto accelDescriptor = vsg::DescriptorAccelerationStructure::create(vsg::AccelerationStructures{tlas}, 0, 0);
 
-    auto storageImageDescriptor = vsg::DescriptorImageView::create(storageImageData, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    auto storageImageDescriptor = vsg::DescriptorImage::create(storageImageData, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
     auto raytracingUniformDescriptor = vsg::DescriptorBuffer::create(raytracingUniform, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     raytracingUniformDescriptor->copyDataListToBuffers();

@@ -188,9 +188,9 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
-    // texture has been filled in so it's now safe to get the ImageData that holds the handles to the texture's
-    vsg::ImageData textureImageData;
-    if (!texture->getImageDataList().empty()) textureImageData = texture->getImageDataList()[0]; // contextID=0, and only one imageData
+    // texture has been filled in so it's now safe to get the ImageInfo that holds the handles to the texture's
+    vsg::ImageInfo textureImageInfo;
+    if (!texture->imageInfoList.empty()) textureImageInfo = texture->imageInfoList[0]; // contextID=0, and only one imageData
 
     // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
     vsg::Context context(window->getOrCreateDevice());
@@ -212,7 +212,7 @@ int main(int argc, char** argv)
         auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
 
         // schedule a copy command to do the staging buffer to the texture image, this copy command is recorded to the appropriate command buffer by viewer->recordAndSubmit().
-        copyCmd->add(stagingBufferData, textureImageData);
+        copyCmd->add(stagingBufferData, textureImageInfo);
 
         viewer->update();
 
