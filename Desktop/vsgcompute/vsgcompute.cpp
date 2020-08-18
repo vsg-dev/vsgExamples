@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     // allocate output storage buffer
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
     auto buffer = vsg::Buffer::create(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
-    auto bufferMemory = vsg::DeviceMemory::create(device, buffer->getMemoryRequirements(),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto bufferMemory = vsg::DeviceMemory::create(device, buffer->getMemoryRequirements(device->deviceID),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     buffer->bind(bufferMemory, 0);
 
     // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets

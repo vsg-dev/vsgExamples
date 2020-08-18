@@ -255,7 +255,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     // 1. create buffer to copy to.
     VkDeviceSize bufferSize = memoryRequirements.size;
     vsg::ref_ptr<vsg::Buffer> destinationBuffer = vsg::Buffer::create(device, memoryRequirements.size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE);
-    vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+    vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(device->deviceID), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
     destinationBuffer->bind(destinationMemory, 0);
 
     VkImageAspectFlags imageAspectFlags = computeAspectFlagsForDepthFormat(sourceImageFormat);
@@ -556,7 +556,7 @@ int main(int argc, char** argv)
             if (copiedDepthBuffer)
             {
                 // 3. map buffer and copy data.
-                auto deviceMemory = copiedDepthBuffer->getDeviceMemory();
+                auto deviceMemory = copiedDepthBuffer->getDeviceMemory(device->deviceID);
 
                 // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
                 if (depthFormat==VK_FORMAT_D32_SFLOAT || depthFormat==VK_FORMAT_D32_SFLOAT_S8_UINT)
