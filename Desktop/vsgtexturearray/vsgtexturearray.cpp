@@ -95,7 +95,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    uint32_t numBaseTextures = 10;
+    int numRows = 4;
+    int numColumns = 4;
+
+    uint32_t numBaseTextures = numRows * numColumns;
 
     fragmentShader->setSpecializationConstants({
         {0, vsg::uintValue::create(numBaseTextures)}, // numBaseTextures
@@ -138,6 +141,13 @@ int main(int argc, char** argv)
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
+    vsg::DescriptorSetLayoutBindings tileSettingsDescriptorBindings
+    {
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+    };
+
+    auto tileSettingsDescriptorSetLayout = vsg::DescriptorSetLayout::create(tileSettingsDescriptorBindings);
+
     vsg::PushConstantRanges pushConstantRanges
     {
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
@@ -167,7 +177,7 @@ int main(int argc, char** argv)
         vsg::DepthStencilState::create()
     };
 
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout, tileSettingsDescriptorSetLayout}, pushConstantRanges);
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
@@ -186,6 +196,7 @@ int main(int argc, char** argv)
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{baseDescriptorImage});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, descriptorSet);
+    bindDescriptorSet->setSlot(1);
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
@@ -194,8 +205,6 @@ int main(int argc, char** argv)
 
     auto geometry = createGeometry();
 
-    int numRows = 4;
-    int numColumns = 4;
 
     for(int r=0; r<numRows; ++r)
     {
@@ -206,11 +215,35 @@ int main(int argc, char** argv)
             // set up model transformation node
             auto transform = vsg::MatrixTransform::create(vsg::translate(position));
 
+            uint32_t tileIndex = r*numColumns + c;
+
+            auto uniformValue = vsg::uintValue::create(tileIndex);
+            auto uniformBuffer = vsg::DescriptorBuffer::create(uniformValue, 0);
+
+            auto uniformDscriptorSet = vsg::DescriptorSet::create(tileSettingsDescriptorSetLayout, vsg::Descriptors{uniformBuffer});
+            bindDescriptorSet->setSlot(2);
+
+            auto uniformBindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, uniformDscriptorSet);
+
+#if 0
+            transform->addChild(uniformBindDescriptorSet);
+
             // add geometry
             transform->addChild(geometry);
 
             // add transform to root of the scene graph
             scenegraph->addChild(transform);
+#else
+
+            auto tileSettingsGroup = vsg::StateGroup::create();
+            tileSettingsGroup->add(uniformBindDescriptorSet);
+            tileSettingsGroup->addChild(transform);
+
+            transform->addChild(geometry);
+
+            // add transform to root of the scene graph
+            scenegraph->addChild(tileSettingsGroup);
+#endif
         }
     }
 
