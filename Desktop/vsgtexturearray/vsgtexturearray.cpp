@@ -28,6 +28,41 @@ void update(vsg::vec4Array2D& image, float value)
     }
 }
 
+vsg::ref_ptr<vsg::Node> createGeometry()
+{
+    // set up vertex and index arrays
+    auto vertices = vsg::vec3Array::create(
+    {
+        {-0.5f, -0.5f, 0.0f},
+        {0.5f,  -0.5f, 0.0f},
+        {0.5f , 0.5f, 0.0f},
+        {-0.5f, 0.5f, 0.0f}
+    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+
+    auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
+
+    auto texcoords = vsg::vec2Array::create(
+    {
+        {0.0f, 0.0f},
+        {1.0f, 0.0f},
+        {1.0f, 1.0f},
+        {0.0f, 1.0f}
+    }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+
+    auto indices = vsg::ushortArray::create(
+    {
+        0, 1, 2,
+        2, 3, 0
+    }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+
+    auto vid = vsg::VertexIndexDraw::create();
+    vid->arrays = vsg::DataList{vertices, colors, texcoords};
+    vid->indices = indices;
+    vid->indexCount = 6;
+    vid->instanceCount = 1;
+    return vid;
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -157,55 +192,29 @@ int main(int argc, char** argv)
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSet);
 
-    // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
+    auto geometry = createGeometry();
 
-    // add transform to root of the scene graph
-    scenegraph->addChild(transform);
+    int numRows = 4;
+    int numColumns = 4;
 
-    // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create(
+    for(int r=0; r<numRows; ++r)
     {
-        {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.0f},
-        {0.5f , 0.5f, 0.0f},
-        {-0.5f, 0.5f, 0.0f},
-        {-0.5f, -0.5f, -0.5f},
-        {0.5f,  -0.5f, -0.5f},
-        {0.5f , 0.5f, -0.5f},
-        {-0.5f, 0.5f, -0.5f}
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        for(int c=0; c<numColumns; ++c)
+        {
+            vsg::dvec3 position(static_cast<float>(c), static_cast<float>(r), 0.0f);
 
-    auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
+            // set up model transformation node
+            auto transform = vsg::MatrixTransform::create(vsg::translate(position));
 
-    auto texcoords = vsg::vec2Array::create(
-    {
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f},
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f}
-    }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+            // add geometry
+            transform->addChild(geometry);
 
-    auto indices = vsg::ushortArray::create(
-    {
-        0, 1, 2,
-        2, 3, 0,
-        4, 5, 6,
-        6, 7, 4
-    }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+            // add transform to root of the scene graph
+            scenegraph->addChild(transform);
+        }
+    }
 
-    // setup geometry
-    auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
-    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
-
-    // add drawCommands to transform
-    transform->addChild(drawCommands);
+    // vsg::write(scenegraph, "test.vsgt");
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -219,10 +228,17 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
+    // compute the bounds of the scene graph to help position camera
+    vsg::ComputeBounds computeBounds;
+    scenegraph->accept(computeBounds);
+    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
+    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+    double nearFarRatio = 0.001;
+
     // camera related details
     auto viewport = vsg::ViewportState::create(window->extent2D());
-    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), 0.1, 10.0);
-    auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
+    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, radius*1.5), centre, vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
@@ -254,7 +270,6 @@ int main(int argc, char** argv)
 
         // animate the transform
         float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
         auto textureData = textureDataList[0];
 
