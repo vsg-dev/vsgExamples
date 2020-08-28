@@ -60,7 +60,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    uint32_t numBaseTextures = 1;
+    uint32_t numBaseTextures = 10;
 
     fragmentShader->setSpecializationConstants({
         {0, vsg::uintValue::create(numBaseTextures)}, // numBaseTextures
@@ -83,11 +83,17 @@ int main(int argc, char** argv)
     // TODO end of block requiring changes
 #endif
 
-    // read texture image
-    auto textureData = vsg::vec4Array2D::create(256, 256);
-    textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    // set up texture image
+    std::vector<vsg::ref_ptr<vsg::vec4Array2D>> textureDataList;
+    for(uint32_t i = 0; i<numBaseTextures; ++i)
+    {
+        auto textureData = vsg::vec4Array2D::create(256, 256);
+        textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
-    update(*textureData, 1.0f);
+        update(*textureData, 1.0f);
+
+        textureDataList.push_back(textureData);
+    }
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings
@@ -136,7 +142,10 @@ int main(int argc, char** argv)
     clampToEdge_sampler->info().addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
     vsg::SamplerImages baseTextures;
-    baseTextures.emplace_back(vsg::SamplerImage{clampToEdge_sampler, textureData});
+    for(auto textureData : textureDataList)
+    {
+        baseTextures.emplace_back(vsg::SamplerImage{clampToEdge_sampler, textureData});
+    }
 
     auto baseDescriptorImage = vsg::DescriptorImage::create(baseTextures, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
@@ -246,6 +255,8 @@ int main(int argc, char** argv)
         // animate the transform
         float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
         transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
+
+        auto textureData = textureDataList[0];
 
         // update texture data
         update(*textureData, time);
