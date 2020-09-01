@@ -3,7 +3,7 @@
 
 layout(constant_id = 0) const uint numBaseTextures = 1;
 
-layout(set = 0, binding = 0) uniform sampler2D baseTextureSampler[numBaseTextures];
+layout(set = 0, binding = 1) uniform sampler2D baseTextureSampler[numBaseTextures];
 
 layout(set = 1, binding = 0) uniform TileSettings {
     uint tileIndex;
