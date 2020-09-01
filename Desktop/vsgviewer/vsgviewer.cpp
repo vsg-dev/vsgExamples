@@ -221,8 +221,6 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-
-
     auto group = vsg::Group::create();
 
     vsg::Path path;
