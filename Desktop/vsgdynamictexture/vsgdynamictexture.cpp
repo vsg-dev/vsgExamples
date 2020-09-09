@@ -176,7 +176,7 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
 
-    auto copyCmd = vsg::CopyAndReleaseImageDataCommand::create();
+    auto copyCmd = vsg::CopyAndReleaseImage::create();
     commandGraph->getChildren().insert(commandGraph->getChildren().begin(), copyCmd);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
