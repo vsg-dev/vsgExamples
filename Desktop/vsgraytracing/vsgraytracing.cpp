@@ -1,32 +1,6 @@
 #include <vsg/all.h>
 #include <iostream>
 
-#if 0
-vsg::ImageData createImageView(vsg::Context& context, const VkImageCreateInfo& imageCreateInfo, VkImageAspectFlags aspectFlags, VkImageLayout targetImageLayout)
-{
-    vsg::Device* device = context.device;
-
-    vsg::ref_ptr<vsg::Image> image;
-
-    image = vsg::Image::create(device, imageCreateInfo);
-
-    // allocate memory with out export memory info extension
-    auto[deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(image->getMemoryRequirements(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if (!deviceMemory)
-    {
-        std::cout << "Warning: Failed allocate memory to reserve slot" << std::endl;
-        return vsg::ImageData();
-    }
-
-    image->bind(deviceMemory, offset);
-
-    vsg::ref_ptr<vsg::ImageView> imageview = vsg::ImageView::create(device, image, VK_IMAGE_VIEW_TYPE_2D, imageCreateInfo.format, aspectFlags);
-
-    return vsg::ImageData(nullptr, imageview, targetImageLayout);
-}
-#endif
-
 struct RayTracingUniform
 {
     vsg::mat4 viewInverse;
@@ -220,7 +194,7 @@ int main(int argc, char** argv)
     storageImage->flags = 0;
     storageImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    vsg::ImageData storageImageData{nullptr,
+    vsg::ImageInfo storageImageInfo{nullptr,
                                     createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT),
                                     VK_IMAGE_LAYOUT_GENERAL};
 
@@ -243,7 +217,7 @@ int main(int argc, char** argv)
     // create DescriptorSets and binding to bind our TopLevelAcceleration structure, storage image and camra matrix uniforms
     auto accelDescriptor = vsg::DescriptorAccelerationStructure::create(vsg::AccelerationStructures{tlas}, 0, 0);
 
-    auto storageImageDescriptor = vsg::DescriptorImage::create(storageImageData, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    auto storageImageDescriptor = vsg::DescriptorImage::create(storageImageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
     auto raytracingUniformDescriptor = vsg::DescriptorBuffer::create(raytracingUniform, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     raytracingUniformDescriptor->copyDataListToBuffers();
@@ -281,7 +255,7 @@ int main(int argc, char** argv)
     // set up commandGraph to rendering viewport
     auto commandGraph = vsg::CommandGraph::create(window);
 
-    auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageData.imageView, window);
+    auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageInfo.imageView, window);
 
     commandGraph->addChild(scenegraph);
     commandGraph->addChild(copyImageViewToWindow);

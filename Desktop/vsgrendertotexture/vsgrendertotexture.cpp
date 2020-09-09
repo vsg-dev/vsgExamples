@@ -38,7 +38,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, vsg::Context& context, vsg::Camera* camera,
                                                           const VkExtent2D& extent,
-                                                          vsg::ImageData& colorImageData, vsg::ImageData& depthImageData)
+                                                          vsg::ImageInfo& colorImageInfo, vsg::ImageInfo& depthImageInfo)
 {
     VkExtent3D attachmentExtent{extent.width, extent.height, 1};
     // Attachments
@@ -72,9 +72,9 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     colorSampler->maxLod = 1.0f;
     colorSampler->borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
-    colorImageData.imageView = colorImageView;
-    colorImageData.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    colorImageData.sampler = colorSampler;
+    colorImageInfo.imageView = colorImageView;
+    colorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    colorImageInfo.sampler = colorSampler;
 
     // create depth buffer
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
@@ -92,9 +92,9 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     depthImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     // XXX Does layout matter?
-    depthImageData.sampler = nullptr;
-    depthImageData.imageView = vsg::createImageView(context, depthImage, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-    depthImageData.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    depthImageInfo.sampler = nullptr;
+    depthImageInfo.imageView = vsg::createImageView(context, depthImage, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions
     vsg::RenderPass::Attachments attachments(2);
@@ -153,7 +153,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     auto renderPass = vsg::RenderPass::create(device, attachments, subpassDescription, dependencies);
 
     // Framebuffer
-    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageData.imageView, depthImageData.imageView}, extent.width, extent.height, 1);
+    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageInfo.imageView, depthImageInfo.imageView}, extent.width, extent.height, 1);
 
     auto rendergraph = vsg::RenderGraph::create();
     rendergraph->camera = camera;
@@ -168,7 +168,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     return rendergraph;
 }
 
-vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageData& colorImage)
+vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageInfo& colorImage)
 {
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -404,14 +404,14 @@ int main(int argc, char** argv)
 
     // for convenience create a compile context for creating our
     // storage image
-    // XXX How to put ImageData in the scene graph and compile it
+    // XXX How to put ImageInfo in the scene graph and compile it
     // during a compile traversal? Should RenderGraph support compile()?
     vsg::CompileTraversal compile(window);
 
     // Framebuffer with attachments
     VkExtent2D targetExtent{512, 512};
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
-    vsg::ImageData colorImage, depthImage;
+    vsg::ImageInfo colorImage, depthImage;
     auto rtt_RenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, offscreenCamera, targetExtent, colorImage, depthImage);
     rtt_RenderGraph->addChild(vsg_scene);
 
