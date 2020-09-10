@@ -99,7 +99,7 @@ int main(int argc, char** argv)
     auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, descriptorSet);
+    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
@@ -176,7 +176,7 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
 
-    auto copyCmd = vsg::CopyAndReleaseImageDataCommand::create();
+    auto copyCmd = vsg::CopyAndReleaseImage::create();
     commandGraph->getChildren().insert(commandGraph->getChildren().begin(), copyCmd);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
@@ -188,9 +188,9 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
-    // texture has been filled in so it's now safe to get the ImageData that holds the handles to the texture's
-    vsg::ImageData textureImageData;
-    if (!texture->getImageList(0).empty()) textureImageData = texture->getImageList(0)[0]; // contextID=0, and only one imageData
+    // texture has been filled in so it's now safe to get the ImageInfo that holds the handles to the texture's
+    vsg::ImageInfo textureImageInfo;
+    if (!texture->imageInfoList.empty()) textureImageInfo = texture->imageInfoList[0]; // contextID=0, and only one imageData
 
     // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
     vsg::Context context(window->getOrCreateDevice());
@@ -212,7 +212,7 @@ int main(int argc, char** argv)
         auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
 
         // schedule a copy command to do the staging buffer to the texture image, this copy command is recorded to the appropriate command buffer by viewer->recordAndSubmit().
-        copyCmd->add(stagingBufferData, textureImageData);
+        copyCmd->add(stagingBufferData, textureImageInfo);
 
         viewer->update();
 

@@ -28,22 +28,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat imageFormat)
 {
-   VkImageCreateInfo colorImageCreateInfo;
-    colorImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    colorImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    colorImageCreateInfo.format = imageFormat;
-    colorImageCreateInfo.extent = VkExtent3D{extent.width, extent.height, 1};
-    colorImageCreateInfo.mipLevels = 1;
-    colorImageCreateInfo.arrayLayers = 1;
-    colorImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    colorImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorImageCreateInfo.flags = 0;
-    colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    colorImageCreateInfo.queueFamilyIndexCount = 0;
-    colorImageCreateInfo.pNext = nullptr;
-    return vsg::createImageView(device, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
+    auto colorImage = vsg::Image::create();
+    colorImage->imageType = VK_IMAGE_TYPE_2D;
+    colorImage->format = imageFormat;
+    colorImage->extent = VkExtent3D{extent.width, extent.height, 1};
+    colorImage->mipLevels = 1;
+    colorImage->arrayLayers = 1;
+    colorImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    colorImage->tiling = VK_IMAGE_TILING_OPTIMAL;
+    colorImage->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    colorImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorImage->flags = 0;
+    colorImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    return vsg::createImageView(device, colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 VkImageAspectFlags computeAspectFlagsForDepthFormat(VkFormat depthFormat)
@@ -54,30 +52,27 @@ VkImageAspectFlags computeAspectFlagsForDepthFormat(VkFormat depthFormat)
 
 vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat depthFormat)
 {
-    VkImageCreateInfo depthImageCreateInfo = {};
-    depthImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    depthImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    depthImageCreateInfo.extent = VkExtent3D{extent.width, extent.height, 1};
-    depthImageCreateInfo.mipLevels = 1;
-    depthImageCreateInfo.arrayLayers = 1;
-    depthImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthImageCreateInfo.format = depthFormat;
-    depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    depthImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthImageCreateInfo.flags = 0;
-    depthImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    depthImageCreateInfo.pNext = nullptr;
+    auto depthImage = vsg::Image::create();
+    depthImage->imageType = VK_IMAGE_TYPE_2D;
+    depthImage->extent = VkExtent3D{extent.width, extent.height, 1};
+    depthImage->mipLevels = 1;
+    depthImage->arrayLayers = 1;
+    depthImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    depthImage->format = depthFormat;
+    depthImage->tiling = VK_IMAGE_TILING_OPTIMAL;
+    depthImage->usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    depthImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthImage->flags = 0;
+    depthImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    return vsg::createImageView(device, depthImageCreateInfo, computeAspectFlagsForDepthFormat(depthFormat));
+    return vsg::createImageView(device, depthImage, computeAspectFlagsForDepthFormat(depthFormat));
 }
 
-std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapture(const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
+std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapture(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
 {
     auto width = extent.width;
     auto height = extent.height;
 
-    auto device = sourceImage->getDevice();
     auto physicalDevice = device->getPhysicalDevice();
 
     VkFormat targetImageFormat = sourceImageFormat;
@@ -105,23 +100,22 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     //
     // 2) create image to write to
     //
-    VkImageCreateInfo imageCreateInfo = {};
-    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageCreateInfo.format = targetImageFormat;
-    imageCreateInfo.extent.width = width;
-    imageCreateInfo.extent.height = height;
-    imageCreateInfo.extent.depth = 1;
-    imageCreateInfo.arrayLayers = 1;
-    imageCreateInfo.mipLevels = 1;
-    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageCreateInfo.tiling = VK_IMAGE_TILING_LINEAR;
-    imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    auto destinationImage = vsg::Image::create();
+    destinationImage->imageType = VK_IMAGE_TYPE_2D;
+    destinationImage->format = targetImageFormat;
+    destinationImage->extent.width = width;
+    destinationImage->extent.height = height;
+    destinationImage->extent.depth = 1;
+    destinationImage->arrayLayers = 1;
+    destinationImage->mipLevels = 1;
+    destinationImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    destinationImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    destinationImage->tiling = VK_IMAGE_TILING_LINEAR;
+    destinationImage->usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-    auto destinationImage = vsg::Image::create(device, imageCreateInfo);
+    destinationImage->compile(device);
 
-    auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(device->deviceID),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     destinationImage->bind(deviceMemory, 0);
 
@@ -247,22 +241,21 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     return {commands, destinationImage};
 }
 
-std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCapture(const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
+std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCapture(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
 {
     auto width = extent.width;
     auto height = extent.height;
 
-    auto device = sourceImage->getDevice();
     auto physicalDevice = device->getPhysicalDevice();
 
     VkFormat targetImageFormat = sourceImageFormat;
 
-    auto memoryRequirements = sourceImage->getMemoryRequirements();
+    auto memoryRequirements = sourceImage->getMemoryRequirements(device->deviceID);
 
     // 1. create buffer to copy to.
     VkDeviceSize bufferSize = memoryRequirements.size;
     vsg::ref_ptr<vsg::Buffer> destinationBuffer = vsg::Buffer::create(device, memoryRequirements.size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE);
-    vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
+    vsg::ref_ptr<vsg::DeviceMemory> destinationMemory = vsg::DeviceMemory::create(device, destinationBuffer->getMemoryRequirements(device->deviceID), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
     destinationBuffer->bind(destinationMemory, 0);
 
     VkImageAspectFlags imageAspectFlags = computeAspectFlagsForDepthFormat(sourceImageFormat);
@@ -495,9 +488,8 @@ int main(int argc, char** argv)
 
 
     // create supoort for copying the color buffer
-    vsg::ref_ptr<vsg::Image> colorImage;
-    auto [colorBufferCapture, copiedColorBuffer] = createColorCapture(extent, vsg::ref_ptr<vsg::Image>(colorImageView->getImage()), imageFormat);
-    auto [depthBufferCapture, copiedDepthBuffer] = createDepthCapture(extent, vsg::ref_ptr<vsg::Image>(depthImageView->getImage()), depthFormat);
+    auto [colorBufferCapture, copiedColorBuffer] = createColorCapture(device, extent, colorImageView->image, imageFormat);
+    auto [depthBufferCapture, copiedDepthBuffer] = createDepthCapture(device, extent, depthImageView->image, depthFormat);
 
     auto commandGraph = vsg::CommandGraph::create(device, queueFamily);
     commandGraph->addChild(renderGraph);
@@ -551,9 +543,9 @@ int main(int argc, char** argv)
             {
                 VkImageSubresource subResource { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
                 VkSubresourceLayout subResourceLayout;
-                vkGetImageSubresourceLayout(*device, *copiedColorBuffer, &subResource, &subResourceLayout);
+                vkGetImageSubresourceLayout(*device, copiedColorBuffer->vk(device->deviceID), &subResource, &subResourceLayout);
 
-                auto deviceMemory = copiedColorBuffer->getDeviceMemory();
+                auto deviceMemory = copiedColorBuffer->getDeviceMemory(device->deviceID);
 
                 // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
                 auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Layout{imageFormat}, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
@@ -564,7 +556,7 @@ int main(int argc, char** argv)
             if (copiedDepthBuffer)
             {
                 // 3. map buffer and copy data.
-                auto deviceMemory = copiedDepthBuffer->getDeviceMemory();
+                auto deviceMemory = copiedDepthBuffer->getDeviceMemory(device->deviceID);
 
                 // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
                 if (depthFormat==VK_FORMAT_D32_SFLOAT || depthFormat==VK_FORMAT_D32_SFLOAT_S8_UINT)

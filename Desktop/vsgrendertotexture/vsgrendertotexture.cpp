@@ -38,69 +38,63 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, vsg::Context& context, vsg::Camera* camera,
                                                           const VkExtent2D& extent,
-                                                     vsg::ImageData& colorImage, vsg::ImageData& depthImage)
+                                                          vsg::ImageInfo& colorImageInfo, vsg::ImageInfo& depthImageInfo)
 {
     VkExtent3D attachmentExtent{extent.width, extent.height, 1};
     // Attachments
     // create image for color attachment
-    VkImageCreateInfo colorImageCreateInfo;
-    colorImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    colorImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    colorImageCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    colorImageCreateInfo.extent = attachmentExtent;
-    colorImageCreateInfo.mipLevels = 1;
-    colorImageCreateInfo.arrayLayers = 1;
-    colorImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    colorImageCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    colorImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorImageCreateInfo.flags = 0;
-    colorImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    colorImageCreateInfo.queueFamilyIndexCount = 0;
-    colorImageCreateInfo.pNext = nullptr;
-    auto colorImageView = createImageView(context, colorImageCreateInfo, VK_IMAGE_ASPECT_COLOR_BIT);
+    auto colorImage = vsg::Image::create();
+    colorImage->imageType = VK_IMAGE_TYPE_2D;
+    colorImage->format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorImage->extent = attachmentExtent;
+    colorImage->mipLevels = 1;
+    colorImage->arrayLayers = 1;
+    colorImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    colorImage->tiling = VK_IMAGE_TILING_OPTIMAL;
+    colorImage->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    colorImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorImage->flags = 0;
+    colorImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    auto colorImageView = createImageView(context, colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
 
     // Sampler for accessing attachment as a texture
-    colorImage.imageView = colorImageView;
-    colorImage.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     auto colorSampler = vsg::Sampler::create();
-    VkSamplerCreateInfo& samplerInfo = colorSampler->info();
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.pNext = nullptr;
-    samplerInfo.flags = 0;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = samplerInfo.addressModeU;
-    samplerInfo.addressModeW = samplerInfo.addressModeU;
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.maxAnisotropy = 1.0f;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 1.0f;
-    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    colorImage.sampler = colorSampler;
+    colorSampler->flags = 0;
+    colorSampler->magFilter = VK_FILTER_LINEAR;
+    colorSampler->minFilter = VK_FILTER_LINEAR;
+    colorSampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    colorSampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    colorSampler->addressModeV = colorSampler->addressModeU;
+    colorSampler->addressModeW = colorSampler->addressModeU;
+    colorSampler->mipLodBias = 0.0f;
+    colorSampler->maxAnisotropy = 1.0f;
+    colorSampler->minLod = 0.0f;
+    colorSampler->maxLod = 1.0f;
+    colorSampler->borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+
+    colorImageInfo.imageView = colorImageView;
+    colorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    colorImageInfo.sampler = colorSampler;
 
     // create depth buffer
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
-    VkImageCreateInfo depthImageCreateInfo = {};
-    depthImageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    depthImageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-    depthImageCreateInfo.extent = attachmentExtent;
-    depthImageCreateInfo.mipLevels = 1;
-    depthImageCreateInfo.arrayLayers = 1;
-    depthImageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthImageCreateInfo.format = depthFormat;
-    depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    depthImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthImageCreateInfo.flags = 0;
-    depthImageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    depthImageCreateInfo.pNext = nullptr;
+    auto depthImage = vsg::Image::create();
+    depthImage->imageType = VK_IMAGE_TYPE_2D;
+    depthImage->extent = attachmentExtent;
+    depthImage->mipLevels = 1;
+    depthImage->arrayLayers = 1;
+    depthImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    depthImage->format = depthFormat;
+    depthImage->tiling = VK_IMAGE_TILING_OPTIMAL;
+    depthImage->usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    depthImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthImage->flags = 0;
+    depthImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
     // XXX Does layout matter?
-    depthImage.sampler = nullptr;
-    depthImage.imageView = createImageView(context, depthImageCreateInfo, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-    depthImage.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    depthImageInfo.sampler = nullptr;
+    depthImageInfo.imageView = vsg::createImageView(context, depthImage, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions
     vsg::RenderPass::Attachments attachments(2);
@@ -159,7 +153,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     auto renderPass = vsg::RenderPass::create(device, attachments, subpassDescription, dependencies);
 
     // Framebuffer
-    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImage.imageView, depthImage.imageView}, extent.width, extent.height, 1);
+    auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageInfo.imageView, depthImageInfo.imageView}, extent.width, extent.height, 1);
 
     auto rendergraph = vsg::RenderGraph::create();
     rendergraph->camera = camera;
@@ -174,7 +168,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     return rendergraph;
 }
 
-vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageData& colorImage)
+vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageInfo& colorImage)
 {
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -230,10 +224,10 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageData& colorImage)
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
     // create texture image and associated DescriptorSets and binding
-    auto texture = vsg::DescriptorImageView::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    auto texture = vsg::DescriptorImage::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, descriptorSet);
+    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
@@ -410,14 +404,14 @@ int main(int argc, char** argv)
 
     // for convenience create a compile context for creating our
     // storage image
-    // XXX How to put ImageData in the scene graph and compile it
+    // XXX How to put ImageInfo in the scene graph and compile it
     // during a compile traversal? Should RenderGraph support compile()?
     vsg::CompileTraversal compile(window);
 
     // Framebuffer with attachments
     VkExtent2D targetExtent{512, 512};
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
-    vsg::ImageData colorImage, depthImage;
+    vsg::ImageInfo colorImage, depthImage;
     auto rtt_RenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, offscreenCamera, targetExtent, colorImage, depthImage);
     rtt_RenderGraph->addChild(vsg_scene);
 

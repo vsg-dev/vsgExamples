@@ -33,11 +33,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    computeStage->setSpecializationConstants({
+    computeStage->specializationConstants = vsg::ShaderStage::SpecializationConstants{
         {0, vsg::intValue::create(width)},
         {1, vsg::intValue::create(height)},
         {2, vsg::intValue::create(workgroupSize)}
-    });
+    };
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
@@ -60,14 +60,14 @@ int main(int argc, char** argv)
     // allocate output storage buffer
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
     auto buffer = vsg::Buffer::create(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
-    auto bufferMemory = vsg::DeviceMemory::create(device, buffer->getMemoryRequirements(),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto bufferMemory = vsg::DeviceMemory::create(device, buffer->getMemoryRequirements(device->deviceID),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     buffer->bind(bufferMemory, 0);
 
     // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
     vsg::DescriptorSetLayoutBindings descriptorBindings { {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} };
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(vsg::BufferDataList{vsg::BufferData(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) };
+    vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) };
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
 
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});

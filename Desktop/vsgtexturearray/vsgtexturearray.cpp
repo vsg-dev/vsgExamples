@@ -191,16 +191,18 @@ int main(int argc, char** argv)
 
     uint32_t numTiles = numRows * numColumns;
 
-    fragmentShader->setSpecializationConstants({
+    vsg::ShaderStage::SpecializationConstants specializationContexts{
         {0, vsg::uintValue::create(numTiles)}, // numTiles
-    });
+    };
 
+    vertexShader->specializationConstants = specializationContexts;
+    fragmentShader->specializationConstants = specializationContexts;
 
 #ifdef USE_VSGXCHANGE
     // compile section
     vsg::ShaderStages stagesToCompile;
-    if (vertexShader && vertexShader->getShaderModule() && vertexShader->getShaderModule()->spirv().empty()) stagesToCompile.emplace_back(vertexShader);
-    if (fragmentShader && fragmentShader->getShaderModule() && fragmentShader->getShaderModule()->spirv().empty()) stagesToCompile.emplace_back(fragmentShader);
+    if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
+    if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
 
     if (!stagesToCompile.empty())
     {
@@ -286,8 +288,8 @@ int main(int argc, char** argv)
 
     // create texture image and associated DescriptorSets and binding
     auto clampToEdge_sampler = vsg::Sampler::create();
-    clampToEdge_sampler->info().addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    clampToEdge_sampler->info().addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    clampToEdge_sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    clampToEdge_sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
     vsg::SamplerImages baseTextures;
     for(auto textureData : textureDataList)
@@ -296,13 +298,13 @@ int main(int argc, char** argv)
     }
 
     auto hf_sampler = vsg::Sampler::create();
-    hf_sampler->info().minFilter = VK_FILTER_NEAREST;
-    hf_sampler->info().magFilter = VK_FILTER_NEAREST;
-    hf_sampler->info().addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    hf_sampler->info().addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    hf_sampler->info().anisotropyEnable = VK_FALSE;
-    hf_sampler->info().maxAnisotropy = 1;
-    hf_sampler->info().mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    hf_sampler->minFilter = VK_FILTER_NEAREST;
+    hf_sampler->magFilter = VK_FILTER_NEAREST;
+    hf_sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    hf_sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    hf_sampler->anisotropyEnable = VK_FALSE;
+    hf_sampler->maxAnisotropy = 1;
+    hf_sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 
     vsg::SamplerImages hfTextures;
     for(auto hfData : heightFieldDataList)
@@ -314,7 +316,7 @@ int main(int argc, char** argv)
     auto baseDescriptorImage = vsg::DescriptorImage::create(baseTextures, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{heightFieldDescriptorImage, baseDescriptorImage});
-    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->getPipelineLayout(), 0, descriptorSet);
+    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
@@ -394,7 +396,7 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
 
-    auto copyCmd = vsg::CopyAndReleaseImageDataCommand::create();
+    auto copyCmd = vsg::CopyAndReleaseImage::create();
     commandGraph->getChildren().insert(commandGraph->getChildren().begin(), copyCmd);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
@@ -411,9 +413,7 @@ int main(int argc, char** argv)
     // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
     vsg::Context context(window->getOrCreateDevice());
 
-    auto& imageDataList = baseDescriptorImage->getImageList(0); // contextID = 0
-    auto& samplerImageList = baseDescriptorImage->getSamplerImages();
-
+    auto& imageDataList = baseDescriptorImage->imageInfoList;
 
     // main frame loop
     while (viewer->advanceToNextFrame())
@@ -430,7 +430,7 @@ int main(int argc, char** argv)
             uint32_t textureToUpdate =  0; // viewer->getFrameStamp()->frameCount % numTiles;
 
             auto& textureImageData = imageDataList[textureToUpdate];
-            auto textureData = samplerImageList[textureToUpdate].data.cast<vsg::ubvec4Array2D>();
+            auto textureData = textureImageData.imageView->image->data.cast<vsg::ubvec4Array2D>();
 
             if (textureData)
             {
@@ -445,7 +445,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::cout<<"samplerImageList[textureToUpdate].data.cast<vsg::vec4Array2D>() data = "<<samplerImageList[textureToUpdate].data<<", cast ="<< samplerImageList[textureToUpdate].data.cast<vsg::vec4Array2D>()<<std::endl;
+                std::cout<<"textureImageData.imageView->image->data = "<<textureImageData.imageView->image->data<<", cast ="<< textureImageData.imageView->image->data.cast<vsg::vec4Array2D>()<<std::endl;
             }
         }
 
