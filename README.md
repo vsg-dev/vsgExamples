@@ -1,5 +1,5 @@
 # vsgExamples
-Example programs that test and illustrate how to use the [VulkanSceneGraph/VkSceneGraph](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and optional add-on libraries. The example programs are grouped according to the type of features they illustrate their dependencies.
+Example programs that test and illustrate how to use the [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and optional add-on libraries. The example programs are grouped according to the type of features they illustrate their dependencies.
 
 ## Core examples
 The [Core](Core/) directory contains examples illustrate core class features of the VSG such as reference counting, maths, visitors etc.
