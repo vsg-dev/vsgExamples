@@ -1,6 +1,11 @@
 #include <vsg/all.h>
 #include <iostream>
 
+#ifdef USE_VSGXCHANGE
+#include <vsgXchange/ReaderWriter_all.h>
+#include <vsgXchange/ShaderCompiler.h>
+#endif
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -16,25 +21,55 @@ int main(int argc, char** argv)
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
+    auto options = vsg::Options::create();
+    options->paths = searchPaths;
+#ifdef USE_VSGXCHANGE
+    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+#endif
+
+    // read texture image
+    vsg::Path font_textureFile("fonts/roboto.vsgb");
+    vsg::Path font_metricsFile("fonts/roboto.text");
+    auto textureData = vsg::read_cast<vsg::Data>(vsg::findFile(font_textureFile, searchPaths));
+    if (!textureData)
+    {
+        std::cout<<"Could not read texture file : "<<font_textureFile<<std::endl;
+        return 1;
+    }
+
+
+
     // load shaders
-    vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
-    vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.frag", options);
+
+    std::cout<<"vertexShader = "<<vertexShader<<std::endl;
+    std::cout<<"fragmentShader = "<<fragmentShader<<std::endl;
+
     if (!vertexShader || !fragmentShader)
     {
         std::cout<<"Could not create shaders."<<std::endl;
         return 1;
     }
 
-    // read texture image
-    vsg::Path textureFile("fonts/roboto.vsgb");
-    auto textureData = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));
-    if (!textureData)
-    {
-        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
-        return 1;
-    }
 
-    // set up graphics pipeline
+#ifdef USE_VSGXCHANGE
+    // compile section
+    vsg::ShaderStages stagesToCompile;
+    if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
+    if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
+
+    if (!stagesToCompile.empty())
+    {
+        auto shaderCompiler = vsgXchange::ShaderCompiler::create();
+
+        std::vector<std::string> defines;
+        shaderCompiler->compile(stagesToCompile, defines); // and paths?
+    }
+    // TODO end of block requiring changes
+#endif
+
+// set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings
     {
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
@@ -61,13 +96,34 @@ int main(int argc, char** argv)
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
 
+    // alpha blending
+    VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+    colorBlendAttachment.blendEnable = VK_TRUE;
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_A_BIT;
+
+    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    auto blending = vsg::ColorBlendState::create(vsg::ColorBlendState::ColorBlendAttachments{colorBlendAttachment});
+
+    // switch off back face culling
+    auto rasterization = vsg::RasterizationState::create();
+    rasterization->cullMode = VK_CULL_MODE_NONE;
+
     vsg::GraphicsPipelineStates pipelineStates
     {
         vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
         vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
         vsg::MultisampleState::create(),
-        vsg::ColorBlendState::create(),
+        blending,
+        rasterization,
         vsg::DepthStencilState::create()
     };
 
@@ -170,6 +226,9 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
+    // assign Trackball
+    viewer->addEventHandler(vsg::Trackball::create(camera));
+
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
@@ -178,10 +237,6 @@ int main(int argc, char** argv)
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
-
-        // animate the transform
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
         viewer->update();
 
