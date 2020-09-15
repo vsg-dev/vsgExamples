@@ -6,6 +6,296 @@
 #include <vsgXchange/ShaderCompiler.h>
 #endif
 
+namespace text
+{
+    struct GlyphData
+    {
+        uint16_t character;
+        vsg::vec4 uvrect; // min x/y, max x/y
+        vsg::vec2 size; // normalised size of the glyph
+        vsg::vec2 offset; // normalised offset
+        float xadvance; // normalised xadvance
+        float lookupOffset; // offset into lookup texture
+    };
+    using GlyphMap = std::map<uint16_t, GlyphData>;
+
+    bool readUnity3dFontMetaFile(const std::string& filePath, GlyphMap& glyphMap, float& fontPixelHeight, float& normalisedLineHeight)
+    {
+        std::cout<<"filePath = "<<filePath<<std::endl;
+
+        if (filePath.empty()) return false;
+
+        // read glyph data from txt file
+        auto startsWith = [](const std::string& str, const std::string& match)
+        {
+            return str.compare(0, match.length(), match) == 0;
+        };
+
+        auto split = [](const std::string& str, const char& seperator)
+        {
+            std::vector<std::string> elements;
+
+            std::string::size_type prev_pos = 0, pos = 0;
+
+            while ((pos = str.find(seperator, pos)) != std::string::npos)
+            {
+                auto substring = str.substr(prev_pos, pos - prev_pos);
+                elements.push_back(substring);
+                prev_pos = ++pos;
+            }
+
+            elements.push_back(str.substr(prev_pos, pos - prev_pos));
+
+            return elements;
+        };
+
+        auto uintValueFromPair = [&split](const std::string& str)
+        {
+            std::vector<std::string> els = split(str, '=');
+            return static_cast<uint32_t>(atoi(els[1].c_str()));
+        };
+
+        auto floatValueFromPair = [&split](const std::string& str)
+        {
+            std::vector<std::string> els = split(str, '=');
+            return static_cast<float>(atof(els[1].c_str()));
+        };
+
+        auto stringValueFromPair = [&split](const std::string& str)
+        {
+            std::vector<std::string> els = split(str, '=');
+            return els[1];
+        };
+
+
+        std::ifstream in(filePath);
+
+        // read header lines
+        std::string infoline;
+        std::getline(in, infoline);
+        std::vector<std::string> infoelements = split(infoline, ' ');
+        std::string facename = stringValueFromPair(infoelements[1]);
+
+        fontPixelHeight = floatValueFromPair(infoelements[2]);
+
+        // read common line
+        std::string commonline;
+        std::getline(in, commonline);
+        std::vector<std::string> commonelements = split(commonline, ' ');
+
+        float lineHeight = floatValueFromPair(commonelements[1]);
+        normalisedLineHeight = lineHeight / fontPixelHeight;
+
+        float baseLine = floatValueFromPair(commonelements[2]);
+        float normalisedBaseLine = baseLine / fontPixelHeight;
+        float scaleWidth = floatValueFromPair(commonelements[3]);
+        float scaleHeight = floatValueFromPair(commonelements[4]);
+
+        // read page id line
+        std::string pageline;
+        std::getline(in, pageline);
+
+        // read character count line
+        std::string charsline;
+        std::getline(in, charsline);
+        std::vector<std::string> charselements = split(charsline, ' ');
+        uint32_t charscount = uintValueFromPair(charselements[1]);
+
+        // read character data lines
+        for (uint32_t i = 0; i < charscount; i++)
+        {
+            std::string line;
+            std::getline(in, line);
+            std::vector<std::string> elements = split(line, ' ');
+
+            GlyphData glyph;
+
+            glyph.character = uintValueFromPair(elements[1]);
+
+            // pixel rect of glyph
+            float x = floatValueFromPair(elements[2]);
+            float y = floatValueFromPair(elements[3]);
+            float width = floatValueFromPair(elements[4]);
+            float height = floatValueFromPair(elements[5]);
+
+            // adujst y to bottom origin
+            y = scaleHeight - (y + height);
+
+            // offset for character glyph in a string
+            float xoffset = floatValueFromPair(elements[6]);
+            float yoffset = floatValueFromPair(elements[7]);
+            float xadvance = floatValueFromPair(elements[8]);
+
+            // calc uv space rect
+            vsg::vec2 uvorigin = vsg::vec2(x / scaleWidth, y / scaleHeight);
+            vsg::vec2 uvsize = vsg::vec2(width / scaleWidth, height / scaleHeight);
+            glyph.uvrect = vsg::vec4(uvorigin.x, uvorigin.y, uvsize.x, uvsize.y);
+
+            // calc normaised size
+            glyph.size = vsg::vec2(width / fontPixelHeight, height / fontPixelHeight);
+
+            // calc normalise offsets
+            glyph.offset = vsg::vec2(xoffset / fontPixelHeight, normalisedBaseLine - glyph.size.y - (yoffset / fontPixelHeight));
+            glyph.xadvance = xadvance / fontPixelHeight;
+
+            // (the font object will calc this)
+            glyph.lookupOffset = 0.0f;
+
+            // add glyph to list
+            glyphMap[glyph.character] = glyph;
+        }
+        return true;
+    }
+
+    class Font : public vsg::Inherit<vsg::Object, Font>
+    {
+    public:
+        vsg::ref_ptr<vsg::Data> atlas;
+        vsg::ref_ptr<vsg::DescriptorImage> texture;
+        GlyphMap glyphs;
+        float fontHeight;
+        float normalisedLineHeight;
+
+        vsg::ref_ptr<vsg::BindGraphicsPipeline> bindGraphicsPipeline;
+        vsg::ref_ptr<vsg::BindDescriptorSet> bindDescriptorSet;
+    };
+
+    vsg::ref_ptr<Font> readFont(const std::string& fontName, const vsg::Paths& searchPaths)
+    {
+        auto options = vsg::Options::create();
+        options->paths = searchPaths;
+#ifdef USE_VSGXCHANGE
+        options->readerWriter = vsgXchange::ReaderWriter_all::create();
+#endif
+
+        vsg::Path font_textureFile(vsg::concatPaths("fonts", fontName) + ".vsgb");
+        vsg::Path font_metricsFile(vsg::concatPaths("fonts", fontName) + ".txt");
+
+        auto font = Font::create();
+
+        font->atlas = vsg::read_cast<vsg::Data>(vsg::findFile(font_textureFile, searchPaths));
+        if (!font->atlas)
+        {
+            std::cout<<"Could not read texture file : "<<font_textureFile<<std::endl;
+            return {};
+        }
+
+        if (!text::readUnity3dFontMetaFile(vsg::findFile(font_metricsFile, searchPaths), font->glyphs, font->fontHeight, font->normalisedLineHeight))
+        {
+            std::cout<<"Could not reading font metrics file"<<std::endl;
+            return {};
+        }
+
+        // read texture image
+        auto textureData = font->atlas;
+
+        // load shaders
+        auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.vert", options);
+        auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.frag", options);
+
+        std::cout<<"vertexShader = "<<vertexShader<<std::endl;
+        std::cout<<"fragmentShader = "<<fragmentShader<<std::endl;
+
+        if (!vertexShader || !fragmentShader)
+        {
+            std::cout<<"Could not create shaders."<<std::endl;
+            return {};
+        }
+
+#ifdef USE_VSGXCHANGE
+        // compile section
+        vsg::ShaderStages stagesToCompile;
+        if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
+        if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
+
+        if (!stagesToCompile.empty())
+        {
+            auto shaderCompiler = vsgXchange::ShaderCompiler::create();
+
+            std::vector<std::string> defines;
+            shaderCompiler->compile(stagesToCompile, defines); // and paths?
+        }
+        // TODO end of block requiring changes
+#endif
+
+        // set up graphics pipeline
+        vsg::DescriptorSetLayoutBindings descriptorBindings
+        {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        };
+
+        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+        vsg::PushConstantRanges pushConstantRanges
+        {
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        };
+
+        vsg::VertexInputState::Bindings vertexBindingsDescriptions
+        {
+            VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+            VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+            VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+        };
+
+        vsg::VertexInputState::Attributes vertexAttributeDescriptions
+        {
+            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+            VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+            VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+        };
+
+        // alpha blending
+        VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+        colorBlendAttachment.blendEnable = VK_TRUE;
+        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+            VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT |
+            VK_COLOR_COMPONENT_A_BIT;
+
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+        auto blending = vsg::ColorBlendState::create(vsg::ColorBlendState::ColorBlendAttachments{colorBlendAttachment});
+
+        // switch off back face culling
+        auto rasterization = vsg::RasterizationState::create();
+        rasterization->cullMode = VK_CULL_MODE_NONE;
+
+        vsg::GraphicsPipelineStates pipelineStates
+        {
+            vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+            vsg::InputAssemblyState::create(),
+            vsg::MultisampleState::create(),
+            blending,
+            rasterization,
+            vsg::DepthStencilState::create()
+        };
+
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+        auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+        font->bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+
+        // create texture image and associated DescriptorSets and binding
+        auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
+
+        font->bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
+
+        return font;
+    }
+
+    vsg::ref_ptr<vsg::Node> createText(const vsg::vec3& position, vsg::ref_ptr<Font> font, const std::string& text)
+    {
+        return {};
+    }
+
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -21,126 +311,17 @@ int main(int argc, char** argv)
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    auto options = vsg::Options::create();
-    options->paths = searchPaths;
-#ifdef USE_VSGXCHANGE
-    options->readerWriter = vsgXchange::ReaderWriter_all::create();
-#endif
+    auto font = text::readFont("roboto", searchPaths);
+    std::cout<<"font = "<<font<<std::endl;
 
-    // read texture image
-    vsg::Path font_textureFile("fonts/roboto.vsgb");
-    vsg::Path font_metricsFile("fonts/roboto.text");
-    auto textureData = vsg::read_cast<vsg::Data>(vsg::findFile(font_textureFile, searchPaths));
-    if (!textureData)
-    {
-        std::cout<<"Could not read texture file : "<<font_textureFile<<std::endl;
-        return 1;
-    }
+    if (!font) return {};
 
 
-
-    // load shaders
-    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.vert", options);
-    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.frag", options);
-
-    std::cout<<"vertexShader = "<<vertexShader<<std::endl;
-    std::cout<<"fragmentShader = "<<fragmentShader<<std::endl;
-
-    if (!vertexShader || !fragmentShader)
-    {
-        std::cout<<"Could not create shaders."<<std::endl;
-        return 1;
-    }
-
-
-#ifdef USE_VSGXCHANGE
-    // compile section
-    vsg::ShaderStages stagesToCompile;
-    if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
-    if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
-
-    if (!stagesToCompile.empty())
-    {
-        auto shaderCompiler = vsgXchange::ShaderCompiler::create();
-
-        std::vector<std::string> defines;
-        shaderCompiler->compile(stagesToCompile, defines); // and paths?
-    }
-    // TODO end of block requiring changes
-#endif
-
-// set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings
-    {
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
-    };
-
-    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-
-    vsg::PushConstantRanges pushConstantRanges
-    {
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
-    };
-
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
-    {
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
-        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-    };
-
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
-    {
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
-    };
-
-    // alpha blending
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-    colorBlendAttachment.blendEnable = VK_TRUE;
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-        VK_COLOR_COMPONENT_G_BIT |
-        VK_COLOR_COMPONENT_B_BIT |
-        VK_COLOR_COMPONENT_A_BIT;
-
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-    auto blending = vsg::ColorBlendState::create(vsg::ColorBlendState::ColorBlendAttachments{colorBlendAttachment});
-
-    // switch off back face culling
-    auto rasterization = vsg::RasterizationState::create();
-    rasterization->cullMode = VK_CULL_MODE_NONE;
-
-    vsg::GraphicsPipelineStates pipelineStates
-    {
-        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
-        vsg::InputAssemblyState::create(),
-        vsg::MultisampleState::create(),
-        blending,
-        rasterization,
-        vsg::DepthStencilState::create()
-    };
-
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
-    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
-    auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
-
-    // create texture image and associated DescriptorSets and binding
-    auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(bindGraphicsPipeline);
-    scenegraph->add(bindDescriptorSet);
+    scenegraph->add(font->bindGraphicsPipeline);
+    scenegraph->add(font->bindDescriptorSet);
 
     // set up model transformation node
     auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
