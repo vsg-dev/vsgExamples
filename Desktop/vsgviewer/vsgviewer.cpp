@@ -2,7 +2,6 @@
 
 #ifdef USE_VSGXCHANGE
 #include <vsgXchange/ReaderWriter_all.h>
-#include <vsgXchange/ShaderCompiler.h>
 #endif
 
 #include <iostream>
