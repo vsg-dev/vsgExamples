@@ -324,9 +324,122 @@ namespace text
         return font;
     }
 
-    vsg::ref_ptr<vsg::Node> createText(const vsg::vec3& position, vsg::ref_ptr<Font> font, const std::string& text)
+    vsg::ref_ptr<vsg::Node> createText(const vsg::vec3& position, const std::string& text, vsg::ref_ptr<Font> font)
     {
-        return {};
+        auto technique = font->getTechnique<text::StandardText>();
+        std::cout<<"technique = "<<technique<<std::endl;
+        if (!technique) return {};
+
+
+        // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+        auto scenegraph = vsg::StateGroup::create();
+
+        scenegraph->add(technique->bindGraphicsPipeline);
+        scenegraph->add(technique->bindDescriptorSet);
+
+        uint32_t num_quads = 0;
+        uint32_t num_rows = 1;
+        for(auto& character : text)
+        {
+            if (character == '\n') ++num_rows;
+            else if (character != ' ') ++num_quads;
+        }
+
+        // check if we have anything to render
+        if (num_quads==0) return {};
+
+        uint32_t num_vertices = num_quads * 4;
+        auto vertices = vsg::vec3Array::create(num_vertices);
+        auto texcoords = vsg::vec2Array::create(num_vertices);
+        auto colors = vsg::vec3Array::create(num_vertices);
+        auto indices = vsg::ushortArray::create(num_quads * 6);
+
+        uint32_t i = 0;
+        uint32_t vi = 0;
+
+        vsg::vec3 color(1.0f, 1.0f, 1.0f);
+        vsg::vec3 row_position = position;
+        vsg::vec3 pen_position = row_position;
+        float row_height = 1.0;
+        for(auto& character : text)
+        {
+            if (character == '\n')
+            {
+                // newline
+                std::cout<<"   NEWLINE"<<std::endl;
+
+                row_position.y -= font->normalisedLineHeight;
+                pen_position = row_position;
+            }
+            else if (character == ' ')
+            {
+                // space
+                std::cout<<"   SPACE"<<std::endl;
+                uint16_t charcode(character);
+                const auto& glyph = font->glyphs[charcode];
+                pen_position.x += glyph.xadvance;
+            }
+            else
+            {
+                uint16_t charcode(character);
+                const auto& glyph = font->glyphs[charcode];
+#if 0
+                vsg::vec4 uvrect; // min x/y, max x/y
+                vsg::vec2 size; // normalised size of the glyph
+                vsg::vec2 offset; // normalised offset
+                float xadvance; // normalised xadvance
+                float lookupOffset; // offset into lookup texture
+#endif
+                std::cout<<"   Charcode = "<<charcode<<", "<<character<<", glyph.uvrect = ["<<glyph.uvrect<<"], glyph.offset = "<<glyph.offset<<", glyph.xadvance = "<<glyph.xadvance<<std::endl;
+
+                const auto& uvrect = glyph.uvrect;
+
+                vsg::vec3 local_origin = pen_position + vsg::vec3(glyph.offset.x, glyph.offset.y, 0.0f);
+                const auto& size = glyph.size;
+
+                vertices->set(vi, local_origin);
+                vertices->set(vi+1, local_origin + vsg::vec3(size.x, 0.0f, 0.0f));
+                vertices->set(vi+2, local_origin + vsg::vec3(size.x, size.y, 0.0f));
+                vertices->set(vi+3, local_origin + vsg::vec3(0.0f, size.y, 0.0f));
+
+                colors->at(vi  ) = color;
+                colors->at(vi+1) = color;
+                colors->at(vi+2) = color;
+                colors->at(vi+3) = color;
+
+#if 0
+                texcoords->set(vi, vsg::vec2(uvrect[0], uvrect[2]));
+                texcoords->set(vi+1, vsg::vec2(uvrect[1], uvrect[2]));
+                texcoords->set(vi+2, vsg::vec2(uvrect[1], uvrect[3]));
+                texcoords->set(vi+3, vsg::vec2(uvrect[0], uvrect[3]));
+#else
+                texcoords->set(vi, vsg::vec2(uvrect[0], uvrect[1]));
+                texcoords->set(vi+1, vsg::vec2(uvrect[0]+uvrect[2], uvrect[1]));
+                texcoords->set(vi+2, vsg::vec2(uvrect[0]+uvrect[2], uvrect[1]+uvrect[3]));
+                texcoords->set(vi+3, vsg::vec2(uvrect[0], uvrect[1]+uvrect[3]));
+#endif
+                indices->set(i, vi);
+                indices->set(i+1, vi+1);
+                indices->set(i+2, vi+2);
+                indices->set(i+3, vi+2);
+                indices->set(i+4, vi+3);
+                indices->set(i+5, vi);
+
+                vi += 4;
+                i += 6;
+                pen_position.x += glyph.xadvance;
+            }
+        }
+
+        // setup geometry
+        auto drawCommands = vsg::Commands::create();
+        drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
+        drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+        drawCommands->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
+
+        scenegraph->addChild(drawCommands);
+
+        return scenegraph;
     }
 
 }
@@ -357,76 +470,12 @@ int main(int argc, char** argv)
 
     if (!font) return 1;
 
-    auto technique = font->getTechnique<text::StandardText>();
-    std::cout<<"technique = "<<technique<<std::endl;
-    if (!technique) return 1;
-
-
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
-    auto scenegraph = vsg::StateGroup::create();
-
-    scenegraph->add(technique->bindGraphicsPipeline);
-    scenegraph->add(technique->bindDescriptorSet);
-
     // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
+    auto scenegraph = vsg::Group::create();
 
-    // add transform to root of the scene graph
-    scenegraph->addChild(transform);
+    scenegraph->addChild(text::createText(vsg::vec3(0.0, 0.0, 0.0), "This is my text\nTest another line", font));
 
-    // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create(
-    {
-        {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.0f},
-        {0.5f , 0.5f, 0.0f},
-        {-0.5f, 0.5f, 0.0f},
-        {-0.5f, -0.5f, -0.5f},
-        {0.5f,  -0.5f, -0.5f},
-        {0.5f , 0.5f, -0.5f},
-        {-0.5f, 0.5f, -0.5f}
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto colors = vsg::vec3Array::create(
-    {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto texcoords = vsg::vec2Array::create(
-    {
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f},
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f}
-    }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto indices = vsg::ushortArray::create(
-    {
-        0, 1, 2,
-        2, 3, 0,
-        4, 5, 6,
-        6, 7, 4
-    }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    // setup geometry
-    auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
-    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
-
-    // add drawCommands to transform
-    transform->addChild(drawCommands);
+    vsg::write(scenegraph, "text.vsgt");
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -441,9 +490,21 @@ int main(int argc, char** argv)
     viewer->addWindow(window);
 
     // camera related details
+    // compute the bounds of the scene graph to help position camera
+    vsg::ComputeBounds computeBounds;
+    scenegraph->accept(computeBounds);
+    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
+    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+    double nearFarRatio = 0.001;
+
+
+    std::cout<<"\n centre = "<<centre<<std::endl;
+    std::cout<<"\n radius = "<<radius<<std::endl;
+
+    // set up the camera
     auto viewport = vsg::ViewportState::create(window->extent2D());
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), 0.1, 10.0);
-    auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
+    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(radius*3.5, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
