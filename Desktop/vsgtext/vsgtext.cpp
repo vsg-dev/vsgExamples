@@ -155,137 +155,172 @@ namespace text
         GlyphMap glyphs;
         float fontHeight;
         float normalisedLineHeight;
+        vsg::ref_ptr<vsg::Options> options;
 
-        vsg::ref_ptr<vsg::BindGraphicsPipeline> bindGraphicsPipeline;
-        vsg::ref_ptr<vsg::BindDescriptorSet> bindDescriptorSet;
+        /// Technique base class provide ability to provide range of different rendering techniques
+        class Technique : public vsg::Inherit<vsg::Object, Technique>
+        {
+        public:
+            vsg::ref_ptr<vsg::BindGraphicsPipeline> bindGraphicsPipeline;
+            vsg::ref_ptr<vsg::BindDescriptorSet> bindDescriptorSet;
+        };
+
+        std::vector<vsg::ref_ptr<Technique>> techniques;
+
+        /// get or create a Technique instance that matches the specified type
+        template<class T>
+        vsg::ref_ptr<T> getTechnique()
+        {
+            for(auto& technique : techniques)
+            {
+                auto tech = technique.cast<T>();
+                if (tech) return tech;
+            }
+            auto tech = T::create(this);
+            techniques.emplace_back(tech);
+            return tech;
+        }
     };
 
-    vsg::ref_ptr<Font> readFont(const std::string& fontName, const vsg::Paths& searchPaths)
+    class StandardText : public vsg::Inherit<Font::Technique, StandardText>
     {
-        auto options = vsg::Options::create();
-        options->paths = searchPaths;
-#ifdef USE_VSGXCHANGE
-        options->readerWriter = vsgXchange::ReaderWriter_all::create();
-#endif
+    public:
+        StandardText(Font* font)
+        {
+            auto textureData = font->atlas;
+
+            // load shaders
+            auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.vert", font->options);
+            auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.frag", font->options);
+
+            std::cout<<"vertexShader = "<<vertexShader<<std::endl;
+            std::cout<<"fragmentShader = "<<fragmentShader<<std::endl;
+
+            if (!vertexShader || !fragmentShader)
+            {
+                std::cout<<"Could not create shaders."<<std::endl;
+            }
+
+    #ifdef USE_VSGXCHANGE
+            // compile section
+            vsg::ShaderStages stagesToCompile;
+            if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
+            if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
+
+            if (!stagesToCompile.empty())
+            {
+                auto shaderCompiler = vsgXchange::ShaderCompiler::create();
+
+                std::vector<std::string> defines;
+                shaderCompiler->compile(stagesToCompile, defines); // and paths?
+            }
+            // TODO end of block requiring changes
+    #endif
+
+            // set up graphics pipeline
+            vsg::DescriptorSetLayoutBindings descriptorBindings
+            {
+                {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+            };
+
+            auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+            vsg::PushConstantRanges pushConstantRanges
+            {
+                {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+            };
+
+            vsg::VertexInputState::Bindings vertexBindingsDescriptions
+            {
+                VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+                VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+                VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+            };
+
+            vsg::VertexInputState::Attributes vertexAttributeDescriptions
+            {
+                VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+                VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+                VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+            };
+
+            // alpha blending
+            VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+            colorBlendAttachment.blendEnable = VK_TRUE;
+            colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                VK_COLOR_COMPONENT_G_BIT |
+                VK_COLOR_COMPONENT_B_BIT |
+                VK_COLOR_COMPONENT_A_BIT;
+
+            colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+            colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+            auto blending = vsg::ColorBlendState::create(vsg::ColorBlendState::ColorBlendAttachments{colorBlendAttachment});
+
+            // switch off back face culling
+            auto rasterization = vsg::RasterizationState::create();
+            rasterization->cullMode = VK_CULL_MODE_NONE;
+
+            vsg::GraphicsPipelineStates pipelineStates
+            {
+                vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+                vsg::InputAssemblyState::create(),
+                vsg::MultisampleState::create(),
+                blending,
+                rasterization,
+                vsg::DepthStencilState::create()
+            };
+
+            auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+            auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+            bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+
+            // create texture image and associated DescriptorSets and binding
+            auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
+
+            bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
+        }
+    };
+
+
+    class Text : public vsg::Inherit<vsg::Node, Text>
+    {
+    public:
+        vsg::ref_ptr<Font> font;
+        vsg::ref_ptr<Font::Technique> technique;
+        vsg::vec3 position;
+        std::string text;
+    };
+
+    vsg::ref_ptr<Font> readFont(const std::string& fontName, vsg::ref_ptr<vsg::Options> options)
+    {
 
         vsg::Path font_textureFile(vsg::concatPaths("fonts", fontName) + ".vsgb");
         vsg::Path font_metricsFile(vsg::concatPaths("fonts", fontName) + ".txt");
 
         auto font = Font::create();
 
-        font->atlas = vsg::read_cast<vsg::Data>(vsg::findFile(font_textureFile, searchPaths));
+        font->options = options;
+
+        font->atlas = vsg::read_cast<vsg::Data>(vsg::findFile(font_textureFile, options->paths));
         if (!font->atlas)
         {
             std::cout<<"Could not read texture file : "<<font_textureFile<<std::endl;
             return {};
         }
 
-        if (!text::readUnity3dFontMetaFile(vsg::findFile(font_metricsFile, searchPaths), font->glyphs, font->fontHeight, font->normalisedLineHeight))
+        if (!text::readUnity3dFontMetaFile(vsg::findFile(font_metricsFile, options->paths), font->glyphs, font->fontHeight, font->normalisedLineHeight))
         {
             std::cout<<"Could not reading font metrics file"<<std::endl;
             return {};
         }
 
         // read texture image
-        auto textureData = font->atlas;
-
-        // load shaders
-        auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.vert", options);
-        auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.frag", options);
-
-        std::cout<<"vertexShader = "<<vertexShader<<std::endl;
-        std::cout<<"fragmentShader = "<<fragmentShader<<std::endl;
-
-        if (!vertexShader || !fragmentShader)
-        {
-            std::cout<<"Could not create shaders."<<std::endl;
-            return {};
-        }
-
-#ifdef USE_VSGXCHANGE
-        // compile section
-        vsg::ShaderStages stagesToCompile;
-        if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
-        if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
-
-        if (!stagesToCompile.empty())
-        {
-            auto shaderCompiler = vsgXchange::ShaderCompiler::create();
-
-            std::vector<std::string> defines;
-            shaderCompiler->compile(stagesToCompile, defines); // and paths?
-        }
-        // TODO end of block requiring changes
-#endif
-
-        // set up graphics pipeline
-        vsg::DescriptorSetLayoutBindings descriptorBindings
-        {
-            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
-        };
-
-        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-
-        vsg::PushConstantRanges pushConstantRanges
-        {
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
-        };
-
-        vsg::VertexInputState::Bindings vertexBindingsDescriptions
-        {
-            VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-            VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
-            VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-        };
-
-        vsg::VertexInputState::Attributes vertexAttributeDescriptions
-        {
-            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-            VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-            VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
-        };
-
-        // alpha blending
-        VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-        colorBlendAttachment.blendEnable = VK_TRUE;
-        colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-            VK_COLOR_COMPONENT_G_BIT |
-            VK_COLOR_COMPONENT_B_BIT |
-            VK_COLOR_COMPONENT_A_BIT;
-
-        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-        auto blending = vsg::ColorBlendState::create(vsg::ColorBlendState::ColorBlendAttachments{colorBlendAttachment});
-
-        // switch off back face culling
-        auto rasterization = vsg::RasterizationState::create();
-        rasterization->cullMode = VK_CULL_MODE_NONE;
-
-        vsg::GraphicsPipelineStates pipelineStates
-        {
-            vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
-            vsg::InputAssemblyState::create(),
-            vsg::MultisampleState::create(),
-            blending,
-            rasterization,
-            vsg::DepthStencilState::create()
-        };
-
-        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
-        auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
-        font->bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
-
-        // create texture image and associated DescriptorSets and binding
-        auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-
-        font->bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
-
         return font;
     }
 
@@ -311,17 +346,27 @@ int main(int argc, char** argv)
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    auto font = text::readFont("roboto", searchPaths);
+    auto options = vsg::Options::create();
+    options->paths = searchPaths;
+    #ifdef USE_VSGXCHANGE
+    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+    #endif
+
+    auto font = text::readFont("roboto", options);
     std::cout<<"font = "<<font<<std::endl;
 
-    if (!font) return {};
+    if (!font) return 1;
 
+    auto technique = font->getTechnique<text::StandardText>();
+    std::cout<<"technique = "<<technique<<std::endl;
+    if (!technique) return 1;
 
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(font->bindGraphicsPipeline);
-    scenegraph->add(font->bindDescriptorSet);
+
+    scenegraph->add(technique->bindGraphicsPipeline);
+    scenegraph->add(technique->bindDescriptorSet);
 
     // set up model transformation node
     auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
