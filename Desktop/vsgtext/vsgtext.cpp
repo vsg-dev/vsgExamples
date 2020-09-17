@@ -8,148 +8,21 @@
 
 namespace text
 {
-    struct GlyphData
-    {
-        uint16_t character;
-        vsg::vec4 uvrect; // min x/y, max x/y
-        vsg::vec2 size; // normalised size of the glyph
-        vsg::vec2 offset; // normalised offset
-        float xadvance; // normalised xadvance
-        float lookupOffset; // offset into lookup texture
-    };
-    using GlyphMap = std::map<uint16_t, GlyphData>;
-
-    bool readUnity3dFontMetaFile(const std::string& filePath, GlyphMap& glyphMap, float& fontPixelHeight, float& normalisedLineHeight)
-    {
-        std::cout<<"filePath = "<<filePath<<std::endl;
-
-        if (filePath.empty()) return false;
-
-        // read glyph data from txt file
-        auto startsWith = [](const std::string& str, const std::string& match)
-        {
-            return str.compare(0, match.length(), match) == 0;
-        };
-
-        auto split = [](const std::string& str, const char& seperator)
-        {
-            std::vector<std::string> elements;
-
-            std::string::size_type prev_pos = 0, pos = 0;
-
-            while ((pos = str.find(seperator, pos)) != std::string::npos)
-            {
-                auto substring = str.substr(prev_pos, pos - prev_pos);
-                elements.push_back(substring);
-                prev_pos = ++pos;
-            }
-
-            elements.push_back(str.substr(prev_pos, pos - prev_pos));
-
-            return elements;
-        };
-
-        auto uintValueFromPair = [&split](const std::string& str)
-        {
-            std::vector<std::string> els = split(str, '=');
-            return static_cast<uint32_t>(atoi(els[1].c_str()));
-        };
-
-        auto floatValueFromPair = [&split](const std::string& str)
-        {
-            std::vector<std::string> els = split(str, '=');
-            return static_cast<float>(atof(els[1].c_str()));
-        };
-
-        auto stringValueFromPair = [&split](const std::string& str)
-        {
-            std::vector<std::string> els = split(str, '=');
-            return els[1];
-        };
-
-
-        std::ifstream in(filePath);
-
-        // read header lines
-        std::string infoline;
-        std::getline(in, infoline);
-        std::vector<std::string> infoelements = split(infoline, ' ');
-        std::string facename = stringValueFromPair(infoelements[1]);
-
-        fontPixelHeight = floatValueFromPair(infoelements[2]);
-
-        // read common line
-        std::string commonline;
-        std::getline(in, commonline);
-        std::vector<std::string> commonelements = split(commonline, ' ');
-
-        float lineHeight = floatValueFromPair(commonelements[1]);
-        normalisedLineHeight = lineHeight / fontPixelHeight;
-
-        float baseLine = floatValueFromPair(commonelements[2]);
-        float normalisedBaseLine = baseLine / fontPixelHeight;
-        float scaleWidth = floatValueFromPair(commonelements[3]);
-        float scaleHeight = floatValueFromPair(commonelements[4]);
-
-        // read page id line
-        std::string pageline;
-        std::getline(in, pageline);
-
-        // read character count line
-        std::string charsline;
-        std::getline(in, charsline);
-        std::vector<std::string> charselements = split(charsline, ' ');
-        uint32_t charscount = uintValueFromPair(charselements[1]);
-
-        // read character data lines
-        for (uint32_t i = 0; i < charscount; i++)
-        {
-            std::string line;
-            std::getline(in, line);
-            std::vector<std::string> elements = split(line, ' ');
-
-            GlyphData glyph;
-
-            glyph.character = uintValueFromPair(elements[1]);
-
-            // pixel rect of glyph
-            float x = floatValueFromPair(elements[2]);
-            float y = floatValueFromPair(elements[3]);
-            float width = floatValueFromPair(elements[4]);
-            float height = floatValueFromPair(elements[5]);
-
-            // adujst y to bottom origin
-            y = scaleHeight - (y + height);
-
-            // offset for character glyph in a string
-            float xoffset = floatValueFromPair(elements[6]);
-            float yoffset = floatValueFromPair(elements[7]);
-            float xadvance = floatValueFromPair(elements[8]);
-
-            // calc uv space rect
-            vsg::vec2 uvorigin = vsg::vec2(x / scaleWidth, y / scaleHeight);
-            vsg::vec2 uvsize = vsg::vec2(width / scaleWidth, height / scaleHeight);
-            glyph.uvrect = vsg::vec4(uvorigin.x, uvorigin.y, uvsize.x, uvsize.y);
-
-            // calc normaised size
-            glyph.size = vsg::vec2(width / fontPixelHeight, height / fontPixelHeight);
-
-            // calc normalise offsets
-            glyph.offset = vsg::vec2(xoffset / fontPixelHeight, normalisedBaseLine - glyph.size.y - (yoffset / fontPixelHeight));
-            glyph.xadvance = xadvance / fontPixelHeight;
-
-            // (the font object will calc this)
-            glyph.lookupOffset = 0.0f;
-
-            // add glyph to list
-            glyphMap[glyph.character] = glyph;
-        }
-        return true;
-    }
-
     class Font : public vsg::Inherit<vsg::Object, Font>
     {
     public:
+
+        struct GlyphData
+        {
+            uint16_t character;
+            vsg::vec4 uvrect; // min x/y, max x/y
+            vsg::vec2 size; // normalised size of the glyph
+            vsg::vec2 offset; // normalised offset
+            float xadvance; // normalised xadvance
+            float lookupOffset; // offset into lookup texture
+        };
+        using GlyphMap = std::map<uint16_t, GlyphData>;
+
         vsg::ref_ptr<vsg::Data> atlas;
         vsg::ref_ptr<vsg::DescriptorImage> texture;
         GlyphMap glyphs;
@@ -297,30 +170,147 @@ namespace text
         std::string text;
     };
 
-    vsg::ref_ptr<Font> readFont(const std::string& fontName, vsg::ref_ptr<vsg::Options> options)
+    vsg::ref_ptr<Font> readUnity3dFontMetaFile(const std::string& font_metricsFile, vsg::ref_ptr<vsg::Options> options)
     {
+        auto metricsFilePath = vsg::findFile(font_metricsFile, options);
 
-        vsg::Path font_textureFile(vsg::concatPaths("fonts", fontName) + ".vsgb");
-        vsg::Path font_metricsFile(vsg::concatPaths("fonts", fontName) + ".txt");
+        if (metricsFilePath.empty()) return {};
 
         auto font = Font::create();
-
         font->options = options;
 
-        font->atlas = vsg::read_cast<vsg::Data>(vsg::findFile(font_textureFile, options->paths));
+        // read glyph data from txt file
+        auto startsWith = [](const std::string& str, const std::string& match)
+        {
+            return str.compare(0, match.length(), match) == 0;
+        };
+
+        auto split = [](const std::string& str, const char& seperator)
+        {
+            std::vector<std::string> elements;
+
+            std::string::size_type prev_pos = 0, pos = 0;
+
+            while ((pos = str.find(seperator, pos)) != std::string::npos)
+            {
+                auto substring = str.substr(prev_pos, pos - prev_pos);
+                elements.push_back(substring);
+                prev_pos = ++pos;
+            }
+
+            elements.push_back(str.substr(prev_pos, pos - prev_pos));
+
+            return elements;
+        };
+
+        auto uintValueFromPair = [&split](const std::string& str)
+        {
+            std::vector<std::string> els = split(str, '=');
+            return static_cast<uint32_t>(atoi(els[1].c_str()));
+        };
+
+        auto floatValueFromPair = [&split](const std::string& str)
+        {
+            std::vector<std::string> els = split(str, '=');
+            return static_cast<float>(atof(els[1].c_str()));
+        };
+
+        auto stringValueFromPair = [&split](const std::string& str)
+        {
+            std::vector<std::string> els = split(str, '=');
+            return els[1];
+        };
+
+        std::ifstream in(metricsFilePath);
+
+        // read header lines
+        std::string infoline;
+        std::getline(in, infoline);
+        std::vector<std::string> infoelements = split(infoline, ' ');
+        std::string facename = stringValueFromPair(infoelements[1]);
+
+        float fontPixelHeight = floatValueFromPair(infoelements[2]);
+
+        // read common line
+        std::string commonline;
+        std::getline(in, commonline);
+        std::vector<std::string> commonelements = split(commonline, ' ');
+
+        float lineHeight = floatValueFromPair(commonelements[1]);
+        float normalisedLineHeight = lineHeight / fontPixelHeight;
+
+        float baseLine = floatValueFromPair(commonelements[2]);
+        float normalisedBaseLine = baseLine / fontPixelHeight;
+        float scaleWidth = floatValueFromPair(commonelements[3]);
+        float scaleHeight = floatValueFromPair(commonelements[4]);
+
+        // read page id line
+        std::string pageline;
+        std::getline(in, pageline);
+
+        auto pagelineelements = split(pageline, ' ');
+        auto font_textureFile = stringValueFromPair(pagelineelements[2]);
+        auto textureFilePath = vsg::concatPaths(vsg::filePath(metricsFilePath), font_textureFile.substr(1, font_textureFile.size()-2));
+
+        font->atlas = vsg::read_cast<vsg::Data>(textureFilePath);
         if (!font->atlas)
         {
             std::cout<<"Could not read texture file : "<<font_textureFile<<std::endl;
             return {};
         }
 
-        if (!text::readUnity3dFontMetaFile(vsg::findFile(font_metricsFile, options->paths), font->glyphs, font->fontHeight, font->normalisedLineHeight))
-        {
-            std::cout<<"Could not reading font metrics file"<<std::endl;
-            return {};
-        }
+        font->fontHeight = fontPixelHeight;
+        font->normalisedLineHeight = normalisedLineHeight;
 
-        // read texture image
+        // read character count line
+        std::string charsline;
+        std::getline(in, charsline);
+        std::vector<std::string> charselements = split(charsline, ' ');
+        uint32_t charscount = uintValueFromPair(charselements[1]);
+
+        // read character data lines
+        for (uint32_t i = 0; i < charscount; i++)
+        {
+            std::string line;
+            std::getline(in, line);
+            std::vector<std::string> elements = split(line, ' ');
+
+            Font::GlyphData glyph;
+
+            glyph.character = uintValueFromPair(elements[1]);
+
+            // pixel rect of glyph
+            float x = floatValueFromPair(elements[2]);
+            float y = floatValueFromPair(elements[3]);
+            float width = floatValueFromPair(elements[4]);
+            float height = floatValueFromPair(elements[5]);
+
+            // adujst y to bottom origin
+            y = scaleHeight - (y + height);
+
+            // offset for character glyph in a string
+            float xoffset = floatValueFromPair(elements[6]);
+            float yoffset = floatValueFromPair(elements[7]);
+            float xadvance = floatValueFromPair(elements[8]);
+
+            // calc uv space rect
+            vsg::vec2 uvorigin = vsg::vec2(x / scaleWidth, y / scaleHeight);
+            vsg::vec2 uvsize = vsg::vec2(width / scaleWidth, height / scaleHeight);
+            glyph.uvrect = vsg::vec4(uvorigin.x, uvorigin.y, uvsize.x, uvsize.y);
+
+            // calc normaised size
+            glyph.size = vsg::vec2(width / fontPixelHeight, height / fontPixelHeight);
+
+            // calc normalise offsets
+            glyph.offset = vsg::vec2(xoffset / fontPixelHeight, normalisedBaseLine - glyph.size.y - (yoffset / fontPixelHeight));
+            glyph.xadvance = xadvance / fontPixelHeight;
+
+            // (the font object will calc this)
+            glyph.lookupOffset = 0.0f;
+
+            // add glyph to list
+            font->glyphs[glyph.character] = glyph;
+        }
         return font;
     }
 
@@ -447,7 +437,7 @@ int main(int argc, char** argv)
     options->readerWriter = vsgXchange::ReaderWriter_all::create();
     #endif
 
-    auto font = text::readFont("roboto", options);
+    auto font = text::readUnity3dFontMetaFile("fonts/roboto.txt", options);
     std::cout<<"font = "<<font<<std::endl;
 
     if (!font) return 1;
@@ -478,10 +468,6 @@ int main(int argc, char** argv)
     vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
     double nearFarRatio = 0.001;
-
-
-    std::cout<<"\ncentre = "<<centre<<std::endl;
-    std::cout<<"radius = "<<radius<<std::endl;
 
     // set up the camera
     auto viewport = vsg::ViewportState::create(window->extent2D());
