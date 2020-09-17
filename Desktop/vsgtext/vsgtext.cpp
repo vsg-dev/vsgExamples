@@ -327,7 +327,6 @@ namespace text
     vsg::ref_ptr<vsg::Node> createText(const vsg::vec3& position, const std::string& text, vsg::ref_ptr<Font> font)
     {
         auto technique = font->getTechnique<text::StandardText>();
-        std::cout<<"technique = "<<technique<<std::endl;
         if (!technique) return {};
 
 
@@ -366,15 +365,12 @@ namespace text
             if (character == '\n')
             {
                 // newline
-                std::cout<<"   NEWLINE"<<std::endl;
-
                 row_position.y -= font->normalisedLineHeight;
                 pen_position = row_position;
             }
             else if (character == ' ')
             {
                 // space
-                std::cout<<"   SPACE"<<std::endl;
                 uint16_t charcode(character);
                 const auto& glyph = font->glyphs[charcode];
                 pen_position.x += glyph.xadvance;
@@ -383,14 +379,6 @@ namespace text
             {
                 uint16_t charcode(character);
                 const auto& glyph = font->glyphs[charcode];
-#if 0
-                vsg::vec4 uvrect; // min x/y, max x/y
-                vsg::vec2 size; // normalised size of the glyph
-                vsg::vec2 offset; // normalised offset
-                float xadvance; // normalised xadvance
-                float lookupOffset; // offset into lookup texture
-#endif
-                std::cout<<"   Charcode = "<<charcode<<", "<<character<<", glyph.uvrect = ["<<glyph.uvrect<<"], glyph.offset = "<<glyph.offset<<", glyph.xadvance = "<<glyph.xadvance<<std::endl;
 
                 const auto& uvrect = glyph.uvrect;
 
@@ -407,17 +395,11 @@ namespace text
                 colors->at(vi+2) = color;
                 colors->at(vi+3) = color;
 
-#if 0
-                texcoords->set(vi, vsg::vec2(uvrect[0], uvrect[2]));
-                texcoords->set(vi+1, vsg::vec2(uvrect[1], uvrect[2]));
-                texcoords->set(vi+2, vsg::vec2(uvrect[1], uvrect[3]));
-                texcoords->set(vi+3, vsg::vec2(uvrect[0], uvrect[3]));
-#else
                 texcoords->set(vi, vsg::vec2(uvrect[0], uvrect[1]));
                 texcoords->set(vi+1, vsg::vec2(uvrect[0]+uvrect[2], uvrect[1]));
                 texcoords->set(vi+2, vsg::vec2(uvrect[0]+uvrect[2], uvrect[1]+uvrect[3]));
                 texcoords->set(vi+3, vsg::vec2(uvrect[0], uvrect[1]+uvrect[3]));
-#endif
+
                 indices->set(i, vi);
                 indices->set(i+1, vi+1);
                 indices->set(i+2, vi+2);
@@ -498,13 +480,13 @@ int main(int argc, char** argv)
     double nearFarRatio = 0.001;
 
 
-    std::cout<<"\n centre = "<<centre<<std::endl;
-    std::cout<<"\n radius = "<<radius<<std::endl;
+    std::cout<<"\ncentre = "<<centre<<std::endl;
+    std::cout<<"radius = "<<radius<<std::endl;
 
     // set up the camera
     auto viewport = vsg::ViewportState::create(window->extent2D());
-    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), 0.1, 10.0);
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(radius*3.5, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 5.5);
+    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, radius*3.5), centre, vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
