@@ -155,107 +155,6 @@ namespace text
         }
         return font;
     }
-
-    vsg::ref_ptr<vsg::Node> createText(const vsg::vec3& position, const std::string& text, vsg::ref_ptr<vsg::Font> font)
-    {
-        auto technique = font->getTechnique<vsg::StandardText>();
-        if (!technique) return {};
-
-
-        // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
-        auto scenegraph = vsg::StateGroup::create();
-
-        scenegraph->add(technique->bindGraphicsPipeline);
-        scenegraph->add(technique->bindDescriptorSet);
-
-        uint32_t num_quads = 0;
-        uint32_t num_rows = 1;
-        for(auto& character : text)
-        {
-            if (character == '\n') ++num_rows;
-            else if (character != ' ') ++num_quads;
-        }
-
-        // check if we have anything to render
-        if (num_quads==0) return {};
-
-        uint32_t num_vertices = num_quads * 4;
-        auto vertices = vsg::vec3Array::create(num_vertices);
-        auto texcoords = vsg::vec2Array::create(num_vertices);
-        auto colors = vsg::vec3Array::create(num_vertices);
-        auto indices = vsg::ushortArray::create(num_quads * 6);
-
-        uint32_t i = 0;
-        uint32_t vi = 0;
-
-        vsg::vec3 color(1.0f, 1.0f, 1.0f);
-        vsg::vec3 row_position = position;
-        vsg::vec3 pen_position = row_position;
-        float row_height = 1.0;
-        for(auto& character : text)
-        {
-            if (character == '\n')
-            {
-                // newline
-                row_position.y -= font->normalisedLineHeight;
-                pen_position = row_position;
-            }
-            else if (character == ' ')
-            {
-                // space
-                uint16_t charcode(character);
-                const auto& glyph = font->glyphs[charcode];
-                pen_position.x += glyph.xadvance;
-            }
-            else
-            {
-                uint16_t charcode(character);
-                const auto& glyph = font->glyphs[charcode];
-
-                const auto& uvrect = glyph.uvrect;
-
-                vsg::vec3 local_origin = pen_position + vsg::vec3(glyph.offset.x, glyph.offset.y, 0.0f);
-                const auto& size = glyph.size;
-
-                vertices->set(vi, local_origin);
-                vertices->set(vi+1, local_origin + vsg::vec3(size.x, 0.0f, 0.0f));
-                vertices->set(vi+2, local_origin + vsg::vec3(size.x, size.y, 0.0f));
-                vertices->set(vi+3, local_origin + vsg::vec3(0.0f, size.y, 0.0f));
-
-                colors->at(vi  ) = color;
-                colors->at(vi+1) = color;
-                colors->at(vi+2) = color;
-                colors->at(vi+3) = color;
-
-                texcoords->set(vi, vsg::vec2(uvrect[0], uvrect[1]));
-                texcoords->set(vi+1, vsg::vec2(uvrect[0]+uvrect[2], uvrect[1]));
-                texcoords->set(vi+2, vsg::vec2(uvrect[0]+uvrect[2], uvrect[1]+uvrect[3]));
-                texcoords->set(vi+3, vsg::vec2(uvrect[0], uvrect[1]+uvrect[3]));
-
-                indices->set(i, vi);
-                indices->set(i+1, vi+1);
-                indices->set(i+2, vi+2);
-                indices->set(i+3, vi+2);
-                indices->set(i+4, vi+3);
-                indices->set(i+5, vi);
-
-                vi += 4;
-                i += 6;
-                pen_position.x += glyph.xadvance;
-            }
-        }
-
-        // setup geometry
-        auto drawCommands = vsg::Commands::create();
-        drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
-        drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-        drawCommands->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
-
-        scenegraph->addChild(drawCommands);
-
-        return scenegraph;
-    }
-
 }
 
 int main(int argc, char** argv)
@@ -287,7 +186,13 @@ int main(int argc, char** argv)
     // set up model transformation node
     auto scenegraph = vsg::Group::create();
 
-    scenegraph->addChild(text::createText(vsg::vec3(0.0, 0.0, 0.0), "This is my text\nTest another line", font));
+    auto text = vsg::Text::create();
+    text->position = vsg::vec3(0.0, 0.0, 0.0);
+    text->text = "VulkanSceneGraph now\n has text suppport.";
+    text->font = font;
+    text->setup();
+
+    scenegraph->addChild(text);
 
     vsg::write(scenegraph, "text.vsgt");
 

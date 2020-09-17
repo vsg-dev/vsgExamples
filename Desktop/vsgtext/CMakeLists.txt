@@ -1,4 +1,5 @@
 set(SOURCES
+    Text.cpp
     vsgtext.cpp
 )
 

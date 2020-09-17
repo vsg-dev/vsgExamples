@@ -19,50 +19,42 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace vsg
 {
-    class Font : public vsg::Inherit<vsg::Object, Font>
+    class Font : public Inherit<Object, Font>
     {
     public:
 
         struct GlyphData
         {
             uint16_t character;
-            vsg::vec4 uvrect; // min x/y, max x/y
-            vsg::vec2 size; // normalised size of the glyph
-            vsg::vec2 offset; // normalised offset
+            vec4 uvrect; // min x/y, max x/y
+            vec2 size; // normalised size of the glyph
+            vec2 offset; // normalised offset
             float xadvance; // normalised xadvance
             float lookupOffset; // offset into lookup texture
         };
         using GlyphMap = std::map<uint16_t, GlyphData>;
 
-        vsg::ref_ptr<vsg::Data> atlas;
-        vsg::ref_ptr<vsg::DescriptorImage> texture;
+        ref_ptr<Data> atlas;
         GlyphMap glyphs;
         float fontHeight;
         float normalisedLineHeight;
-        vsg::ref_ptr<vsg::Options> options;
+        ref_ptr<Options> options;
 
-        /// Technique base class provide ability to provide range of different rendering techniques
-        class Technique : public vsg::Inherit<vsg::Object, Technique>
-        {
-        public:
-            vsg::ref_ptr<vsg::BindGraphicsPipeline> bindGraphicsPipeline;
-            vsg::ref_ptr<vsg::BindDescriptorSet> bindDescriptorSet;
-        };
-
-        std::vector<vsg::ref_ptr<Technique>> techniques;
+        /// different text impplementations may wish to share implementation details such as shaders etc.
+        std::vector<ref_ptr<Object>> sharedData;
 
         /// get or create a Technique instance that matches the specified type
         template<class T>
-        vsg::ref_ptr<T> getTechnique()
+        ref_ptr<T> getShared()
         {
-            for(auto& technique : techniques)
+            for(auto& shared : sharedData)
             {
-                auto tech = technique.cast<T>();
-                if (tech) return tech;
+                auto required_data = shared.cast<T>();
+                if (required_data) return required_data;
             }
-            auto tech = T::create(this);
-            techniques.emplace_back(tech);
-            return tech;
+            auto required_data = T::create(this);
+            sharedData.emplace_back(required_data);
+            return required_data;
         }
     };
 }
