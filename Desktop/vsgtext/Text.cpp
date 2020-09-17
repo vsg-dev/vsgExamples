@@ -21,7 +21,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #ifdef USE_VSGXCHANGE
 #include <vsgXchange/ReaderWriter_all.h>
-#include <vsgXchange/ShaderCompiler.h>
 #endif
 
 #include <iostream>
@@ -44,7 +43,6 @@ Text::RenderingState::RenderingState(Font* font)
         std::cout<<"Could not create shaders."<<std::endl;
     }
 
-#ifdef USE_VSGXCHANGE
     // compile section
     ShaderStages stagesToCompile;
     if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
@@ -52,13 +50,12 @@ Text::RenderingState::RenderingState(Font* font)
 
     if (!stagesToCompile.empty())
     {
-        auto shaderCompiler = vsgXchange::ShaderCompiler::create();
+        auto shaderCompiler = vsg::ShaderCompiler::create();
 
         std::vector<std::string> defines;
         shaderCompiler->compile(stagesToCompile, defines); // and paths?
     }
     // TODO end of block requiring changes
-#endif
 
     // set up graphics pipeline
     DescriptorSetLayoutBindings descriptorBindings

@@ -2,7 +2,6 @@
 
 #ifdef USE_VSGXCHANGE
 #include <vsgXchange/ReaderWriter_all.h>
-#include <vsgXchange/ShaderCompiler.h>
 #endif
 
 #include <iostream>
@@ -198,7 +197,6 @@ int main(int argc, char** argv)
     vertexShader->specializationConstants = specializationContexts;
     fragmentShader->specializationConstants = specializationContexts;
 
-#ifdef USE_VSGXCHANGE
     // compile section
     vsg::ShaderStages stagesToCompile;
     if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
@@ -206,13 +204,12 @@ int main(int argc, char** argv)
 
     if (!stagesToCompile.empty())
     {
-        auto shaderCompiler = vsgXchange::ShaderCompiler::create();
+        auto shaderCompiler = vsg::ShaderCompiler::create();
 
         std::vector<std::string> defines;
         shaderCompiler->compile(stagesToCompile, defines); // and paths?
     }
     // TODO end of block requiring changes
-#endif
 
     // set up texture image
     std::vector<vsg::ref_ptr<vsg::ubvec4Array2D>> textureDataList;

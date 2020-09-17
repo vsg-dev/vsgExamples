@@ -17,7 +17,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #ifdef USE_VSGXCHANGE
 #include <vsgXchange/ReaderWriter_all.h>
-#include <vsgXchange/ShaderCompiler.h>
 #endif
 
 #include <iostream>
