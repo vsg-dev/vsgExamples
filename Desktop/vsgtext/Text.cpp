@@ -48,15 +48,6 @@ Text::RenderingState::RenderingState(Font* font)
     if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
     if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
 
-    if (!stagesToCompile.empty())
-    {
-        auto shaderCompiler = vsg::ShaderCompiler::create();
-
-        std::vector<std::string> defines;
-        shaderCompiler->compile(stagesToCompile, defines); // and paths?
-    }
-    // TODO end of block requiring changes
-
     // set up graphics pipeline
     DescriptorSetLayoutBindings descriptorBindings
     {
