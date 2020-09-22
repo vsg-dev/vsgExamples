@@ -5,9 +5,6 @@
 #include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-#include "Font.h"
-#include "Text.h"
-
 namespace text
 {
 
