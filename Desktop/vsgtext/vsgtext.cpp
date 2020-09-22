@@ -197,7 +197,7 @@ int main(int argc, char** argv)
         layout->position = vsg::vec3(-10.0, 0.0, -5.0);
         layout->horizontal = vsg::vec3(1.0, 1.0, 0.0);
         layout->vertical = vsg::vec3(0.0, 1.0, 1.0);
-        layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+        layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
 
         auto text = vsg::Text::create();
         text->text = "You can\nconfigure layout.";
@@ -219,16 +219,17 @@ int main(int argc, char** argv)
                     for(int i=0; i<4; ++i)
                     {
                         quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
+                        quad.colors[i].r = sin(quad.vertices[i].x);
                     }
                 }
             };
         };
 
         auto layout = CustomLayout::create();
-        layout->position = vsg::vec3(0.0, 0.0, -5.0);
-        layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-        layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-        layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+        layout->position = vsg::vec3(-3.0, 0.0, -5.0);
+        layout->horizontal = vsg::vec3(1.5, 0.0, 0.0);
+        layout->vertical = vsg::vec3(0.0, 0.0, 1.5);
+        layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
 
         auto text = vsg::Text::create();
         text->text = "You can use\nyour own CustomLayout.";

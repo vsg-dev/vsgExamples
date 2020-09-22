@@ -62,14 +62,14 @@ Text::RenderingState::RenderingState(Font* font)
     VertexInputState::Bindings vertexBindingsDescriptions
     {
         VkVertexInputBindingDescription{0, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+        VkVertexInputBindingDescription{1, sizeof(vec4), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
         VkVertexInputBindingDescription{2, sizeof(vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
     };
 
     VertexInputState::Attributes vertexAttributeDescriptions
     {
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 0}, // colour data
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
 
@@ -138,8 +138,8 @@ void Text::setup()
 
     uint32_t num_vertices = quads.size() * 4;
     auto vertices = vsg::vec3Array::create(num_vertices);
+    auto colors = vsg::vec4Array::create(num_vertices);
     auto texcoords = vsg::vec2Array::create(num_vertices);
-    auto colors = vsg::vec3Array::create(num_vertices);
     auto indices = vsg::ushortArray::create(quads.size() * 6);
 
     uint32_t i = 0;
@@ -152,10 +152,10 @@ void Text::setup()
         vertices->set(vi+2, quad.vertices[2]);
         vertices->set(vi+3, quad.vertices[3]);
 
-        colors->set(vi, vec3(quad.colors[0].r, quad.colors[0].g, quad.colors[0].b));
-        colors->set(vi+1, vec3(quad.colors[1].r, quad.colors[1].g, quad.colors[1].b));
-        colors->set(vi+2, vec3(quad.colors[2].r, quad.colors[2].g, quad.colors[2].b));
-        colors->set(vi+3, vec3(quad.colors[3].r, quad.colors[3].g, quad.colors[3].b));
+        colors->set(vi, quad.colors[0]);
+        colors->set(vi+1, quad.colors[1]);
+        colors->set(vi+2, quad.colors[2]);
+        colors->set(vi+3, quad.colors[3]);
 
         texcoords->set(vi, quad.texcoords[0]);
         texcoords->set(vi+1, quad.texcoords[1]);
