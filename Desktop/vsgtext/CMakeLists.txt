@@ -1,4 +1,5 @@
 set(SOURCES
+    TextLayout.cpp
     Text.cpp
     vsgtext.cpp
 )

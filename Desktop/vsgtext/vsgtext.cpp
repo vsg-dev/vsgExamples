@@ -178,20 +178,65 @@ int main(int argc, char** argv)
     #endif
 
     auto font = text::readUnity3dFontMetaFile("fonts/roboto.txt", options);
-    std::cout<<"font = "<<font<<std::endl;
 
     if (!font) return 1;
 
     // set up model transformation node
     auto scenegraph = vsg::Group::create();
 
-    auto text = vsg::Text::create();
-    text->position = vsg::vec3(0.0, 0.0, 0.0);
-    text->text = "VulkanSceneGraph now\n has text suppport.";
-    text->font = font;
-    text->setup();
+    {
+        auto text = vsg::Text::create();
+        text->text = "VulkanSceneGraph now\nhas text suppport.";
+        text->font = font;
+        text->setup();
+        scenegraph->addChild(text);
+    }
 
-    scenegraph->addChild(text);
+    {
+        auto layout = vsg::LeftAlignment::create();
+        layout->position = vsg::vec3(-10.0, 0.0, -5.0);
+        layout->horizontal = vsg::vec3(1.0, 1.0, 0.0);
+        layout->vertical = vsg::vec3(0.0, 1.0, 1.0);
+        layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+
+        auto text = vsg::Text::create();
+        text->text = "You can\nconfigure layout.";
+        text->font = font;
+        text->layout = layout;
+        text->setup();
+        scenegraph->addChild(text);
+    }
+
+    {
+        struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
+        {
+            void layout(const std::string& text, const vsg::Font& font, vsg::TextQuads& quads) override
+            {
+                Inherit::layout(text, font, quads);
+
+                for(auto& quad : quads)
+                {
+                    for(int i=0; i<4; ++i)
+                    {
+                        quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
+                    }
+                }
+            };
+        };
+
+        auto layout = CustomLayout::create();
+        layout->position = vsg::vec3(0.0, 0.0, -5.0);
+        layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+        layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+        layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+
+        auto text = vsg::Text::create();
+        text->text = "You can use\nyour own CustomLayout.";
+        text->font = font;
+        text->layout = layout;
+        text->setup();
+        scenegraph->addChild(text);
+    }
 
     vsg::write(scenegraph, "text.vsgt");
 

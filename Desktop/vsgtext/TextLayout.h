@@ -12,51 +12,38 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-
-#include <vsg/nodes/Node.h>
-#include <vsg/state/StateGroup.h>
+#include <vsg/core/Inherit.h>
+#include <vsg/core/Array.h>
 
 #include "Font.h"
-#include "TextLayout.h"
 
 namespace vsg
 {
+    struct TextQuad
+    {
+        vec3 vertices[4];
+        vec2 texcoords[4];
+        vec4 colors[4];
+        vec3 normal;
+    };
 
-    class Text : public Inherit<Node, Text>
+    using TextQuads = std::vector<TextQuad>;
+
+    class TextLayout : public Inherit<Object, TextLayout>
+    {
+    public:
+        virtual void layout(const std::string& text, const Font& font, TextQuads& texQuads) = 0;
+    };
+
+    class LeftAlignment : public Inherit<TextLayout, LeftAlignment>
     {
     public:
 
-        template<class N, class V>
-        static void t_traverse(N& node, V& visitor)
-        {
-            if (node._stategroup) node._stategroup->accept(visitor);
-        }
+        vec3 position = vec3(0.0f, 0.0f, 0.0f);
+        vec3 horizontal = vec3(1.0f, 0.0f, 0.0f);
+        vec3 vertical = vec3(0.0f, 1.0f, 0.0f);
+        vec4 color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-        void traverse(Visitor& visitor) override { t_traverse(*this, visitor); }
-        void traverse(ConstVisitor& visitor) const override { t_traverse(*this, visitor); }
-        void traverse(RecordTraversal& visitor) const override { t_traverse(*this, visitor); }
-
-        /// settings
-        ref_ptr<Font> font;
-        ref_ptr<TextLayout> layout;
-        std::string text;
-
-        /// create the rendering backend
-        virtual void setup();
-
-    protected:
-
-        // implementation details
-        struct RenderingState : public Inherit<Object, RenderingState>
-        {
-            RenderingState(Font* font);
-
-            ref_ptr<BindGraphicsPipeline> bindGraphicsPipeline;
-            ref_ptr<BindDescriptorSet> bindDescriptorSet;
-        };
-
-        ref_ptr<RenderingState> _sharedRenderingState;
-        ref_ptr<StateGroup> _stategroup;
+        void layout(const std::string& text, const Font& font, TextQuads& texQuads) override;
     };
-
 }

@@ -35,12 +35,10 @@ Text::RenderingState::RenderingState(Font* font)
     auto vertexShader = read_cast<ShaderStage>("shaders/text.vert", font->options);
     auto fragmentShader = read_cast<ShaderStage>("shaders/text.frag", font->options);
 
-    std::cout<<"vertexShader = "<<vertexShader<<std::endl;
-    std::cout<<"fragmentShader = "<<fragmentShader<<std::endl;
-
     if (!vertexShader || !fragmentShader)
     {
         std::cout<<"Could not create shaders."<<std::endl;
+        return;
     }
 
     // compile section
@@ -119,7 +117,16 @@ Text::RenderingState::RenderingState(Font* font)
 
 void Text::setup()
 {
-    _sharedRenderingState = font->getShared<RenderingState>();
+    // set up state related objects if they haven't lready been assigned
+    if (!_sharedRenderingState) _sharedRenderingState = font->getShared<RenderingState>();
+
+    if (!layout) layout = LeftAlignment::create();
+
+    TextQuads quads;
+    layout->layout(text, *font, quads);
+
+    if (quads.empty()) return;
+
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
@@ -129,82 +136,44 @@ void Text::setup()
     scenegraph->add(_sharedRenderingState->bindGraphicsPipeline);
     scenegraph->add(_sharedRenderingState->bindDescriptorSet);
 
-    uint32_t num_quads = 0;
-    uint32_t num_rows = 1;
-    for(auto& character : text)
-    {
-        if (character == '\n') ++num_rows;
-        else if (character != ' ') ++num_quads;
-    }
-
-    // check if we have anything to render
-    if (num_quads==0) return;
-
-    uint32_t num_vertices = num_quads * 4;
+    uint32_t num_vertices = quads.size() * 4;
     auto vertices = vsg::vec3Array::create(num_vertices);
     auto texcoords = vsg::vec2Array::create(num_vertices);
     auto colors = vsg::vec3Array::create(num_vertices);
-    auto indices = vsg::ushortArray::create(num_quads * 6);
+    auto indices = vsg::ushortArray::create(quads.size() * 6);
 
     uint32_t i = 0;
     uint32_t vi = 0;
 
-    vsg::vec3 color(1.0f, 1.0f, 1.0f);
-    vsg::vec3 row_position = position;
-    vsg::vec3 pen_position = row_position;
-    float row_height = 1.0;
-    for(auto& character : text)
+    for(auto& quad : quads)
     {
-        if (character == '\n')
-        {
-            // newline
-            row_position.y -= font->normalisedLineHeight;
-            pen_position = row_position;
-        }
-        else if (character == ' ')
-        {
-            // space
-            uint16_t charcode(character);
-            const auto& glyph = font->glyphs[charcode];
-            pen_position.x += glyph.xadvance;
-        }
-        else
-        {
-            uint16_t charcode(character);
-            const auto& glyph = font->glyphs[charcode];
+        vertices->set(vi, quad.vertices[0]);
+        vertices->set(vi+1, quad.vertices[1]);
+        vertices->set(vi+2, quad.vertices[2]);
+        vertices->set(vi+3, quad.vertices[3]);
 
-            const auto& uvrect = glyph.uvrect;
+        colors->set(vi, vec3(quad.colors[0].r, quad.colors[0].g, quad.colors[0].b));
+        colors->set(vi+1, vec3(quad.colors[1].r, quad.colors[1].g, quad.colors[1].b));
+        colors->set(vi+2, vec3(quad.colors[2].r, quad.colors[2].g, quad.colors[2].b));
+        colors->set(vi+3, vec3(quad.colors[3].r, quad.colors[3].g, quad.colors[3].b));
 
-            vsg::vec3 local_origin = pen_position + vsg::vec3(glyph.offset.x, glyph.offset.y, 0.0f);
-            const auto& size = glyph.size;
+        texcoords->set(vi, quad.texcoords[0]);
+        texcoords->set(vi+1, quad.texcoords[1]);
+        texcoords->set(vi+2, quad.texcoords[2]);
+        texcoords->set(vi+3, quad.texcoords[3]);
 
-            vertices->set(vi, local_origin);
-            vertices->set(vi+1, local_origin + vsg::vec3(size.x, 0.0f, 0.0f));
-            vertices->set(vi+2, local_origin + vsg::vec3(size.x, size.y, 0.0f));
-            vertices->set(vi+3, local_origin + vsg::vec3(0.0f, size.y, 0.0f));
+        indices->set(i, vi);
+        indices->set(i+1, vi+1);
+        indices->set(i+2, vi+2);
+        indices->set(i+3, vi+2);
+        indices->set(i+4, vi+3);
+        indices->set(i+5, vi);
 
-            colors->at(vi  ) = color;
-            colors->at(vi+1) = color;
-            colors->at(vi+2) = color;
-            colors->at(vi+3) = color;
-
-            texcoords->set(vi, vsg::vec2(uvrect[0], uvrect[1]));
-            texcoords->set(vi+1, vsg::vec2(uvrect[0]+uvrect[2], uvrect[1]));
-            texcoords->set(vi+2, vsg::vec2(uvrect[0]+uvrect[2], uvrect[1]+uvrect[3]));
-            texcoords->set(vi+3, vsg::vec2(uvrect[0], uvrect[1]+uvrect[3]));
-
-            indices->set(i, vi);
-            indices->set(i+1, vi+1);
-            indices->set(i+2, vi+2);
-            indices->set(i+3, vi+2);
-            indices->set(i+4, vi+3);
-            indices->set(i+5, vi);
-
-            vi += 4;
-            i += 6;
-            pen_position.x += glyph.xadvance;
-        }
+        vi += 4;
+        i += 6;
     }
+
+    DataList arrays;
 
     // setup geometry
     auto drawCommands = vsg::Commands::create();
