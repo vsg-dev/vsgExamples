@@ -97,6 +97,24 @@ namespace text
             return {};
         }
 
+        vsg::ref_ptr<vsg::ubyteArray2D> greyscaleImage = font->atlas.cast<vsg::ubyteArray2D>();
+        if (!greyscaleImage)
+        {
+            greyscaleImage = vsg::ubyteArray2D::create(font->atlas->width(), font->atlas->height(), vsg::Data::Layout{VK_FORMAT_R8_UNORM});
+
+            auto rgbaImage = font->atlas.cast<vsg::ubvec4Array2D>();
+            if (rgbaImage)
+            {
+                auto dest_itr = greyscaleImage->begin();
+                for(auto& value : *rgbaImage)
+                {
+                    (*dest_itr++) = value.a;
+                }
+                font->atlas = greyscaleImage;
+            }
+
+        }
+
         font->fontHeight = fontPixelHeight;
         font->normalisedLineHeight = normalisedLineHeight;
 
@@ -113,9 +131,9 @@ namespace text
             std::getline(in, line);
             std::vector<std::string> elements = split(line, ' ');
 
-            vsg::Font::GlyphData glyph;
+            vsg::Font::GlyphMetrics glyph;
 
-            glyph.character = uintValueFromPair(elements[1]);
+            glyph.charcode = uintValueFromPair(elements[1]);
 
             // pixel rect of glyph
             float x = floatValueFromPair(elements[2]);
@@ -134,20 +152,24 @@ namespace text
             // calc uv space rect
             vsg::vec2 uvorigin = vsg::vec2(x / scaleWidth, y / scaleHeight);
             vsg::vec2 uvsize = vsg::vec2(width / scaleWidth, height / scaleHeight);
-            glyph.uvrect = vsg::vec4(uvorigin.x, uvorigin.y, uvsize.x, uvsize.y);
+            glyph.uvrect = vsg::vec4(uvorigin.x, uvorigin.y, uvorigin.x + uvsize.x, uvorigin.y + uvsize.y);
 
             // calc normaised size
-            glyph.size = vsg::vec2(width / fontPixelHeight, height / fontPixelHeight);
+            glyph.width = width / fontPixelHeight;
+            glyph.height = height / fontPixelHeight;
 
             // calc normalise offsets
-            glyph.offset = vsg::vec2(xoffset / fontPixelHeight, normalisedBaseLine - glyph.size.y - (yoffset / fontPixelHeight));
-            glyph.xadvance = xadvance / fontPixelHeight;
+            glyph.horiBearingX = xoffset / fontPixelHeight;
+            glyph.horiBearingY = normalisedBaseLine - (yoffset / fontPixelHeight);
+            glyph.horiAdvance = xadvance / fontPixelHeight;
 
-            // (the font object will calc this)
-            glyph.lookupOffset = 0.0f;
+            glyph.vertBearingX = 0.0;
+            glyph.vertBearingY = 0.0;
+            glyph.vertAdvance = 1.0;
+
 
             // add glyph to list
-            font->glyphs[glyph.character] = glyph;
+            font->glyphs[glyph.charcode] = glyph;
         }
         return font;
     }
@@ -163,6 +185,9 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
+    std::string font_filename;
+    arguments.read("-f",font_filename);
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
@@ -174,7 +199,14 @@ int main(int argc, char** argv)
     options->readerWriter = vsgXchange::ReaderWriter_all::create();
     #endif
 
-    auto font = text::readUnity3dFontMetaFile("fonts/roboto.txt", options);
+    vsg::ref_ptr<vsg::Font> font;
+    if (!font_filename.empty()) font = vsg::read_cast<vsg::Font>(font_filename, options);
+
+    if (!font)
+    {
+        std::cout<<"Failling back to Unit3D roboto font,"<<std::endl;
+        font = text::readUnity3dFontMetaFile("fonts/roboto.txt", options);
+    }
 
     if (!font) return 1;
 
@@ -183,7 +215,7 @@ int main(int argc, char** argv)
 
     {
         auto text = vsg::Text::create();
-        text->text = "VulkanSceneGraph now\nhas text suppport.";
+        text->text = "VulkanSceneGraph now\nhas text support.";
         text->font = font;
         text->setup();
         scenegraph->addChild(text);
@@ -204,6 +236,7 @@ int main(int argc, char** argv)
         scenegraph->addChild(text);
     }
 
+    #if 1
     {
         struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
         {
@@ -235,6 +268,7 @@ int main(int argc, char** argv)
         text->setup();
         scenegraph->addChild(text);
     }
+#endif
 
     vsg::write(scenegraph, "text.vsgt");
 
