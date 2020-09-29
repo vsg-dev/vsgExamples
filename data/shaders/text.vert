@@ -8,7 +8,7 @@ layout(push_constant) uniform PushConstants {
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec4 inColor;
-layout(location = 2) in vec2 inTexCoord;
+layout(location = 2) in vec3 inTexCoord;
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
@@ -19,6 +19,7 @@ out gl_PerVertex {
 
 void main() {
     gl_Position = (pc.projection * pc.modelview) * vec4(inPosition, 1.0);
+    gl_Position.z -= inTexCoord.z*0.001;
     fragColor = inColor;
-    fragTexCoord = inTexCoord;
+    fragTexCoord = inTexCoord.xy;
 }

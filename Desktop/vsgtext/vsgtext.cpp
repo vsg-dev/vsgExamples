@@ -184,9 +184,9 @@ int main(int argc, char** argv)
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
-
-    std::string font_filename;
-    arguments.read("-f",font_filename);
+    auto font_filename = arguments.value(std::string(), "-f");
+    auto output_filename = arguments.value(std::string(), "-o");
+    auto render_all_glyphs = arguments.read("--all");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -213,64 +213,123 @@ int main(int argc, char** argv)
     // set up model transformation node
     auto scenegraph = vsg::Group::create();
 
-    {
-        auto text = vsg::Text::create();
-        text->text = "VulkanSceneGraph now\nhas text support.";
-        text->font = font;
-        text->setup();
-        scenegraph->addChild(text);
-    }
-
-    {
-        auto layout = vsg::LeftAlignment::create();
-        layout->position = vsg::vec3(-10.0, 0.0, -5.0);
-        layout->horizontal = vsg::vec3(1.0, 1.0, 0.0);
-        layout->vertical = vsg::vec3(0.0, 1.0, 1.0);
-        layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
-
-        auto text = vsg::Text::create();
-        text->text = "You can\nconfigure layout.";
-        text->font = font;
-        text->layout = layout;
-        text->setup();
-        scenegraph->addChild(text);
-    }
-
-    #if 1
+    if (render_all_glyphs)
     {
         struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
         {
-            void layout(const std::string& text, const vsg::Font& font, vsg::TextQuads& quads) override
+            void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
             {
                 Inherit::layout(text, font, quads);
 
+                vsg::vec4 color0(1.0f, 1.0f, 1.0f, 1.0f);
+                vsg::vec4 color1(1.0f, 0.0f, 1.0f, 1.0f);
+
+                int qi = 0;
                 for(auto& quad : quads)
                 {
                     for(int i=0; i<4; ++i)
                     {
-                        quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
-                        quad.colors[i].r = sin(quad.vertices[i].x);
+                        quad.colors[i] = (qi%2) ? color1 : color0;
+
                     }
+                    ++qi;
                 }
             };
         };
 
         auto layout = CustomLayout::create();
-        layout->position = vsg::vec3(-3.0, 0.0, -5.0);
-        layout->horizontal = vsg::vec3(1.5, 0.0, 0.0);
-        layout->vertical = vsg::vec3(0.0, 0.0, 1.5);
-        layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
+        layout->position = vsg::vec3(0.0, 0.0, 0.0);
+        layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+        layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+        layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+
+        size_t row_lenghth = static_cast<size_t>(ceil(sqrt(float(font->glyphs.size()))));
+        size_t num_rows = font->glyphs.size() / row_lenghth;
+        if ((font->glyphs.size() % num_rows) != 0) ++num_rows;
+
+        auto text_string = vsg::uintArray::create(font->glyphs.size() + num_rows - 1);
+        auto text_itr = text_string->begin();
+
+        size_t i = 0;
+        size_t column = 0;
+
+        for(auto& glyph : font->glyphs)
+        {
+            ++i;
+            ++column;
+
+            (*text_itr++) = glyph.second.charcode;
+
+            if (column >= row_lenghth)
+            {
+                (*text_itr++) = '\n';
+                column = 0;
+            }
+        }
 
         auto text = vsg::Text::create();
-        text->text = "You can use\nyour own CustomLayout.";
         text->font = font;
         text->layout = layout;
+        text->text = text_string;
         text->setup();
+
         scenegraph->addChild(text);
     }
-#endif
+    else
+    {
+        {
+            auto layout = vsg::LeftAlignment::create();
+            layout->position = vsg::vec3(0.0, 0.0, 0.0);
+            layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+            layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
 
-    vsg::write(scenegraph, "text.vsgt");
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas text support.");
+            text->font = font;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+        }
+
+        {
+            struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
+            {
+                void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
+                {
+                    Inherit::layout(text, font, quads);
+
+                    for(auto& quad : quads)
+                    {
+                        for(int i=0; i<4; ++i)
+                        {
+                            quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
+                            quad.colors[i].r = sin(quad.vertices[i].x);
+                        }
+                    }
+                };
+            };
+
+            auto layout = CustomLayout::create();
+            layout->position = vsg::vec3(0.0, 0.0, -3.0);
+            layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+            layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("You can use\nyour own CustomLayout.");
+            text->font = font;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+        }
+    }
+
+    if (!output_filename.empty())
+    {
+        vsg::write(scenegraph, output_filename);
+        return 1;
+    }
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -292,10 +351,13 @@ int main(int argc, char** argv)
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
     double nearFarRatio = 0.001;
 
+    std::cout<<"\ncomputeBounds.bounds.min = "<<computeBounds.bounds.min<<std::endl;
+    std::cout<<"computeBounds.bounds.max = "<<computeBounds.bounds.max<<std::endl;
+
     // set up the camera
     auto viewport = vsg::ViewportState::create(window->extent2D());
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 5.5);
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, radius*3.5), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 1000.0);
+    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
