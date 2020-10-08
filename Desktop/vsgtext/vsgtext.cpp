@@ -5,175 +5,6 @@
 #include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-namespace text
-{
-
-    vsg::ref_ptr<vsg::Font> readUnity3dFontMetaFile(const std::string& font_metricsFile, vsg::ref_ptr<vsg::Options> options)
-    {
-        auto metricsFilePath = vsg::findFile(font_metricsFile, options);
-
-        if (metricsFilePath.empty()) return {};
-
-        auto font = vsg::Font::create();
-        font->options = options;
-
-        // read glyph data from txt file
-        auto startsWith = [](const std::string& str, const std::string& match)
-        {
-            return str.compare(0, match.length(), match) == 0;
-        };
-
-        auto split = [](const std::string& str, const char& seperator)
-        {
-            std::vector<std::string> elements;
-
-            std::string::size_type prev_pos = 0, pos = 0;
-
-            while ((pos = str.find(seperator, pos)) != std::string::npos)
-            {
-                auto substring = str.substr(prev_pos, pos - prev_pos);
-                elements.push_back(substring);
-                prev_pos = ++pos;
-            }
-
-            elements.push_back(str.substr(prev_pos, pos - prev_pos));
-
-            return elements;
-        };
-
-        auto uintValueFromPair = [&split](const std::string& str)
-        {
-            std::vector<std::string> els = split(str, '=');
-            return static_cast<uint32_t>(atoi(els[1].c_str()));
-        };
-
-        auto floatValueFromPair = [&split](const std::string& str)
-        {
-            std::vector<std::string> els = split(str, '=');
-            return static_cast<float>(atof(els[1].c_str()));
-        };
-
-        auto stringValueFromPair = [&split](const std::string& str)
-        {
-            std::vector<std::string> els = split(str, '=');
-            return els[1];
-        };
-
-        std::ifstream in(metricsFilePath);
-
-        // read header lines
-        std::string infoline;
-        std::getline(in, infoline);
-        std::vector<std::string> infoelements = split(infoline, ' ');
-        std::string facename = stringValueFromPair(infoelements[1]);
-
-        float fontPixelHeight = floatValueFromPair(infoelements[2]);
-
-        // read common line
-        std::string commonline;
-        std::getline(in, commonline);
-        std::vector<std::string> commonelements = split(commonline, ' ');
-
-        float lineHeight = floatValueFromPair(commonelements[1]);
-        float normalisedLineHeight = lineHeight / fontPixelHeight;
-
-        float baseLine = floatValueFromPair(commonelements[2]);
-        float normalisedBaseLine = baseLine / fontPixelHeight;
-        float scaleWidth = floatValueFromPair(commonelements[3]);
-        float scaleHeight = floatValueFromPair(commonelements[4]);
-
-        // read page id line
-        std::string pageline;
-        std::getline(in, pageline);
-
-        auto pagelineelements = split(pageline, ' ');
-        auto font_textureFile = stringValueFromPair(pagelineelements[2]);
-        auto textureFilePath = vsg::concatPaths(vsg::filePath(metricsFilePath), font_textureFile.substr(1, font_textureFile.size()-2));
-
-        font->atlas = vsg::read_cast<vsg::Data>(textureFilePath);
-        if (!font->atlas)
-        {
-            std::cout<<"Could not read texture file : "<<font_textureFile<<std::endl;
-            return {};
-        }
-
-        vsg::ref_ptr<vsg::ubyteArray2D> greyscaleImage = font->atlas.cast<vsg::ubyteArray2D>();
-        if (!greyscaleImage)
-        {
-            greyscaleImage = vsg::ubyteArray2D::create(font->atlas->width(), font->atlas->height(), vsg::Data::Layout{VK_FORMAT_R8_UNORM});
-
-            auto rgbaImage = font->atlas.cast<vsg::ubvec4Array2D>();
-            if (rgbaImage)
-            {
-                auto dest_itr = greyscaleImage->begin();
-                for(auto& value : *rgbaImage)
-                {
-                    (*dest_itr++) = value.a;
-                }
-                font->atlas = greyscaleImage;
-            }
-
-        }
-
-        font->fontHeight = fontPixelHeight;
-        font->normalisedLineHeight = normalisedLineHeight;
-
-        // read character count line
-        std::string charsline;
-        std::getline(in, charsline);
-        std::vector<std::string> charselements = split(charsline, ' ');
-        uint32_t charscount = uintValueFromPair(charselements[1]);
-
-        // read character data lines
-        for (uint32_t i = 0; i < charscount; i++)
-        {
-            std::string line;
-            std::getline(in, line);
-            std::vector<std::string> elements = split(line, ' ');
-
-            vsg::Font::GlyphMetrics glyph;
-
-            glyph.charcode = uintValueFromPair(elements[1]);
-
-            // pixel rect of glyph
-            float x = floatValueFromPair(elements[2]);
-            float y = floatValueFromPair(elements[3]);
-            float width = floatValueFromPair(elements[4]);
-            float height = floatValueFromPair(elements[5]);
-
-            // adujst y to bottom origin
-            y = scaleHeight - (y + height);
-
-            // offset for character glyph in a string
-            float xoffset = floatValueFromPair(elements[6]);
-            float yoffset = floatValueFromPair(elements[7]);
-            float xadvance = floatValueFromPair(elements[8]);
-
-            // calc uv space rect
-            vsg::vec2 uvorigin = vsg::vec2(x / scaleWidth, y / scaleHeight);
-            vsg::vec2 uvsize = vsg::vec2(width / scaleWidth, height / scaleHeight);
-            glyph.uvrect = vsg::vec4(uvorigin.x, uvorigin.y, uvorigin.x + uvsize.x, uvorigin.y + uvsize.y);
-
-            // calc normaised size
-            glyph.width = width / fontPixelHeight;
-            glyph.height = height / fontPixelHeight;
-
-            // calc normalise offsets
-            glyph.horiBearingX = xoffset / fontPixelHeight;
-            glyph.horiBearingY = normalisedBaseLine - (yoffset / fontPixelHeight);
-            glyph.horiAdvance = xadvance / fontPixelHeight;
-
-            glyph.vertBearingX = 0.0;
-            glyph.vertBearingY = 0.0;
-            glyph.vertAdvance = 1.0;
-
-
-            // add glyph to list
-            font->glyphs[glyph.charcode] = glyph;
-        }
-        return font;
-    }
-}
 
 int main(int argc, char** argv)
 {
@@ -184,7 +15,7 @@ int main(int argc, char** argv)
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
-    auto font_filename = arguments.value(std::string(), "-f");
+    auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "-f");
     auto output_filename = arguments.value(std::string(), "-o");
     auto render_all_glyphs = arguments.read("--all");
 
@@ -199,16 +30,13 @@ int main(int argc, char** argv)
     options->readerWriter = vsgXchange::ReaderWriter_all::create();
     #endif
 
-    vsg::ref_ptr<vsg::Font> font;
-    if (!font_filename.empty()) font = vsg::read_cast<vsg::Font>(font_filename, options);
+    auto font = vsg::read_cast<vsg::Font>(font_filename, options);
 
     if (!font)
     {
-        std::cout<<"Failling back to Unit3D roboto font,"<<std::endl;
-        font = text::readUnity3dFontMetaFile("fonts/roboto.txt", options);
+        std::cout<<"Failling to read font : "<<font_filename<<std::endl;
+        return 1;
     }
-
-    if (!font) return 1;
 
     // set up model transformation node
     auto scenegraph = vsg::Group::create();
