@@ -292,9 +292,10 @@ int main(int argc, char** argv)
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
             layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+            layout->outlineWidth = 0.2;
 
             auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas text support.");
+            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
             text->font = font;
             text->layout = layout;
             text->setup();
@@ -306,14 +307,18 @@ int main(int argc, char** argv)
             {
                 void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
                 {
+                    // Let the base LeftAlignment class do the basic glyph setup
                     Inherit::layout(text, font, quads);
 
+                    // modify each generated glyph quad's position and colours etc.
                     for(auto& quad : quads)
                     {
                         for(int i=0; i<4; ++i)
                         {
                             quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
-                            quad.colors[i].r = sin(quad.vertices[i].x);
+                            quad.colors[i].r = 0.5f + 0.5f*sin(quad.vertices[i].x);
+                            quad.outlineColors[i] = vsg::vec4(cos(0.5*quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
+                            quad.outlineWidths[i] = 0.1f + 0.15f*(1.0f+sin(quad.vertices[i].x));
                         }
                     }
                 };
@@ -326,7 +331,7 @@ int main(int argc, char** argv)
             layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
 
             auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("You can use\nyour own CustomLayout.");
+            text->text = vsg::stringValue::create("You can use Outlines\nand your own CustomLayout.");
             text->font = font;
             text->layout = layout;
             text->setup();
