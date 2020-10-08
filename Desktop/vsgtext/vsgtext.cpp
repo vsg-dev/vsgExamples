@@ -43,38 +43,7 @@ int main(int argc, char** argv)
 
     if (render_all_glyphs)
     {
-#if 0
-        struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
-        {
-            void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
-            {
-                Inherit::layout(text, font, quads);
-
-                vsg::vec4 color0(1.0f, 1.0f, 1.0f, 1.0f);
-                vsg::vec4 color1(1.0f, 0.0f, 1.0f, 1.0f);
-
-                int qi = 0;
-                for(auto& quad : quads)
-                {
-                    for(int i=0; i<4; ++i)
-                    {
-                        quad.colors[i] = (qi%2) ? color1 : color0;
-                    }
-
-                    for(int i=1; i<4; ++i)
-                    {
-                        quad.vertices[i] = quad.vertices[0] + (quad.vertices[i]-quad.vertices[0])*0.5f;
-                    }
-
-                    ++qi;
-                }
-            };
-        };
-
-        auto layout = CustomLayout::create();
-#else
         auto layout = vsg::LeftAlignment::create();
-#endif
         layout->position = vsg::vec3(0.0, 0.0, 0.0);
         layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
         layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
