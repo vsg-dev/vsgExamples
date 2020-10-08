@@ -53,6 +53,7 @@ int main(int argc, char** argv)
         size_t num_rows = font->glyphs.size() / row_lenghth;
         if ((font->glyphs.size() % num_rows) != 0) ++num_rows;
 
+        // use an uintArray to store the text string as the full font charcodes can go up to very large values.
         auto text_string = vsg::uintArray::create(font->glyphs.size() + num_rows - 1);
         auto text_itr = text_string->begin();
 
