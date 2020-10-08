@@ -365,9 +365,6 @@ int main(int argc, char** argv)
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
     double nearFarRatio = 0.001;
 
-    std::cout<<"\ncomputeBounds.bounds.min = "<<computeBounds.bounds.min<<std::endl;
-    std::cout<<"computeBounds.bounds.max = "<<computeBounds.bounds.max<<std::endl;
-
     // set up the camera
     auto viewport = vsg::ViewportState::create(window->extent2D());
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 1000.0);
