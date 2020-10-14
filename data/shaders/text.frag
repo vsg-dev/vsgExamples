@@ -11,6 +11,10 @@ layout(location = 0) out vec4 outColor;
 
 vec2 glyph_alpha(vec2 texcoord, vec2 dx, vec2 dy)
 {
+    float lod = textureQueryLod(texSampler, texcoord).x;
+    float innerCutOff = 0.0;
+    if (lod>0.0) innerCutOff = lod * 0.03;
+
     float scale = 1.0;
     float distance_from_edge = (textureGrad(texSampler, texcoord, dx, dy).r - 0.5);
 
@@ -23,6 +27,7 @@ vec2 glyph_alpha(vec2 texcoord, vec2 dx, vec2 dy)
     float max_distance_from_edge = distance_from_edge + delta;
 
     //min_distance_from_edge += 0.0;
+    min_distance_from_edge += innerCutOff;
     float inner_alpha = 0.0;
     if (min_distance_from_edge >= 0.0) inner_alpha = 1.0;
     else if (max_distance_from_edge >= 0.0) inner_alpha = max_distance_from_edge/(max_distance_from_edge-min_distance_from_edge);
@@ -44,7 +49,7 @@ vec2 sampled_glyph_alpha_grid(vec2 texcoord)
     if (lod<=0.0) return glyph_alpha(texcoord, dx, dy);
 
     float area = length(dx) * length(dy);
-    float average_side = sqrt(area) / (1.0 +lod);
+    float average_side = sqrt(area) / (1.0 + lod);
     float num_x = ceil(length(dx) / average_side);
     float num_y = ceil(length(dy) / average_side);
 
@@ -58,7 +63,7 @@ vec2 sampled_glyph_alpha_grid(vec2 texcoord)
         vec2 tc = tc_row_start;
         tc_row_start = tc_row_start + interval_dy;
 
-        for(float r = 0; r<num_x; ++r)
+        for(float c = 0; c<num_x; ++c)
         {
             total_alpha = total_alpha + glyph_alpha(tc, interval_dx, interval_dy);
 
@@ -71,7 +76,6 @@ vec2 sampled_glyph_alpha_grid(vec2 texcoord)
 
 void main()
 {
-
     vec2 alphas = sampled_glyph_alpha_grid(fragTexCoord);
 
     if (alphas[1]>0.0)
@@ -85,6 +89,5 @@ void main()
         outColor = vec4(fragColor.rgb,  fragColor.a * alphas[0]);
     }
 
-    //outColor = fragColor;
     if (outColor.a == 0.0) discard;
 }
