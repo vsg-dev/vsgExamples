@@ -16,7 +16,7 @@ vec2 glyph_alpha(vec2 texcoord, vec2 dx, vec2 dy)
     if (lod>0.0) innerCutOff = lod * 0.03;
 
     float scale = 1.0;
-    float distance_from_edge = (textureGrad(texSampler, texcoord, dx, dy).r - 0.5);
+    float distance_from_edge = (textureGrad(texSampler, texcoord, dx, dy).r);
 
     float d_distance_dx = dFdx(distance_from_edge) * scale;
     float d_distance_dy = dFdy(distance_from_edge) * scale;
