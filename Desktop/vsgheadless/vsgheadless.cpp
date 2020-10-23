@@ -442,7 +442,11 @@ int main(int argc, char** argv)
 
     vsg::Names deviceExtensions;
     vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}};
-    auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, nullptr);
+
+    VkPhysicalDeviceFeatures deviceFeatures = {};
+    //deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+    auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures, nullptr);
 
 
     // compute the bounds of the scene graph to help position camera
