@@ -444,7 +444,7 @@ int main(int argc, char** argv)
     vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}};
 
     VkPhysicalDeviceFeatures deviceFeatures = {};
-    //deviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures, nullptr);
 
