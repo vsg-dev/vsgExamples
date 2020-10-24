@@ -1,18 +1,11 @@
 #include <vsg/all.h>
+#include <iostream>
 
 #ifdef USE_VSGXCHANGE
 #include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-#include <iostream>
-#include <chrono>
-#include <thread>
-#include <algorithm>
-
-#include "../shared/AnimationPath.h"
-
-
-vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
+vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& horizontal,  const vsg::vec3& vertical, vsg::ref_ptr<vsg::Data> sourceData = {})
 {
     struct ConvertToRGBA : public vsg::Visitor
     {
@@ -51,19 +44,31 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
 
         vsg::ref_ptr<vsg::Data> convert(vsg::ref_ptr<vsg::Data> data)
         {
-            data->accept(*this);
+            if (data) data->accept(*this);
+            else
+            {
+#if 0
+                textureData = vsg::vec4Value::create(1.0f, 1.0f, 1.0f, 1.0f);
+                textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
+#else
+                auto image = vsg::vec4Array2D::create(1, 1, vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
+                image->set(0, 0, vsg::vec4(0.5f, 1.0f, 0.5f, 1.0f));
+                textureData = image;
+#endif
+                std::cout<<"Createed fallback image "<<textureData<<std::endl;
+            }
+
             return textureData;
         }
 
-
     } convertToRGBA;
-
-    auto textureData = convertToRGBA.convert(sourceData);
-    if (!textureData) return {};
 
 
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+    auto textureData = convertToRGBA.convert(sourceData);
+    if (!textureData) return {};
 
     // load shaders
     vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
@@ -135,10 +140,10 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
     {
-        {0.0f, 0.0f, 0.0f},
-        {static_cast<float>(textureData->width()), 0.0f, 0.0f},
-        {static_cast<float>(textureData->width()), 0.0f, static_cast<float>(textureData->height())},
-        {0.0f, 0.0f, static_cast<float>(textureData->height())}
+        origin,
+        origin + horizontal,
+        origin + horizontal + vertical,
+        origin + vertical
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(
@@ -149,11 +154,11 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
         {1.0f, 1.0f, 1.0f}
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    uint8_t origin = textureData->getLayout().origin; // in Vulkan the origin is by default top left.
+    bool top_left = textureData->getLayout().origin == vsg::TOP_LEFT; // in Vulkan the origin is by default top left.
     float left = 0.0f;
     float right = 1.0f;
-    float top = (origin == vsg::TOP_LEFT) ? 0.0f : 1.0f;
-    float bottom = (origin == vsg::TOP_LEFT) ? 1.0f : 0.0f;
+    float top = top_left ? 0.0f : 1.0f;
+    float bottom = top_left ? 1.0f : 0.0f;
     auto texcoords = vsg::vec2Array::create(
     {
         {left, bottom},
@@ -181,91 +186,155 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
 }
 
 
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
-    auto options = vsg::Options::create();
-#ifdef USE_VSGXCHANGE
-    // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->readerWriter = vsgXchange::ReaderWriter_all::create();
-#endif
+    vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgviewer";
-
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-    arguments.read(options);
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
-    if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
-    if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
-    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-    if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    if (arguments.read({"-t", "--test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->fullscreen = true; }
-    if (arguments.read({"--st", "--small-test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->width = 192, windowTraits->height = 108; windowTraits->decoration = false; }
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
-    if (arguments.read("--or")) windowTraits->overrideRedirect = true;
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
-    arguments.read("--samples", windowTraits->samples);
-    auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value(std::string(),"-p");
-    auto loadLevels = arguments.value(0, "--load-levels");
-    auto horizonMountainHeight = arguments.value(0.0, "--hmh");
+    arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "-f");
+    auto output_filename = arguments.value(std::string(), "-o");
+    auto render_all_glyphs = arguments.read("--all");
+    auto enable_tests = arguments.read("--test");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    auto group = vsg::Group::create();
+    // set up search paths to SPIRV shaders and textures
+    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    vsg::Path path;
+    auto options = vsg::Options::create();
+    options->paths = searchPaths;
+    #ifdef USE_VSGXCHANGE
+    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+    #endif
 
-    // read any vsg files
-    for (int i=1; i<argc; ++i)
+    auto font = vsg::read_cast<vsg::Font>(font_filename, options);
+
+    if (!font)
     {
-        vsg::Path filename = arguments[i];
-        path = vsg::filePath(filename);
-
-        auto object = vsg::read(filename, options);
-        if (auto node = object.cast<vsg::Node>(); node)
-        {
-            group->addChild(node);
-        }
-        else if (auto data = object.cast<vsg::Data>(); data)
-        {
-            if (auto node = createTextureQuad(data); node)
-            {
-                group->addChild(node);
-            }
-        }
-        else if (object)
-        {
-            std::cout<<"Unable to view object of type "<<object->className()<<std::endl;
-        }
-        else
-        {
-            std::cout<<"Unable to load model from file "<<filename<<std::endl;
-        }
-    }
-
-    if (group->getNumChildren()==0)
-    {
-        std::cout<<"Please specify a 3d model file on the command line."<<std::endl;
+        std::cout<<"Failling to read font : "<<font_filename<<std::endl;
         return 1;
     }
 
-    vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (group->getChildren().size()==1) vsg_scene = group->getChild(0);
-    else vsg_scene = group;
+    // set up model transformation node
+    auto scenegraph = vsg::Group::create();
+
+    if (render_all_glyphs)
+    {
+        auto layout = vsg::LeftAlignment::create();
+        layout->position = vsg::vec3(0.0, 0.0, 0.0);
+        layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+        layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+        layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+
+        size_t row_lenghth = static_cast<size_t>(ceil(sqrt(float(font->glyphs.size()))));
+        size_t num_rows = font->glyphs.size() / row_lenghth;
+        if ((font->glyphs.size() % num_rows) != 0) ++num_rows;
+
+        // use an uintArray to store the text string as the full font charcodes can go up to very large values.
+        auto text_string = vsg::uintArray::create(font->glyphs.size() + num_rows - 1);
+        auto text_itr = text_string->begin();
+
+        size_t i = 0;
+        size_t column = 0;
+
+        for(auto& glyph : font->glyphs)
+        {
+            ++i;
+            ++column;
+
+            (*text_itr++) = glyph.second.charcode;
+
+            if (column >= row_lenghth)
+            {
+                (*text_itr++) = '\n';
+                column = 0;
+            }
+        }
+
+        auto text = vsg::Text::create();
+        text->font = font;
+        text->layout = layout;
+        text->text = text_string;
+        text->setup();
+
+        scenegraph->addChild(text);
+    }
+    else
+    {
+        {
+            auto layout = vsg::LeftAlignment::create();
+            layout->position = vsg::vec3(0.0, 0.0, 0.0);
+            layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+            layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+            layout->outlineWidth = 0.2;
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
+            text->font = font;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
+            {
+                void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
+                {
+                    // Let the base LeftAlignment class do the basic glyph setup
+                    Inherit::layout(text, font, quads);
+
+                    // modify each generated glyph quad's position and colours etc.
+                    for(auto& quad : quads)
+                    {
+                        for(int i=0; i<4; ++i)
+                        {
+                            quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
+                            quad.colors[i].r = 0.5f + 0.5f*sin(quad.vertices[i].x);
+                            quad.outlineColors[i] = vsg::vec4(cos(0.5*quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
+                            quad.outlineWidths[i] = 0.1f + 0.15f*(1.0f+sin(quad.vertices[i].x));
+                        }
+                    }
+                };
+            };
+
+            auto layout = CustomLayout::create();
+            layout->position = vsg::vec3(0.0, 0.0, -3.0);
+            layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+            layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("You can use Outlines\nand your own CustomLayout.");
+            text->font = font;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+        }
+    }
+
+    if (!output_filename.empty())
+    {
+        vsg::write(scenegraph, output_filename);
+        return 1;
+    }
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
+    auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
         std::cout<<"Could not create windows."<<std::endl;
@@ -274,71 +343,34 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
+    // camera related details
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
-    vsg_scene->accept(computeBounds);
+    scenegraph->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
     double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
     double nearFarRatio = 0.001;
 
     // set up the camera
+    auto viewport = vsg::ViewportState::create(window->extent2D());
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 1000.0);
     auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
-    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-    if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
-    {
-        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
-    }
-    else
-    {
-        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
-    }
-
-    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-
-    // add close handler to respond the close window button and pressing escape
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-    if (pathFilename.empty())
-    {
-        viewer->addEventHandler(vsg::Trackball::create(camera));
-    }
-    else
-    {
-        std::ifstream in(pathFilename);
-        if (!in)
-        {
-            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
-            return 1;
-        }
-
-        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
-        animationPath->read(in);
-
-        viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
-    }
-
-    // if required pre load specific number of PagedLOD levels.
-    if (loadLevels > 0)
-    {
-        vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
-
-        auto startTime =std::chrono::steady_clock::now();
-
-        vsg_scene->accept(loadPagedLOD);
-
-        auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();
-        std::cout<<"No. of tiles loaed "<<loadPagedLOD.numTiles<<" in "<<time<<"ms."<<std::endl;
-    }
-
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-
+    // compile the Vulkan objects
     viewer->compile();
 
-    // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
+    // assign Trackball
+    viewer->addEventHandler(vsg::Trackball::create(camera));
+
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
+
+    // main frame loop
+    while (viewer->advanceToNextFrame())
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

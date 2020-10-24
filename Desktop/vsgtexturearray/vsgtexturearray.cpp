@@ -2,7 +2,6 @@
 
 #ifdef USE_VSGXCHANGE
 #include <vsgXchange/ReaderWriter_all.h>
-#include <vsgXchange/ShaderCompiler.h>
 #endif
 
 #include <iostream>
@@ -168,7 +167,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->paths = searchPaths;
 #ifdef USE_VSGXCHANGE
-//    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+    options->readerWriter = vsgXchange::ReaderWriter_all::create();
 #endif
 
     // load shaders
@@ -198,21 +197,10 @@ int main(int argc, char** argv)
     vertexShader->specializationConstants = specializationContexts;
     fragmentShader->specializationConstants = specializationContexts;
 
-#ifdef USE_VSGXCHANGE
     // compile section
     vsg::ShaderStages stagesToCompile;
     if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
     if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
-
-    if (!stagesToCompile.empty())
-    {
-        auto shaderCompiler = vsgXchange::ShaderCompiler::create();
-
-        std::vector<std::string> defines;
-        shaderCompiler->compile(stagesToCompile, defines); // and paths?
-    }
-    // TODO end of block requiring changes
-#endif
 
     // set up texture image
     std::vector<vsg::ref_ptr<vsg::ubvec4Array2D>> textureDataList;
