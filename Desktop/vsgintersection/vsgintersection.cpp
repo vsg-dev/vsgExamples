@@ -156,7 +156,7 @@ int main(int argc, char** argv)
     if (argc>1)
     {
         vsg::Path filename = arguments[1];
-        auto model = vsg::read_cast<vsg::Node>(filename);
+        auto model = vsg::read_cast<vsg::Node>(filename, options);
         if (model)
         {
             scene->addChild(model);
