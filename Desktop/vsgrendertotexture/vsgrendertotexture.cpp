@@ -36,8 +36,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 // Rendergraph for rendering to image
 
-vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, vsg::Context& context, vsg::Camera* camera,
-                                                          const VkExtent2D& extent,
+vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, vsg::Context& context, const VkExtent2D& extent,
                                                           vsg::ImageInfo& colorImageInfo, vsg::ImageInfo& depthImageInfo)
 {
     VkExtent3D attachmentExtent{extent.width, extent.height, 1};
@@ -156,7 +155,6 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageInfo.imageView, depthImageInfo.imageView}, extent.width, extent.height, 1);
 
     auto rendergraph = vsg::RenderGraph::create();
-    rendergraph->camera = camera;
     rendergraph->renderArea.offset = VkOffset2D{0, 0};
     rendergraph->renderArea.extent = extent;
     rendergraph->framebuffer = fbuf;
@@ -412,8 +410,9 @@ int main(int argc, char** argv)
     VkExtent2D targetExtent{512, 512};
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
     vsg::ImageInfo colorImage, depthImage;
-    auto rtt_RenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, offscreenCamera, targetExtent, colorImage, depthImage);
-    rtt_RenderGraph->addChild(vsg_scene);
+    auto rtt_RenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, targetExtent, colorImage, depthImage);
+    auto rtt_view = vsg::View::create(offscreenCamera, vsg_scene);
+    rtt_RenderGraph->addChild(rtt_view);
 
     // Planes geometry that uses the rendered scene as a texture map
     vsg::ref_ptr<vsg::Node> planes = createPlanes(colorImage);
