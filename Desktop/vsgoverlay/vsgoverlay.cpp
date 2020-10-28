@@ -183,7 +183,8 @@ int main(int argc, char** argv)
     renderGraph->addChild(clearAttachments);
 
     // create view2
-    auto view2 = vsg::View::create(createCameraForScene(scenegraph2, 0, 0, width, height), scenegraph2);
+    auto secondary_camera = createCameraForScene(scenegraph2, 0, 0, width, height);
+    auto view2 = vsg::View::create(secondary_camera, scenegraph2);
     renderGraph->addChild(view2);
 
 

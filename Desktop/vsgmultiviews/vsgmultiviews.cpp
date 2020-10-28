@@ -92,12 +92,14 @@ int main(int argc, char** argv)
     uint32_t width = window->extent2D().width;
     uint32_t height = window->extent2D().height;
 
+    // create the vsg::RenderGraph and associated vsg::View
     auto main_camera = createCameraForScene(scenegraph, 0, 0, width, height);
     auto main_RenderGraph = vsg::createRenderGraphForView(window, main_camera, scenegraph);
 
-    auto map_camera = createCameraForScene(scenegraph2, (width*3)/4, 0, width/4, height/4);
-    auto map_RenderGraph = vsg::createRenderGraphForView(window, map_camera, scenegraph2);
-    map_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
+    // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
+    auto secondary_camera = createCameraForScene(scenegraph2, (width*3)/4, 0, width/4, height/4);
+    auto secondary_RenderGraph = vsg::createRenderGraphForView(window, secondary_camera, scenegraph2);
+    secondary_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
@@ -107,7 +109,7 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::CommandGraph::create(window);
     commandGraph->addChild(main_RenderGraph);
-    commandGraph->addChild(map_RenderGraph);
+    commandGraph->addChild(secondary_RenderGraph);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
