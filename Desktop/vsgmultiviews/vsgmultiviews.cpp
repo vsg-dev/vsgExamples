@@ -71,7 +71,7 @@ int main(int argc, char** argv)
         scenegraph2 = vsg::read_cast<vsg::Node>(filename, options);
     }
 
-    if (!scenegraph)
+    if (!scenegraph || !scenegraph2)
     {
         std::cout<<"Please specify a valid model on command line"<<std::endl;
         return 1;
@@ -97,7 +97,6 @@ int main(int argc, char** argv)
 
     auto map_camera = createCameraForScene(scenegraph2, (width*3)/4, 0, width/4, height/4);
     auto map_RenderGraph = vsg::createRenderGraphForView(window, map_camera, scenegraph2);
-    map_RenderGraph->renderArea = map_camera->getRenderArea();
     map_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
 
     // add close handler to respond the close window button and pressing escape
@@ -113,7 +112,6 @@ int main(int argc, char** argv)
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
-
 
     // rendering main loop
     while (viewer->advanceToNextFrame())
