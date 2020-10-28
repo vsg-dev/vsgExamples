@@ -7,33 +7,6 @@
 #include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-namespace vsg
-{
-    class ClearAttachments : public Inherit<Command, ClearAttachments>
-    {
-    public:
-
-        using Attachments = std::vector<VkClearAttachment>;
-        using Rects = std::vector<VkClearRect>;
-
-        ClearAttachments() {}
-
-        ClearAttachments(const Attachments& in_attachments, const Rects& in_rects) :
-            attachments(in_attachments),
-            rects(in_rects) {}
-
-        Attachments attachments;
-        Rects rects;
-
-        void record(CommandBuffer& commandBuffer) const override
-        {
-            vkCmdClearAttachments(commandBuffer,
-                                static_cast<uint32_t>(attachments.size()), attachments.data(),
-                                static_cast<uint32_t>(rects.size()), rects.data());
-        }
-    };
-};
-
 vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
 {
     VkFormat imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
@@ -196,34 +169,23 @@ int main(int argc, char** argv)
 
     //renderGraph->addChild(vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_INLINE));
 
-#if 1
+
     auto renderGraph = vsg::createRenderGraphForView(window, {}, {});
 
     // create view1
-    auto view1 = vsg::View::create();
-    view1->camera = camera;
-    view1->addChild(scenegraph);
+    auto view1 = vsg::View::create(camera, scenegraph);
     renderGraph->addChild(view1);
 
-
-    // create view2
-    auto view2 = vsg::View::create();
-    view2->camera = createCameraForScene(scenegraph2, 0, 0, width, height);
-
+    // clear the depth buffer before view2 gets rendered
     VkClearAttachment attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, VkClearValue{1.0f, 0.0f}};
     VkClearRect rect{VkRect2D{VkOffset2D{0, 0}, VkExtent2D{width, height}}, 0, 1};
-    view2->addChild(vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{attachment}, vsg::ClearAttachments::Rects{rect}));
+    auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{attachment}, vsg::ClearAttachments::Rects{rect});
+    renderGraph->addChild(clearAttachments);
 
-    view2->addChild(scenegraph2);
-
+    // create view2
+    auto view2 = vsg::View::create(createCameraForScene(scenegraph2, 0, 0, width, height), scenegraph2);
     renderGraph->addChild(view2);
-#else
 
-    auto renderGraph = vsg::createRenderGraphForView(window, camera, scenegraph);
-
-    renderGraph->addChild(vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{attachment}, vsg::ClearAttachments::Rects{rect}));
-    renderGraph->addChild(scenegraph2);
-#endif
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
