@@ -7,76 +7,6 @@
 #include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-vsg::ref_ptr<vsg::RenderPass> createRenderPass( vsg::Device* device)
-{
-    VkFormat imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
-    VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
-
-    // VkAttachmentDescriptiom
-    // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkAttachmentDescription.html
-
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = imageFormat;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentDescription depthAttachment = {};
-    depthAttachment.format = depthFormat;
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    vsg::RenderPass::Attachments attachments{colorAttachment, depthAttachment};
-
-    // VkSubpassDescription
-    // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSubpassDescription.html
-
-    VkAttachmentReference colorAttachmentRef = {};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthAttachmentRef = {};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    vsg::SubpassDescription depth_subpass;
-    depth_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    depth_subpass.colorAttachments.emplace_back(colorAttachmentRef);
-    depth_subpass.depthStencilAttachments.emplace_back(depthAttachmentRef);
-
-    vsg::SubpassDescription classic_subpass;
-    classic_subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    classic_subpass.colorAttachments.emplace_back(colorAttachmentRef);
-    classic_subpass.depthStencilAttachments.emplace_back(depthAttachmentRef);
-
-    vsg::RenderPass::Subpasses subpasses{depth_subpass, classic_subpass};
-
-    // VkSubpassDependency
-    // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSubpassDependency.html
-
-    VkSubpassDependency classic_dependency = {};
-    classic_dependency.srcSubpass = 0;
-    classic_dependency.dstSubpass = 1;
-    classic_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    classic_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    classic_dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-    classic_dependency.dstAccessMask = 0;
-    classic_dependency.dependencyFlags = 0;
-
-    vsg::RenderPass::Dependencies dependencies{classic_dependency};
-
-    return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
-}
-
 vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x, int32_t y, uint32_t width, uint32_t height)
 {
     // compute the bounds of the scene graph to help position camera
@@ -102,7 +32,6 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
 
     return vsg::Camera::create(perspective, lookAt, viewportstate);
 }
-
 
 int main(int argc, char** argv)
 {
@@ -165,14 +94,10 @@ int main(int argc, char** argv)
     uint32_t width = window->extent2D().width;
     uint32_t height = window->extent2D().height;
 
-    auto camera = createCameraForScene(scenegraph, 0, 0, width, height);
-
-    //renderGraph->addChild(vsg::NextSubPass::create(VK_SUBPASS_CONTENTS_INLINE));
-
-
-    auto renderGraph = vsg::createRenderGraphForView(window, {}, {});
+    auto renderGraph = vsg::RenderGraph::create(window);
 
     // create view1
+    auto camera = createCameraForScene(scenegraph, 0, 0, width, height);
     auto view1 = vsg::View::create(camera, scenegraph);
     renderGraph->addChild(view1);
 

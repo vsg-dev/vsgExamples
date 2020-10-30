@@ -62,7 +62,7 @@ int main(int argc, char** argv)
     {
         vsg::Path filename = arguments[1];
         scenegraph = vsg::read_cast<vsg::Node>(filename, options);
-        scenegraph2 = vsg::read_cast<vsg::Node>(filename, options);
+        scenegraph2 = scenegraph;
     }
 
     if (argc>2)
@@ -94,11 +94,13 @@ int main(int argc, char** argv)
 
     // create the vsg::RenderGraph and associated vsg::View
     auto main_camera = createCameraForScene(scenegraph, 0, 0, width, height);
-    auto main_RenderGraph = vsg::createRenderGraphForView(window, main_camera, scenegraph);
+    auto main_view = vsg::View::create(main_camera, scenegraph);
+    auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
 
     // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
     auto secondary_camera = createCameraForScene(scenegraph2, (width*3)/4, 0, width/4, height/4);
-    auto secondary_RenderGraph = vsg::createRenderGraphForView(window, secondary_camera, scenegraph2);
+    auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
+    auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
     secondary_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
 
     // add close handler to respond the close window button and pressing escape
