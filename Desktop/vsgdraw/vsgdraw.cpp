@@ -159,7 +159,7 @@ int main(int argc, char** argv)
     viewer->addWindow(window);
 
     // camera related details
-    auto viewport = vsg::ViewportState::create(window->extent2D());
+    auto viewport = vsg::ViewportState::create(0, 0, window->extent2D().width, window->extent2D().height);
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), 0.1, 10.0);
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);

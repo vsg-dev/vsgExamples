@@ -23,12 +23,7 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
                                                 nearFarRatio*radius, radius * 4.5);
 
-    VkViewport viewport{static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f};
-    VkRect2D scissor{VkOffset2D{x, y}, VkExtent2D{width, height}};
-
-    auto viewportstate = vsg::ViewportState::create();
-    viewportstate->viewports.push_back(viewport);
-    viewportstate->scissors.push_back(scissor);
+    auto viewportstate = vsg::ViewportState::create(x, y, width, height);
 
     return vsg::Camera::create(perspective, lookAt, viewportstate);
 }

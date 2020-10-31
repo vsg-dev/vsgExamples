@@ -246,7 +246,7 @@ int main(int argc, char** argv)
     scenegraph->addChild(traceRays);
 
     // camera related details
-    auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
+    auto viewport = vsg::ViewportState::create(0, 0, width, height);
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
