@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "rendertotexture";
+    windowTraits->windowTitle = "Multiple Views";
     windowTraits->debugLayer = arguments.read({"--debug","-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
@@ -101,6 +101,8 @@ int main(int argc, char** argv)
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
+    // add event handlers, in the order we wish event to be handled.
+    viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
     viewer->addEventHandler(vsg::Trackball::create(main_camera));
 
 
