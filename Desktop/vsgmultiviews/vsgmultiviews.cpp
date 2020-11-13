@@ -40,8 +40,7 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
-    bool separateCommandGraph = arguments.read("-s");
-    bool multiThreading = arguments.read("--mt");
+    bool separateRenderGraph = arguments.read("-s");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -90,13 +89,10 @@ int main(int argc, char** argv)
     // create the vsg::RenderGraph and associated vsg::View
     auto main_camera = createCameraForScene(scenegraph, 0, 0, width, height);
     auto main_view = vsg::View::create(main_camera, scenegraph);
-    auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
 
     // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
     auto secondary_camera = createCameraForScene(scenegraph2, (width*3)/4, 0, width/4, height/4);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
-    auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
-    secondary_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
@@ -105,12 +101,40 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
     viewer->addEventHandler(vsg::Trackball::create(main_camera));
 
+    if (separateRenderGraph)
+    {
+        std::cout<<"Using a RenderGraph per View"<<std::endl;
+        auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
+        auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
+        secondary_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
 
-    auto commandGraph = vsg::CommandGraph::create(window);
-    commandGraph->addChild(main_RenderGraph);
-    commandGraph->addChild(secondary_RenderGraph);
+        auto commandGraph = vsg::CommandGraph::create(window);
+        commandGraph->addChild(main_RenderGraph);
+        commandGraph->addChild(secondary_RenderGraph);
 
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+    }
+    else
+    {
+        std::cout<<"Using a single RenderGraph, with both Views separated by a ClearAttachemnts"<<std::endl;
+        auto renderGraph = vsg::RenderGraph::create(window);
+
+        renderGraph->addChild(main_view);
+
+        // clear the depth buffer before view2 gets rendered
+        VkClearAttachment color_attachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, VkClearValue{0.2f, 0.2f, 0.2f, 1.0f}};
+        VkClearAttachment depth_attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, VkClearValue{1.0f, 0.0f}};
+        VkClearRect rect{secondary_camera->getRenderArea(), 0, 1};
+        auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{color_attachment, depth_attachment}, vsg::ClearAttachments::Rects{rect, rect});
+        renderGraph->addChild(clearAttachments);
+
+        renderGraph->addChild(secondary_view);
+
+        auto commandGraph = vsg::CommandGraph::create(window);
+        commandGraph->addChild(renderGraph);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+    }
+
 
     viewer->compile();
 
