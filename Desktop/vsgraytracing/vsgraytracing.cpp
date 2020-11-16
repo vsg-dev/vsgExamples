@@ -32,8 +32,8 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgraytracing";
-    windowTraits->debugLayer = true;
-    windowTraits->apiDumpLayer = false;
+    windowTraits->debugLayer = debugLayer;
+    windowTraits->apiDumpLayer = apiDumpLayer;
     windowTraits->width = width;
     windowTraits->height = height;
     windowTraits->queueFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
