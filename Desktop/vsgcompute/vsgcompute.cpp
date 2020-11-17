@@ -59,9 +59,9 @@ int main(int argc, char** argv)
 
     // allocate output storage buffer
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
-    auto buffer = vsg::Buffer::create(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
-    auto bufferMemory = vsg::DeviceMemory::create(device, buffer->getMemoryRequirements(device->deviceID),  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    buffer->bind(bufferMemory, 0);
+
+    auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto bufferMemory = buffer->getDeviceMemory(device->deviceID);
 
     // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
     vsg::DescriptorSetLayoutBindings descriptorBindings { {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} };
@@ -116,7 +116,7 @@ int main(int argc, char** argv)
         else
         {
             // create a unsigned byte version of the image and then copy the texels across converting colours from float to unsigned byte.
-            auto dest = vsg::ubvec4Array2D::create(width, height, vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
+            auto dest = vsg::ubvec4Array2D::create(width, height, vsg::Data::Layout{VK_FORMAT_R8G8B8A8_UNORM});
 
             using component_type = uint8_t;
             auto c_itr = dest->begin();
