@@ -20,6 +20,7 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug","-d"});
     auto apiDumpLayer = arguments.read({"--api","-a"});
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1280, 720), {"--window", "-w"});
+    auto numFrames = arguments.value(-1, "-f");
     auto filename = arguments.value(std::string(), "-i");
     if (arguments.read("-m")) filename = "models/raytracing_scene.vsgt";
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -265,7 +266,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
