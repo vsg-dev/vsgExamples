@@ -200,6 +200,7 @@ int main(int argc, char** argv)
     auto output_filename = arguments.value(std::string(), "-o");
     auto render_all_glyphs = arguments.read("--all");
     auto enable_tests = arguments.read("--test");
+    auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -341,6 +342,8 @@ int main(int argc, char** argv)
         std::cout<<"Could not create windows."<<std::endl;
         return 1;
     }
+
+    window->clearColor() = VkClearColorValue{clearColor.r, clearColor.g, clearColor.b, clearColor.a};
 
     viewer->addWindow(window);
 
