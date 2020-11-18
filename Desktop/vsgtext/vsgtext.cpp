@@ -231,23 +231,24 @@ int main(int argc, char** argv)
         layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
         layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
 
-        size_t row_lenghth = static_cast<size_t>(ceil(sqrt(float(font->glyphs.size()))));
-        size_t num_rows = font->glyphs.size() / row_lenghth;
-        if ((font->glyphs.size() % num_rows) != 0) ++num_rows;
+        size_t num_glyphs = font->glyphMetrics->size();
+        size_t row_lenghth = static_cast<size_t>(ceil(sqrt(float(num_glyphs))));
+        size_t num_rows = num_glyphs / row_lenghth;
+        if ((num_glyphs % num_rows) != 0) ++num_rows;
 
         // use an uintArray to store the text string as the full font charcodes can go up to very large values.
-        auto text_string = vsg::uintArray::create(font->glyphs.size() + num_rows - 1);
+        auto text_string = vsg::uintArray::create(num_glyphs + num_rows - 1);
         auto text_itr = text_string->begin();
 
         size_t i = 0;
         size_t column = 0;
 
-        for(auto& glyph : font->glyphs)
+        for(auto& glyph : (*font->glyphMetrics))
         {
             ++i;
             ++column;
 
-            (*text_itr++) = glyph.second.charcode;
+            (*text_itr++) = glyph.charcode;
 
             if (column >= row_lenghth)
             {
