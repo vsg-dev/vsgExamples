@@ -5,6 +5,8 @@
 #include <vsgXchange/ReaderWriter_all.h>
 #endif
 
+#include "DynamicText.h"
+
 vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& horizontal,  const vsg::vec3& vertical, vsg::ref_ptr<vsg::Data> sourceData = {})
 {
     struct ConvertToRGBA : public vsg::Visitor
@@ -274,11 +276,12 @@ int main(int argc, char** argv)
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
             layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
-            layout->outlineWidth = 0.2;
+            layout->outlineWidth = 0.0;
 
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
+            auto text = vsg::DynamicText::create();
+            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas Dynamic SDF text support.");
             text->font = font;
+            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);

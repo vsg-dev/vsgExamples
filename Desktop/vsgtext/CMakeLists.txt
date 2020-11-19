@@ -1,4 +1,5 @@
 set(SOURCES
+    DynamicText.cpp
     vsgtext.cpp
 )
 
