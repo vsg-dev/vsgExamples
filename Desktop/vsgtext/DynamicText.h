@@ -53,8 +53,7 @@ namespace vsg
             bool match() const { return true; }
 
             ref_ptr<DescriptorImage> textureAtlas;
-            ref_ptr<DescriptorBuffer> glyphMetrics;
-            ref_ptr<DescriptorBuffer> charmap;
+            ref_ptr<DescriptorImage> glyphMetrics;
         };
 
 

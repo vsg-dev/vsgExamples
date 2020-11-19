@@ -6,9 +6,11 @@ layout(push_constant) uniform PushConstants {
     mat4 modelview;
 } pc;
 
+// specialization constants
 layout(constant_id = 0) const uint numGlyphMetrics = 1;
 
-layout(std140, set = 0, binding = 1) uniform GlyphMetrics {
+struct GlyphMetrics
+{
     vec4 uvrect; // min x/y, max x/y
     float width;
     float height;
@@ -18,7 +20,9 @@ layout(std140, set = 0, binding = 1) uniform GlyphMetrics {
     float vertBearingX;
     float vertBearingY;
     float vertAdvance;
-} glyphMetrics[numGlyphMetrics];
+};
+
+layout(set = 0, binding = 1) uniform sampler2D glyphMetricsSampler;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec4 inColor;

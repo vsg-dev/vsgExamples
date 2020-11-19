@@ -10,11 +10,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
+#include <vsg/core/Array2D.h>
 #include <vsg/commands/BindIndexBuffer.h>
 #include <vsg/commands/BindVertexBuffers.h>
 #include <vsg/commands/Commands.h>
 #include <vsg/commands/DrawIndexed.h>
 #include <vsg/io/read.h>
+#include <vsg/io/write.h>
 #include <vsg/state/DescriptorImage.h>
 
 #include "DynamicText.h"
@@ -50,30 +52,33 @@ DynamicText::FontState::FontState(Font* font)
 {
     std::cout<<"DynamicText::FontState::FontState(Font* font)"<<std::endl;
 
-    auto sampler = Sampler::create();
-    sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    sampler->addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    sampler->borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
-#if 1
-    sampler->anisotropyEnable = VK_TRUE;
-    sampler->maxAnisotropy = 16.0f;
-#endif
-#if 0
-    sampler->magFilter = VK_FILTER_NEAREST;
-    sampler->minFilter = VK_FILTER_LINEAR;
-    sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-#else
-    sampler->magFilter = VK_FILTER_LINEAR;
-    sampler->minFilter = VK_FILTER_LINEAR;
-    sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-#endif
+    {
+        auto sampler = Sampler::create();
+        sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        sampler->addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        sampler->borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
+        sampler->anisotropyEnable = VK_TRUE;
+        sampler->maxAnisotropy = 16.0f;
+        sampler->magFilter = VK_FILTER_LINEAR;
+        sampler->minFilter = VK_FILTER_LINEAR;
+        sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        sampler->maxLod = 12.0;
 
-    sampler->maxLod = 12.0;
+        textureAtlas = DescriptorImage::create(sampler, font->atlas, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    }
 
-    textureAtlas = DescriptorImage::create(sampler, font->atlas, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    glyphMetrics = DescriptorBuffer::create(font->glyphMetrics, 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    charmap = DescriptorBuffer::create(font->charmap, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    {
+        auto sampler = Sampler::create();
+        sampler->magFilter = VK_FILTER_NEAREST;
+        sampler->minFilter = VK_FILTER_NEAREST;
+        sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+
+        auto glyphMetricsProxy = floatArray2D::create(font->glyphMetrics, 0, sizeof(GlyphMetrics), sizeof(GlyphMetrics)/sizeof(float), font->glyphMetrics->valueCount(), Data::Layout{VK_FORMAT_R32_SFLOAT});
+        glyphMetrics = DescriptorImage::create(sampler, glyphMetricsProxy, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+        vsg::write(glyphMetricsProxy, "glyphMetrics.vsgt");
+    }
 }
 
 DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, bool in_singleOutlineColor, bool in_singleOutlineWidth) :
@@ -96,6 +101,7 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
     if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
 
     uint32_t numGlyphMetrics = static_cast<uint32_t>(font->glyphMetrics->valueCount());
+    uint32_t numCharacters = static_cast<uint32_t>(font->charmap->valueCount());
 
     vertexShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
         {0, vsg::uintValue::create(numGlyphMetrics)} // numGlyphMetrics
@@ -103,8 +109,8 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
 
     // set up graphics pipeline
     DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}, // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
-        {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, numGlyphMetrics, VK_SHADER_STAGE_VERTEX_BIT, nullptr }, // glyphMetrics uniform
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}, // texture atlas
+        {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr }// glyphMetrics uniform
     };
 
 
@@ -166,9 +172,8 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
 
     // create texture image and associated DescriptorSets and binding
     auto fontState = font->getShared<FontState>();
-    auto textureAtlas = fontState->textureAtlas;
-    auto glyphMetrics = fontState->glyphMetrics;
-    auto descriptorSet = DescriptorSet::create(descriptorSetLayout, Descriptors{textureAtlas, glyphMetrics});
+    auto descriptorSet = DescriptorSet::create(descriptorSetLayout, Descriptors{fontState->textureAtlas, fontState->glyphMetrics});
+
     bindDescriptorSet = BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
 }
 
