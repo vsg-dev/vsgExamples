@@ -14,6 +14,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <vsg/nodes/Node.h>
 #include <vsg/state/StateGroup.h>
+#include <vsg/state/DescriptorBuffer.h>
 #include <vsg/text/Font.h>
 #include <vsg/text/TextLayout.h>
 
@@ -46,12 +47,16 @@ namespace vsg
         virtual void setup(uint32_t minimumAllocation = 0);
 
         /// Wraooer for Font::textureAtlas data.
-        struct VSG_DECLSPEC DynamicTextureAtlas : public Inherit<Object, DynamicTextureAtlas>
+        struct VSG_DECLSPEC FontState : public Inherit<Object, FontState>
         {
-            DynamicTextureAtlas(Font* font);
+            FontState(Font* font);
             bool match() const { return true; }
-            ref_ptr<DescriptorImage> descriptor;
+
+            ref_ptr<DescriptorImage> textureAtlas;
+            ref_ptr<DescriptorBuffer> glyphMetrics;
+            ref_ptr<DescriptorBuffer> charmap;
         };
+
 
         /// rendering state used to set up grahics pipeline and descriptor sets, assigned to Font to allow it be be shared
         struct VSG_DECLSPEC RenderingState : public Inherit<Object, RenderingState>

@@ -234,7 +234,13 @@ int main(int argc, char** argv)
         layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
         layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
 
-        size_t num_glyphs = font->glyphMetrics->size();
+        std::set<uint32_t> characters;
+        for (auto c : *(font->charmap))
+        {
+            if (c!=0) characters.insert(c);
+        }
+
+        size_t num_glyphs = characters.size();
         size_t row_lenghth = static_cast<size_t>(ceil(sqrt(float(num_glyphs))));
         size_t num_rows = num_glyphs / row_lenghth;
         if ((num_glyphs % num_rows) != 0) ++num_rows;
@@ -246,12 +252,12 @@ int main(int argc, char** argv)
         size_t i = 0;
         size_t column = 0;
 
-        for(auto& glyph : (*font->glyphMetrics))
+        for(auto c : characters)
         {
             ++i;
             ++column;
 
-            (*text_itr++) = glyph.charcode;
+            (*text_itr++) = c;
 
             if (column >= row_lenghth)
             {

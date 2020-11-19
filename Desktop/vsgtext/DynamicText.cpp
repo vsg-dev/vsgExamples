@@ -46,9 +46,9 @@ void DynamicText::write(Output& output) const
     output.writeObject("text", text);
 }
 
-DynamicText::DynamicTextureAtlas::DynamicTextureAtlas(Font* font)
+DynamicText::FontState::FontState(Font* font)
 {
-    std::cout<<"DynamicText::DynamicTextureAtlas::DynamicTextureAtlas(Font* font)"<<std::endl;
+    std::cout<<"DynamicText::FontState::FontState(Font* font)"<<std::endl;
 
     auto sampler = Sampler::create();
     sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
@@ -71,7 +71,9 @@ DynamicText::DynamicTextureAtlas::DynamicTextureAtlas(Font* font)
 
     sampler->maxLod = 12.0;
 
-    descriptor = DescriptorImage::create(sampler, font->atlas, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    textureAtlas = DescriptorImage::create(sampler, font->atlas, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    glyphMetrics = DescriptorBuffer::create(font->glyphMetrics, 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    charmap = DescriptorBuffer::create(font->charmap, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 }
 
 DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, bool in_singleOutlineColor, bool in_singleOutlineWidth) :
@@ -82,10 +84,10 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
     std::cout<<"DynamicText::RenderingState::RenderingState(Font* font, ...)"<<std::endl;
 
     // load shaders
-    auto vertexShader = read_cast<ShaderStage>("shaders/text.vert", font->options);
+    auto vertexShader = read_cast<ShaderStage>("shaders/dynamic_text.vert", font->options);
     //if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cppp
 
-    auto fragmentShader = read_cast<ShaderStage>("shaders/text.frag", font->options);
+    auto fragmentShader = read_cast<ShaderStage>("shaders/dynamic_text.frag", font->options);
     //if (!fragmentShader) fragmentShader = text_frag(); // fallback to shaders/text_frag.cppp
 
     // compile section
@@ -93,10 +95,18 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
     if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
     if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
 
+    uint32_t numGlyphMetrics = static_cast<uint32_t>(font->glyphMetrics->valueCount());
+
+    vertexShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+        {0, vsg::uintValue::create(numGlyphMetrics)} // numGlyphMetrics
+    };
+
     // set up graphics pipeline
     DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}, // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, numGlyphMetrics, VK_SHADER_STAGE_VERTEX_BIT, nullptr }, // glyphMetrics uniform
     };
+
 
     auto descriptorSetLayout = DescriptorSetLayout::create(descriptorBindings);
 
@@ -153,9 +163,12 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
     auto graphicsPipeline = GraphicsPipeline::create(pipelineLayout, ShaderStages{vertexShader, fragmentShader}, pipelineStates);
     bindGraphicsPipeline = BindGraphicsPipeline::create(graphicsPipeline);
 
+
     // create texture image and associated DescriptorSets and binding
-    auto textureAtlas = font->getShared<DynamicTextureAtlas>();
-    auto descriptorSet = DescriptorSet::create(descriptorSetLayout, Descriptors{textureAtlas->descriptor});
+    auto fontState = font->getShared<FontState>();
+    auto textureAtlas = fontState->textureAtlas;
+    auto glyphMetrics = fontState->glyphMetrics;
+    auto descriptorSet = DescriptorSet::create(descriptorSetLayout, Descriptors{textureAtlas, glyphMetrics});
     bindDescriptorSet = BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
 }
 
