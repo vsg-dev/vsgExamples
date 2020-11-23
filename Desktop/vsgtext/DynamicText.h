@@ -21,6 +21,41 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsg
 {
 
+    struct LayoutStruct
+    {
+        vec3 position = vec3(0.0f, 0.0f, 0.0f); float pad0;
+        vec3 horizontal = vec3(1.0f, 0.0f, 0.0f); float pad1;
+        vec3 vertical = vec3(0.0f, 1.0f, 0.0f); float pad2;
+        vec4 color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        vec4 outlineColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        float outlineWidth = 0.0f;
+
+        void read(vsg::Input& input)
+        {
+            input.read("position", position);
+            input.read("horizontal", horizontal);
+            input.read("vertical", vertical);
+            input.read("color", color);
+            input.read("outlineColor", outlineColor);
+            input.read("outlineWidth", outlineWidth);
+        }
+
+        void write(vsg::Output& output) const
+        {
+            output.write("position", position);
+            output.write("horizontal", horizontal);
+            output.write("vertical", vertical);
+            output.write("color", color);
+            output.write("outlineColor", outlineColor);
+            output.write("outlineWidth", outlineWidth);
+        }
+    };
+
+    template<>
+    constexpr bool has_read_write<LayoutStruct>() { return true; }
+
+    VSG_value(TextLayoutValue, LayoutStruct);
+
     class VSG_DECLSPEC DynamicText : public Inherit<Node, DynamicText>
     {
     public:
@@ -71,20 +106,27 @@ namespace vsg
             bool singleOutlineColor = true;
             bool singleOutlineWidth = true;
 
+            ref_ptr<PipelineLayout> pipelineLayout;
+            ref_ptr<DescriptorSetLayout> textArrayDescriptorSetLayout;
             ref_ptr<BindGraphicsPipeline> bindGraphicsPipeline;
             ref_ptr<BindDescriptorSet> bindDescriptorSet;
+
+
         };
 
         /// rendering backend container holds all the scene graph elements required to render the text, filled in by DynamicText::setup().
         struct RenderingBackend : public Inherit<Object, RenderingBackend>
         {
             ref_ptr<vec3Array> vertices;
-            ref_ptr<vec4Array> colors;
-            ref_ptr<vec4Array> outlineColors;
-            ref_ptr<floatArray> outlineWidths;
-            ref_ptr<vec3Array> texcoords;
             ref_ptr<Data> indices;
             ref_ptr<DrawIndexed> drawIndexed;
+
+            ref_ptr<uintArray> textArray;
+            ref_ptr<TextLayoutValue> layoutValue;
+            ref_ptr<DescriptorBuffer> textDescriptor;
+            ref_ptr<DescriptorBuffer> layoutDescriptor;
+            ref_ptr<BindDescriptorSet> bindTextDescriptorSet;
+            ref_ptr<BindDescriptorSet> bindText2DescriptorSet;
 
             ref_ptr<BindVertexBuffers> bindVertexBuffers;
             ref_ptr<BindIndexBuffer> bindIndexBuffer;

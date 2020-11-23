@@ -24,11 +24,21 @@ struct GlyphMetrics
 
 layout(set = 0, binding = 1) uniform sampler2D glyphMetricsSampler;
 
+layout(std140, set = 1, binding = 0) uniform TextLayout {
+    vec4 position;
+    vec4 horizontal;
+    vec4 vertical;
+    vec4 color;
+    vec4 outlineColor;
+    float outlineWidth;
+} textLayout;
+
+layout(set = 1, binding = 1) uniform TextIndices {
+    uint glyph_index[1];
+} text;
+
+
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec4 inColor;
-layout(location = 2) in vec4 inOutlineColor;
-layout(location = 3) in float inOutlineWidth;
-layout(location = 4) in vec3 inTexCoord;
 
 layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec4 outlineColor;
@@ -40,10 +50,13 @@ out gl_PerVertex {
 };
 
 void main() {
-    gl_Position = (pc.projection * pc.modelview) * vec4(inPosition, 1.0);
-    gl_Position.z -= inTexCoord.z*0.001;
-    fragColor = inColor;
-    outlineColor = inOutlineColor;
-    outlineWidth = inOutlineWidth;
-    fragTexCoord = inTexCoord.xy;
+
+    vec3 pos = inPosition + textLayout.horizontal.xyz * (text.glyph_index[gl_InstanceIndex]*0.1);
+    gl_Position = (pc.projection * pc.modelview) * vec4(pos, 1.0);
+
+    fragColor = textLayout.color;
+    outlineColor = textLayout.outlineColor;
+    outlineWidth = textLayout.outlineWidth.x;
+
+    fragTexCoord = inPosition.xy;
 }

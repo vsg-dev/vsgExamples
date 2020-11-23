@@ -107,14 +107,21 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
         {0, vsg::uintValue::create(numGlyphMetrics)} // numGlyphMetrics
     };
 
-    // set up graphics pipeline
+    // Glyph
     DescriptorSetLayoutBindings descriptorBindings{
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}, // texture atlas
-        {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr }// glyphMetrics uniform
+        {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr } // glyph matrices
     };
 
-
     auto descriptorSetLayout = DescriptorSetLayout::create(descriptorBindings);
+
+    // set up graphics pipeline
+    DescriptorSetLayoutBindings textArrayDescriptorBindings{
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr }, // Layout uniform
+        {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr } // Text uniform
+    };
+
+    textArrayDescriptorSetLayout = DescriptorSetLayout::create(textArrayDescriptorBindings);
 
     PushConstantRanges pushConstantRanges{
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
@@ -122,18 +129,10 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
 
     VertexInputState::Bindings vertexBindingsDescriptions{
         VkVertexInputBindingDescription{0, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX},                                                       // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vec4), singleColor ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX},         // colour data
-        VkVertexInputBindingDescription{2, sizeof(vec4), singleOutlineColor ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX},  // outline colour data
-        VkVertexInputBindingDescription{3, sizeof(float), singleOutlineWidth ? VK_VERTEX_INPUT_RATE_INSTANCE : VK_VERTEX_INPUT_RATE_VERTEX}, // outline width data
-        VkVertexInputBindingDescription{4, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX}                                                        // tex coord data
     };
 
     VertexInputState::Attributes vertexAttributeDescriptions{
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},    // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32B32A32_SFLOAT, 0}, // outline colour data
-        VkVertexInputAttributeDescription{3, 3, VK_FORMAT_R32_SFLOAT, 0},          // outline width data
-        VkVertexInputAttributeDescription{4, 4, VK_FORMAT_R32G32B32_SFLOAT, 0},    // tex coord data
     };
 
     // alpha blending
@@ -165,7 +164,8 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
         rasterization,
         DepthStencilState::create()};
 
-    auto pipelineLayout = PipelineLayout::create(DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+    pipelineLayout = PipelineLayout::create(DescriptorSetLayouts{descriptorSetLayout, textArrayDescriptorSetLayout}, pushConstantRanges);
+
     auto graphicsPipeline = GraphicsPipeline::create(pipelineLayout, ShaderStages{vertexShader, fragmentShader}, pipelineStates);
     bindGraphicsPipeline = BindGraphicsPipeline::create(graphicsPipeline);
 
@@ -183,6 +183,68 @@ void DynamicText::setup(uint32_t minimumAllocation)
 
     if (!layout) layout = LeftAlignment::create();
 
+    struct ConvertString : public ConstVisitor
+    {
+        Font& font;
+        ref_ptr<uintArray>& textArray;
+        size_t minimumSize = 0;
+        size_t size = 0;
+
+        ConvertString(Font& in_font, ref_ptr<uintArray>& in_textArray, size_t in_minimumSize) :
+            font(in_font),
+            textArray(in_textArray),
+            minimumSize(in_minimumSize) {}
+
+        void apply(const stringValue& text) override
+        {
+            size = text.value().size();
+            size_t allocationSize = std::max(size, minimumSize);
+            if (!textArray || allocationSize > textArray->valueCount()) textArray = uintArray::create(allocationSize);
+
+            auto itr = textArray->begin();
+            for (auto& c : text.value())
+            {
+                *(itr++) = font.glyphIndexForCharcode(uint8_t(c));
+            }
+        }
+        void apply(const ubyteArray& text) override
+        {
+            size = text.valueCount();
+            size_t allocationSize = std::max(size, minimumSize);
+            if (!textArray || allocationSize > textArray->valueCount()) textArray = uintArray::create(allocationSize);
+
+            auto itr = textArray->begin();
+            for (auto& c : text)
+            {
+                *(itr++) = font.glyphIndexForCharcode(c);
+            }
+        }
+        void apply(const ushortArray& text) override
+        {
+            size = text.valueCount();
+            size_t allocationSize = std::max(size, minimumSize);
+            if (!textArray || allocationSize > textArray->valueCount()) textArray = uintArray::create(allocationSize);
+
+            auto itr = textArray->begin();
+            for (auto& c : text)
+            {
+                *(itr++) = font.glyphIndexForCharcode(c);
+            }
+        }
+        void apply(const uintArray& text) override
+        {
+            size = text.valueCount();
+            size_t allocationSize = std::max(size, minimumSize);
+            if (!textArray || allocationSize > textArray->valueCount()) textArray = uintArray::create(allocationSize);
+
+            auto itr = textArray->begin();
+            for (auto& c : text)
+            {
+                *(itr++) = font.glyphIndexForCharcode(c);
+            }
+        }
+    };
+
     TextQuads quads;
     layout->layout(text, *font, quads);
 
@@ -193,141 +255,82 @@ void DynamicText::setup(uint32_t minimumAllocation)
         renderingBackend = RenderingBackend::create();
     }
 
-    vec4 color = quads.front().colors[0];
-    vec4 outlineColor = quads.front().outlineColors[0];
-    float outlineWidth = quads.front().outlineWidths[0];
-    bool singleColor = true;
-    bool singleOutlineColor = true;
-    bool singleOutlineWidth = true;
-    for (auto& quad : quads)
-    {
-        for (int i = 0; i < 4; ++i)
-        {
-            if (quad.colors[i] != color) singleColor = false;
-            if (quad.outlineColors[i] != outlineColor) singleOutlineColor = false;
-            if (quad.outlineWidths[i] != outlineWidth) singleOutlineWidth = false;
-        }
-    }
+    ConvertString convert(*font, renderingBackend->textArray, minimumAllocation);
+    text->accept(convert);
 
-    uint32_t num_quads = std::max(static_cast<uint32_t>(quads.size()), minimumAllocation);
-    uint32_t num_vertices = num_quads * 4;
-    uint32_t num_colors = singleColor ? 1 : num_vertices;
-    uint32_t num_outlineColors = singleOutlineColor ? 1 : num_vertices;
-    uint32_t num_outlineWidths = singleOutlineWidth ? 1 : num_vertices;
+    auto textArray = convert.textArray;
+    size_t num_quads = convert.size;
+
+    // TODO need to reallocate DescriptorBuffer if textArray changes size?
+    auto& textDescriptor = renderingBackend->textDescriptor;
+    if (!textDescriptor) textDescriptor = DescriptorBuffer::create(textArray, 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+    // set up the layout data in a form digestable by the GPU.
+    auto layoutValue = TextLayoutValue::create();
+    auto& layoutStruct = layoutValue->value();
+    if (auto leftAlignment = layout.cast<LeftAlignment>(); leftAlignment)
+    {
+#if 1
+        layoutStruct.position = leftAlignment->position;
+        layoutStruct.horizontal = leftAlignment->horizontal;
+        layoutStruct.vertical = leftAlignment->vertical;
+        layoutStruct.color = leftAlignment->color;
+        layoutStruct.outlineColor = leftAlignment->outlineColor;
+        layoutStruct.outlineWidth = leftAlignment->outlineWidth;
+#else
+        layoutStruct.position = vec4(leftAlignment->position.x, leftAlignment->position.y, leftAlignment->position.z, 1.0f);
+        layoutStruct.horizontal = vec4(leftAlignment->horizontal.x, leftAlignment->horizontal.y, leftAlignment->horizontal.z, 1.0f);
+        layoutStruct.vertical = vec4(leftAlignment->vertical.x, leftAlignment->vertical.y, leftAlignment->vertical.z, 1.0f);
+        layoutStruct.color = leftAlignment->color;
+        layoutStruct.outlineColor = leftAlignment->outlineColor;
+        layoutStruct.outlineWidth = leftAlignment->outlineWidth;
+#endif
+
+    }
+    std::cout<<"layoutStruct.position = "<<layoutStruct.position<<std::endl;
+    std::cout<<"layoutStruct.horizontal = "<<layoutStruct.horizontal<<std::endl;
+    std::cout<<"layoutStruct.vertical = "<<layoutStruct.vertical<<std::endl;
+    std::cout<<"layoutStruct.color = "<<layoutStruct.color<<std::endl;
+    std::cout<<"layoutStruct.outlineColor = "<<layoutStruct.outlineColor<<std::endl;
+    std::cout<<"layoutStruct.outlineWidth = "<<layoutStruct.outlineWidth<<std::endl;
+
+    auto& layoutDescriptor = renderingBackend->layoutDescriptor;
+    if (!layoutDescriptor) layoutDescriptor = DescriptorBuffer::create(layoutValue, 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
     auto& vertices = renderingBackend->vertices;
-    auto& colors = renderingBackend->colors;
-    auto& outlineColors = renderingBackend->outlineColors;
-    auto& outlineWidths = renderingBackend->outlineWidths;
-    auto& texcoords = renderingBackend->texcoords;
     auto& drawIndexed = renderingBackend->drawIndexed;
 
-    if (!vertices || num_vertices > vertices->size()) vertices = vec3Array::create(num_vertices);
-    if (!colors || num_colors > colors->size()) colors = vec4Array::create(num_colors);
-    if (!outlineColors || num_outlineColors > outlineColors->size()) outlineColors = vec4Array::create(num_outlineColors);
-    if (!outlineWidths || num_outlineWidths > outlineWidths->size()) outlineWidths = floatArray::create(num_outlineWidths);
-    if (!texcoords || num_vertices > texcoords->size()) texcoords = vec3Array::create(num_vertices);
+    size_t num_vertices = 4;
 
-    uint32_t i = 0;
-    uint32_t vi = 0;
+    if (!vertices || num_vertices > vertices->size()) vertices = vec3Array::create(num_vertices);
 
     float leadingEdgeGradient = 0.1f;
 
-    if (singleColor) colors->set(0, color);
-    if (singleOutlineColor) outlineColors->set(0, outlineColor);
-    if (singleOutlineWidth) outlineWidths->set(0, outlineWidth);
+    vertices->set(0, vec3(0.0f, 0.0f, leadingEdgeGradient));
+    vertices->set(1, vec3(1.0f, 0.0f, 0.0f));
+    vertices->set(2, vec3(1.0f, 1.0f, leadingEdgeGradient));
+    vertices->set(3, vec3(0.0f, 1.0f, 2.0*leadingEdgeGradient));
 
-    for (auto& quad : quads)
-    {
-        float leadingEdgeTilt = length(quad.vertices[0] - quad.vertices[1]) * leadingEdgeGradient;
-        float topEdgeTilt = leadingEdgeTilt;
-
-        vertices->set(vi, quad.vertices[0]);
-        vertices->set(vi + 1, quad.vertices[1]);
-        vertices->set(vi + 2, quad.vertices[2]);
-        vertices->set(vi + 3, quad.vertices[3]);
-
-        if (!singleColor)
-        {
-            colors->set(vi, quad.colors[0]);
-            colors->set(vi + 1, quad.colors[1]);
-            colors->set(vi + 2, quad.colors[2]);
-            colors->set(vi + 3, quad.colors[3]);
-        }
-
-        if (!singleOutlineColor)
-        {
-            outlineColors->set(vi, quad.outlineColors[0]);
-            outlineColors->set(vi + 1, quad.outlineColors[1]);
-            outlineColors->set(vi + 2, quad.outlineColors[2]);
-            outlineColors->set(vi + 3, quad.outlineColors[3]);
-        }
-
-        if (!singleOutlineWidth)
-        {
-            outlineWidths->set(vi, quad.outlineWidths[0]);
-            outlineWidths->set(vi + 1, quad.outlineWidths[1]);
-            outlineWidths->set(vi + 2, quad.outlineWidths[2]);
-            outlineWidths->set(vi + 3, quad.outlineWidths[3]);
-        }
-
-        texcoords->set(vi, vec3(quad.texcoords[0].x, quad.texcoords[0].y, leadingEdgeTilt + topEdgeTilt));
-        texcoords->set(vi + 1, vec3(quad.texcoords[1].x, quad.texcoords[1].y, topEdgeTilt));
-        texcoords->set(vi + 2, vec3(quad.texcoords[2].x, quad.texcoords[2].y, 0.0f));
-        texcoords->set(vi + 3, vec3(quad.texcoords[3].x, quad.texcoords[3].y, leadingEdgeTilt));
-
-        vi += 4;
-        i += 6;
-    }
-
-    uint32_t num_indices = num_quads * 6;
     auto& indices = renderingBackend->indices;
-    if (!indices || num_indices > indices->valueCount())
+    if (!indices || 6 > indices->valueCount())
     {
-        if (num_vertices > 65536) // check if requires uint or ushort indices
-        {
-            auto ui_indices = uintArray::create(num_indices);
-            indices = ui_indices;
+        auto us_indices = ushortArray::create(6);
+        indices = us_indices;
 
-            auto itr = ui_indices->begin();
-            vi = 0;
-            for (i = 0; i < num_quads; ++i)
-            {
-                (*itr++) = vi;
-                (*itr++) = vi + 1;
-                (*itr++) = vi + 2;
-                (*itr++) = vi + 2;
-                (*itr++) = vi + 3;
-                (*itr++) = vi;
-
-                vi += 4;
-            }
-        }
-        else
-        {
-            auto us_indices = ushortArray::create(num_indices);
-            indices = us_indices;
-
-            auto itr = us_indices->begin();
-            vi = 0;
-            for (i = 0; i < num_quads; ++i)
-            {
-                (*itr++) = vi;
-                (*itr++) = vi + 1;
-                (*itr++) = vi + 2;
-                (*itr++) = vi + 2;
-                (*itr++) = vi + 3;
-                (*itr++) = vi;
-
-                vi += 4;
-            }
-        }
+        us_indices->set(0, 0);
+        us_indices->set(1, 1);
+        us_indices->set(2, 2);
+        us_indices->set(3, 2);
+        us_indices->set(4, 3);
+        us_indices->set(5, 0);
     }
 
     if (!drawIndexed)
-        drawIndexed = DrawIndexed::create(static_cast<uint32_t>(quads.size() * 6), 1, 0, 0, 0);
+        drawIndexed = DrawIndexed::create(6, num_quads, 0, 0, 0);
     else
-        drawIndexed->indexCount = static_cast<uint32_t>(quads.size() * 6);
+        drawIndexed->instanceCount = num_quads;
+
+    std::cout<<"drawIndexed->instanceCount = "<<drawIndexed->instanceCount<<std::endl;
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto& scenegraph = renderingBackend->stategroup;
@@ -339,12 +342,17 @@ void DynamicText::setup(uint32_t minimumAllocation)
 
         // set up state related objects if they haven't lready been assigned
         auto& sharedRenderingState = renderingBackend->sharedRenderingState;
-        if (!sharedRenderingState) renderingBackend->sharedRenderingState = font->getShared<RenderingState>(singleColor, singleOutlineColor, singleOutlineWidth);
+        if (!sharedRenderingState) renderingBackend->sharedRenderingState = font->getShared<RenderingState>(false, false, false);
 
         if (sharedRenderingState->bindGraphicsPipeline) scenegraph->add(sharedRenderingState->bindGraphicsPipeline);
         if (sharedRenderingState->bindDescriptorSet) scenegraph->add(sharedRenderingState->bindDescriptorSet);
 
-        bindVertexBuffers = BindVertexBuffers::create(0, DataList{vertices, colors, outlineColors, outlineWidths, texcoords});
+        // set up graphics pipeline
+        auto textDescriptorSet = DescriptorSet::create(sharedRenderingState->textArrayDescriptorSetLayout, Descriptors{layoutDescriptor, textDescriptor});
+        renderingBackend->bindTextDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, sharedRenderingState->pipelineLayout, 1, textDescriptorSet);
+        scenegraph->add(renderingBackend->bindTextDescriptorSet);
+
+        bindVertexBuffers = BindVertexBuffers::create(0, DataList{vertices});
         bindIndexBuffer = BindIndexBuffer::create(indices);
 
         // setup geometry
@@ -354,6 +362,8 @@ void DynamicText::setup(uint32_t minimumAllocation)
         drawCommands->addChild(drawIndexed);
 
         scenegraph->addChild(drawCommands);
+
+        vsg::write(scenegraph, "scenegraph.vsgt");
     }
     else
     {

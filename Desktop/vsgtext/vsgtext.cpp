@@ -202,6 +202,7 @@ int main(int argc, char** argv)
     auto output_filename = arguments.value(std::string(), "-o");
     auto render_all_glyphs = arguments.read("--all");
     auto enable_tests = arguments.read("--test");
+    auto numFrames = arguments.value(-1, "--nf");
     auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -282,10 +283,10 @@ int main(int argc, char** argv)
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
             layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
-            layout->outlineWidth = 0.0;
+            layout->outlineWidth = 0.1;
 
             auto text = vsg::DynamicText::create();
-            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas Dynamic SDF text support.");
+            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas Dynamic SDF text support.\nOr More");
             text->font = font;
             text->font->options = options;
             text->layout = layout;
@@ -383,7 +384,7 @@ int main(int argc, char** argv)
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     // main frame loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
