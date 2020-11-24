@@ -99,6 +99,7 @@ void main()
     vec3 pos = cursor + textLayout.horizontal.xyz * (horiBearingX + inPosition.x * width) + textLayout.vertical.xyz * (horiBearingY - height + inPosition.y * height);
 
     gl_Position = (pc.projection * pc.modelview) * vec4(pos, 1.0);
+    gl_Position.z -= inPosition.z*0.001;
 
     fragColor = textLayout.color;
     outlineColor = textLayout.outlineColor;
