@@ -178,85 +178,102 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
     bindDescriptorSet = BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
 }
 
+template<typename T> void assignValue(T& dest, const T& src, bool& updated)
+{
+    if (dest==src) return;
+    dest = src;
+    updated = true;
+}
+
 void DynamicText::setup(uint32_t minimumAllocation)
 {
-    std::cout<<"DynamicText::setup()"<<std::endl;
-
     if (!layout) layout = LeftAlignment::create();
+
+    bool textLayoutUpdated = false;
+    bool textArrayUpdated = false;
 
     struct ConvertString : public ConstVisitor
     {
         Font& font;
         ref_ptr<uintArray>& textArray;
+        bool& updated;
         size_t minimumSize = 0;
         size_t size = 0;
 
-        ConvertString(Font& in_font, ref_ptr<uintArray>& in_textArray, size_t in_minimumSize) :
+        ConvertString(Font& in_font, ref_ptr<uintArray>& in_textArray, bool& in_updated, size_t in_minimumSize) :
             font(in_font),
             textArray(in_textArray),
+            updated(in_updated),
             minimumSize(in_minimumSize) {}
+
+        void allocate(size_t allocationSize)
+        {
+            size = allocationSize;
+
+            if (allocationSize < minimumSize) allocationSize = minimumSize;
+            if (!textArray || allocationSize > textArray->valueCount())
+            {
+                updated = true;
+                textArray = uintArray::create(allocationSize);
+            }
+        }
 
         void apply(const stringValue& text) override
         {
-            size = text.value().size();
-            size_t allocationSize = std::max(size, minimumSize);
-            if (!textArray || allocationSize > textArray->valueCount()) textArray = uintArray::create(allocationSize);
+            allocate(text.value().size());
 
             auto itr = textArray->begin();
             for (auto& c : text.value())
             {
-                *(itr++) = font.glyphIndexForCharcode(uint8_t(c));
+                assignValue(*(itr++), font.glyphIndexForCharcode(uint8_t(c)), updated);
             }
         }
         void apply(const ubyteArray& text) override
         {
-            size = text.valueCount();
-            size_t allocationSize = std::max(size, minimumSize);
-            if (!textArray || allocationSize > textArray->valueCount()) textArray = uintArray::create(allocationSize);
+            allocate(text.valueCount());
 
             auto itr = textArray->begin();
             for (auto& c : text)
             {
-                *(itr++) = font.glyphIndexForCharcode(c);
+                assignValue(*(itr++), font.glyphIndexForCharcode(c), updated);
             }
         }
         void apply(const ushortArray& text) override
         {
-            size = text.valueCount();
-            size_t allocationSize = std::max(size, minimumSize);
-            if (!textArray || allocationSize > textArray->valueCount()) textArray = uintArray::create(allocationSize);
+            allocate(text.valueCount());
 
             auto itr = textArray->begin();
             for (auto& c : text)
             {
-                *(itr++) = font.glyphIndexForCharcode(c);
+                assignValue(*(itr++), font.glyphIndexForCharcode(c), updated);
             }
         }
         void apply(const uintArray& text) override
         {
-            size = text.valueCount();
-            size_t allocationSize = std::max(size, minimumSize);
-            if (!textArray || allocationSize > textArray->valueCount()) textArray = uintArray::create(allocationSize);
+            allocate(text.valueCount());
 
             auto itr = textArray->begin();
             for (auto& c : text)
             {
-                *(itr++) = font.glyphIndexForCharcode(c);
+                assignValue(*(itr++), font.glyphIndexForCharcode(c), updated);
             }
         }
     };
 
+#if 1
     TextQuads quads;
     layout->layout(text, *font, quads);
+#endif
 
     if (!renderingBackend)
     {
+#if 1
         if (quads.empty()) return;
-
+#endif
         renderingBackend = RenderingBackend::create();
     }
 
-    ConvertString convert(*font, renderingBackend->textArray, minimumAllocation);
+    ConvertString convert(*font, renderingBackend->textArray, textArrayUpdated, minimumAllocation);
     text->accept(convert);
 
     auto textArray = convert.textArray;
@@ -266,34 +283,21 @@ void DynamicText::setup(uint32_t minimumAllocation)
     auto& textDescriptor = renderingBackend->textDescriptor;
     if (!textDescriptor) textDescriptor = DescriptorBuffer::create(textArray, 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
+
     // set up the layout data in a form digestable by the GPU.
-    auto layoutValue = TextLayoutValue::create();
+    auto& layoutValue = renderingBackend->layoutValue;
+    if (!layoutValue) layoutValue = TextLayoutValue::create();
+
     auto& layoutStruct = layoutValue->value();
     if (auto leftAlignment = layout.cast<LeftAlignment>(); leftAlignment)
     {
-#if 1
-        layoutStruct.position = leftAlignment->position;
-        layoutStruct.horizontal = leftAlignment->horizontal;
-        layoutStruct.vertical = leftAlignment->vertical;
-        layoutStruct.color = leftAlignment->color;
-        layoutStruct.outlineColor = leftAlignment->outlineColor;
-        layoutStruct.outlineWidth = leftAlignment->outlineWidth;
-#else
-        layoutStruct.position = vec4(leftAlignment->position.x, leftAlignment->position.y, leftAlignment->position.z, 1.0f);
-        layoutStruct.horizontal = vec4(leftAlignment->horizontal.x, leftAlignment->horizontal.y, leftAlignment->horizontal.z, 1.0f);
-        layoutStruct.vertical = vec4(leftAlignment->vertical.x, leftAlignment->vertical.y, leftAlignment->vertical.z, 1.0f);
-        layoutStruct.color = leftAlignment->color;
-        layoutStruct.outlineColor = leftAlignment->outlineColor;
-        layoutStruct.outlineWidth = leftAlignment->outlineWidth;
-#endif
-
+        assignValue(layoutStruct.position, leftAlignment->position, textLayoutUpdated);
+        assignValue(layoutStruct.horizontal, leftAlignment->horizontal, textLayoutUpdated);
+        assignValue(layoutStruct.vertical, leftAlignment->vertical, textLayoutUpdated);
+        assignValue(layoutStruct.color, leftAlignment->color, textLayoutUpdated);
+        assignValue(layoutStruct.outlineColor, leftAlignment->outlineColor, textLayoutUpdated);
+        assignValue(layoutStruct.outlineWidth, leftAlignment->outlineWidth, textLayoutUpdated);
     }
-    std::cout<<"layoutStruct.position = "<<layoutStruct.position<<std::endl;
-    std::cout<<"layoutStruct.horizontal = "<<layoutStruct.horizontal<<std::endl;
-    std::cout<<"layoutStruct.vertical = "<<layoutStruct.vertical<<std::endl;
-    std::cout<<"layoutStruct.color = "<<layoutStruct.color<<std::endl;
-    std::cout<<"layoutStruct.outlineColor = "<<layoutStruct.outlineColor<<std::endl;
-    std::cout<<"layoutStruct.outlineWidth = "<<layoutStruct.outlineWidth<<std::endl;
 
     auto& layoutDescriptor = renderingBackend->layoutDescriptor;
     if (!layoutDescriptor) layoutDescriptor = DescriptorBuffer::create(layoutValue, 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -303,14 +307,17 @@ void DynamicText::setup(uint32_t minimumAllocation)
 
     size_t num_vertices = 4;
 
-    if (!vertices || num_vertices > vertices->size()) vertices = vec3Array::create(num_vertices);
+    if (!vertices || num_vertices > vertices->size())
+    {
+        vertices = vec3Array::create(num_vertices);
 
-    float leadingEdgeGradient = 0.1f;
+        float leadingEdgeGradient = 0.1f;
 
-    vertices->set(0, vec3(0.0f, 0.0f, leadingEdgeGradient));
-    vertices->set(1, vec3(1.0f, 0.0f, 0.0f));
-    vertices->set(2, vec3(1.0f, 1.0f, leadingEdgeGradient));
-    vertices->set(3, vec3(0.0f, 1.0f, 2.0*leadingEdgeGradient));
+        vertices->set(0, vec3(0.0f, 0.0f, leadingEdgeGradient));
+        vertices->set(1, vec3(1.0f, 0.0f, 0.0f));
+        vertices->set(2, vec3(1.0f, 1.0f, leadingEdgeGradient));
+        vertices->set(3, vec3(0.0f, 1.0f, 2.0*leadingEdgeGradient));
+    }
 
     auto& indices = renderingBackend->indices;
     if (!indices || 6 > indices->valueCount())
@@ -331,7 +338,7 @@ void DynamicText::setup(uint32_t minimumAllocation)
     else
         drawIndexed->instanceCount = num_quads;
 
-    std::cout<<"drawIndexed->instanceCount = "<<drawIndexed->instanceCount<<std::endl;
+    // std::cout<<"drawIndexed->instanceCount = "<<drawIndexed->instanceCount<<std::endl;
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto& scenegraph = renderingBackend->stategroup;
@@ -364,12 +371,17 @@ void DynamicText::setup(uint32_t minimumAllocation)
 
         scenegraph->addChild(drawCommands);
 
-        vsg::write(scenegraph, "scenegraph.vsgt");
+        //vsg::write(scenegraph, "scenegraph.vsgt");
     }
     else
     {
-        std::cout << "TODO : DynamicText::setup(), need to copy buffers" << std::endl;
-        // bindVertexBuffers->copyDataToBuffers();
-        // bindIndexBuffer->copyDataToBuffers();
+        if (textArrayUpdated)
+        {
+            textDescriptor->copyDataListToBuffers();
+        }
+        if (textLayoutUpdated)
+        {
+            layoutDescriptor->copyDataListToBuffers();
+        }
     }
 }

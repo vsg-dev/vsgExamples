@@ -337,6 +337,25 @@ int main(int argc, char** argv)
         }
     }
 
+
+    auto dynamic_text_label = vsg::stringValue::create("abcdefghijklmn");
+    auto dynamic_text_layout = vsg::LeftAlignment::create();
+    auto dynamic_text = vsg::DynamicText::create();
+    {
+        dynamic_text_layout->position = vsg::vec3(0.0, 0.0, 3.0);
+        dynamic_text_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+        dynamic_text_layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+        dynamic_text_layout->color = vsg::vec4(1.0, 0.9, 1.0, 1.0);
+        dynamic_text_layout->outlineWidth = 0.1;
+
+        dynamic_text->text = dynamic_text_label;
+        dynamic_text->font = font;
+        dynamic_text->font->options = options;
+        dynamic_text->layout = dynamic_text_layout;
+        dynamic_text->setup();
+        scenegraph->addChild(dynamic_text);
+    }
+
     if (!output_filename.empty())
     {
         vsg::write(scenegraph, output_filename);
@@ -386,6 +405,11 @@ int main(int argc, char** argv)
     // main frame loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
+        (*dynamic_text_label) = vsg::make_string(viewer->getFrameStamp()->frameCount);
+        dynamic_text_layout->position.y += 0.01;
+
+        dynamic_text->setup();
+
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
