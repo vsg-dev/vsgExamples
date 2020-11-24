@@ -73,6 +73,7 @@ DynamicText::FontState::FontState(Font* font)
         sampler->magFilter = VK_FILTER_NEAREST;
         sampler->minFilter = VK_FILTER_NEAREST;
         sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        sampler->unnormalizedCoordinates = VK_TRUE;
 
         auto glyphMetricsProxy = floatArray2D::create(font->glyphMetrics, 0, sizeof(GlyphMetrics), sizeof(GlyphMetrics)/sizeof(float), font->glyphMetrics->valueCount(), Data::Layout{VK_FORMAT_R32_SFLOAT});
         glyphMetrics = DescriptorImage::create(sampler, glyphMetricsProxy, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
