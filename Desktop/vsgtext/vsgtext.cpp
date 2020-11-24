@@ -405,7 +405,7 @@ int main(int argc, char** argv)
     // main frame loop
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
-        (*dynamic_text_label) = vsg::make_string(viewer->getFrameStamp()->frameCount);
+        dynamic_text_label->value() = vsg::make_string(viewer->getFrameStamp()->frameCount);
         dynamic_text_layout->position.y += 0.01;
 
         dynamic_text->setup();
