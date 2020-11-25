@@ -29,8 +29,6 @@ using namespace vsg;
 
 GpuLayoutTechnique::GpuLayoutState::GpuLayoutState(Font* font)
 {
-    std::cout<<"GpuLayoutTechnique::GpuLayoutState::GpuLayoutState("<<font<<")"<<std::endl;
-
     // load shaders
     auto vertexShader = read_cast<ShaderStage>("shaders/dynamic_text.vert", font->options);
     //if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cppp
@@ -199,11 +197,6 @@ void GpuLayoutTechnique::setup(DynamicText* text, uint32_t minimumAllocation)
             }
         }
     };
-
-#if 1
-    TextQuads quads;
-    layout->layout(text->text, *(text->font), quads);
-#endif
 
     ConvertString convert(*(text->font), textArray, textArrayUpdated, minimumAllocation);
     text->text->accept(convert);
