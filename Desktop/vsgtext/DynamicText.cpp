@@ -93,7 +93,7 @@ DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, boo
     auto vertexShader = read_cast<ShaderStage>("shaders/dynamic_text.vert", font->options);
     //if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cppp
 
-    auto fragmentShader = read_cast<ShaderStage>("shaders/dynamic_text.frag", font->options);
+    auto fragmentShader = read_cast<ShaderStage>("shaders/text.frag", font->options);
     //if (!fragmentShader) fragmentShader = text_frag(); // fallback to shaders/text_frag.cppp
 
     // compile section
