@@ -1,4 +1,5 @@
 set(SOURCES
+    GpuLayoutTechnique.cpp
     DynamicText.cpp
     vsgtext.cpp
 )
