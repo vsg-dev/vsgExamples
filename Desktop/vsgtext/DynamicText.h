@@ -103,8 +103,6 @@ namespace vsg
             ref_ptr<DescriptorSetLayout> textArrayDescriptorSetLayout;
             ref_ptr<BindGraphicsPipeline> bindGraphicsPipeline;
             ref_ptr<BindDescriptorSet> bindDescriptorSet;
-
-
         };
 
         /// rendering backend container holds all the scene graph elements required to render the text, filled in by DynamicText::setup().

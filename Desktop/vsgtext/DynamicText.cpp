@@ -50,8 +50,6 @@ void DynamicText::write(Output& output) const
 
 DynamicText::FontState::FontState(Font* font)
 {
-    std::cout<<"DynamicText::FontState::FontState(Font* font)"<<std::endl;
-
     {
         auto sampler = Sampler::create();
         sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
@@ -77,15 +75,11 @@ DynamicText::FontState::FontState(Font* font)
 
         auto glyphMetricsProxy = floatArray2D::create(font->glyphMetrics, 0, sizeof(GlyphMetrics), sizeof(GlyphMetrics)/sizeof(float), font->glyphMetrics->valueCount(), Data::Layout{VK_FORMAT_R32_SFLOAT});
         glyphMetrics = DescriptorImage::create(sampler, glyphMetricsProxy, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-
-        vsg::write(glyphMetricsProxy, "glyphMetrics.vsgt");
     }
 }
 
 DynamicText::RenderingState::RenderingState(Font* font)
 {
-    std::cout<<"DynamicText::RenderingState::RenderingState(Font* font, ...)"<<std::endl;
-
     // load shaders
     auto vertexShader = read_cast<ShaderStage>("shaders/dynamic_text.vert", font->options);
     //if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cppp
