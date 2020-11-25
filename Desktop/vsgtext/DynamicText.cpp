@@ -72,12 +72,12 @@ DynamicText::FontState::FontState(Font* font)
         sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
         sampler->unnormalizedCoordinates = VK_TRUE;
 
-        auto glyphMetricsProxy = floatArray2D::create(font->glyphMetrics, 0, sizeof(GlyphMetrics), sizeof(GlyphMetrics)/sizeof(float), font->glyphMetrics->valueCount(), Data::Layout{VK_FORMAT_R32_SFLOAT});
+        auto glyphMetricsProxy = vec4Array2D::create(font->glyphMetrics, 0, sizeof(GlyphMetrics), sizeof(GlyphMetrics)/sizeof(vec4), font->glyphMetrics->valueCount(), Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
         glyphMetrics = DescriptorImage::create(sampler, glyphMetricsProxy, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     }
 }
 
-DynamicText::RenderingState::RenderingState(Font* font)
+DynamicText::GpuLayoutState::GpuLayoutState(Font* font)
 {
     // load shaders
     auto vertexShader = read_cast<ShaderStage>("shaders/dynamic_text.vert", font->options);
@@ -91,11 +91,9 @@ DynamicText::RenderingState::RenderingState(Font* font)
     if (vertexShader && vertexShader->module && vertexShader->module->code.empty()) stagesToCompile.emplace_back(vertexShader);
     if (fragmentShader && fragmentShader->module && fragmentShader->module->code.empty()) stagesToCompile.emplace_back(fragmentShader);
 
-    uint32_t numGlyphMetrics = static_cast<uint32_t>(font->glyphMetrics->valueCount());
-    uint32_t numCharacters = static_cast<uint32_t>(font->charmap->valueCount());
-
+    uint32_t numTextIndices = 256;
     vertexShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
-        {0, vsg::uintValue::create(numGlyphMetrics)} // numGlyphMetrics
+        {0, vsg::uintValue::create(numTextIndices)} // numTextIndices
     };
 
     // Glyph
@@ -260,7 +258,7 @@ void DynamicText::setup(uint32_t minimumAllocation)
 #if 1
         if (quads.empty()) return;
 #endif
-        renderingBackend = RenderingBackend::create();
+        renderingBackend = GpuLayoutBackend::create();
     }
 
     ConvertString convert(*font, renderingBackend->textArray, textArrayUpdated, minimumAllocation);
@@ -323,15 +321,15 @@ void DynamicText::setup(uint32_t minimumAllocation)
         scenegraph = StateGroup::create();
 
         // set up state related objects if they haven't lready been assigned
-        auto& sharedRenderingState = renderingBackend->sharedRenderingState;
-        if (!sharedRenderingState) renderingBackend->sharedRenderingState = font->getShared<RenderingState>();
+        auto& sharedGpuLayoutState = renderingBackend->sharedRenderingState;
+        if (!sharedGpuLayoutState) renderingBackend->sharedRenderingState = font->getShared<GpuLayoutState>();
 
-        if (sharedRenderingState->bindGraphicsPipeline) scenegraph->add(sharedRenderingState->bindGraphicsPipeline);
-        if (sharedRenderingState->bindDescriptorSet) scenegraph->add(sharedRenderingState->bindDescriptorSet);
+        if (sharedGpuLayoutState->bindGraphicsPipeline) scenegraph->add(sharedGpuLayoutState->bindGraphicsPipeline);
+        if (sharedGpuLayoutState->bindDescriptorSet) scenegraph->add(sharedGpuLayoutState->bindDescriptorSet);
 
         // set up graphics pipeline
-        auto textDescriptorSet = DescriptorSet::create(sharedRenderingState->textArrayDescriptorSetLayout, Descriptors{layoutDescriptor, textDescriptor});
-        renderingBackend->bindTextDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, sharedRenderingState->pipelineLayout, 1, textDescriptorSet);
+        auto textDescriptorSet = DescriptorSet::create(sharedGpuLayoutState->textArrayDescriptorSetLayout, Descriptors{layoutDescriptor, textDescriptor});
+        renderingBackend->bindTextDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, sharedGpuLayoutState->pipelineLayout, 1, textDescriptorSet);
         scenegraph->add(renderingBackend->bindTextDescriptorSet);
 
         auto& bindVertexBuffers = renderingBackend->bindVertexBuffers;

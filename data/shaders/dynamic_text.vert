@@ -7,37 +7,15 @@ layout(push_constant) uniform PushConstants {
 } pc;
 
 // specialization constants
-layout(constant_id = 0) const uint numGlyphMetrics = 1;
+layout(constant_id = 0) const uint numTextIndices = 1;
 
-struct GlyphMetrics
-{
-    vec4 uvrect; // min x/y, max x/y
-    float width;
-    float height;
-    float horiBearingX;
-    float horiBearingY;
-    float horiAdvance;
-    float vertBearingX;
-    float vertBearingY;
-    float vertAdvance;
-};
-
-#define MIN_TX 0
-#define MIN_TY 1
-#define MAX_TX 2
-#define MAX_TY 3
-#define WIDTH 4
-#define HEIGHT 5
-#define HORI_BEARING_X 6
-#define HORI_BEARING_Y 7
-#define HORI_ADVANCE 8
-#define VERT_BEARING_X 9
-#define VERT_BEARING_Y 10
-#define VERT_ADVANCE 11
+#define GLYPH_DIMENSIONS 0
+#define GLYPH_BEARINGS 1
+#define GLYPH_UVRECT 2
 
 layout(set = 0, binding = 1) uniform sampler2D glyphMetricsSampler;
 
-layout(std140, set = 1, binding = 0) uniform TextLayout {
+layout(set = 1, binding = 0) uniform TextLayout {
     vec4 position;
     vec4 horizontal;
     vec4 vertical;
@@ -47,7 +25,7 @@ layout(std140, set = 1, binding = 0) uniform TextLayout {
 } textLayout;
 
 layout(set = 1, binding = 1) uniform TextIndices {
-    uvec4 glyph_index[8];
+    uvec4 glyph_index[numTextIndices];
 } text;
 
 
@@ -78,7 +56,7 @@ void main()
         }
         else
         {
-            horiAdvance += texture(glyphMetricsSampler, vec2(HORI_ADVANCE, glyph_index)).x;
+            horiAdvance += texture(glyphMetricsSampler, vec2(GLYPH_DIMENSIONS, glyph_index))[2];
         }
     }
     vec3 cursor = textLayout.position.xyz + textLayout.horizontal.xyz * horiAdvance + textLayout.vertical.xyz * vertAdvance;
@@ -86,17 +64,11 @@ void main()
     // compute the position of vertex
     uint glyph_index = text.glyph_index[gl_InstanceIndex / 4][gl_InstanceIndex % 4];
 
-    float min_tx = texture(glyphMetricsSampler, vec2(MIN_TX, glyph_index)).x;
-    float min_ty = texture(glyphMetricsSampler, vec2(MIN_TY, glyph_index)).x;
-    float max_tx = texture(glyphMetricsSampler, vec2(MAX_TX, glyph_index)).x;
-    float max_ty = texture(glyphMetricsSampler, vec2(MAX_TY, glyph_index)).x;
+    vec4 dimensions = texture(glyphMetricsSampler, vec2(GLYPH_DIMENSIONS, glyph_index));
+    vec4 bearings = texture(glyphMetricsSampler, vec2(GLYPH_BEARINGS, glyph_index));
+    vec4 uv_rec = texture(glyphMetricsSampler, vec2(GLYPH_UVRECT, glyph_index));
 
-    float width = texture(glyphMetricsSampler, vec2(WIDTH, glyph_index)).x;
-    float height = texture(glyphMetricsSampler, vec2(HEIGHT, glyph_index)).x;
-    float horiBearingX = texture(glyphMetricsSampler, vec2(HORI_BEARING_X, glyph_index)).x;
-    float horiBearingY = texture(glyphMetricsSampler, vec2(HORI_BEARING_Y, glyph_index)).x;
-
-    vec3 pos = cursor + textLayout.horizontal.xyz * (horiBearingX + inPosition.x * width) + textLayout.vertical.xyz * (horiBearingY - height + inPosition.y * height);
+    vec3 pos = cursor + textLayout.horizontal.xyz * (bearings.x + inPosition.x * dimensions.x) + textLayout.vertical.xyz * (bearings.y + (inPosition.y-1.0) * dimensions.y);
 
     gl_Position = (pc.projection * pc.modelview) * vec4(pos, 1.0);
     gl_Position.z -= inPosition.z*0.001;
@@ -105,5 +77,5 @@ void main()
     outlineColor = textLayout.outlineColor;
     outlineWidth = textLayout.outlineWidth;
 
-    fragTexCoord = vec2(mix(min_tx, max_tx, inPosition.x), mix(min_ty, max_ty, inPosition.y));
+    fragTexCoord = vec2(mix(uv_rec[0], uv_rec[2], inPosition.x), mix(uv_rec[1], uv_rec[3], inPosition.y));
 }

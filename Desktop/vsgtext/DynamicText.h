@@ -29,30 +29,7 @@ namespace vsg
         vec4 color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
         vec4 outlineColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
         float outlineWidth = 0.0f;
-
-        void read(vsg::Input& input)
-        {
-            input.read("position", position);
-            input.read("horizontal", horizontal);
-            input.read("vertical", vertical);
-            input.read("color", color);
-            input.read("outlineColor", outlineColor);
-            input.read("outlineWidth", outlineWidth);
-        }
-
-        void write(vsg::Output& output) const
-        {
-            output.write("position", position);
-            output.write("horizontal", horizontal);
-            output.write("vertical", vertical);
-            output.write("color", color);
-            output.write("outlineColor", outlineColor);
-            output.write("outlineWidth", outlineWidth);
-        }
     };
-
-    template<>
-    constexpr bool has_read_write<LayoutStruct>() { return true; }
 
     VSG_value(TextLayoutValue, LayoutStruct);
 
@@ -91,11 +68,10 @@ namespace vsg
             ref_ptr<DescriptorImage> glyphMetrics;
         };
 
-
         /// rendering state used to set up grahics pipeline and descriptor sets, assigned to Font to allow it be be shared
-        struct VSG_DECLSPEC RenderingState : public Inherit<Object, RenderingState>
+        struct VSG_DECLSPEC GpuLayoutState : public Inherit<Object, GpuLayoutState>
         {
-            RenderingState(Font* font);
+            GpuLayoutState(Font* font);
 
             bool match() const { return true; }
 
@@ -106,7 +82,7 @@ namespace vsg
         };
 
         /// rendering backend container holds all the scene graph elements required to render the text, filled in by DynamicText::setup().
-        struct RenderingBackend : public Inherit<Object, RenderingBackend>
+        struct GpuLayoutBackend : public Inherit<Object, GpuLayoutBackend>
         {
             ref_ptr<vec3Array> vertices;
             ref_ptr<Draw> draw;
@@ -118,11 +94,11 @@ namespace vsg
             ref_ptr<BindDescriptorSet> bindTextDescriptorSet;
 
             ref_ptr<BindVertexBuffers> bindVertexBuffers;
-            ref_ptr<RenderingState> sharedRenderingState;
+            ref_ptr<GpuLayoutState> sharedRenderingState;
             ref_ptr<StateGroup> stategroup;
         };
 
-        ref_ptr<RenderingBackend> renderingBackend;
+        ref_ptr<GpuLayoutBackend> renderingBackend;
 
     protected:
     };

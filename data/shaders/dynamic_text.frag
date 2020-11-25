@@ -92,6 +92,6 @@ void main()
     if (outColor.a == 0.0)
     {
         discard;
-        // outColor = vec4(1.0, 1.0, 0.0, 1.0);
+        //outColor = vec4(1.0, 1.0, 0.0, 1.0);
     }
 }
