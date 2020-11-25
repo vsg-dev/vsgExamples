@@ -82,10 +82,7 @@ DynamicText::FontState::FontState(Font* font)
     }
 }
 
-DynamicText::RenderingState::RenderingState(Font* font, bool in_singleColor, bool in_singleOutlineColor, bool in_singleOutlineWidth) :
-    singleColor(in_singleColor),
-    singleOutlineColor(in_singleOutlineColor),
-    singleOutlineWidth(in_singleOutlineWidth)
+DynamicText::RenderingState::RenderingState(Font* font)
 {
     std::cout<<"DynamicText::RenderingState::RenderingState(Font* font, ...)"<<std::endl;
 
@@ -350,7 +347,7 @@ void DynamicText::setup(uint32_t minimumAllocation)
 
         // set up state related objects if they haven't lready been assigned
         auto& sharedRenderingState = renderingBackend->sharedRenderingState;
-        if (!sharedRenderingState) renderingBackend->sharedRenderingState = font->getShared<RenderingState>(false, false, false);
+        if (!sharedRenderingState) renderingBackend->sharedRenderingState = font->getShared<RenderingState>();
 
         if (sharedRenderingState->bindGraphicsPipeline) scenegraph->add(sharedRenderingState->bindGraphicsPipeline);
         if (sharedRenderingState->bindDescriptorSet) scenegraph->add(sharedRenderingState->bindDescriptorSet);
