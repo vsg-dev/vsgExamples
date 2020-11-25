@@ -11,10 +11,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 </editor-fold> */
 
 #include <vsg/core/Array2D.h>
-#include <vsg/commands/BindIndexBuffer.h>
 #include <vsg/commands/BindVertexBuffers.h>
 #include <vsg/commands/Commands.h>
-#include <vsg/commands/DrawIndexed.h>
+#include <vsg/commands/Draw.h>
 #include <vsg/io/read.h>
 #include <vsg/io/write.h>
 #include <vsg/state/DescriptorImage.h>
@@ -84,7 +83,7 @@ DynamicText::RenderingState::RenderingState(Font* font)
     auto vertexShader = read_cast<ShaderStage>("shaders/dynamic_text.vert", font->options);
     //if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cppp
 
-    auto fragmentShader = read_cast<ShaderStage>("shaders/text.frag", font->options);
+    auto fragmentShader = read_cast<ShaderStage>("shaders/dynamic_text.frag", font->options);
     //if (!fragmentShader) fragmentShader = text_frag(); // fallback to shaders/text_frag.cppp
 
     // compile section
@@ -120,7 +119,7 @@ DynamicText::RenderingState::RenderingState(Font* font)
     };
 
     VertexInputState::Bindings vertexBindingsDescriptions{
-        VkVertexInputBindingDescription{0, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX},                                                       // vertex data
+        VkVertexInputBindingDescription{0, sizeof(vec3), VK_VERTEX_INPUT_RATE_VERTEX},  // vertex data
     };
 
     VertexInputState::Attributes vertexAttributeDescriptions{
@@ -150,7 +149,7 @@ DynamicText::RenderingState::RenderingState(Font* font)
 
     GraphicsPipelineStates pipelineStates{
         VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
-        InputAssemblyState::create(),
+        InputAssemblyState::create(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP),
         MultisampleState::create(),
         blending,
         rasterization,
@@ -294,7 +293,7 @@ void DynamicText::setup(uint32_t minimumAllocation)
     if (!layoutDescriptor) layoutDescriptor = DescriptorBuffer::create(layoutValue, 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
     auto& vertices = renderingBackend->vertices;
-    auto& drawIndexed = renderingBackend->drawIndexed;
+    auto& draw = renderingBackend->draw;
 
     size_t num_vertices = 4;
 
@@ -304,37 +303,21 @@ void DynamicText::setup(uint32_t minimumAllocation)
 
         float leadingEdgeGradient = 0.1f;
 
-        vertices->set(0, vec3(0.0f, 0.0f, leadingEdgeGradient));
-        vertices->set(1, vec3(1.0f, 0.0f, 0.0f));
+        vertices->set(0, vec3(0.0f, 1.0f, 2.0*leadingEdgeGradient));
+        vertices->set(1, vec3(0.0f, 0.0f, leadingEdgeGradient));
         vertices->set(2, vec3(1.0f, 1.0f, leadingEdgeGradient));
-        vertices->set(3, vec3(0.0f, 1.0f, 2.0*leadingEdgeGradient));
+        vertices->set(3, vec3(1.0f, 0.0f, 0.0f));
     }
 
-    auto& indices = renderingBackend->indices;
-    if (!indices || 6 > indices->valueCount())
-    {
-        auto us_indices = ushortArray::create(6);
-        indices = us_indices;
-
-        us_indices->set(0, 0);
-        us_indices->set(1, 1);
-        us_indices->set(2, 2);
-        us_indices->set(3, 2);
-        us_indices->set(4, 3);
-        us_indices->set(5, 0);
-    }
-
-    if (!drawIndexed)
-        drawIndexed = DrawIndexed::create(6, num_quads, 0, 0, 0);
+    if (!draw)
+        draw = Draw::create(4, num_quads, 0, 0);
     else
-        drawIndexed->instanceCount = num_quads;
+        draw->instanceCount = num_quads;
 
     // std::cout<<"drawIndexed->instanceCount = "<<drawIndexed->instanceCount<<std::endl;
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto& scenegraph = renderingBackend->stategroup;
-    auto& bindVertexBuffers = renderingBackend->bindVertexBuffers;
-    auto& bindIndexBuffer = renderingBackend->bindIndexBuffer;
     if (!scenegraph)
     {
         scenegraph = StateGroup::create();
@@ -351,14 +334,13 @@ void DynamicText::setup(uint32_t minimumAllocation)
         renderingBackend->bindTextDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, sharedRenderingState->pipelineLayout, 1, textDescriptorSet);
         scenegraph->add(renderingBackend->bindTextDescriptorSet);
 
+        auto& bindVertexBuffers = renderingBackend->bindVertexBuffers;
         bindVertexBuffers = BindVertexBuffers::create(0, DataList{vertices});
-        bindIndexBuffer = BindIndexBuffer::create(indices);
 
         // setup geometry
         auto drawCommands = Commands::create();
         drawCommands->addChild(bindVertexBuffers);
-        drawCommands->addChild(bindIndexBuffer);
-        drawCommands->addChild(drawIndexed);
+        drawCommands->addChild(draw);
 
         scenegraph->addChild(drawCommands);
 

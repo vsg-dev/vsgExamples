@@ -109,8 +109,7 @@ namespace vsg
         struct RenderingBackend : public Inherit<Object, RenderingBackend>
         {
             ref_ptr<vec3Array> vertices;
-            ref_ptr<Data> indices;
-            ref_ptr<DrawIndexed> drawIndexed;
+            ref_ptr<Draw> draw;
 
             ref_ptr<uintArray> textArray;
             ref_ptr<TextLayoutValue> layoutValue;
@@ -119,7 +118,6 @@ namespace vsg
             ref_ptr<BindDescriptorSet> bindTextDescriptorSet;
 
             ref_ptr<BindVertexBuffers> bindVertexBuffers;
-            ref_ptr<BindIndexBuffer> bindIndexBuffer;
             ref_ptr<RenderingState> sharedRenderingState;
             ref_ptr<StateGroup> stategroup;
         };
