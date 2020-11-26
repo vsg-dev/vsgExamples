@@ -280,7 +280,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(0.0, 0.0, 0.0);
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-            layout->color = vsg::vec4(1.0, 0.9, 1.0, 1.0);
+            layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
             layout->outlineWidth = 0.1;
 
             auto text = vsg::Text::create();
