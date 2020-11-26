@@ -15,7 +15,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/nodes/Node.h>
 #include <vsg/state/StateGroup.h>
 #include <vsg/state/DescriptorBuffer.h>
-#include <vsg/commands/Draw.h>
+#include <vsg/commands/DrawIndexed.h>
+#include <vsg/commands/BindIndexBuffers.h>
 #include <vsg/commands/BindVertexBuffers.h>
 #include <vsg/text/Font.h>
 #include <vsg/text/TextLayout.h>
@@ -24,6 +25,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace vsg
 {
+    struct LayoutStruct
+    {
+        vec3 position = vec3(0.0f, 0.0f, 0.0f); float pad0;
+        vec3 horizontal = vec3(1.0f, 0.0f, 0.0f); float pad1;
+        vec3 vertical = vec3(0.0f, 1.0f, 0.0f); float pad2;
+        vec4 color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        vec4 outlineColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        float outlineWidth = 0.0f;
+    };
+
+    VSG_value(TextLayoutValue, LayoutStruct);
+
     class VSG_DECLSPEC GpuLayoutTechnique : public Inherit<TextTechnique, GpuLayoutTechnique>
     {
     public:

@@ -5,8 +5,6 @@
 #include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-#include "DynamicText.h"
-
 vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& horizontal,  const vsg::vec3& vertical, vsg::ref_ptr<vsg::Data> sourceData = {})
 {
     struct ConvertToRGBA : public vsg::Visitor
@@ -285,7 +283,7 @@ int main(int argc, char** argv)
             layout->color = vsg::vec4(1.0, 0.9, 1.0, 1.0);
             layout->outlineWidth = 0.1;
 
-            auto text = vsg::DynamicText::create();
+            auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas Dynamic SDF text support.\nOr More");
             text->font = font;
             text->font->options = options;
@@ -340,8 +338,10 @@ int main(int argc, char** argv)
 
     auto dynamic_text_label = vsg::stringValue::create("abcdefghijklmn");
     auto dynamic_text_layout = vsg::LeftAlignment::create();
-    auto dynamic_text = vsg::DynamicText::create();
+    auto dynamic_text = vsg::Text::create();
     {
+        dynamic_text->technique = vsg::GpuLayoutTechnique::create();
+
         dynamic_text_layout->position = vsg::vec3(0.0, 0.0, 3.0);
         dynamic_text_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
         dynamic_text_layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
@@ -368,7 +368,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout<<"Could not create window."<<std::endl;
         return 1;
     }
 
