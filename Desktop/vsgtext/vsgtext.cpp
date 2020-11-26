@@ -200,6 +200,8 @@ int main(int argc, char** argv)
     auto output_filename = arguments.value(std::string(), "-o");
     auto render_all_glyphs = arguments.read("--all");
     auto enable_tests = arguments.read("--test");
+    auto numFrames = arguments.value(-1, "--nf");
+    auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -231,23 +233,30 @@ int main(int argc, char** argv)
         layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
         layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
 
-        size_t row_lenghth = static_cast<size_t>(ceil(sqrt(float(font->glyphs.size()))));
-        size_t num_rows = font->glyphs.size() / row_lenghth;
-        if ((font->glyphs.size() % num_rows) != 0) ++num_rows;
+        std::set<uint32_t> characters;
+        for (auto c : *(font->charmap))
+        {
+            if (c!=0) characters.insert(c);
+        }
+
+        size_t num_glyphs = characters.size();
+        size_t row_lenghth = static_cast<size_t>(ceil(sqrt(float(num_glyphs))));
+        size_t num_rows = num_glyphs / row_lenghth;
+        if ((num_glyphs % num_rows) != 0) ++num_rows;
 
         // use an uintArray to store the text string as the full font charcodes can go up to very large values.
-        auto text_string = vsg::uintArray::create(font->glyphs.size() + num_rows - 1);
+        auto text_string = vsg::uintArray::create(num_glyphs + num_rows - 1);
         auto text_itr = text_string->begin();
 
         size_t i = 0;
         size_t column = 0;
 
-        for(auto& glyph : font->glyphs)
+        for(auto c : characters)
         {
             ++i;
             ++column;
 
-            (*text_itr++) = glyph.second.charcode;
+            (*text_itr++) = c;
 
             if (column >= row_lenghth)
             {
@@ -272,11 +281,12 @@ int main(int argc, char** argv)
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
             layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
-            layout->outlineWidth = 0.2;
+            layout->outlineWidth = 0.1;
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
             text->font = font;
+            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -288,6 +298,7 @@ int main(int argc, char** argv)
             }
         }
 
+        if (output_filename.empty())
         {
             struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
             {
@@ -325,6 +336,27 @@ int main(int argc, char** argv)
         }
     }
 
+
+    auto dynamic_text_label = vsg::stringValue::create("abcdefghijklmn");
+    auto dynamic_text_layout = vsg::LeftAlignment::create();
+    auto dynamic_text = vsg::Text::create();
+    {
+        dynamic_text->technique = vsg::GpuLayoutTechnique::create();
+
+        dynamic_text_layout->position = vsg::vec3(0.0, 0.0, 3.0);
+        dynamic_text_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+        dynamic_text_layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+        dynamic_text_layout->color = vsg::vec4(1.0, 0.9, 1.0, 1.0);
+        dynamic_text_layout->outlineWidth = 0.1;
+
+        dynamic_text->text = dynamic_text_label;
+        dynamic_text->font = font;
+        dynamic_text->font->options = options;
+        dynamic_text->layout = dynamic_text_layout;
+        dynamic_text->setup();
+        scenegraph->addChild(dynamic_text);
+    }
+
     if (!output_filename.empty())
     {
         vsg::write(scenegraph, output_filename);
@@ -337,9 +369,11 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout<<"Could not create window."<<std::endl;
         return 1;
     }
+
+    window->clearColor() = VkClearColorValue{clearColor.r, clearColor.g, clearColor.b, clearColor.a};
 
     viewer->addWindow(window);
 
@@ -370,8 +404,13 @@ int main(int argc, char** argv)
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     // main frame loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
+        dynamic_text_label->value() = vsg::make_string(viewer->getFrameStamp()->frameCount);
+        dynamic_text_layout->position.y += 0.01;
+
+        dynamic_text->setup();
+
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
