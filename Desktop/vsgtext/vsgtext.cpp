@@ -284,7 +284,7 @@ int main(int argc, char** argv)
             layout->outlineWidth = 0.1;
 
             auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas Dynamic SDF text support.\nOr More");
+            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
             text->font = font;
             text->font->options = options;
             text->layout = layout;
@@ -298,6 +298,7 @@ int main(int argc, char** argv)
             }
         }
 
+        if (output_filename.empty())
         {
             struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
             {
