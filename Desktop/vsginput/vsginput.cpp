@@ -5,34 +5,98 @@ class InputHandler : public vsg::Inherit<vsg::Visitor, InputHandler>
 {
 public:
 
-    InputHandler()
+    vsg::ref_ptr<vsg::Text> keyboard_text;
+    vsg::ref_ptr<vsg::Text> pointer_text;
+    vsg::ref_ptr<vsg::Text> scroll_text;
+    vsg::ref_ptr<vsg::Text> window_text;
+    vsg::ref_ptr<vsg::Text> frame_text;
+
+    InputHandler(vsg::ref_ptr<vsg::Text> in_keyboard_text, vsg::ref_ptr<vsg::Text> in_pointer_text,
+                 vsg::ref_ptr<vsg::Text> in_scroll_text, vsg::ref_ptr<vsg::Text> in_window_text, vsg::ref_ptr<vsg::Text> in_frame_text) :
+        keyboard_text(in_keyboard_text),
+        pointer_text(in_pointer_text),
+        scroll_text(in_scroll_text),
+        window_text(in_window_text),
+        frame_text(in_frame_text)
     {
+    }
+
+    void assign(vsg::Text& text, const std::string& str)
+    {
+        auto text_string = text.text.cast<vsg::stringValue>();
+
+        if (text_string)
+        {
+            text_string->value() = str;
+        }
+        else
+        {
+            text.text = text_string = vsg::stringValue::create(str);
+        }
+
+        text.setup();
     }
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
-        std::cout<<"vsg::KeyPressEvent keyBase = "<<keyPress.keyBase<<", keyModified = "<<keyPress.keyModified<<std::endl;
+        assign(*keyboard_text, vsg::make_string(keyPress.className(), ", keyBase=", keyPress.keyBase, ", keyModified=", keyPress.keyModified, " ", char(keyPress.keyModified)));
     }
 
     void apply(vsg::KeyReleaseEvent& keyRelease) override
     {
-        std::cout<<"vsg::KeyReleaseEvent keyBase = "<<keyRelease.keyBase<<", keyModified = "<<keyRelease.keyModified<<std::endl;
+        assign(*keyboard_text, vsg::make_string(keyRelease.className(), ", keyBase=", keyRelease.keyBase, ", keyModified=", keyRelease.keyModified, " ", char(keyRelease.keyModified)));
     }
 
     void apply(vsg::MoveEvent& moveEvent) override
     {
-        std::cout<<"vsg::MoveEvent x= "<<moveEvent.x<<", y= "<<moveEvent.y<<", mask = "<<moveEvent.mask<<std::endl;
+        // note under Unix the mask value includes the keyboard modifiers in mask as the native mask is used
+        assign(*pointer_text, vsg::make_string(moveEvent.className(), ", x=", moveEvent.x, ", y= ", moveEvent.y, ", mask=", moveEvent.mask, " [",
+                                               ((moveEvent.mask & vsg::BUTTON_MASK_1)!=0), ((moveEvent.mask & vsg::BUTTON_MASK_2)!=0),((moveEvent.mask & vsg::BUTTON_MASK_3)!=0), "]"));
     }
 
-    void apply(vsg::ButtonPressEvent& buttonPressEvent) override
+    void apply(vsg::ButtonPressEvent& buttonPress) override
     {
-        std::cout<<"vsg::ButtonPressEvent x= "<<buttonPressEvent.x<<", y= "<<buttonPressEvent.y<<", mask = "<<buttonPressEvent.mask<<", button = "<<buttonPressEvent.button<<std::endl;
+        // note under Unix the mask value includes the keyboard modifiers in mask as the native mask is used
+        assign(*pointer_text, vsg::make_string(buttonPress.className(), ", x=", buttonPress.x, ", y=", buttonPress.y, ", mask=", buttonPress.mask, " [",
+                                               ((buttonPress.mask & vsg::BUTTON_MASK_1)!=0), ((buttonPress.mask & vsg::BUTTON_MASK_2)!=0),((buttonPress.mask & vsg::BUTTON_MASK_3)!=0), "], button=", buttonPress.button));
     }
 
-    void apply(vsg::ButtonReleaseEvent& buttonReleaseEvent) override
+    void apply(vsg::ButtonReleaseEvent& buttonRelease) override
     {
-        std::cout<<"vsg::ButtonPressEvent x= "<<buttonReleaseEvent.x<<", y= "<<buttonReleaseEvent.y<<", mask = "<<buttonReleaseEvent.mask<<", button = "<<buttonReleaseEvent.button<<std::endl;
+        // note under Unix the mask value includes the keyboard modifiers in mask as the native mask is used
+        assign(*pointer_text, vsg::make_string(buttonRelease.className(), ", x=", buttonRelease.x, ", y=", buttonRelease.y, ", mask=", buttonRelease.mask, " [",
+                                               ((buttonRelease.mask & vsg::BUTTON_MASK_1)!=0), ((buttonRelease.mask & vsg::BUTTON_MASK_2)!=0),((buttonRelease.mask & vsg::BUTTON_MASK_3)!=0), "], button=", buttonRelease.button));
     }
+
+    void apply(vsg::ScrollWheelEvent& scrollWheel) override
+    {
+        assign(*scroll_text, vsg::make_string(scrollWheel.className(), ", delta = ", scrollWheel.delta));
+    }
+
+    void apply(vsg::ExposeWindowEvent& exposeWindow) override
+    {
+        assign(*window_text, vsg::make_string(exposeWindow.className(), ", x=", exposeWindow.x, ", y=", exposeWindow.y, ", width=", exposeWindow.width, ", height=", exposeWindow.height));
+    }
+
+    void apply(vsg::ConfigureWindowEvent& configureWindow) override
+    {
+        assign(*window_text, vsg::make_string(configureWindow.className(), ", x=", configureWindow.x, ", y=", configureWindow.y, ", width=", configureWindow.width, ", height=", configureWindow.height));
+    }
+
+    void apply(vsg::CloseWindowEvent& closeWindow) override
+    {
+        // closeWindow.window is a vsg::oberserver_ptr<> so to access the pointer we first have to take a ref_ptr<> to avoid threading related lifetime issues
+        vsg::ref_ptr<vsg::Window> window = closeWindow.window;
+        assign(*window_text, vsg::make_string(closeWindow.className(), ", window =", window));
+    }
+
+    void apply(vsg::FrameEvent& frame) override
+    {
+        // closeWindow.window is a vsg::oberserver_ptr<> so to access the pointer we first have to take a ref_ptr<> to avoid threading related lifetime issues
+        assign(*frame_text, vsg::make_string(frame.className(), ", frameStamp->frameCount = ", frame.frameStamp->frameCount));
+    }
+
+
 
 protected:
 
@@ -62,24 +126,147 @@ int main(int argc, char** argv)
 
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);
 
-    auto dynamic_text_label = vsg::stringValue::create("Please press keys and move/click mouse buttons.\n\nWatch the console output to see the event\ninformation displayed.");
-    auto dynamic_text_layout = vsg::LeftAlignment::create();
-    auto dynamic_text = vsg::Text::create();
+    double aspectRatio = double(windowTraits->width)/double(windowTraits->height);
+    double projectionHeight = 25.0;
+
+    vsg::vec3 position(2.0f, projectionHeight-2.0f, 0.0f);
+    vsg::vec3 delta(0.0f, -2.0f, 0.0f);
+
+    // main label
     {
-//        dynamic_text->technique = vsg::GpuLayoutTechnique::create();
+        auto main_label = vsg::stringValue::create("Please press keys and move/click mouse buttons\nand resize the window.");
+        auto main_layout = vsg::LeftAlignment::create();
+        auto main = vsg::Text::create();
 
-        dynamic_text_layout->position = vsg::vec3(0.0, 0.0, 3.0);
-        dynamic_text_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-        dynamic_text_layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-        dynamic_text_layout->color = vsg::vec4(1.0, 0.9, 1.0, 1.0);
-        dynamic_text_layout->outlineWidth = 0.1;
+        main_layout->position = position;
+        main_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
+        main_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
+        main_layout->color = vsg::vec4(1.0f,1.0f,0.3, 1.0f);
+        main_layout->outlineWidth = 0.1;
 
-        dynamic_text->text = dynamic_text_label;
-        dynamic_text->font = font;
-        dynamic_text->font->options = options;
-        dynamic_text->layout = dynamic_text_layout;
-        dynamic_text->setup();
-        scenegraph->addChild(dynamic_text);
+        main->text = main_label;
+        main->font = font;
+        main->font->options = options;
+        main->layout = main_layout;
+        main->setup();
+        scenegraph->addChild(main);
+
+        position += delta*2.0f;
+    }
+
+    // pointer event label
+    auto pointer_text = vsg::Text::create();
+    {
+        pointer_text->technique = vsg::GpuLayoutTechnique::create();
+
+        auto pointer_layout = vsg::LeftAlignment::create();
+        pointer_layout->position = position;
+        pointer_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
+        pointer_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
+        pointer_layout->color = vsg::vec4(1.0f,1.0f,1.0f,1.0f);
+        pointer_layout->outlineWidth = 0.1;
+
+        auto pointer_string = vsg::stringValue::create("Pointer event:");
+        pointer_text->text = pointer_string;
+        pointer_text->font = font;
+        pointer_text->font->options = options;
+        pointer_text->layout = pointer_layout;
+        pointer_text->setup(256);
+        scenegraph->addChild(pointer_text);
+
+        position += delta;
+    }
+
+    // keyboard events label
+    auto keyboard_text = vsg::Text::create();
+    {
+        keyboard_text->technique = vsg::GpuLayoutTechnique::create();
+
+        auto keyboard_layout = vsg::LeftAlignment::create();
+        keyboard_layout->position = position;
+        keyboard_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
+        keyboard_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
+        keyboard_layout->color = vsg::vec4(1.0f,1.0f,1.0f,1.0f);
+        keyboard_layout->outlineWidth = 0.1;
+
+        auto keyboard_string = vsg::stringValue::create("Keyboard event:");
+        keyboard_text->text = keyboard_string;
+        keyboard_text->font = font;
+        keyboard_text->font->options = options;
+        keyboard_text->layout = keyboard_layout;
+        keyboard_text->setup(256);
+        scenegraph->addChild(keyboard_text);
+
+        position += delta;
+    }
+
+    // scroll events label
+    auto scroll_text = vsg::Text::create();
+    {
+        scroll_text->technique = vsg::GpuLayoutTechnique::create();
+
+        auto scroll_layout = vsg::LeftAlignment::create();
+        scroll_layout->position = position;
+        scroll_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
+        scroll_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
+        scroll_layout->color = vsg::vec4(1.0f,1.0f,1.0f,1.0f);
+        scroll_layout->outlineWidth = 0.1;
+
+        auto scroll_string = vsg::stringValue::create("Scroll event:");
+        scroll_text->text = scroll_string;
+        scroll_text->font = font;
+        scroll_text->font->options = options;
+        scroll_text->layout = scroll_layout;
+        scroll_text->setup(256);
+        scenegraph->addChild(scroll_text);
+
+        position += delta;
+    }
+
+    // window events label
+    auto window_text = vsg::Text::create();
+    {
+        window_text->technique = vsg::GpuLayoutTechnique::create();
+
+        auto application_layout = vsg::LeftAlignment::create();
+        application_layout->position = position;
+        application_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0f);
+        application_layout->vertical = vsg::vec3(0.0, 1.0, 0.0f);
+        application_layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0f);
+        application_layout->outlineWidth = 0.1;
+
+        auto application_string = vsg::stringValue::create("Window event:");
+        window_text->text = application_string;
+        window_text->font = font;
+        window_text->font->options = options;
+        window_text->layout = application_layout;
+        window_text->setup(256);
+        scenegraph->addChild(window_text);
+
+        position += delta;
+    }
+
+    // application events label
+    auto frame_text = vsg::Text::create();
+    {
+        frame_text->technique = vsg::GpuLayoutTechnique::create();
+
+        auto application_layout = vsg::LeftAlignment::create();
+        application_layout->position = position;
+        application_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0f);
+        application_layout->vertical = vsg::vec3(0.0, 1.0, 0.0f);
+        application_layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0f);
+        application_layout->outlineWidth = 0.1;
+
+        auto application_string = vsg::stringValue::create("Frame event:");
+        frame_text->text = application_string;
+        frame_text->font = font;
+        frame_text->font->options = options;
+        frame_text->layout = application_layout;
+        frame_text->setup(256);
+        scenegraph->addChild(frame_text);
+
+        position += delta;
     }
 
     // create the viewer and assign window(s) to it
@@ -94,19 +281,11 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    // camera related details
-    // compute the bounds of the scene graph to help position camera
-    vsg::ComputeBounds computeBounds;
-    scenegraph->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
-    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
-    double nearFarRatio = 0.001;
-
     // set up the camera
     auto viewport = vsg::ViewportState::create(window->extent2D());
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 1000.0);
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-    auto camera = vsg::Camera::create(perspective, lookAt, viewport);
+    auto projection = vsg::Orthographic::create(0.0, projectionHeight * aspectRatio, 0.0, projectionHeight, 100.0, 0.0);
+    auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 0.0, 2.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
+    auto camera = vsg::Camera::create(projection, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
@@ -117,21 +296,12 @@ int main(int argc, char** argv)
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    // assign Trackball
-    viewer->addEventHandler(vsg::Trackball::create(camera));
-
     // assign Input handler
-    viewer->addEventHandler(InputHandler::create());
+    viewer->addEventHandler(InputHandler::create(keyboard_text, pointer_text, scroll_text, window_text, frame_text));
 
     // main frame loop
     while (viewer->advanceToNextFrame())
     {
-#if 0
-        // update the dynamic_text label string and position
-        dynamic_text_label->value() = vsg::make_string(viewer->getFrameStamp()->frameCount);
-        dynamic_text_layout->position.y += 0.01;
-        dynamic_text->setup();
-#endif
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
