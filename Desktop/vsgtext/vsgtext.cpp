@@ -227,7 +227,7 @@ int main(int argc, char** argv)
 
     if (render_all_glyphs)
     {
-        auto layout = vsg::LeftAlignment::create();
+        auto layout = vsg::StandardLayout::create();
         layout->position = vsg::vec3(0.0, 0.0, 0.0);
         layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
         layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
@@ -276,7 +276,8 @@ int main(int argc, char** argv)
     else
     {
         {
-            auto layout = vsg::LeftAlignment::create();
+            auto layout = vsg::StandardLayout::create();
+            //layout->glyphLayout = vsg::StandardLayout::VERTICAL_LAYOUT;
             layout->position = vsg::vec3(0.0, 0.0, 0.0);
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
@@ -300,11 +301,11 @@ int main(int argc, char** argv)
 
         if (output_filename.empty())
         {
-            struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
+            struct CustomLayout : public vsg::Inherit<vsg::StandardLayout, CustomLayout>
             {
                 void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
                 {
-                    // Let the base LeftAlignment class do the basic glyph setup
+                    // Let the base StandardLayout class do the basic glyph setup
                     Inherit::layout(text, font, quads);
 
                     // modify each generated glyph quad's position and colours etc.
@@ -337,8 +338,8 @@ int main(int argc, char** argv)
     }
 
 
-    auto dynamic_text_label = vsg::stringValue::create("abcdefghijklmn");
-    auto dynamic_text_layout = vsg::LeftAlignment::create();
+    auto dynamic_text_label = vsg::stringValue::create("");
+    auto dynamic_text_layout = vsg::StandardLayout::create();
     auto dynamic_text = vsg::Text::create();
     {
         dynamic_text->technique = vsg::GpuLayoutTechnique::create();
@@ -353,7 +354,7 @@ int main(int argc, char** argv)
         dynamic_text->font = font;
         dynamic_text->font->options = options;
         dynamic_text->layout = dynamic_text_layout;
-        dynamic_text->setup();
+        dynamic_text->setup(5); // allocate enough space for 5 characters
         scenegraph->addChild(dynamic_text);
     }
 
