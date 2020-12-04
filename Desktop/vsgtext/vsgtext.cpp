@@ -47,15 +47,9 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
             if (data) data->accept(*this);
             else
             {
-#if 0
-                textureData = vsg::vec4Value::create(1.0f, 1.0f, 1.0f, 1.0f);
-                textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
-#else
                 auto image = vsg::vec4Array2D::create(1, 1, vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
                 image->set(0, 0, vsg::vec4(0.5f, 1.0f, 0.5f, 1.0f));
                 textureData = image;
-#endif
-                std::cout<<"Createed fallback image "<<textureData<<std::endl;
             }
 
             return textureData;
