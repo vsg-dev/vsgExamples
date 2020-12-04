@@ -135,7 +135,7 @@ int main(int argc, char** argv)
     // main label
     {
         auto main_label = vsg::stringValue::create("Please press keys and move/click mouse buttons\nand resize the window.");
-        auto main_layout = vsg::LeftAlignment::create();
+        auto main_layout = vsg::StandardLayout::create();
         auto main = vsg::Text::create();
 
         main_layout->position = position;
@@ -159,7 +159,7 @@ int main(int argc, char** argv)
     {
         pointer_text->technique = vsg::GpuLayoutTechnique::create();
 
-        auto pointer_layout = vsg::LeftAlignment::create();
+        auto pointer_layout = vsg::StandardLayout::create();
         pointer_layout->position = position;
         pointer_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
         pointer_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
@@ -182,7 +182,7 @@ int main(int argc, char** argv)
     {
         keyboard_text->technique = vsg::GpuLayoutTechnique::create();
 
-        auto keyboard_layout = vsg::LeftAlignment::create();
+        auto keyboard_layout = vsg::StandardLayout::create();
         keyboard_layout->position = position;
         keyboard_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
         keyboard_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
@@ -205,7 +205,7 @@ int main(int argc, char** argv)
     {
         scroll_text->technique = vsg::GpuLayoutTechnique::create();
 
-        auto scroll_layout = vsg::LeftAlignment::create();
+        auto scroll_layout = vsg::StandardLayout::create();
         scroll_layout->position = position;
         scroll_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
         scroll_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
     {
         window_text->technique = vsg::GpuLayoutTechnique::create();
 
-        auto application_layout = vsg::LeftAlignment::create();
+        auto application_layout = vsg::StandardLayout::create();
         application_layout->position = position;
         application_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0f);
         application_layout->vertical = vsg::vec3(0.0, 1.0, 0.0f);
@@ -251,7 +251,7 @@ int main(int argc, char** argv)
     {
         frame_text->technique = vsg::GpuLayoutTechnique::create();
 
-        auto application_layout = vsg::LeftAlignment::create();
+        auto application_layout = vsg::StandardLayout::create();
         application_layout->position = position;
         application_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0f);
         application_layout->vertical = vsg::vec3(0.0, 1.0, 0.0f);

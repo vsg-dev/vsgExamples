@@ -47,15 +47,9 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
             if (data) data->accept(*this);
             else
             {
-#if 0
-                textureData = vsg::vec4Value::create(1.0f, 1.0f, 1.0f, 1.0f);
-                textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
-#else
                 auto image = vsg::vec4Array2D::create(1, 1, vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
                 image->set(0, 0, vsg::vec4(0.5f, 1.0f, 0.5f, 1.0f));
                 textureData = image;
-#endif
-                std::cout<<"Createed fallback image "<<textureData<<std::endl;
             }
 
             return textureData;
@@ -227,7 +221,7 @@ int main(int argc, char** argv)
 
     if (render_all_glyphs)
     {
-        auto layout = vsg::LeftAlignment::create();
+        auto layout = vsg::StandardLayout::create();
         layout->position = vsg::vec3(0.0, 0.0, 0.0);
         layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
         layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
@@ -276,8 +270,9 @@ int main(int argc, char** argv)
     else
     {
         {
-            auto layout = vsg::LeftAlignment::create();
-            layout->position = vsg::vec3(0.0, 0.0, 0.0);
+            auto layout = vsg::StandardLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+            layout->position = vsg::vec3(6.0, 0.0, 0.0);
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
             layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
@@ -298,13 +293,224 @@ int main(int argc, char** argv)
             }
         }
 
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->glyphLayout = vsg::StandardLayout::VERTICAL_LAYOUT;
+            layout->position = vsg::vec3(-1.0, 0.0, 2.0);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(1.0, 0.0, 0.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("VERTICAL_LAYOUT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->glyphLayout = vsg::StandardLayout::LEFT_TO_RIGHT_LAYOUT;
+            layout->position = vsg::vec3(-1.0, 0.0, 2.0);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(0.0, 1.0, 0.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("LEFT_TO_RIGHT_LAYOUT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->glyphLayout = vsg::StandardLayout::RIGHT_TO_LEFT_LAYOUT;
+            layout->position = vsg::vec3(13.0, 0.0, 2.0);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(0.0, 0.0, 1.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("RIGHT_TO_LEFT_LAYOUT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+            layout->position = vsg::vec3(2.0, 0.0, -8.0);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("horizontalAlignment\nCENTER_ALIGNMENT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::LEFT_ALIGNMENT;
+            layout->position = vsg::vec3(2.0, 0.0, -9.0);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("horizontalAlignment\nLEFT_ALIGNMENT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::RIGHT_ALIGNMENT;
+            layout->position = vsg::vec3(2.0, 0.0, -10.0);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("horizontalAlignment\nRIGHT_ALIGNMENT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+            layout->verticalAlignment = vsg::StandardLayout::BOTTOM_ALIGNMENT;
+            layout->position = vsg::vec3(10.0, 0.0, -8.5);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("verticalAlignment\nBOTTOM_ALIGNMENT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+            layout->verticalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+            layout->position = vsg::vec3(10.0, 0.0, -9.0);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("verticalAlignment\nCENTER_ALIGNMENT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+            layout->verticalAlignment = vsg::StandardLayout::TOP_ALIGNMENT;
+            layout->position = vsg::vec3(10.0, 0.0, -9.5);
+            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+            layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("verticalAlignment\nTOP_ALIGNMENT");
+            text->font = font;
+            text->font->options = options;
+            text->layout = layout;
+            text->setup();
+            scenegraph->addChild(text);
+
+            if (enable_tests)
+            {
+                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
+                scenegraph->addChild(quad);
+            }
+        }
+
+
         if (output_filename.empty())
         {
-            struct CustomLayout : public vsg::Inherit<vsg::LeftAlignment, CustomLayout>
+            struct CustomLayout : public vsg::Inherit<vsg::StandardLayout, CustomLayout>
             {
                 void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
                 {
-                    // Let the base LeftAlignment class do the basic glyph setup
+                    // Let the base StandardLayout class do the basic glyph setup
                     Inherit::layout(text, font, quads);
 
                     // modify each generated glyph quad's position and colours etc.
@@ -337,13 +543,14 @@ int main(int argc, char** argv)
     }
 
 
-    auto dynamic_text_label = vsg::stringValue::create("abcdefghijklmn");
-    auto dynamic_text_layout = vsg::LeftAlignment::create();
+    auto dynamic_text_label = vsg::stringValue::create("");
+    auto dynamic_text_layout = vsg::StandardLayout::create();
     auto dynamic_text = vsg::Text::create();
     {
+        // currently vsg::GpuLayoutTechnique is the only technique that supports dynamic update of the text parameters
         dynamic_text->technique = vsg::GpuLayoutTechnique::create();
 
-        dynamic_text_layout->position = vsg::vec3(0.0, 0.0, 3.0);
+        dynamic_text_layout->position = vsg::vec3(0.0, 0.0, -6.0);
         dynamic_text_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
         dynamic_text_layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
         dynamic_text_layout->color = vsg::vec4(1.0, 0.9, 1.0, 1.0);
@@ -353,7 +560,7 @@ int main(int argc, char** argv)
         dynamic_text->font = font;
         dynamic_text->font->options = options;
         dynamic_text->layout = dynamic_text_layout;
-        dynamic_text->setup();
+        dynamic_text->setup(32); // allocate enough space for max possible characters
         scenegraph->addChild(dynamic_text);
     }
 
@@ -407,8 +614,8 @@ int main(int argc, char** argv)
     while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
     {
         // update the dynamic_text label string and position
-        dynamic_text_label->value() = vsg::make_string(viewer->getFrameStamp()->frameCount);
-        dynamic_text_layout->position.y += 0.01;
+        dynamic_text_label->value() = vsg::make_string("GpuLayoutTechnique: ",viewer->getFrameStamp()->frameCount);
+        dynamic_text_layout->position.x += 0.01;
         dynamic_text->setup();
 
         // pass any events into EventHandlers assigned to the Viewer
