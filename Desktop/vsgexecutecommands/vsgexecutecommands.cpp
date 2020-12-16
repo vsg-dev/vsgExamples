@@ -230,7 +230,7 @@ int main(int argc, char** argv)
         perspective = vsg::Perspective::create(30.0, aspectRatio, nearFarRatio*radius, radius * 4.5);
     }
 
-    auto camera = vsg::Camera::create(perspective, lookAt);
+    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(0,0, traits->width, traits->height));
 
     if (useExecuteCommands)
     {
