@@ -43,12 +43,6 @@ vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> devi
     return vsg::createImageView(device, colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-VkImageAspectFlags computeAspectFlagsForDepthFormat(VkFormat depthFormat)
-{
-    if (depthFormat==VK_FORMAT_D24_UNORM_S8_UINT) return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-    else return VK_IMAGE_ASPECT_DEPTH_BIT;
-}
-
 vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat depthFormat)
 {
     auto depthImage = vsg::Image::create();
@@ -64,7 +58,7 @@ vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> devi
     depthImage->flags = 0;
     depthImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    return vsg::createImageView(device, depthImage, computeAspectFlagsForDepthFormat(depthFormat));
+    return vsg::createImageView(device, depthImage, vsg::computeAspectFlagsForFormat(depthFormat));
 }
 
 std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapture(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, vsg::ref_ptr<vsg::Image> sourceImage, VkFormat sourceImageFormat)
@@ -256,7 +250,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     auto destinationBuffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
     auto destinationMemory = destinationBuffer->getDeviceMemory(device->deviceID);
 
-    VkImageAspectFlags imageAspectFlags = computeAspectFlagsForDepthFormat(sourceImageFormat);
+    VkImageAspectFlags imageAspectFlags = vsg::computeAspectFlagsForFormat(sourceImageFormat);
 
     // 2.a) tranition depth image for reading
     auto commands = vsg::Commands::create();
