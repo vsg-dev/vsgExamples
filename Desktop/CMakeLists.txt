@@ -17,3 +17,7 @@ add_subdirectory(vsgsubpass)
 add_subdirectory(vsgtext)
 add_subdirectory(vsgtexturearray)
 add_subdirectory(vsgviewer)
+
+if (vsgImGui_FOUND)
+    add_subdirectory(vsgimgui)
+endif()
