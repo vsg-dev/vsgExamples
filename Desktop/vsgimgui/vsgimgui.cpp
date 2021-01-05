@@ -1,5 +1,5 @@
-#include <vsgImGui/VSGImGui.h>
-#include <vsgImGui/VSGImGuiEventHandler.h>
+#include <vsgImGui/GuiCommand.h>
+#include <vsgImGui/GuiEventHandler.h>
 #include <vsgImGui/imgui.h>
 
 #include <vsg/all.h>
@@ -18,10 +18,10 @@ struct Params
     float dist = 0.f;
 };
 
-class MyRenderCallback
+class MyGuiComponent
 {
     public:
-        MyRenderCallback( Params &params ):
+        MyGuiComponent( Params &params ):
             _params(params)
         {}
 
@@ -58,6 +58,9 @@ class MyRenderCallback
                     _params.showSecondWindow = false;
                 ImGui::End();
             }
+
+            if( _params.showDemoWindow )
+                ImGui::ShowDemoWindow(&_params.showDemoWindow);
         }
 
 
@@ -155,15 +158,15 @@ int main(int argc, char** argv)
 
 
         // ********** Create the ImGui node and add it to the renderGraph  ************
-        auto gui = vsgImGui::create(window);
+        auto gui = vsgImGui::GuiCommand::create(window);
         renderGraph->addChild(gui);
 
         Params params;
-        gui->setRenderCallback( MyRenderCallback( params ) );
+        gui->add( MyGuiComponent( params ) );
         // ***************************************
 
         // ********** Add the ImGui event handler first to handle events early  **************
-        viewer->addEventHandler(VSGImGuiEventHandler::create(gui));
+        viewer->addEventHandler(vsgImGui::GuiEventHandler::create(gui));
         // ***************************************
 
         // add close handler to respond the close window button and pressing escape
@@ -181,10 +184,6 @@ int main(int argc, char** argv)
         while (viewer->advanceToNextFrame() )
         {
             viewer->handleEvents();
-
-            {
-                gui->setShowDemoWindow( params.showDemoWindow );
-            }
 
             viewer->update();
 
