@@ -8,7 +8,7 @@
 #include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-struct Params
+struct Params : public vsg::Inherit<vsg::Object, Params>
 {
     bool showGui = true;         // you can toggle this with your own EventHandler and key
     bool showDemoWindow = false;
@@ -21,7 +21,7 @@ struct Params
 class MyGuiComponent
 {
     public:
-        MyGuiComponent( Params &params ):
+        MyGuiComponent( vsg::ref_ptr<Params> params ):
             _params(params)
         {}
 
@@ -29,43 +29,43 @@ class MyGuiComponent
         void operator()()
         {
             // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-            if( _params.showGui )
+            if( _params->showGui )
             {
                 ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
 
                 ImGui::Text("Some useful message here.");               // Display some text (you can use a format strings too)
-                ImGui::Checkbox("Demo Window", &_params.showDemoWindow);      // Edit bools storing our window open/close state
-                ImGui::Checkbox("Another Window", &_params.showSecondWindow);
-                ImGui::SliderFloat("float", &_params.dist, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-                ImGui::ColorEdit3("clear color", (float*)&_params.clearColor); // Edit 3 floats representing a color
+                ImGui::Checkbox("Demo Window", &_params->showDemoWindow);      // Edit bools storing our window open/close state
+                ImGui::Checkbox("Another Window", &_params->showSecondWindow);
+                ImGui::SliderFloat("float", &_params->dist, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+                ImGui::ColorEdit3("clear color", (float*)&_params->clearColor); // Edit 3 floats representing a color
 
                 if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                    _params.counter++;
+                    _params->counter++;
 
                 ImGui::SameLine();
-                ImGui::Text("counter = %d", _params.counter);
+                ImGui::Text("counter = %d", _params->counter);
 
                 ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
                 ImGui::End();
             }
 
             // 3. Show another simple window.
-            if( _params.showSecondWindow )
+            if( _params->showSecondWindow )
             {
-                ImGui::Begin("Another Window", &_params.showSecondWindow);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+                ImGui::Begin("Another Window", &_params->showSecondWindow);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
                 ImGui::Text("Hello from another window!");
                 if (ImGui::Button("Close Me"))
-                    _params.showSecondWindow = false;
+                    _params->showSecondWindow = false;
                 ImGui::End();
             }
 
-            if( _params.showDemoWindow )
-                ImGui::ShowDemoWindow(&_params.showDemoWindow);
+            if( _params->showDemoWindow )
+                ImGui::ShowDemoWindow(&_params->showDemoWindow);
         }
 
 
     private:
-        Params &_params;
+        vsg::ref_ptr<Params> _params;
 };
 
 int main(int argc, char** argv)
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
 #endif
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgviewer";
+    windowTraits->windowTitle = "vsgimgui";
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -161,12 +161,12 @@ int main(int argc, char** argv)
         auto gui = vsgImGui::GuiCommand::create(window);
         renderGraph->addChild(gui);
 
-        Params params;
+        auto params = Params::create();
         gui->add( MyGuiComponent( params ) );
         // ***************************************
 
         // ********** Add the ImGui event handler first to handle events early  **************
-        viewer->addEventHandler(vsgImGui::GuiEventHandler::create(gui));
+        viewer->addEventHandler(vsgImGui::GuiEventHandler::create());
         // ***************************************
 
         // add close handler to respond the close window button and pressing escape
