@@ -1,16 +1,15 @@
 #include <vsg/all.h>
 
 #ifdef USE_VSGXCHANGE
-#include <vsgXchange/ReaderWriter_all.h>
+#    include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-#include <iostream>
-#include <chrono>
-#include <thread>
 #include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <thread>
 
 #include "../shared/AnimationPath.h"
-
 
 vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
 {
@@ -26,11 +25,11 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
         void apply(vsg::uintArray2D& fa) override
         {
             // treat as a 24bit depth buffer
-            float div = 1.0f / static_cast<float>(1<<24);
+            float div = 1.0f / static_cast<float>(1 << 24);
 
             auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
             auto dest_itr = rgba->begin();
-            for(auto& v : fa)
+            for (auto& v : fa)
             {
                 float m = static_cast<float>(v) * div;
                 (*dest_itr++).set(m, m, m, 1.0);
@@ -42,7 +41,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
         {
             auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
             auto dest_itr = rgba->begin();
-            for(auto& v : fa)
+            for (auto& v : fa)
             {
                 (*dest_itr++).set(v, v, v, 1.0);
             }
@@ -55,12 +54,10 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
             return textureData;
         }
 
-
     } convertToRGBA;
 
     auto textureData = convertToRGBA.convert(sourceData);
     if (!textureData) return {};
-
 
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -70,46 +67,40 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
     vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
-        std::cout<<"Could not create shaders."<<std::endl;
+        std::cout << "Could not create shaders." << std::endl;
         return {};
     }
 
     // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings
-    {
+    vsg::DescriptorSetLayoutBindings descriptorBindings{
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    vsg::PushConstantRanges pushConstantRanges
-    {
+    vsg::PushConstantRanges pushConstantRanges{
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
     };
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
-    {
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
         VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
         VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
         VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
     };
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
-    {
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
         VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
 
-    vsg::GraphicsPipelineStates pipelineStates
-    {
-        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+    vsg::GraphicsPipelineStates pipelineStates{
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
         vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()
-    };
+        vsg::DepthStencilState::create()};
 
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
@@ -134,20 +125,16 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
-    {
-        {0.0f, 0.0f, 0.0f},
-        {static_cast<float>(textureData->width()), 0.0f, 0.0f},
-        {static_cast<float>(textureData->width()), 0.0f, static_cast<float>(textureData->height())},
-        {0.0f, 0.0f, static_cast<float>(textureData->height())}
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{0.0f, 0.0f, 0.0f},
+         {static_cast<float>(textureData->width()), 0.0f, 0.0f},
+         {static_cast<float>(textureData->width()), 0.0f, static_cast<float>(textureData->height())},
+         {0.0f, 0.0f, static_cast<float>(textureData->height())}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(
-    {
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f}
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     uint8_t origin = textureData->getLayout().origin; // in Vulkan the origin is by default top left.
     float left = 0.0f;
@@ -155,18 +142,14 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
     float top = (origin == vsg::TOP_LEFT) ? 0.0f : 1.0f;
     float bottom = (origin == vsg::TOP_LEFT) ? 1.0f : 0.0f;
     auto texcoords = vsg::vec2Array::create(
-    {
-        {left, bottom},
-        {right, bottom},
-        {right, top},
-        {left, top}
-    }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{left, bottom},
+         {right, bottom},
+         {right, top},
+         {left, top}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto indices = vsg::ushortArray::create(
-    {
-        0, 1, 2,
-        2, 3, 0
-    }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {0, 1, 2,
+         2, 3, 0}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
     auto drawCommands = vsg::Commands::create();
@@ -179,7 +162,6 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
 
     return scenegraph;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -196,16 +178,25 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
     arguments.read(options);
-    windowTraits->debugLayer = arguments.read({"--debug","-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
     if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
     if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    if (arguments.read({"-t", "--test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->fullscreen = true; }
-    if (arguments.read({"--st", "--small-test"})) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; windowTraits->width = 192, windowTraits->height = 108; windowTraits->decoration = false; }
+    if (arguments.read({"-t", "--test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->fullscreen = true;
+    }
+    if (arguments.read({"--st", "--small-test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->width = 192, windowTraits->height = 108;
+        windowTraits->decoration = false;
+    }
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
@@ -215,7 +206,7 @@ int main(int argc, char** argv)
     arguments.read("--display", windowTraits->display);
     arguments.read("--samples", windowTraits->samples);
     auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value(std::string(),"-p");
+    auto pathFilename = arguments.value(std::string(), "-p");
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
 
@@ -226,7 +217,7 @@ int main(int argc, char** argv)
     vsg::Path path;
 
     // read any vsg files
-    for (int i=1; i<argc; ++i)
+    for (int i = 1; i < argc; ++i)
     {
         vsg::Path filename = arguments[i];
         path = vsg::filePath(filename);
@@ -245,23 +236,25 @@ int main(int argc, char** argv)
         }
         else if (object)
         {
-            std::cout<<"Unable to view object of type "<<object->className()<<std::endl;
+            std::cout << "Unable to view object of type " << object->className() << std::endl;
         }
         else
         {
-            std::cout<<"Unable to load model from file "<<filename<<std::endl;
+            std::cout << "Unable to load model from file " << filename << std::endl;
         }
     }
 
-    if (group->getNumChildren()==0)
+    if (group->getNumChildren() == 0)
     {
-        std::cout<<"Please specify a 3d model file on the command line."<<std::endl;
+        std::cout << "Please specify a 3d model file on the command line." << std::endl;
         return 1;
     }
 
     vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (group->getChildren().size()==1) vsg_scene = group->getChild(0);
-    else vsg_scene = group;
+    if (group->getChildren().size() == 1)
+        vsg_scene = group->getChild(0);
+    else
+        vsg_scene = group;
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -269,7 +262,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout << "Could not create windows." << std::endl;
         return 1;
     }
 
@@ -278,12 +271,12 @@ int main(int argc, char** argv)
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     vsg_scene->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
-    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
     double nearFarRatio = 0.001;
 
     // set up the camera
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
@@ -292,7 +285,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
     }
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
@@ -324,22 +317,21 @@ int main(int argc, char** argv)
     {
         vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
 
-        auto startTime =std::chrono::steady_clock::now();
+        auto startTime = std::chrono::steady_clock::now();
 
         vsg_scene->accept(loadPagedLOD);
 
-        auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();
-        std::cout<<"No. of tiles loaed "<<loadPagedLOD.numTiles<<" in "<<time<<"ms."<<std::endl;
+        auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
+        std::cout << "No. of tiles loaed " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
     }
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

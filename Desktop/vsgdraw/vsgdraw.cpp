@@ -1,5 +1,5 @@
-#include <vsg/all.h>
 #include <iostream>
+#include <vsg/all.h>
 
 int main(int argc, char** argv)
 {
@@ -7,8 +7,8 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->debugLayer = arguments.read({"--debug","-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
-        std::cout<<"Could not create shaders."<<std::endl;
+        std::cout << "Could not create shaders." << std::endl;
         return 1;
     }
 
@@ -30,46 +30,40 @@ int main(int argc, char** argv)
     auto textureData = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));
     if (!textureData)
     {
-        std::cout<<"Could not read texture file : "<<textureFile<<std::endl;
+        std::cout << "Could not read texture file : " << textureFile << std::endl;
         return 1;
     }
 
     // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings
-    {
+    vsg::DescriptorSetLayoutBindings descriptorBindings{
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    vsg::PushConstantRanges pushConstantRanges
-    {
+    vsg::PushConstantRanges pushConstantRanges{
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
     };
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
-    {
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
         VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
         VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
         VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
     };
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
-    {
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
         VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
 
-    vsg::GraphicsPipelineStates pipelineStates
-    {
-        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+    vsg::GraphicsPipelineStates pipelineStates{
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
         vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()
-    };
+        vsg::DepthStencilState::create()};
 
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
@@ -94,48 +88,42 @@ int main(int argc, char** argv)
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
-    {
-        {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.0f},
-        {0.5f , 0.5f, 0.0f},
-        {-0.5f, 0.5f, 0.0f},
-        {-0.5f, -0.5f, -0.5f},
-        {0.5f,  -0.5f, -0.5f},
-        {0.5f , 0.5f, -0.5f},
-        {-0.5f, 0.5f, -0.5f}
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{-0.5f, -0.5f, 0.0f},
+         {0.5f, -0.5f, 0.0f},
+         {0.5f, 0.5f, 0.0f},
+         {-0.5f, 0.5f, 0.0f},
+         {-0.5f, -0.5f, -0.5f},
+         {0.5f, -0.5f, -0.5f},
+         {0.5f, 0.5f, -0.5f},
+         {-0.5f, 0.5f, -0.5f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(
-    {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 1.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 1.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f},
+        }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto texcoords = vsg::vec2Array::create(
-    {
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f},
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f}
-    }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{0.0f, 0.0f},
+         {1.0f, 0.0f},
+         {1.0f, 1.0f},
+         {0.0f, 1.0f},
+         {0.0f, 0.0f},
+         {1.0f, 0.0f},
+         {1.0f, 1.0f},
+         {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto indices = vsg::ushortArray::create(
-    {
-        0, 1, 2,
-        2, 3, 0,
-        4, 5, 6,
-        6, 7, 4
-    }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {0, 1, 2,
+         2, 3, 0,
+         4, 5, 6,
+         6, 7, 4}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
     auto drawCommands = vsg::Commands::create();
@@ -152,7 +140,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout << "Could not create windows." << std::endl;
         return 1;
     }
 

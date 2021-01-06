@@ -15,13 +15,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <vsg/all.h>
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include <thread>
 
 // Render a scene to an image, then use the image as a texture on the
 // faces of quads. This is based on Sascha William's offscreenrender
-// example. 
+// example.
 //
 // In VSG / Vulkan terms, we first create a frame buffer that uses
 // the image as an attachment. Next, create a RenderGraph that uses that
@@ -160,7 +160,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     rendergraph->framebuffer = fbuf;
 
     rendergraph->clearValues.resize(2);
-    rendergraph->clearValues[0].color = { {0.4f, 0.2f, 0.4f, 1.0f} };
+    rendergraph->clearValues[0].color = {{0.4f, 0.2f, 0.4f, 1.0f}};
     rendergraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
 
     return rendergraph;
@@ -176,46 +176,40 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageInfo& colorImage)
     auto fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
-        std::cout<<"Could not create shaders."<<std::endl;
+        std::cout << "Could not create shaders." << std::endl;
         return vsg::ref_ptr<vsg::Node>();
     }
 
     // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings
-    {
+    vsg::DescriptorSetLayoutBindings descriptorBindings{
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    vsg::PushConstantRanges pushConstantRanges
-    {
+    vsg::PushConstantRanges pushConstantRanges{
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
     };
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
-    {
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
         VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
         VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
         VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
     };
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
-    {
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
         VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
 
-    vsg::GraphicsPipelineStates pipelineStates
-    {
-        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+    vsg::GraphicsPipelineStates pipelineStates{
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
         vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()
-    };
+        vsg::DepthStencilState::create()};
 
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
@@ -240,48 +234,42 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageInfo& colorImage)
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
-    {
-        {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.0f},
-        {0.5f , 0.5f, 0.0f},
-        {-0.5f, 0.5f, 0.0f},
-        {-0.5f, -0.5f, -0.5f},
-        {0.5f,  -0.5f, -0.5f},
-        {0.5f , 0.5f, -0.5},
-        {-0.5f, 0.5f, -0.5}
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{-0.5f, -0.5f, 0.0f},
+         {0.5f, -0.5f, 0.0f},
+         {0.5f, 0.5f, 0.0f},
+         {-0.5f, 0.5f, 0.0f},
+         {-0.5f, -0.5f, -0.5f},
+         {0.5f, -0.5f, -0.5f},
+         {0.5f, 0.5f, -0.5},
+         {-0.5f, 0.5f, -0.5}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(
-    {
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-        {1.0f, 0.0f, 0.0f},
-        {0.0f, 1.0f, 0.0f},
-        {0.0f, 0.0f, 1.0f},
-        {1.0f, 1.0f, 1.0f},
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 1.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 1.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f},
+        }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto texcoords = vsg::vec2Array::create(
-    {
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f},
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f}
-    }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{0.0f, 0.0f},
+         {1.0f, 0.0f},
+         {1.0f, 1.0f},
+         {0.0f, 1.0f},
+         {0.0f, 0.0f},
+         {1.0f, 0.0f},
+         {1.0f, 1.0f},
+         {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto indices = vsg::ushortArray::create(
-    {
-        0, 1, 2,
-        2, 3, 0,
-        4, 5, 6,
-        6, 7, 4
-    }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {0, 1, 2,
+         2, 3, 0,
+         4, 5, 6,
+         6, 7, 4}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
     auto drawCommands = vsg::Commands::create();
@@ -299,16 +287,16 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     scenegraph->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
-    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
     double nearFarRatio = 0.001;
 
     // set up the camera
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0),
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
                                       centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height),
-                                                nearFarRatio*radius, radius * 4.5);
+                                                nearFarRatio * radius, radius * 4.5);
 
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
@@ -320,8 +308,8 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "rendertotexture";
-    windowTraits->debugLayer = arguments.read({"--debug","-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
     bool separateCommandGraph = arguments.read("-s");
@@ -338,7 +326,7 @@ int main(int argc, char** argv)
     vsg::Path path;
 
     // read any vsg files
-    for (int i=1; i<argc; ++i)
+    for (int i = 1; i < argc; ++i)
     {
         vsg::Path filename = arguments[i];
 
@@ -355,24 +343,24 @@ int main(int argc, char** argv)
 
     // assign the vsg_scene from the loaded nodes
     vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (vsgNodes.size()>1)
+    if (vsgNodes.size() > 1)
     {
         auto vsg_group = vsg::Group::create();
-        for(auto& subgraphs : vsgNodes)
+        for (auto& subgraphs : vsgNodes)
         {
             vsg_group->addChild(subgraphs);
         }
 
         vsg_scene = vsg_group;
     }
-    else if (vsgNodes.size()==1)
+    else if (vsgNodes.size() == 1)
     {
         vsg_scene = vsgNodes.front();
     }
 
     if (!vsg_scene)
     {
-        std::cout<<"No command graph created."<<std::endl;
+        std::cout << "No command graph created." << std::endl;
         return 1;
     }
 
@@ -387,14 +375,14 @@ int main(int argc, char** argv)
     auto transform = vsg::MatrixTransform::create();
     transform->addChild(zUp);
     vsg_scene = transform;
-    
+
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout << "Could not create windows." << std::endl;
         return 1;
     }
 
@@ -419,12 +407,10 @@ int main(int argc, char** argv)
     auto camera = createCameraForScene(planes, window->extent2D());
     auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, planes);
 
-
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
-
 
     if (separateCommandGraph)
     {

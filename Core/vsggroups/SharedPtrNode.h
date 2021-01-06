@@ -1,66 +1,63 @@
 #pragma once
 
-#include <memory>
 #include <array>
+#include <memory>
 
 namespace experimental
 {
 
-class SharedPtrVisitor;
+    class SharedPtrVisitor;
 
-class SharerdPtrAuxilary : public std::enable_shared_from_this<SharerdPtrAuxilary>
-{
-public:
-    SharerdPtrAuxilary() {}
+    class SharerdPtrAuxilary : public std::enable_shared_from_this<SharerdPtrAuxilary>
+    {
+    public:
+        SharerdPtrAuxilary() {}
 
-protected:
-    virtual ~SharerdPtrAuxilary() {}
-};
+    protected:
+        virtual ~SharerdPtrAuxilary() {}
+    };
 
-class SharedPtrNode : public std::enable_shared_from_this<SharedPtrNode>
-{
-public:
-    SharedPtrNode() {}
+    class SharedPtrNode : public std::enable_shared_from_this<SharedPtrNode>
+    {
+    public:
+        SharedPtrNode() {}
 
-    virtual void accept(SharedPtrVisitor& spv);
-    virtual void traverse(SharedPtrVisitor& spv);
+        virtual void accept(SharedPtrVisitor& spv);
+        virtual void traverse(SharedPtrVisitor& spv);
 
-    virtual ~SharedPtrNode() {}
-protected:
-    std::shared_ptr<SharerdPtrAuxilary> _auxilary;
-};
+        virtual ~SharedPtrNode() {}
 
+    protected:
+        std::shared_ptr<SharerdPtrAuxilary> _auxilary;
+    };
 
-class SharedPtrQuadGroup;
+    class SharedPtrQuadGroup;
 
-class SharedPtrVisitor
-{
-public:
-    virtual void apply(SharedPtrNode& spn) {}
-    virtual void apply(SharedPtrQuadGroup& spqg) {}
-};
+    class SharedPtrVisitor
+    {
+    public:
+        virtual void apply(SharedPtrNode& spn) {}
+        virtual void apply(SharedPtrQuadGroup& spqg) {}
+    };
 
-class SharedPtrQuadGroup : public SharedPtrNode
-{
-public:
+    class SharedPtrQuadGroup : public SharedPtrNode
+    {
+    public:
+        SharedPtrQuadGroup() {}
 
-    SharedPtrQuadGroup() {}
+        virtual void accept(SharedPtrVisitor& spv);
+        virtual void traverse(SharedPtrVisitor& spv);
 
-    virtual void accept(SharedPtrVisitor& spv);
-    virtual void traverse(SharedPtrVisitor& spv);
+        using Children = std::array<std::shared_ptr<SharedPtrNode>, 4>;
 
-    using Children = std::array<std::shared_ptr<SharedPtrNode>, 4>;
+        void setChild(std::size_t i, std::shared_ptr<SharedPtrNode> node) { _children[i] = node; }
+        SharedPtrNode* getChild(std::size_t i) { return _children[i].get(); }
+        const SharedPtrNode* getChild(std::size_t i) const { return _children[i].get(); }
 
-    void setChild(std::size_t i, std::shared_ptr<SharedPtrNode> node) { _children[i] = node; }
-    SharedPtrNode* getChild(std::size_t i) { return _children[i].get(); }
-    const SharedPtrNode* getChild(std::size_t i) const { return _children[i].get(); }
+        virtual ~SharedPtrQuadGroup() {}
 
-    virtual ~SharedPtrQuadGroup() {}
+    protected:
+        Children _children;
+    };
 
-protected:
-
-    Children _children;
-
-};
-
-}
+} // namespace experimental

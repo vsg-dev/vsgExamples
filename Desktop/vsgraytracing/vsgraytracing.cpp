@@ -1,5 +1,5 @@
-#include <vsg/all.h>
 #include <iostream>
+#include <vsg/all.h>
 
 struct RayTracingUniform
 {
@@ -17,8 +17,8 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
-    auto debugLayer = arguments.read({"--debug","-d"});
-    auto apiDumpLayer = arguments.read({"--api","-a"});
+    auto debugLayer = arguments.read({"--debug", "-d"});
+    auto apiDumpLayer = arguments.read({"--api", "-a"});
     auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1280, 720), {"--window", "-w"});
     auto numFrames = arguments.value(-1, "-f");
     auto filename = arguments.value(std::string(), "-i");
@@ -42,15 +42,13 @@ int main(int argc, char** argv)
     windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // enable the transfer bit as we want to copy the raytraced image to swapchain
 
     windowTraits->instanceExtensionNames =
-    {
-        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-    };
+        {
+            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
 
     windowTraits->deviceExtensionNames =
-    {
-        VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-        VK_NV_RAY_TRACING_EXTENSION_NAME
-    };
+        {
+            VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+            VK_NV_RAY_TRACING_EXTENSION_NAME};
 
     auto window = vsg::Window::create(windowTraits);
     if (!window)
@@ -60,7 +58,6 @@ int main(int argc, char** argv)
     }
 
     viewer->addWindow(window);
-
 
     // load shaders
 
@@ -74,12 +71,11 @@ int main(int argc, char** argv)
 
     if (!raygenShader || !missShader || !closesthitShader)
     {
-        std::cout<<"Could not create shaders."<<std::endl;
+        std::cout << "Could not create shaders." << std::endl;
         return 1;
     }
 
-    auto shaderStages = vsg::ShaderStages{ raygenShader, missShader, closesthitShader };
-
+    auto shaderStages = vsg::ShaderStages{raygenShader, missShader, closesthitShader};
 
     // set up shader groups
     auto raygenShaderGroup = vsg::RayTracingShaderGroup::create();
@@ -94,7 +90,7 @@ int main(int argc, char** argv)
     closestHitShaderGroup->type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
     closestHitShaderGroup->closestHitShader = 2;
 
-    auto shaderGroups = vsg::RayTracingShaderGroups{ raygenShaderGroup, missShaderGroup, closestHitShaderGroup };
+    auto shaderGroups = vsg::RayTracingShaderGroups{raygenShaderGroup, missShaderGroup, closestHitShaderGroup};
 
     // create camera matrices and uniform for shader
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
@@ -105,9 +101,9 @@ int main(int argc, char** argv)
     {
         device = window->getOrCreateDevice();
     }
-    catch(vsg::Exception exception)
+    catch (vsg::Exception exception)
     {
-        std::cout<<exception.message<<" VkResult = "<<exception.result<<std::endl;
+        std::cout << exception.message << " VkResult = " << exception.result << std::endl;
         return 0;
     }
 
@@ -117,16 +113,12 @@ int main(int argc, char** argv)
         // acceleration structures
         // set up vertex and index arrays
         auto vertices = vsg::vec3Array::create(
-        {
-            {-1.0f, -1.0f, 0.0f},
-            { 1.0f, -1.0f, 0.0f},
-            { 0.0f,  1.0f, 0.0f}
-        });
+            {{-1.0f, -1.0f, 0.0f},
+             {1.0f, -1.0f, 0.0f},
+             {0.0f, 1.0f, 0.0f}});
 
         auto indices = vsg::uintArray::create(
-        {
-            0, 1, 2
-        });
+            {0, 1, 2});
 
         // create acceleration geometry
         auto accelGeometry = vsg::AccelerationGeometry::create();
@@ -154,7 +146,7 @@ int main(int argc, char** argv)
         vsg::Path path = vsg::fileExists(filename) ? filename : vsg::findFile(filename, searchPaths);
         if (path.empty())
         {
-            std::cout<<"Could not find file "<<filename<<std::endl;
+            std::cout << "Could not find file " << filename << std::endl;
             return 1;
         }
 
@@ -163,7 +155,7 @@ int main(int argc, char** argv)
 
         if (!loaded_scene)
         {
-            std::cout<<"Could not load model : "<<filename<<std::endl;
+            std::cout << "Could not load model : " << filename << std::endl;
             return 1;
         }
 
@@ -174,15 +166,13 @@ int main(int argc, char** argv)
         lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 1.0, -5.0), vsg::dvec3(0.0, 0.5, 0.0), vsg::dvec3(0.0, 1.0, 0.0));
     }
 
-
-
     // for convenience create a compile context for creating our storage image
     vsg::CompileTraversal compile(window);
 
     // create storage image to render into
     auto storageImage = vsg::Image::create();
     storageImage->imageType = VK_IMAGE_TYPE_2D;
-    storageImage->format = VK_FORMAT_B8G8R8A8_UNORM;//VK_FORMAT_R8G8B8A8_UNORM;
+    storageImage->format = VK_FORMAT_B8G8R8A8_UNORM; //VK_FORMAT_R8G8B8A8_UNORM;
     storageImage->extent.width = width;
     storageImage->extent.height = height;
     storageImage->extent.depth = 1;
@@ -206,12 +196,10 @@ int main(int argc, char** argv)
     vsg::ref_ptr<RayTracingUniformValue> raytracingUniform(raytracingUniformValues);
 
     // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings
-    {
+    vsg::DescriptorSetLayoutBindings descriptorBindings{
         {0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1, VK_SHADER_STAGE_RAYGEN_BIT_NV, nullptr}, // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
         {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_RAYGEN_BIT_NV, nullptr},
-        {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_NV, nullptr}
-    };
+        {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_NV, nullptr}};
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
@@ -223,11 +211,11 @@ int main(int argc, char** argv)
     auto raytracingUniformDescriptor = vsg::DescriptorBuffer::create(raytracingUniform, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     raytracingUniformDescriptor->copyDataListToBuffers();
 
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{ descriptorSetLayout }, vsg::PushConstantRanges{});
+    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
     auto raytracingPipeline = vsg::RayTracingPipeline::create(pipelineLayout, shaderStages, shaderGroups);
     auto bindRayTracingPipeline = vsg::BindRayTracingPipeline::create(raytracingPipeline);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{ accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor });
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor});
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, raytracingPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
 
     // state group to bind the pipeline and descriptorset
@@ -266,7 +254,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames<0 || (numFrames--)>0))
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

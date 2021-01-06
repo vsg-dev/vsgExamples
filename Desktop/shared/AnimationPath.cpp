@@ -22,7 +22,7 @@ void AnimationPath::read(std::istream& fin)
         dvec3 position;
         dquat rotation;
         fin >> time >> position.x >> position.y >> position.z >> rotation.x >> rotation.y >> rotation.z >> rotation.w;
-        if(fin.good())
+        if (fin.good())
         {
             timeControlPointMap[time] = ControlPoint(position, rotation);
         }
@@ -35,12 +35,12 @@ bool AnimationPath::getMatrix(double time, dmat4& matrix) const
 
     ControlPoint cp;
     auto itr = timeControlPointMap.lower_bound(time);
-    if (itr==timeControlPointMap.begin())
+    if (itr == timeControlPointMap.begin())
     {
         //std::cout<<"At head time = "<<time<<", itr->first="<<itr->first<<std::endl;
         cp = itr->second;
     }
-    else if (itr!=timeControlPointMap.end())
+    else if (itr != timeControlPointMap.end())
     {
         auto previous_itr = itr;
         --previous_itr;
@@ -73,7 +73,6 @@ bool AnimationPath::getMatrix(double time, dmat4& matrix) const
     return true;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 //
 // AnimationPathHandler
@@ -94,7 +93,7 @@ AnimationPathHandler::AnimationPathHandler(ref_ptr<Camera> camera, ref_ptr<Anima
 
 void AnimationPathHandler::apply(KeyPressEvent& keyPress)
 {
-    if (keyPress.keyBase==' ')
+    if (keyPress.keyBase == ' ')
     {
         _frameCount = 0;
     }
@@ -102,7 +101,7 @@ void AnimationPathHandler::apply(KeyPressEvent& keyPress)
 
 void AnimationPathHandler::apply(FrameEvent& frame)
 {
-    if (_frameCount==0)
+    if (_frameCount == 0)
     {
         _start_point = frame.frameStamp->time;
     }
@@ -111,7 +110,7 @@ void AnimationPathHandler::apply(FrameEvent& frame)
     if (time > _path->getPeriod())
     {
         double average_framerate = double(_frameCount) / time;
-        std::cout<<"Period complete numFrames="<<_frameCount<<", average frame rate = "<<average_framerate<<std::endl;
+        std::cout << "Period complete numFrames=" << _frameCount << ", average frame rate = " << average_framerate << std::endl;
 
         // reset time back to start
         _start_point = frame.frameStamp->time;

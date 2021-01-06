@@ -1,21 +1,20 @@
-#include <vsg/core/ref_ptr.h>
-#include <vsg/core/observer_ptr.h>
-#include <vsg/core/Object.h>
 #include <vsg/core/Auxiliary.h>
+#include <vsg/core/Object.h>
+#include <vsg/core/observer_ptr.h>
+#include <vsg/core/ref_ptr.h>
 
 #include <vsg/nodes/Group.h>
 
 #include <vsg/utils/CommandLine.h>
 
-#include <iostream>
-#include <vector>
 #include <chrono>
 #include <functional>
-
+#include <iostream>
+#include <vector>
 
 vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels)
 {
-    if (numLevels==0) return vsg::Node::create();
+    if (numLevels == 0) return vsg::Node::create();
 
     vsg::ref_ptr<vsg::Group> t = vsg::Group::create();
 
@@ -31,7 +30,6 @@ vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels)
     return t;
 }
 
-
 template<typename F>
 double time(F function)
 {
@@ -41,16 +39,15 @@ double time(F function)
     // do test code
     function();
 
-    return std::chrono::duration<double>(clock::now()-start).count();
+    return std::chrono::duration<double>(clock::now() - start).count();
 }
-
 
 template<typename F1, typename C1>
 class LambdaVisitor : public vsg::Visitor
 {
 public:
-
-    LambdaVisitor(F1 func) : _function1(func) {}
+    LambdaVisitor(F1 func) :
+        _function1(func) {}
 
     F1 _function1;
 
@@ -63,10 +60,10 @@ public:
     }
 };
 
-template<typename P, typename F, typename C=vsg::Object>
+template<typename P, typename F, typename C = vsg::Object>
 void visit(P& object, F function)
 {
-    LambdaVisitor<F,C> lv(function);
+    LambdaVisitor<F, C> lv(function);
     object->accept(lv);
 }
 
@@ -74,8 +71,9 @@ template<typename F1, typename C1, typename F2, typename C2>
 class Lambda2Visitor : public vsg::Visitor
 {
 public:
-
-    Lambda2Visitor(F1 func1, F2 func2) : _function1(func1), _function2(func2) {}
+    Lambda2Visitor(F1 func1, F2 func2) :
+        _function1(func1),
+        _function2(func2) {}
 
     F1 _function1;
     F2 _function2;
@@ -98,10 +96,9 @@ public:
 class FunctionVisitor : public vsg::Visitor
 {
 public:
-
-    std::function<void(vsg::Object&)>   objectFunction;
-    std::function<void(vsg::Node&)>     nodeFunction;
-    std::function<void(vsg::Group&)>    groupFunction;
+    std::function<void(vsg::Object&)> objectFunction;
+    std::function<void(vsg::Node&)> nodeFunction;
+    std::function<void(vsg::Group&)> groupFunction;
 
     using vsg::Visitor::apply;
 
@@ -113,14 +110,24 @@ public:
 
     void apply(vsg::Node& node) override
     {
-        if (nodeFunction) { nodeFunction(node); node.traverse(*this); }
-        else apply(static_cast<vsg::Object&>(node));
+        if (nodeFunction)
+        {
+            nodeFunction(node);
+            node.traverse(*this);
+        }
+        else
+            apply(static_cast<vsg::Object&>(node));
     }
 
     void apply(vsg::Group& group) override
     {
-        if (groupFunction) { groupFunction(group); group.traverse(*this); }
-        else apply(static_cast<vsg::Node&>(group));
+        if (groupFunction)
+        {
+            groupFunction(group);
+            group.traverse(*this);
+        }
+        else
+            apply(static_cast<vsg::Node&>(group));
     }
 };
 
@@ -145,7 +152,6 @@ void visit2(P& object, std::function<void(C1&)> func1, std::function<void(C2&)> 
     object->accept(lv);
 }
 
-
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
@@ -153,27 +159,24 @@ int main(int argc, char** argv)
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::ref_ptr<vsg::Node> scene;
-    std::cout<<"VulkanSceneGraph Fixed Quad Tree creation : "<<time( [&]() { scene = createQuadTree(numLevels); } )<<std::endl;
+    std::cout << "VulkanSceneGraph Fixed Quad Tree creation : " << time([&]() { scene = createQuadTree(numLevels); }) << std::endl;
 
-    unsigned int count=0;
+    unsigned int count = 0;
     auto countFunc = [&](vsg::Object& /*object*/) { ++count; };
-    LambdaVisitor<decltype(countFunc), vsg::Object> lv( countFunc ); // note, using of decltype(auto) is a C++14 feature
+    LambdaVisitor<decltype(countFunc), vsg::Object> lv(countFunc); // note, using of decltype(auto) is a C++14 feature
     scene->accept(lv);
-    std::cout<<"LambdaVisitor "<<count<<std::endl;
-
+    std::cout << "LambdaVisitor " << count << std::endl;
 
     count = 0;
-    visit(scene, [&](vsg::Object& /*object*/) { ++count; } );
-    std::cout<<"visit() count="<<count<<std::endl;
-
+    visit(scene, [&](vsg::Object& /*object*/) { ++count; });
+    std::cout << "visit() count=" << count << std::endl;
 
     int nodes = 0, groups = 0;
     auto countFunc1 = [&](vsg::Node&) { ++nodes; };
     auto countFunc2 = [&](vsg::Group&) { ++groups; };
 
     visit<vsg::ref_ptr<vsg::Node>, decltype(countFunc1), vsg::Node, decltype(countFunc2), vsg::Group>(scene, countFunc1, countFunc2);
-    std::cout<<"visit() nodes="<<nodes<<", groups="<<groups<<std::endl;
-
+    std::cout << "visit() nodes=" << nodes << ", groups=" << groups << std::endl;
 
     struct MyVisitor : public vsg::Visitor
     {
@@ -195,21 +198,21 @@ int main(int argc, char** argv)
 
     MyVisitor myVisitor;
     scene->accept(myVisitor);
-    std::cout<<"MyVisitor() objects="<<myVisitor.objects<<", groups="<<myVisitor.groups<<std::endl;
-
+    std::cout << "MyVisitor() objects=" << myVisitor.objects << ", groups=" << myVisitor.groups << std::endl;
 
     count = 0;
-    visit2<vsg::ref_ptr<vsg::Node>, vsg::Object>(scene, [&](vsg::Object&) { ++count; } );
+    visit2<vsg::ref_ptr<vsg::Node>, vsg::Object>(scene, [&](vsg::Object&) { ++count; });
 
-    std::cout<<"visit2 count="<<count<<std::endl;
+    std::cout << "visit2 count=" << count << std::endl;
 
-    nodes = 0; groups = 0;
+    nodes = 0;
+    groups = 0;
     visit2<vsg::ref_ptr<vsg::Node>, vsg::Object, vsg::Group>(
         scene,
         [&](vsg::Object&) { ++nodes; },
         [&](vsg::Group&) { ++groups; });
 
-    std::cout<<"visit2 nodes="<<nodes<<", groups="<<groups<<std::endl;
+    std::cout << "visit2 nodes=" << nodes << ", groups=" << groups << std::endl;
 
     int objects = 0;
     nodes = 0;
@@ -222,7 +225,7 @@ int main(int argc, char** argv)
 
     scene->accept(fv);
 
-    std::cout<<"FunctionVisitor objects="<<objects<<", nodes="<<nodes<<", groups="<<groups<<std::endl;
+    std::cout << "FunctionVisitor objects=" << objects << ", nodes=" << nodes << ", groups=" << groups << std::endl;
 
     return 0;
 }

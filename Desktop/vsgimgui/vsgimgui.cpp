@@ -5,67 +5,67 @@
 #include <vsg/all.h>
 
 #ifdef USE_VSGXCHANGE
-#include <vsgXchange/ReaderWriter_all.h>
+#    include <vsgXchange/ReaderWriter_all.h>
 #endif
 
 struct Params : public vsg::Inherit<vsg::Object, Params>
 {
-    bool showGui = true;         // you can toggle this with your own EventHandler and key
+    bool showGui = true; // you can toggle this with your own EventHandler and key
     bool showDemoWindow = false;
     bool showSecondWindow = false;
-    float clearColor[3] { 0.2f, 0.2f, 0.4f }; // Unfortunately, this doesn't change dynamically in vsg
+    float clearColor[3]{0.2f, 0.2f, 0.4f}; // Unfortunately, this doesn't change dynamically in vsg
     uint32_t counter = 0;
     float dist = 0.f;
 };
 
 class MyGuiComponent
 {
-    public:
-        MyGuiComponent( vsg::ref_ptr<Params> params ):
-            _params(params)
-        {}
+public:
+    MyGuiComponent(vsg::ref_ptr<Params> params) :
+        _params(params)
+    {
+    }
 
-        // Example here taken from the Dear imgui comments (mostly)
-        void operator()()
+    // Example here taken from the Dear imgui comments (mostly)
+    void operator()()
+    {
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+        if (_params->showGui)
         {
-            // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-            if( _params->showGui )
-            {
-                ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
-                ImGui::Text("Some useful message here.");               // Display some text (you can use a format strings too)
-                ImGui::Checkbox("Demo Window", &_params->showDemoWindow);      // Edit bools storing our window open/close state
-                ImGui::Checkbox("Another Window", &_params->showSecondWindow);
-                ImGui::SliderFloat("float", &_params->dist, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-                ImGui::ColorEdit3("clear color", (float*)&_params->clearColor); // Edit 3 floats representing a color
+            ImGui::Text("Some useful message here.");                 // Display some text (you can use a format strings too)
+            ImGui::Checkbox("Demo Window", &_params->showDemoWindow); // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &_params->showSecondWindow);
+            ImGui::SliderFloat("float", &_params->dist, 0.0f, 1.0f);        // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::ColorEdit3("clear color", (float*)&_params->clearColor); // Edit 3 floats representing a color
 
-                if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                    _params->counter++;
+            if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
+                _params->counter++;
 
-                ImGui::SameLine();
-                ImGui::Text("counter = %d", _params->counter);
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", _params->counter);
 
-                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-                ImGui::End();
-            }
-
-            // 3. Show another simple window.
-            if( _params->showSecondWindow )
-            {
-                ImGui::Begin("Another Window", &_params->showSecondWindow);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-                ImGui::Text("Hello from another window!");
-                if (ImGui::Button("Close Me"))
-                    _params->showSecondWindow = false;
-                ImGui::End();
-            }
-
-            if( _params->showDemoWindow )
-                ImGui::ShowDemoWindow(&_params->showDemoWindow);
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::End();
         }
 
+        // 3. Show another simple window.
+        if (_params->showSecondWindow)
+        {
+            ImGui::Begin("Another Window", &_params->showSecondWindow); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Text("Hello from another window!");
+            if (ImGui::Button("Close Me"))
+                _params->showSecondWindow = false;
+            ImGui::End();
+        }
 
-    private:
-        vsg::ref_ptr<Params> _params;
+        if (_params->showDemoWindow)
+            ImGui::ShowDemoWindow(&_params->showDemoWindow);
+    }
+
+private:
+    vsg::ref_ptr<Params> _params;
 };
 
 int main(int argc, char** argv)
@@ -84,19 +84,19 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     arguments.read(options);
 
-    windowTraits->debugLayer = arguments.read({"--debug","-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
     // enable required device features.
     windowTraits->deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    try 
+    try
     {
         auto vsg_scene = vsg::Group::create();
 
-        if (argc>1)
+        if (argc > 1)
         {
             vsg::Path filename = arguments[1];
             if (auto node = vsg::read_cast<vsg::Node>(filename, options); node)
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
         {
-            std::cout<<"Could not create windows."<<std::endl;
+            std::cout << "Could not create windows." << std::endl;
             return 1;
         }
 
@@ -120,14 +120,14 @@ int main(int argc, char** argv)
         // compute the bounds of the scene graph to help position camera
         vsg::ComputeBounds computeBounds;
         vsg_scene->accept(computeBounds);
-        vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
-        double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
 
         // These are set statically because the geometry in the class is expanded in the shader
         double nearFarRatio = 0.01;
 
         // set up the camera
-        auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
         if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
@@ -136,7 +136,7 @@ int main(int argc, char** argv)
         }
         else
         {
-            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 400.5);
+            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 400.5);
         }
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
@@ -156,13 +156,12 @@ int main(int argc, char** argv)
         auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{attachment}, vsg::ClearAttachments::Rects{rect});
         renderGraph->addChild(clearAttachments);
 
-
         // ********** Create the ImGui node and add it to the renderGraph  ************
         auto gui = vsgImGui::GuiCommand::create(window);
         renderGraph->addChild(gui);
 
         auto params = Params::create();
-        gui->add( MyGuiComponent( params ) );
+        gui->add(MyGuiComponent(params));
         // ***************************************
 
         // ********** Add the ImGui event handler first to handle events early  **************
@@ -174,14 +173,12 @@ int main(int argc, char** argv)
 
         viewer->addEventHandler(vsg::Trackball::create(camera));
 
-
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-
 
         viewer->compile();
 
         // rendering main loop
-        while (viewer->advanceToNextFrame() )
+        while (viewer->advanceToNextFrame())
         {
             viewer->handleEvents();
 
@@ -192,7 +189,7 @@ int main(int argc, char** argv)
             viewer->present();
         }
     }
-    catch( vsg::Exception &ve )
+    catch (vsg::Exception& ve)
     {
         std::cerr << "[Exception] - " << ve.message << std::endl;
     }

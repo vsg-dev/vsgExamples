@@ -1,10 +1,10 @@
 #include <vsg/all.h>
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
 #ifdef USE_VSGXCHANGE
-#include <vsgXchange/ReaderWriter_all.h>
+#    include <vsgXchange/ReaderWriter_all.h>
 #endif
 
 vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x, int32_t y, uint32_t width, uint32_t height)
@@ -12,16 +12,16 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     scenegraph->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
-    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
     double nearFarRatio = 0.001;
 
     // set up the camera
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0),
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
                                       centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
-                                                nearFarRatio*radius, radius * 4.5);
+                                                nearFarRatio * radius, radius * 4.5);
 
     auto viewportstate = vsg::ViewportState::create(x, y, width, height);
 
@@ -35,8 +35,8 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "rendertotexture";
-    windowTraits->debugLayer = arguments.read({"--debug","-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
     bool separateCommandGraph = arguments.read("-s");
@@ -52,14 +52,14 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::Node> scenegraph;
     vsg::ref_ptr<vsg::Node> scenegraph2;
-    if (argc>1)
+    if (argc > 1)
     {
         vsg::Path filename = arguments[1];
         scenegraph = vsg::read_cast<vsg::Node>(filename, options);
         scenegraph2 = vsg::read_cast<vsg::Node>(filename, options);
     }
 
-    if (argc>2)
+    if (argc > 2)
     {
         vsg::Path filename = arguments[2];
         scenegraph2 = vsg::read_cast<vsg::Node>(filename, options);
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 
     if (!scenegraph)
     {
-        std::cout<<"Please specify a valid model on command line"<<std::endl;
+        std::cout << "Please specify a valid model on command line" << std::endl;
         return 1;
     }
 
@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout << "Could not create windows." << std::endl;
         return 1;
     }
 
@@ -106,7 +106,6 @@ int main(int argc, char** argv)
     auto secondary_camera = createCameraForScene(scenegraph2, 0, 0, width, height);
     auto view2 = vsg::View::create(secondary_camera, scenegraph2);
     renderGraph->addChild(view2);
-
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));

@@ -1,12 +1,12 @@
 #include <vsg/all.h>
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 
 vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels, vsg::Node* sharedLeaf)
 {
-    if (numLevels==0) return sharedLeaf ? vsg::ref_ptr<vsg::Node>(sharedLeaf) : vsg::Node::create();
+    if (numLevels == 0) return sharedLeaf ? vsg::ref_ptr<vsg::Node>(sharedLeaf) : vsg::Node::create();
 
     vsg::ref_ptr<vsg::Group> t = vsg::Group::create();
 
@@ -22,10 +22,9 @@ vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels, vsg::Node* shared
     return t;
 }
 
-
 vsg::ref_ptr<vsg::Node> createQuadGroupTree(unsigned int numLevels, vsg::Node* sharedLeaf)
 {
-    if (numLevels==0) return sharedLeaf ? vsg::ref_ptr<vsg::Node>(sharedLeaf) : vsg::Node::create();
+    if (numLevels == 0) return sharedLeaf ? vsg::ref_ptr<vsg::Node>(sharedLeaf) : vsg::Node::create();
 
     vsg::ref_ptr<vsg::QuadGroup> t = vsg::QuadGroup::create();
 
@@ -38,7 +37,6 @@ vsg::ref_ptr<vsg::Node> createQuadGroupTree(unsigned int numLevels, vsg::Node* s
 
     return t;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -69,28 +67,25 @@ int main(int argc, char** argv)
         object->setValue("my vector", vsg::vec4{1.1f, 2.2f, 3.3f, 4.4f});
 
         object->setObject("my array", vsg::floatArray::create({10.1f, 21.2f, 31.4f, 55.0f}));
-        object->setObject("my vec3Array", vsg::vec3Array::create({
-            {10.1f, 21.2f, 31.4f},
-            {55.0f, 45.0f, -20.0f}
-        }));
+        object->setObject("my vec3Array", vsg::vec3Array::create({{10.1f, 21.2f, 31.4f},
+                                                                  {55.0f, 45.0f, -20.0f}}));
 
         auto image = vsg::vec4Array2D::create(3, 3);
 
-        for(uint32_t i=0; i<image->width(); ++i)
+        for (uint32_t i = 0; i < image->width(); ++i)
         {
-            for(uint32_t j=0; j<image->height(); ++j)
+            for (uint32_t j = 0; j < image->height(); ++j)
             {
-                image->at(i, j) = vsg::vec4(static_cast<float>(i), static_cast<float>(j), static_cast<float>(i*j), 1.0f);
+                image->at(i, j) = vsg::vec4(static_cast<float>(i), static_cast<float>(j), static_cast<float>(i * j), 1.0f);
             }
         }
 
-        for(auto& c : *image)
+        for (auto& c : *image)
         {
-            std::cout<<"image c="<<c<<std::endl;
+            std::cout << "image c=" << c << std::endl;
         }
 
         object->setObject("image", image);
-
     }
     else
     {
@@ -100,13 +95,13 @@ int main(int argc, char** argv)
             object = io.read(inputFilename);
             if (!object)
             {
-                std::cout<<"Warning: file not read : "<<inputFilename<<std::endl;
+                std::cout << "Warning: file not read : " << inputFilename << std::endl;
                 return 1;
             }
         }
         else
         {
-            std::cout<<"Warning: could not find file : "<<inputFilename<<std::endl;
+            std::cout << "Warning: could not find file : " << inputFilename << std::endl;
             return 1;
         }
     }

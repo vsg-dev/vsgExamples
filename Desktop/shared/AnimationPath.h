@@ -1,13 +1,12 @@
 #pragma once
 
 #include <vsg/core/Object.h>
-#include <vsg/maths/vec3.h>
-#include <vsg/maths/vec3.h>
-#include <vsg/maths/quat.h>
 #include <vsg/io/Input.h>
 #include <vsg/io/Output.h>
-#include <vsg/ui/KeyEvent.h>
+#include <vsg/maths/quat.h>
+#include <vsg/maths/vec3.h>
 #include <vsg/ui/ApplicationEvent.h>
+#include <vsg/ui/KeyEvent.h>
 #include <vsg/viewer/Camera.h>
 
 #include <map>
@@ -18,29 +17,28 @@ namespace vsg
     class AnimationPath : public Object
     {
     public:
-
         AnimationPath();
 
         void read(std::istream& fin);
 
-    #if 0
+#if 0
         void read(Input& input) override;
         void write(Output& output) override;
-    #endif
+#endif
 
         struct ControlPoint
         {
-            ControlPoint():
+            ControlPoint() :
                 position(0.0, 0.0, 0.0),
                 rotation(0.0, 0.0, 0.0, 1.0),
                 scale(1.0, 1.0, 1.0) {}
 
-            ControlPoint(const dvec3& p, const dquat& r):
+            ControlPoint(const dvec3& p, const dquat& r) :
                 position(p),
                 rotation(r),
                 scale(1.0, 1.0, 1.0) {}
 
-            ControlPoint(const dvec3& p, const dquat& r, const dvec3& s):
+            ControlPoint(const dvec3& p, const dquat& r, const dvec3& s) :
                 position(p),
                 rotation(r),
                 scale(s) {}
@@ -74,4 +72,4 @@ namespace vsg
         clock::time_point _start_point;
         unsigned int _frameCount = 0;
     };
-}
+} // namespace vsg

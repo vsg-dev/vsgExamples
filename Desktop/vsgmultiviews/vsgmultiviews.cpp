@@ -1,10 +1,10 @@
 #include <vsg/all.h>
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
 #ifdef USE_VSGXCHANGE
-#include <vsgXchange/ReaderWriter_all.h>
+#    include <vsgXchange/ReaderWriter_all.h>
 #endif
 
 vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x, int32_t y, uint32_t width, uint32_t height)
@@ -12,22 +12,21 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     scenegraph->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
-    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
     double nearFarRatio = 0.001;
 
     // set up the camera
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, 0.0),
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
                                       centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
-                                                nearFarRatio*radius, radius * 4.5);
+                                                nearFarRatio * radius, radius * 4.5);
 
     auto viewportstate = vsg::ViewportState::create(x, y, width, height);
 
     return vsg::Camera::create(perspective, lookAt, viewportstate);
 }
-
 
 int main(int argc, char** argv)
 {
@@ -36,8 +35,8 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "Multiple Views";
-    windowTraits->debugLayer = arguments.read({"--debug","-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
     bool separateRenderGraph = arguments.read("-s");
@@ -52,14 +51,14 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::Node> scenegraph;
     vsg::ref_ptr<vsg::Node> scenegraph2;
-    if (argc>1)
+    if (argc > 1)
     {
         vsg::Path filename = arguments[1];
         scenegraph = vsg::read_cast<vsg::Node>(filename, options);
         scenegraph2 = scenegraph;
     }
 
-    if (argc>2)
+    if (argc > 2)
     {
         vsg::Path filename = arguments[2];
         scenegraph2 = vsg::read_cast<vsg::Node>(filename, options);
@@ -67,7 +66,7 @@ int main(int argc, char** argv)
 
     if (!scenegraph || !scenegraph2)
     {
-        std::cout<<"Please specify a valid model on command line"<<std::endl;
+        std::cout << "Please specify a valid model on command line" << std::endl;
         return 1;
     }
 
@@ -77,7 +76,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout << "Could not create windows." << std::endl;
         return 1;
     }
 
@@ -91,7 +90,7 @@ int main(int argc, char** argv)
     auto main_view = vsg::View::create(main_camera, scenegraph);
 
     // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
-    auto secondary_camera = createCameraForScene(scenegraph2, (width*3)/4, 0, width/4, height/4);
+    auto secondary_camera = createCameraForScene(scenegraph2, (width * 3) / 4, 0, width / 4, height / 4);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
 
     // add close handler to respond the close window button and pressing escape
@@ -103,7 +102,7 @@ int main(int argc, char** argv)
 
     if (separateRenderGraph)
     {
-        std::cout<<"Using a RenderGraph per View"<<std::endl;
+        std::cout << "Using a RenderGraph per View" << std::endl;
         auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
         auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
         secondary_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
@@ -116,7 +115,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout<<"Using a single RenderGraph, with both Views separated by a ClearAttachemnts"<<std::endl;
+        std::cout << "Using a single RenderGraph, with both Views separated by a ClearAttachemnts" << std::endl;
         auto renderGraph = vsg::RenderGraph::create(window);
 
         renderGraph->addChild(main_view);
@@ -134,7 +133,6 @@ int main(int argc, char** argv)
         commandGraph->addChild(renderGraph);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
     }
-
 
     viewer->compile();
 

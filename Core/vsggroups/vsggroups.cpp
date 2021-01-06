@@ -1,9 +1,9 @@
 #include <vsg/all.h>
 
-#include <iostream>
-#include <vector>
 #include <chrono>
+#include <iostream>
 #include <memory>
+#include <vector>
 
 #include "SharedPtrNode.h"
 
@@ -12,7 +12,6 @@
 class VsgVisitor : public vsg::Visitor
 {
 public:
-
     unsigned int numNodes = 0;
 
     using Visitor::apply;
@@ -50,7 +49,6 @@ public:
 class VsgConstVisitor : public vsg::ConstVisitor
 {
 public:
-
     unsigned int numNodes = 0;
 
     using ConstVisitor::apply;
@@ -88,7 +86,6 @@ public:
 class ExperimentVisitor : public experimental::SharedPtrVisitor
 {
 public:
-
     unsigned int numNodes = 0;
 
     using SharedPtrVisitor::apply;
@@ -108,11 +105,9 @@ public:
     }
 };
 
-
-
 vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
-    if (numLevels==0)
+    if (numLevels == 0)
     {
         numNodes += 1;
         numBytes += sizeof(vsg::Node);
@@ -125,7 +120,7 @@ vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& 
     --numLevels;
 
     numNodes += 1;
-    numBytes += sizeof(vsg::Group) + 4*sizeof(vsg::ref_ptr<vsg::Node>);
+    numBytes += sizeof(vsg::Group) + 4 * sizeof(vsg::ref_ptr<vsg::Node>);
 
     t->setChild(0, createVsgQuadTree(numLevels, numNodes, numBytes));
     t->setChild(1, createVsgQuadTree(numLevels, numNodes, numBytes));
@@ -135,10 +130,9 @@ vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& 
     return t;
 }
 
-
 vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
-    if (numLevels==0)
+    if (numLevels == 0)
     {
         numNodes += 1;
         numBytes += sizeof(vsg::Node);
@@ -163,7 +157,7 @@ vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int
 
 std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
 {
-    if (numLevels==0)
+    if (numLevels == 0)
     {
         numNodes += 1;
         numBytes += sizeof(experimental::SharedPtrNode);
@@ -215,20 +209,20 @@ int main(int argc, char** argv)
 
         if (!vsg_root)
         {
-            std::cout<<"Warning: file not loaded : "<<inputFilename<<std::endl;
+            std::cout << "Warning: file not loaded : " << inputFilename << std::endl;
             return 1;
         }
     }
     else
     {
-        if (type=="vsg::Group") vsg_root = createVsgQuadTree(numLevels, numNodes, numBytes);
-        if (type=="vsg::QuadGroup") vsg_root = createFixedQuadTree(numLevels, numNodes, numBytes);
-        if (type=="SharedPtrGroup") shared_root = createSharedPtrQuadTree(numLevels, numNodes, numBytes)->shared_from_this();
+        if (type == "vsg::Group") vsg_root = createVsgQuadTree(numLevels, numNodes, numBytes);
+        if (type == "vsg::QuadGroup") vsg_root = createFixedQuadTree(numLevels, numNodes, numBytes);
+        if (type == "SharedPtrGroup") shared_root = createSharedPtrQuadTree(numLevels, numNodes, numBytes)->shared_from_this();
     }
 
     if (!vsg_root && !shared_root)
     {
-        std::cout<<"Error invalid type="<<type<<std::endl;
+        std::cout << "Error invalid type=" << type << std::endl;
         return 1;
     }
 
@@ -240,8 +234,8 @@ int main(int argc, char** argv)
     {
         if (vsg_recordTraversal)
         {
-            std::cout<<"using RecordTraversal"<<std::endl;
-            for(unsigned int i=0; i<numTraversals; ++i)
+            std::cout << "using RecordTraversal" << std::endl;
+            for (unsigned int i = 0; i < numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_recordTraversal);
                 //numNodesVisited += vsg_recordTraversal->numNodes;
@@ -251,8 +245,8 @@ int main(int argc, char** argv)
         }
         else if (vsg_ConstVisitor)
         {
-            std::cout<<"using VsgConstVisitor"<<std::endl;
-            for(unsigned int i=0; i<numTraversals; ++i)
+            std::cout << "using VsgConstVisitor" << std::endl;
+            for (unsigned int i = 0; i < numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_ConstVisitor);
                 numNodesVisited += vsg_ConstVisitor->numNodes;
@@ -262,8 +256,8 @@ int main(int argc, char** argv)
         else
         {
             vsg::ref_ptr<VsgVisitor> vsg_visitor(new VsgVisitor);
-            std::cout<<"using VsgVisitor"<<std::endl;
-            for(unsigned int i=0; i<numTraversals; ++i)
+            std::cout << "using VsgVisitor" << std::endl;
+            for (unsigned int i = 0; i < numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_visitor);
                 numNodesVisited += vsg_visitor->numNodes;
@@ -275,7 +269,7 @@ int main(int argc, char** argv)
     {
         ExperimentVisitor experimentVisitor;
 
-        for(unsigned int i=0; i<numTraversals; ++i)
+        for (unsigned int i = 0; i < numTraversals; ++i)
         {
             shared_root->accept(experimentVisitor);
             numNodesVisited += experimentVisitor.numNodes;
@@ -285,7 +279,6 @@ int main(int argc, char** argv)
 
     clock::time_point after_traversal = clock::now();
 
-
     if (!outputFilename.empty())
     {
         vsg::ReaderWriter_vsg io;
@@ -294,7 +287,6 @@ int main(int argc, char** argv)
 
     clock::time_point after_write = clock::now();
 
-
     vsg_root = 0;
     shared_root = 0;
 
@@ -302,24 +294,26 @@ int main(int argc, char** argv)
 
     if (!quiet)
     {
-        std::cout<<"type : "<<type<<std::endl;
-        std::cout<<"numNodes : "<<numNodes<<std::endl;
-        std::cout<<"numBytes : "<<numBytes<<std::endl;
-        std::cout<<"average node size : "<<double(numBytes)/double(numNodes)<<std::endl;
-        std::cout<<"numNodesVisited : "<<numNodesVisited<<std::endl;
+        std::cout << "type : " << type << std::endl;
+        std::cout << "numNodes : " << numNodes << std::endl;
+        std::cout << "numBytes : " << numBytes << std::endl;
+        std::cout << "average node size : " << double(numBytes) / double(numNodes) << std::endl;
+        std::cout << "numNodesVisited : " << numNodesVisited << std::endl;
 
-        if (!inputFilename.empty()) std::cout<<"read time : "<<std::chrono::duration<double>(after_construction-start).count()<<std::endl;
-        else std::cout<<"construcion time : "<<std::chrono::duration<double>(after_construction-start).count()<<std::endl;
-        std::cout<<"traversal time : "<<std::chrono::duration<double>(after_traversal-after_construction).count()<<std::endl;
+        if (!inputFilename.empty())
+            std::cout << "read time : " << std::chrono::duration<double>(after_construction - start).count() << std::endl;
+        else
+            std::cout << "construcion time : " << std::chrono::duration<double>(after_construction - start).count() << std::endl;
+        std::cout << "traversal time : " << std::chrono::duration<double>(after_traversal - after_construction).count() << std::endl;
 
-        if (!outputFilename.empty()) std::cout<<"write time : "<<std::chrono::duration<double>(after_write-after_traversal).count()<<std::endl;
-        std::cout<<"destrucion time : "<<std::chrono::duration<double>(after_destruction-after_write).count()<<std::endl;
+        if (!outputFilename.empty()) std::cout << "write time : " << std::chrono::duration<double>(after_write - after_traversal).count() << std::endl;
+        std::cout << "destrucion time : " << std::chrono::duration<double>(after_destruction - after_write).count() << std::endl;
 
-        std::cout<<"total time : "<<std::chrono::duration<double>(after_destruction-start).count()<<std::endl;
-        std::cout<<std::endl;
-        std::cout<<"Nodes constructed per second : "<<double(numNodes)/std::chrono::duration<double>(after_construction-start).count()<<std::endl;
-        std::cout<<"Nodes visited per second     : "<<double(numNodesVisited)/std::chrono::duration<double>(after_traversal-after_construction).count()<<std::endl;
-        std::cout<<"Nodes destrctored per second : "<<double(numNodes)/std::chrono::duration<double>(after_destruction-after_traversal).count()<<std::endl;
+        std::cout << "total time : " << std::chrono::duration<double>(after_destruction - start).count() << std::endl;
+        std::cout << std::endl;
+        std::cout << "Nodes constructed per second : " << double(numNodes) / std::chrono::duration<double>(after_construction - start).count() << std::endl;
+        std::cout << "Nodes visited per second     : " << double(numNodesVisited) / std::chrono::duration<double>(after_traversal - after_construction).count() << std::endl;
+        std::cout << "Nodes destrctored per second : " << double(numNodes) / std::chrono::duration<double>(after_destruction - after_traversal).count() << std::endl;
     }
 
     return 0;

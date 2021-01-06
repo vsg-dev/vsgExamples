@@ -1,15 +1,15 @@
 #include <vsg/all.h>
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
     auto width = arguments.value(1024, "--width");
     auto height = arguments.value(1024, "--height");
-    auto debugLayer = arguments.read({"--debug","-d"});
-    auto apiDumpLayer = arguments.read({"--api","-a"});
+    auto debugLayer = arguments.read({"--debug", "-d"});
+    auto apiDumpLayer = arguments.read({"--api", "-a"});
     auto workgroupSize = arguments.value(32, "-w");
     auto outputFilename = arguments.value<std::string>("", "-o");
     auto outputAsFloat = arguments.read("-f");
@@ -29,24 +29,23 @@ int main(int argc, char** argv)
     auto computeStage = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/comp.spv", searchPaths));
     if (!computeStage)
     {
-        std::cout<<"Error : No shader loaded."<<std::endl;
+        std::cout << "Error : No shader loaded." << std::endl;
         return 1;
     }
 
     computeStage->specializationConstants = vsg::ShaderStage::SpecializationConstants{
         {0, vsg::intValue::create(width)},
         {1, vsg::intValue::create(height)},
-        {2, vsg::intValue::create(workgroupSize)}
-    };
+        {2, vsg::intValue::create(workgroupSize)}};
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
     // get the physical device that suports the required compute queue
     auto instance = vsg::Instance::create(instanceExtensions, validatedNames);
     auto [physicalDevice, computeQueueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_COMPUTE_BIT);
-    if (!physicalDevice || computeQueueFamily<0)
+    if (!physicalDevice || computeQueueFamily < 0)
     {
-        std::cout<<"No vkPhysicalDevice available that supports compute."<<std::endl;
+        std::cout << "No vkPhysicalDevice available that supports compute." << std::endl;
         return 1;
     }
 
@@ -64,10 +63,10 @@ int main(int argc, char** argv)
     auto bufferMemory = buffer->getDeviceMemory(device->deviceID);
 
     // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
-    vsg::DescriptorSetLayoutBindings descriptorBindings { {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} };
+    vsg::DescriptorSetLayoutBindings descriptorBindings{{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}};
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    vsg::Descriptors descriptors { vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) };
+    vsg::Descriptors descriptors{vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)};
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
 
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
@@ -81,7 +80,7 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::Commands::create();
     commandGraph->addChild(bindPipeline);
     commandGraph->addChild(bindDescriptorSet);
-    commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width)/float(workgroupSize))), uint32_t(ceil(float(height)/float(workgroupSize))), 1));
+    commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
 
     // compile the Vulkan objects
     vsg::CompileTraversal compileTraversal(device);
@@ -93,16 +92,15 @@ int main(int argc, char** argv)
     // setup fence
     auto fence = vsg::Fence::create(device);
 
-    auto startTime =std::chrono::steady_clock::now();
+    auto startTime = std::chrono::steady_clock::now();
 
     // submit commands
-    vsg::submitCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer)
-    {
+    vsg::submitCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer) {
         commandGraph->record(commandBuffer);
     });
 
-    auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now()-startTime).count();
-    std::cout<<"Time to run commands "<<time<<"ms"<<std::endl;
+    auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
+    std::cout << "Time to run commands " << time << "ms" << std::endl;
 
     if (!outputFilename.empty())
     {
@@ -120,9 +118,9 @@ int main(int argc, char** argv)
 
             using component_type = uint8_t;
             auto c_itr = dest->begin();
-            for(auto& colour : *image)
+            for (auto& colour : *image)
             {
-                (c_itr++)->set(static_cast<component_type>(colour.r*255.0), static_cast<component_type>(colour.g*255.0), static_cast<component_type>(colour.b*255.0), static_cast<component_type>(colour.a*255.0));
+                (c_itr++)->set(static_cast<component_type>(colour.r * 255.0), static_cast<component_type>(colour.g * 255.0), static_cast<component_type>(colour.b * 255.0), static_cast<component_type>(colour.a * 255.0));
             }
 
             vsg::write(dest, outputFilename);

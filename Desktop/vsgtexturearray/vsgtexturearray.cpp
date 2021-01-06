@@ -1,48 +1,48 @@
 #include <vsg/all.h>
 
 #ifdef USE_VSGXCHANGE
-#include <vsgXchange/ReaderWriter_all.h>
+#    include <vsgXchange/ReaderWriter_all.h>
 #endif
 
 #include <iostream>
 
 void updateBaseTexture(vsg::ubvec4Array2D& image, float value)
 {
-    for(size_t r = 0; r < image.height(); ++r)
+    for (size_t r = 0; r < image.height(); ++r)
     {
-        float r_ratio = static_cast<float>(r)/static_cast<float>(image.height()-1);
-        for(size_t c = 0; c < image.width(); ++c)
+        float r_ratio = static_cast<float>(r) / static_cast<float>(image.height() - 1);
+        for (size_t c = 0; c < image.width(); ++c)
         {
-            float c_ratio = static_cast<float>(c)/static_cast<float>(image.width()-1);
+            float c_ratio = static_cast<float>(c) / static_cast<float>(image.width() - 1);
 
-            vsg::vec2 delta((r_ratio-0.5f), (c_ratio-0.5f));
+            vsg::vec2 delta((r_ratio - 0.5f), (c_ratio - 0.5f));
 
             float angle = atan2(delta.x, delta.y);
 
             float distance_from_center = vsg::length(delta);
 
-            float intensity = (sin(1.0 * angle + 30.0f * distance_from_center+10.0*value) + 1.0f)*0.5f;
-            image.set(c, r, vsg::ubvec4(uint8_t(intensity*intensity*255.0), uint8_t(intensity*255.0), uint8_t(intensity*255.0), 255));
+            float intensity = (sin(1.0 * angle + 30.0f * distance_from_center + 10.0 * value) + 1.0f) * 0.5f;
+            image.set(c, r, vsg::ubvec4(uint8_t(intensity * intensity * 255.0), uint8_t(intensity * 255.0), uint8_t(intensity * 255.0), 255));
         }
     }
 }
 
 void updateElevation(vsg::floatArray2D& heightField, float value)
 {
-    for(size_t r = 0; r < heightField.height(); ++r)
+    for (size_t r = 0; r < heightField.height(); ++r)
     {
-        float r_ratio = static_cast<float>(r)/static_cast<float>(heightField.height()-1);
-        for(size_t c = 0; c < heightField.width(); ++c)
+        float r_ratio = static_cast<float>(r) / static_cast<float>(heightField.height() - 1);
+        for (size_t c = 0; c < heightField.width(); ++c)
         {
-            float c_ratio = static_cast<float>(c)/static_cast<float>(heightField.width()-1);
+            float c_ratio = static_cast<float>(c) / static_cast<float>(heightField.width() - 1);
 
-            vsg::vec2 delta((r_ratio-0.5f), (c_ratio-0.5f));
+            vsg::vec2 delta((r_ratio - 0.5f), (c_ratio - 0.5f));
 
             float angle = atan2(delta.x, delta.y);
 
             float distance_from_center = vsg::length(delta);
 
-            float intensity = (sin(1.0 * angle + 10.0f * distance_from_center+2.0*value) + 1.0f)*0.5f;
+            float intensity = (sin(1.0 * angle + 10.0f * distance_from_center + 2.0 * value) + 1.0f) * 0.5f;
             heightField.set(c, r, intensity);
         }
     }
@@ -52,28 +52,22 @@ vsg::ref_ptr<vsg::Node> createGeometry()
 {
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
-    {
-        {-0.5f, -0.5f, 0.0f},
-        {0.5f,  -0.5f, 0.0f},
-        {0.5f , 0.5f, 0.0f},
-        {-0.5f, 0.5f, 0.0f}
-    }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{-0.5f, -0.5f, 0.0f},
+         {0.5f, -0.5f, 0.0f},
+         {0.5f, 0.5f, 0.0f},
+         {-0.5f, 0.5f, 0.0f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
 
     auto texcoords = vsg::vec2Array::create(
-    {
-        {0.0f, 0.0f},
-        {1.0f, 0.0f},
-        {1.0f, 1.0f},
-        {0.0f, 1.0f}
-    }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{0.0f, 0.0f},
+         {1.0f, 0.0f},
+         {1.0f, 1.0f},
+         {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto indices = vsg::ushortArray::create(
-    {
-        0, 1, 2,
-        2, 3, 0
-    }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {0, 1, 2,
+         2, 3, 0}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto vid = vsg::VertexIndexDraw::create();
     vid->arrays = vsg::DataList{vertices, colors, texcoords};
@@ -95,42 +89,42 @@ vsg::ref_ptr<vsg::Node> createGeometry(uint32_t numColumns, uint32_t numRows)
     auto colors = vsg::vec3Array::create(numVertices, vsg::vec3(1.0f, 1.0f, 1.0f));
 
     vsg::vec3 vertex_origin(0.0f, 0.0f, 0.0f);
-    vsg::vec3 vertex_dx(width / (static_cast<float>(numColumns)-1.0f), 0.0f, 0.0f);
-    vsg::vec3 vertex_dy(0.0f, height / (static_cast<float>(numRows)-1.0f), 0.0f);
+    vsg::vec3 vertex_dx(width / (static_cast<float>(numColumns) - 1.0f), 0.0f, 0.0f);
+    vsg::vec3 vertex_dy(0.0f, height / (static_cast<float>(numRows) - 1.0f), 0.0f);
 
     vsg::vec2 texcoord_origin(0.0f, 0.0f);
-    vsg::vec2 texcoord_dx(1.0f / (static_cast<float>(numColumns)-1.0f), 0.0f);
-    vsg::vec2 texcoord_dy(0.0f, 1.0f / (static_cast<float>(numRows)-1.0f));
+    vsg::vec2 texcoord_dx(1.0f / (static_cast<float>(numColumns) - 1.0f), 0.0f);
+    vsg::vec2 texcoord_dy(0.0f, 1.0f / (static_cast<float>(numRows) - 1.0f));
 
     auto vertex_itr = vertices->begin();
     auto texcoord_itr = texcoords->begin();
 
-    for(uint32_t r = 0; r<numRows; ++r)
+    for (uint32_t r = 0; r < numRows; ++r)
     {
-        for(uint32_t c = 0; c<numColumns; ++c)
+        for (uint32_t c = 0; c < numColumns; ++c)
         {
-            *(vertex_itr++) = vertex_origin + vertex_dx*(static_cast<float>(c)) +  vertex_dy*(static_cast<float>(r));
-            *(texcoord_itr++) = texcoord_origin + texcoord_dx*(static_cast<float>(c)) +  texcoord_dy*(static_cast<float>(r));
+            *(vertex_itr++) = vertex_origin + vertex_dx * (static_cast<float>(c)) + vertex_dy * (static_cast<float>(r));
+            *(texcoord_itr++) = texcoord_origin + texcoord_dx * (static_cast<float>(c)) + texcoord_dy * (static_cast<float>(r));
         }
     }
 
-    uint32_t numIndices = (numColumns-1) * (numRows-1) * 6;
+    uint32_t numIndices = (numColumns - 1) * (numRows - 1) * 6;
     auto indices = vsg::ushortArray::create(numIndices);
     auto itr = indices->begin();
-    for(uint32_t r = 0; r<(numRows-1); ++r)
+    for (uint32_t r = 0; r < (numRows - 1); ++r)
     {
-        for(uint32_t c = 0; c<(numColumns-1); ++c)
+        for (uint32_t c = 0; c < (numColumns - 1); ++c)
         {
-            uint32_t i = r*numColumns + c;
+            uint32_t i = r * numColumns + c;
             // lower left triangle
             *(itr++) = i;
-            *(itr++) = i+1;
-            *(itr++) = i+numColumns;
+            *(itr++) = i + 1;
+            *(itr++) = i + numColumns;
 
             // upper right triangle
-            *(itr++) = i+numColumns;
-            *(itr++) = i+1;
-            *(itr++) = i+numColumns+1;
+            *(itr++) = i + numColumns;
+            *(itr++) = i + 1;
+            *(itr++) = i + numColumns + 1;
         }
     }
 
@@ -151,13 +145,14 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->debugLayer = arguments.read({"--debug","-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
-    bool update  = arguments.read( "--update");
+    bool update = arguments.read("--update");
     int numRows = arguments.value(4, "--rows");
-    int numColumns = arguments.value(4, "--cols");;
+    int numColumns = arguments.value(4, "--cols");
+    ;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -181,10 +176,9 @@ int main(int argc, char** argv)
         fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/texturearray_frag.spv", searchPaths));
     }
 
-
     if (!vertexShader || !fragmentShader)
     {
-        std::cout<<"Could not create shaders."<<std::endl;
+        std::cout << "Could not create shaders." << std::endl;
         return 1;
     }
 
@@ -204,7 +198,7 @@ int main(int argc, char** argv)
 
     // set up texture image
     std::vector<vsg::ref_ptr<vsg::ubvec4Array2D>> textureDataList;
-    for(uint32_t i = 0; i<numTiles; ++i)
+    for (uint32_t i = 0; i < numTiles; ++i)
     {
         auto textureData = vsg::ubvec4Array2D::create(256, 256);
         textureData->getLayout().format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -216,7 +210,7 @@ int main(int argc, char** argv)
 
     // set up height fields
     std::vector<vsg::ref_ptr<vsg::floatArray2D>> heightFieldDataList;
-    for(uint32_t i = 0; i<numTiles; ++i)
+    for (uint32_t i = 0; i < numTiles; ++i)
     {
         auto heightField = vsg::floatArray2D::create(64, 64);
         heightField->getLayout().format = VK_FORMAT_R32_SFLOAT;
@@ -226,49 +220,42 @@ int main(int argc, char** argv)
     }
 
     // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings
-    {
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numTiles, VK_SHADER_STAGE_VERTEX_BIT, nullptr}, // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+    vsg::DescriptorSetLayoutBindings descriptorBindings{
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numTiles, VK_SHADER_STAGE_VERTEX_BIT, nullptr},  // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
         {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numTiles, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    vsg::DescriptorSetLayoutBindings tileSettingsDescriptorBindings
-    {
+    vsg::DescriptorSetLayoutBindings tileSettingsDescriptorBindings{
         {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto tileSettingsDescriptorSetLayout = vsg::DescriptorSetLayout::create(tileSettingsDescriptorBindings);
 
-    vsg::PushConstantRanges pushConstantRanges
-    {
+    vsg::PushConstantRanges pushConstantRanges{
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
     };
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions
-    {
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
         VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
         VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
         VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
     };
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions
-    {
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
         VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
     };
 
-    vsg::GraphicsPipelineStates pipelineStates
-    {
-        vsg::VertexInputState::create( vertexBindingsDescriptions, vertexAttributeDescriptions ),
+    vsg::GraphicsPipelineStates pipelineStates{
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
         vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()
-    };
+        vsg::DepthStencilState::create()};
 
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout, tileSettingsDescriptorSetLayout}, pushConstantRanges);
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
@@ -280,7 +267,7 @@ int main(int argc, char** argv)
     clampToEdge_sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
     vsg::SamplerImages baseTextures;
-    for(auto textureData : textureDataList)
+    for (auto textureData : textureDataList)
     {
         baseTextures.emplace_back(vsg::SamplerImage{clampToEdge_sampler, textureData});
     }
@@ -295,7 +282,7 @@ int main(int argc, char** argv)
     hf_sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 
     vsg::SamplerImages hfTextures;
-    for(auto hfData : heightFieldDataList)
+    for (auto hfData : heightFieldDataList)
     {
         hfTextures.emplace_back(vsg::SamplerImage{hf_sampler, hfData});
     }
@@ -313,17 +300,16 @@ int main(int argc, char** argv)
 
     auto geometry = createGeometry(64, 64);
 
-
-    for(int r=0; r<numRows; ++r)
+    for (int r = 0; r < numRows; ++r)
     {
-        for(int c=0; c<numColumns; ++c)
+        for (int c = 0; c < numColumns; ++c)
         {
             vsg::dvec3 position(static_cast<float>(c), static_cast<float>(r), 0.0f);
 
             // set up model transformation node
             auto transform = vsg::MatrixTransform::create(vsg::translate(position));
 
-            uint32_t tileIndex = r*numColumns + c;
+            uint32_t tileIndex = r * numColumns + c;
 
             auto uniformValue = vsg::uintValue::create(tileIndex);
             auto uniformBuffer = vsg::DescriptorBuffer::create(uniformValue, 0);
@@ -363,7 +349,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout << "Could not create windows." << std::endl;
         return 1;
     }
 
@@ -372,14 +358,14 @@ int main(int argc, char** argv)
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     scenegraph->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min+computeBounds.bounds.max)*0.5;
-    double radius = vsg::length(computeBounds.bounds.max-computeBounds.bounds.min)*0.6;
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
     double nearFarRatio = 0.001;
 
     // camera related details
     auto viewport = vsg::ViewportState::create(window->extent2D());
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio*radius, radius * 4.5);
-    auto lookAt = vsg::LookAt::create(centre+vsg::dvec3(0.0, -radius*3.5, radius*1.5), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, radius * 1.5), centre, vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
@@ -409,13 +395,12 @@ int main(int argc, char** argv)
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
-
         if (update)
         {
             // animate the transform
             float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
 
-            uint32_t textureToUpdate =  0; // viewer->getFrameStamp()->frameCount % numTiles;
+            uint32_t textureToUpdate = 0; // viewer->getFrameStamp()->frameCount % numTiles;
 
             auto& textureImageData = imageDataList[textureToUpdate];
             auto textureData = textureImageData.imageView->image->data.cast<vsg::ubvec4Array2D>();
@@ -433,7 +418,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::cout<<"textureImageData.imageView->image->data = "<<textureImageData.imageView->image->data<<", cast ="<< textureImageData.imageView->image->data.cast<vsg::vec4Array2D>()<<std::endl;
+                std::cout << "textureImageData.imageView->image->data = " << textureImageData.imageView->image->data << ", cast =" << textureImageData.imageView->image->data.cast<vsg::vec4Array2D>() << std::endl;
             }
         }
 

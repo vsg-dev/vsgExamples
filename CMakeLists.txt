@@ -37,6 +37,16 @@ add_custom_target(clobber
     COMMAND git clean -d -f -x
 )
 
+# add clang-foramt build target to enforce a standard code style guide.
+find_program(CLANGFORMAT clang-format)
+if (CLANGFORMAT)
+    add_custom_target(clang-format
+        COMMAND ${CLANGFORMAT} -i ${CMAKE_SOURCE_DIR}/*/*/*.h ${CMAKE_SOURCE_DIR}/*/*/*.cpp
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Automated code format using clang-format"
+    )
+endif()
+
 # pure VSG examples
 add_subdirectory(Core)
 

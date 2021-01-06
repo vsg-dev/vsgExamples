@@ -1,10 +1,9 @@
-#include <vsg/all.h>
 #include <iostream>
+#include <vsg/all.h>
 
 class InputHandler : public vsg::Inherit<vsg::Visitor, InputHandler>
 {
 public:
-
     vsg::ref_ptr<vsg::Text> keyboard_text;
     vsg::ref_ptr<vsg::Text> pointer_text;
     vsg::ref_ptr<vsg::Text> scroll_text;
@@ -51,21 +50,21 @@ public:
     {
         // note under Unix the mask value includes the keyboard modifiers in mask as the native mask is used
         assign(*pointer_text, vsg::make_string(moveEvent.className(), ", x=", moveEvent.x, ", y= ", moveEvent.y, ", mask=", moveEvent.mask, " [",
-                                               ((moveEvent.mask & vsg::BUTTON_MASK_1)!=0), ((moveEvent.mask & vsg::BUTTON_MASK_2)!=0),((moveEvent.mask & vsg::BUTTON_MASK_3)!=0), "]"));
+                                               ((moveEvent.mask & vsg::BUTTON_MASK_1) != 0), ((moveEvent.mask & vsg::BUTTON_MASK_2) != 0), ((moveEvent.mask & vsg::BUTTON_MASK_3) != 0), "]"));
     }
 
     void apply(vsg::ButtonPressEvent& buttonPress) override
     {
         // note under Unix the mask value includes the keyboard modifiers in mask as the native mask is used
         assign(*pointer_text, vsg::make_string(buttonPress.className(), ", x=", buttonPress.x, ", y=", buttonPress.y, ", mask=", buttonPress.mask, " [",
-                                               ((buttonPress.mask & vsg::BUTTON_MASK_1)!=0), ((buttonPress.mask & vsg::BUTTON_MASK_2)!=0),((buttonPress.mask & vsg::BUTTON_MASK_3)!=0), "], button=", buttonPress.button));
+                                               ((buttonPress.mask & vsg::BUTTON_MASK_1) != 0), ((buttonPress.mask & vsg::BUTTON_MASK_2) != 0), ((buttonPress.mask & vsg::BUTTON_MASK_3) != 0), "], button=", buttonPress.button));
     }
 
     void apply(vsg::ButtonReleaseEvent& buttonRelease) override
     {
         // note under Unix the mask value includes the keyboard modifiers in mask as the native mask is used
         assign(*pointer_text, vsg::make_string(buttonRelease.className(), ", x=", buttonRelease.x, ", y=", buttonRelease.y, ", mask=", buttonRelease.mask, " [",
-                                               ((buttonRelease.mask & vsg::BUTTON_MASK_1)!=0), ((buttonRelease.mask & vsg::BUTTON_MASK_2)!=0),((buttonRelease.mask & vsg::BUTTON_MASK_3)!=0), "], button=", buttonRelease.button));
+                                               ((buttonRelease.mask & vsg::BUTTON_MASK_1) != 0), ((buttonRelease.mask & vsg::BUTTON_MASK_2) != 0), ((buttonRelease.mask & vsg::BUTTON_MASK_3) != 0), "], button=", buttonRelease.button));
     }
 
     void apply(vsg::ScrollWheelEvent& scrollWheel) override
@@ -96,10 +95,7 @@ public:
         assign(*frame_text, vsg::make_string(frame.className(), ", frameStamp->frameCount = ", frame.frameStamp->frameCount));
     }
 
-
-
 protected:
-
 };
 
 int main(int argc, char** argv)
@@ -108,8 +104,8 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create("vsg input");
-    windowTraits->debugLayer = arguments.read({"--debug","-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api","-a"});
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
     auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "--font");
 
@@ -121,15 +117,14 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->paths = searchPaths;
 
-
     auto scenegraph = vsg::Group::create();
 
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);
 
-    double aspectRatio = double(windowTraits->width)/double(windowTraits->height);
+    double aspectRatio = double(windowTraits->width) / double(windowTraits->height);
     double projectionHeight = 25.0;
 
-    vsg::vec3 position(2.0f, projectionHeight-2.0f, 0.0f);
+    vsg::vec3 position(2.0f, projectionHeight - 2.0f, 0.0f);
     vsg::vec3 delta(0.0f, -2.0f, 0.0f);
 
     // main label
@@ -139,9 +134,9 @@ int main(int argc, char** argv)
         auto main = vsg::Text::create();
 
         main_layout->position = position;
-        main_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
-        main_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
-        main_layout->color = vsg::vec4(1.0f,1.0f,0.3, 1.0f);
+        main_layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
+        main_layout->vertical = vsg::vec3(0.0f, 1.0f, 0.0f);
+        main_layout->color = vsg::vec4(1.0f, 1.0f, 0.3, 1.0f);
         main_layout->outlineWidth = 0.1;
 
         main->text = main_label;
@@ -151,7 +146,7 @@ int main(int argc, char** argv)
         main->setup();
         scenegraph->addChild(main);
 
-        position += delta*2.0f;
+        position += delta * 2.0f;
     }
 
     // pointer event label
@@ -161,9 +156,9 @@ int main(int argc, char** argv)
 
         auto pointer_layout = vsg::StandardLayout::create();
         pointer_layout->position = position;
-        pointer_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
-        pointer_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
-        pointer_layout->color = vsg::vec4(1.0f,1.0f,1.0f,1.0f);
+        pointer_layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
+        pointer_layout->vertical = vsg::vec3(0.0f, 1.0f, 0.0f);
+        pointer_layout->color = vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         pointer_layout->outlineWidth = 0.1;
 
         auto pointer_string = vsg::stringValue::create("Pointer event:");
@@ -184,9 +179,9 @@ int main(int argc, char** argv)
 
         auto keyboard_layout = vsg::StandardLayout::create();
         keyboard_layout->position = position;
-        keyboard_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
-        keyboard_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
-        keyboard_layout->color = vsg::vec4(1.0f,1.0f,1.0f,1.0f);
+        keyboard_layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
+        keyboard_layout->vertical = vsg::vec3(0.0f, 1.0f, 0.0f);
+        keyboard_layout->color = vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         keyboard_layout->outlineWidth = 0.1;
 
         auto keyboard_string = vsg::stringValue::create("Keyboard event:");
@@ -207,9 +202,9 @@ int main(int argc, char** argv)
 
         auto scroll_layout = vsg::StandardLayout::create();
         scroll_layout->position = position;
-        scroll_layout->horizontal = vsg::vec3(1.0f,0.0f,0.0f);
-        scroll_layout->vertical = vsg::vec3(0.0f,1.0f,0.0f);
-        scroll_layout->color = vsg::vec4(1.0f,1.0f,1.0f,1.0f);
+        scroll_layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
+        scroll_layout->vertical = vsg::vec3(0.0f, 1.0f, 0.0f);
+        scroll_layout->color = vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         scroll_layout->outlineWidth = 0.1;
 
         auto scroll_string = vsg::stringValue::create("Scroll event:");
@@ -275,7 +270,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout<<"Could not create windows."<<std::endl;
+        std::cout << "Could not create windows." << std::endl;
         return 1;
     }
 
