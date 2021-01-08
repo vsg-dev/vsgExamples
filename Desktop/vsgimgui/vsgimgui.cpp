@@ -27,8 +27,10 @@ public:
     }
 
     // Example here taken from the Dear imgui comments (mostly)
-    void operator()()
+    bool operator()()
     {
+        bool visibleComponents = false;
+
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         if (_params->showGui)
         {
@@ -48,6 +50,8 @@ public:
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
+
+            visibleComponents = true;
         }
 
         // 3. Show another simple window.
@@ -58,10 +62,18 @@ public:
             if (ImGui::Button("Close Me"))
                 _params->showSecondWindow = false;
             ImGui::End();
+
+            visibleComponents = true;
         }
 
         if (_params->showDemoWindow)
+        {
             ImGui::ShowDemoWindow(&_params->showDemoWindow);
+
+            visibleComponents = true;
+        }
+
+        return visibleComponents;
     }
 
 private:
@@ -141,20 +153,14 @@ int main(int argc, char** argv)
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-        // The commandGraph will contain a 3 stage renderGraph 1) 3D scene 2) clear depth buffers 3) ImGui
+        // The commandGraph will contain a 2 stage renderGraph 1) 3D scene 2) ImGui (by default also includes clear depth buffers)
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
         commandGraph->addChild(renderGraph);
 
         // create the normal 3D view of the scene
-        auto view1 = vsg::View::create(camera, vsg_scene);
-        renderGraph->addChild(view1);
-
-        // clear the depth buffer before view2 gets rendered
-        VkClearAttachment attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, VkClearValue{1.0f, 0.0f}};
-        VkClearRect rect{VkRect2D{VkOffset2D{0, 0}, VkExtent2D{window->extent2D().width, window->extent2D().height}}, 0, 1};
-        auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{attachment}, vsg::ClearAttachments::Rects{rect});
-        renderGraph->addChild(clearAttachments);
+        auto view = vsg::View::create(camera, vsg_scene);
+        renderGraph->addChild(view);
 
         // ********** Create the ImGui node and add it to the renderGraph  ************
         auto gui = vsgImGui::GuiCommand::create(window);
