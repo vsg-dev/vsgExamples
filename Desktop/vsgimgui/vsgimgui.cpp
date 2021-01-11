@@ -163,12 +163,8 @@ int main(int argc, char** argv)
         renderGraph->addChild(view);
 
         // ********** Create the ImGui node and add it to the renderGraph  ************
-        auto gui = vsgImGui::RenderImGui::create(window);
-        renderGraph->addChild(gui);
-
         auto params = Params::create();
-        gui->add(MyGuiComponent(params));
-        // ***************************************
+        renderGraph->addChild(vsgImGui::RenderImGui::create(window, MyGuiComponent(params)));
 
         // ********** Add the ImGui event handler first to handle events early  **************
         viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
