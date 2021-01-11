@@ -1,4 +1,4 @@
-#include <vsgImGui/GuiCommand.h>
+#include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
 #include <vsgImGui/imgui.h>
 
@@ -163,7 +163,7 @@ int main(int argc, char** argv)
         renderGraph->addChild(view);
 
         // ********** Create the ImGui node and add it to the renderGraph  ************
-        auto gui = vsgImGui::GuiCommand::create(window);
+        auto gui = vsgImGui::RenderImGui::create(window);
         renderGraph->addChild(gui);
 
         auto params = Params::create();
