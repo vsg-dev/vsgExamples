@@ -159,16 +159,14 @@ int main(int argc, char** argv)
         commandGraph->addChild(renderGraph);
 
         // create the normal 3D view of the scene
-        auto view = vsg::View::create(camera, vsg_scene);
-        renderGraph->addChild(view);
+        renderGraph->addChild(vsg::View::create(camera, vsg_scene));
 
-        // ********** Create the ImGui node and add it to the renderGraph  ************
+        // Create the ImGui node and add it to the renderGraph
         auto params = Params::create();
         renderGraph->addChild(vsgImGui::RenderImGui::create(window, MyGuiComponent(params)));
 
-        // ********** Add the ImGui event handler first to handle events early  **************
+        // Add the ImGui event handler first to handle events early
         viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
-        // ***************************************
 
         // add close handler to respond the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
