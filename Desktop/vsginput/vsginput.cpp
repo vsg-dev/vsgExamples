@@ -107,6 +107,8 @@ int main(int argc, char** argv)
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    auto event_read_filename = arguments.value(std::string(""), "-i");
+    auto event_output_filename = arguments.value(std::string(""), "-o");
     auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "--font");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -288,6 +290,23 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
+    vsg::ref_ptr<vsg::RecordEvents> recordEvents;
+    if (!event_output_filename.empty())
+    {
+        recordEvents = vsg::RecordEvents::create();
+        viewer->addEventHandler(recordEvents);
+    }
+
+    vsg::ref_ptr<vsg::PlayEvents> playEvents;
+    if (!event_read_filename.empty())
+    {
+        auto read_events = vsg::read(event_read_filename);
+        if (read_events)
+        {
+            playEvents = vsg::PlayEvents::create(read_events, viewer->start_point().time_since_epoch());
+        }
+    }
+
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
@@ -297,6 +316,11 @@ int main(int argc, char** argv)
     // main frame loop
     while (viewer->advanceToNextFrame())
     {
+        if (playEvents)
+        {
+            playEvents->dispatchFrameEvents(viewer->getEvents());
+        }
+
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
@@ -307,6 +331,14 @@ int main(int argc, char** argv)
         viewer->present();
     }
 
+    if (recordEvents && !event_output_filename.empty())
+    {
+        // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
+        vsg::ShiftEventTime shiftTime(-viewer->start_point().time_since_epoch());
+        recordEvents->events->accept(shiftTime);
+
+        vsg::write(recordEvents->events, event_output_filename);
+    }
     // clean up done automatically thanks to ref_ptr<>
     return 0;
 }
