@@ -106,7 +106,15 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create("vsg input");
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
+    if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
+    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+    if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
+    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
+    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     auto event_read_filename = arguments.value(std::string(""), "-i");
     auto event_output_filename = arguments.value(std::string(""), "-o");
     auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "--font");
