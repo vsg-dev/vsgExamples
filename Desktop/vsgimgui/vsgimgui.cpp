@@ -96,6 +96,9 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     arguments.read(options);
 
+    auto event_read_filename = arguments.value(std::string(""), "-i");
+    auto event_output_filename = arguments.value(std::string(""), "-o");
+
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
@@ -177,9 +180,31 @@ int main(int argc, char** argv)
 
         viewer->compile();
 
+        vsg::ref_ptr<vsg::RecordEvents> recordEvents;
+        if (!event_output_filename.empty())
+        {
+            recordEvents = vsg::RecordEvents::create();
+            viewer->addEventHandler(recordEvents);
+        }
+
+        vsg::ref_ptr<vsg::PlayEvents> playEvents;
+        if (!event_read_filename.empty())
+        {
+            auto read_events = vsg::read(event_read_filename);
+            if (read_events)
+            {
+                playEvents = vsg::PlayEvents::create(read_events, viewer->start_point().time_since_epoch());
+            }
+        }
+
         // rendering main loop
         while (viewer->advanceToNextFrame())
         {
+            if (playEvents)
+            {
+                playEvents->dispatchFrameEvents(viewer->getEvents());
+            }
+
             viewer->handleEvents();
 
             viewer->update();
@@ -187,6 +212,15 @@ int main(int argc, char** argv)
             viewer->recordAndSubmit();
 
             viewer->present();
+        }
+
+        if (recordEvents && !event_output_filename.empty())
+        {
+            // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
+            vsg::ShiftEventTime shiftTime(-viewer->start_point().time_since_epoch());
+            recordEvents->events->accept(shiftTime);
+
+            vsg::write(recordEvents->events, event_output_filename);
         }
     }
     catch (vsg::Exception& ve)
