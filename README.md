@@ -1,19 +1,19 @@
 # vsgExamples
 Example programs that test and illustrate how to use the [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and optional add-on libraries. The example programs are grouped according to the type of features they illustrate their dependencies.
 
-* [core](core/) examples
-* [maths](maths/) examples
-* [viewer](viewer/) examples
-* [vk](vk/) examples
-* [text](text/) examples
-* [raytracing](raytracing/) examples
-* [state](state/) examples
-* [commands](commands/) examples
-* [introspection](introspection/) examples
-* [io](io/) examples
-* [ui](ui/) examples
-* [traversals](traversals/) examples
-* [platform](platform/) examples
+* [core](examples/core/) examples
+* [maths](examples/maths/) examples
+* [viewer](examples/viewer/) examples
+* [vk](examples/vk/) examples
+* [text](examples/text/) examples
+* [raytracing](examples/raytracing/) examples
+* [state](examples/state/) examples
+* [commands](examples/commands/) examples
+* [introspection](examples/introspection/) examples
+* [io](examples/io/) examples
+* [ui](examples/ui/) examples
+* [traversals](examples/traversals/) examples
+* [platform](examples/platform/) examples
 
 ## Quick Guide to Building the vsgExamples
 
