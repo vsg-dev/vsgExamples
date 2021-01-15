@@ -109,14 +109,15 @@ public:
 
     std::ostream& print(vsg::UIEvent& event) override
     {
-        output << "    "<<event.className() << ", " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count()<<"ms";
+        output << "    " << event.className() << ", " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count() << "ms";
 
         return output;
     }
 
     void apply(vsg::FrameEvent& event) override
     {
-        output << "vsg::FameEvent previousFrameDuration = " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count()<<"ms"<<", frameCount = "<<event.frameStamp->frameCount << std::endl;
+        output << "vsg::FameEvent previousFrameDuration = " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count() << "ms"
+               << ", frameCount = " << event.frameStamp->frameCount << std::endl;
 
         start_point = event.time;
     }
@@ -382,7 +383,6 @@ int main(int argc, char** argv)
             recordEvents->events->accept(print);
         }
     }
-
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;
