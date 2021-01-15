@@ -98,6 +98,31 @@ public:
 protected:
 };
 
+class MyPrintEvents : public vsg::PrintEvents
+{
+public:
+    MyPrintEvents(vsg::clock::time_point in_start_point) :
+        vsg::PrintEvents(in_start_point) {}
+
+    MyPrintEvents(std::ostream& out, vsg::clock::time_point in_start_point) :
+        vsg::PrintEvents(out, in_start_point) {}
+
+    std::ostream& print(vsg::UIEvent& event) override
+    {
+        output << "    " << event.className() << ", " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count() << "ms";
+
+        return output;
+    }
+
+    void apply(vsg::FrameEvent& event) override
+    {
+        output << "vsg::FameEvent previousFrameDuration = " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count() << "ms"
+               << ", frameCount = " << event.frameStamp->frameCount << std::endl;
+
+        start_point = event.time;
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -115,6 +140,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    bool printEvents = arguments.read("-p");
     auto event_read_filename = arguments.value(std::string(""), "-i");
     auto event_output_filename = arguments.value(std::string(""), "-o");
     auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "--font");
@@ -299,7 +325,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     vsg::ref_ptr<vsg::RecordEvents> recordEvents;
-    if (!event_output_filename.empty())
+    if (!event_output_filename.empty() || printEvents)
     {
         recordEvents = vsg::RecordEvents::create();
         viewer->addEventHandler(recordEvents);
@@ -339,14 +365,25 @@ int main(int argc, char** argv)
         viewer->present();
     }
 
-    if (recordEvents && !event_output_filename.empty())
+    if (recordEvents)
     {
-        // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
-        vsg::ShiftEventTime shiftTime(-viewer->start_point().time_since_epoch());
-        recordEvents->events->accept(shiftTime);
+        if (!event_output_filename.empty())
+        {
+            // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
+            vsg::ShiftEventTime shiftTime(-viewer->start_point().time_since_epoch());
+            recordEvents->events->accept(shiftTime);
 
-        vsg::write(recordEvents->events, event_output_filename);
+            vsg::write(recordEvents->events, event_output_filename);
+        }
+
+        if (printEvents)
+        {
+            // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
+            MyPrintEvents print(viewer->start_point());
+            recordEvents->events->accept(print);
+        }
     }
+
     // clean up done automatically thanks to ref_ptr<>
     return 0;
 }
