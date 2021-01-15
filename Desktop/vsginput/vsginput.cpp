@@ -98,6 +98,30 @@ public:
 protected:
 };
 
+class MyPrintEvents : public vsg::PrintEvents
+{
+public:
+    MyPrintEvents(vsg::clock::time_point in_start_point) :
+        vsg::PrintEvents(in_start_point) {}
+
+    MyPrintEvents(std::ostream& out, vsg::clock::time_point in_start_point) :
+        vsg::PrintEvents(out, in_start_point) {}
+
+    std::ostream& print(vsg::UIEvent& event) override
+    {
+        output << "    "<<event.className() << ", " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count()<<"ms";
+
+        return output;
+    }
+
+    void apply(vsg::FrameEvent& event) override
+    {
+        output << "vsg::FameEvent previousFrameDuration = " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count()<<"ms"<<", frameCount = "<<event.frameStamp->frameCount << std::endl;
+
+        start_point = event.time;
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -353,9 +377,8 @@ int main(int argc, char** argv)
 
         if (printEvents)
         {
-            std::cout<<"Printing Events"<<std::endl;
             // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
-            vsg::PrintEvents print(viewer->start_point());
+            MyPrintEvents print(viewer->start_point());
             recordEvents->events->accept(print);
         }
     }
