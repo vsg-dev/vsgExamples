@@ -115,6 +115,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    bool printEvents = arguments.read("-p");
     auto event_read_filename = arguments.value(std::string(""), "-i");
     auto event_output_filename = arguments.value(std::string(""), "-o");
     auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "--font");
@@ -299,7 +300,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     vsg::ref_ptr<vsg::RecordEvents> recordEvents;
-    if (!event_output_filename.empty())
+    if (!event_output_filename.empty() || printEvents)
     {
         recordEvents = vsg::RecordEvents::create();
         viewer->addEventHandler(recordEvents);
@@ -339,14 +340,27 @@ int main(int argc, char** argv)
         viewer->present();
     }
 
-    if (recordEvents && !event_output_filename.empty())
+    if (recordEvents)
     {
-        // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
-        vsg::ShiftEventTime shiftTime(-viewer->start_point().time_since_epoch());
-        recordEvents->events->accept(shiftTime);
+        if (!event_output_filename.empty())
+        {
+            // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
+            vsg::ShiftEventTime shiftTime(-viewer->start_point().time_since_epoch());
+            recordEvents->events->accept(shiftTime);
 
-        vsg::write(recordEvents->events, event_output_filename);
+            vsg::write(recordEvents->events, event_output_filename);
+        }
+
+        if (printEvents)
+        {
+            std::cout<<"Printing Events"<<std::endl;
+            // shift the time of recorded events to relative to 0, so we can later add in any new viewer->start_point() during playback.
+            vsg::PrintEvents print(viewer->start_point());
+            recordEvents->events->accept(print);
+        }
     }
+
+
     // clean up done automatically thanks to ref_ptr<>
     return 0;
 }
