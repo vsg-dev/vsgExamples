@@ -1,0 +1,2 @@
+add_subdirectory(vsgdynamictexture)
+add_subdirectory(vsgtexturearray)

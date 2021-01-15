@@ -1,5 +1,5 @@
 set(SOURCES
-    ../shared/AnimationPath.cpp
+    ../../shared/AnimationPath.cpp
     vsgmultigpu.cpp
 )
 
