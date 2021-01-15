@@ -1,0 +1,2 @@
+add_subdirectory(vsgc_interface)
+add_subdirectory(vsgintrospection)
