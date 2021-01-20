@@ -69,6 +69,34 @@
 
 #define _VERBOSE 1
 
+std::vector<std::string> listNetworkConnections()
+{
+    std::vector<std::string> ifr_names;
+
+#if defined (__linux)
+    int socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if (socketfd == -1)
+    {
+        return {};
+    }
+
+    struct ifreq ifr;
+    int result = 0;
+
+    ifr.ifr_ifindex = 1;
+    while((result = ioctl(socketfd, SIOCGIFNAME, &ifr)) != -1)
+    {
+        ifr_names.push_back(ifr.ifr_name);
+        ++ifr.ifr_ifindex;
+    }
+
+    result = close(socketfd);
+#endif
+
+    return ifr_names;
+}
+
+
 Broadcaster::Broadcaster( void )
 {
 #if defined (__linux) || defined(__CYGWIN__)

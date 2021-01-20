@@ -34,6 +34,8 @@
     #include <netinet/in.h>
 #endif
 
+std::vector<std::string> listNetworkConnections();
+
 class Broadcaster : public vsg::Inherit<vsg::Object, Broadcaster>
 {
 public:

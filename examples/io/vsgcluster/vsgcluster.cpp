@@ -41,6 +41,16 @@ int main(int argc, char** argv)
     if (arguments.read({"-s", "--serve"})) viewerMode = SERVER;
     if (arguments.read({"-c", "--client"})) viewerMode = CLIENT;
 
+    if (arguments.read("--ifr-names"))
+    {
+        auto ifr_names = listNetworkConnections();
+        for(auto& name : ifr_names)
+        {
+            std::cout<<name<<std::endl;
+        }
+        return 0;
+    }
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
 
