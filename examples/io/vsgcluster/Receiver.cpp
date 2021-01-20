@@ -16,88 +16,87 @@
 *  THE SOFTWARE.
 */
 
-#include <stdio.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <sys/types.h>
-#if defined (_WIN32) && !defined(__CYGWIN__)
-#include <winsock.h>
+#if defined(_WIN32) && !defined(__CYGWIN__)
+#    include <winsock.h>
 #else
-#include <unistd.h>
-#include <sys/uio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/time.h>
-#include <errno.h>
+#    include <arpa/inet.h>
+#    include <errno.h>
+#    include <netdb.h>
+#    include <netinet/in.h>
+#    include <sys/socket.h>
+#    include <sys/time.h>
+#    include <sys/uio.h>
+#    include <unistd.h>
 #endif
 #include <string.h>
-
 
 #include "Receiver.h"
 
 #include <iostream>
 #include <osg/Notify>
 
-Receiver::Receiver( void )
+Receiver::Receiver(void)
 {
     _port = 0;
     _initialized = false;
     _buffer = 0L;
 
 #if defined(_WIN32) && !defined(__CYGWIN__)
-    WORD version = MAKEWORD(1,1);
+    WORD version = MAKEWORD(1, 1);
     WSADATA wsaData;
     // First, we start up Winsock
     WSAStartup(version, &wsaData);
 #endif
 }
 
-Receiver::~Receiver( void )
+Receiver::~Receiver(void)
 {
-#if defined (_WIN32) && !defined(__CYGWIN__)
-    closesocket( _so);
+#if defined(_WIN32) && !defined(__CYGWIN__)
+    closesocket(_so);
 
     WSACleanup();
 #else
-    close( _so );
+    close(_so);
 #endif
 }
 
-bool Receiver::init( void )
+bool Receiver::init(void)
 {
-    if( _port == 0 )
+    if (_port == 0)
     {
-        fprintf( stderr, "Receiver::init() - port not defined\n" );
+        fprintf(stderr, "Receiver::init() - port not defined\n");
         return false;
     }
 
-    if( (_so = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 )
+    if ((_so = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
-        perror( "Socket" );
+        perror("Socket");
         return false;
     }
 
-#if defined (_WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__)
     const BOOL on = TRUE;
-    setsockopt( _so, SOL_SOCKET, SO_REUSEADDR, (const char*) &on, sizeof(int));
+    setsockopt(_so, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(int));
 #else
     int on = 1;
-    setsockopt( _so, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    setsockopt(_so, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 #endif
 
     saddr.sin_family = AF_INET;
-    saddr.sin_port   = htons( _port );
-#if defined (_WIN32) && !defined(__CYGWIN__)
-    saddr.sin_addr.s_addr =  htonl(INADDR_ANY);
+    saddr.sin_port = htons(_port);
+#if defined(_WIN32) && !defined(__CYGWIN__)
+    saddr.sin_addr.s_addr = htonl(INADDR_ANY);
 #else
-    saddr.sin_addr.s_addr =  0;
+    saddr.sin_addr.s_addr = 0;
 #endif
 
     // set up a 1 second timeout.
-#if defined (_WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__)
     DWORD tv = 1000; // 1 sec in ms
-    if (setsockopt( _so, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&tv), sizeof(DWORD)))
+    if (setsockopt(_so, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&tv), sizeof(DWORD)))
     {
         perror("setsockopt");
         return false;
@@ -106,16 +105,16 @@ bool Receiver::init( void )
     struct timeval tv;
     tv.tv_sec = 1;
     tv.tv_usec = 0;
-    if (setsockopt( _so, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)))
+    if (setsockopt(_so, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)))
     {
         perror("setsockopt");
         return false;
     }
 #endif
 
-    if( bind( _so, (struct sockaddr *)&saddr, sizeof( saddr )) < 0 )
+    if (bind(_so, (struct sockaddr*)&saddr, sizeof(saddr)) < 0)
     {
-        perror( "bind" );
+        perror("bind");
         return false;
     }
 
@@ -123,64 +122,62 @@ bool Receiver::init( void )
     return _initialized;
 }
 
-
-void Receiver::setPort( const short port )
+void Receiver::setPort(const short port)
 {
     _port = port;
 }
 
-void Receiver::setBuffer( void *buffer, const unsigned int size )
+void Receiver::setBuffer(void* buffer, const unsigned int size)
 {
     _buffer = buffer;
     _buffer_size = size;
 }
 
-unsigned int Receiver::sync( void )
+unsigned int Receiver::sync(void)
 {
-    if(!_initialized) init();
+    if (!_initialized) init();
 
-    if( _buffer == 0L )
+    if (_buffer == 0L)
     {
-        fprintf( stderr, "Receiver::sync() - No buffer\n" );
+        fprintf(stderr, "Receiver::sync() - No buffer\n");
         return 0;
     }
 
-#if defined(__linux) || defined(__FreeBSD__) || defined( __APPLE__ ) || defined(__FreeBSD_kernel__) || defined(__GNU__)
+#if defined(__linux) || defined(__FreeBSD__) || defined(__APPLE__) || defined(__FreeBSD_kernel__) || defined(__GNU__)
     socklen_t size;
 #else
     int size;
 #endif
-    size = sizeof( struct sockaddr_in );
+    size = sizeof(struct sockaddr_in);
 
     fd_set fdset;
-    FD_ZERO( &fdset );
-    FD_SET( _so, &fdset );
+    FD_ZERO(&fdset);
+    FD_SET(_so, &fdset);
 
     struct timeval tv;
     tv.tv_sec = 1;
     tv.tv_usec = 0;
 
+#if defined(_WIN32) && !defined(__CYGWIN__)
 
-#if defined (_WIN32) && !defined(__CYGWIN__)
+    int read_bytes = recvfrom(_so, (char*)_buffer, _buffer_size, 0, (sockaddr*)&saddr, &size);
 
-    int read_bytes = recvfrom(_so, (char *)_buffer, _buffer_size, 0, (sockaddr*)&saddr, &size);
-
-    if (read_bytes<0)
+    if (read_bytes < 0)
     {
-        int err = WSAGetLastError ();
+        int err = WSAGetLastError();
         if (err == WSAETIMEDOUT)
         {
             OSG_INFO << "Receiver::sync() : Connection timed out." << std::endl;
             return 0;
         }
 
-        if (err!=0)
+        if (err != 0)
         {
-            wchar_t *s = NULL;
+            wchar_t* s = NULL;
             FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                        NULL, WSAGetLastError(),
-                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                        (LPWSTR)&s, 0, NULL);
+                           NULL, WSAGetLastError(),
+                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                           (LPWSTR)&s, 0, NULL);
             fprintf(stderr, "Receiver::sync() - error  : %S\n", s);
             LocalFree(s);
         }
@@ -190,16 +187,15 @@ unsigned int Receiver::sync( void )
 
 #else
 
-    ssize_t read_bytes = recvfrom( _so, (caddr_t)_buffer, _buffer_size, 0, 0, &size );
+    ssize_t read_bytes = recvfrom(_so, (caddr_t)_buffer, _buffer_size, 0, 0, &size);
 
-    if (read_bytes<0)
+    if (read_bytes < 0)
     {
-        OSG_INFO<<"Receiver::sync() : "<<strerror(errno)<<std::endl;
+        OSG_INFO << "Receiver::sync() : " << strerror(errno) << std::endl;
         return 0;
     }
 
 #endif
-
 
     return static_cast<unsigned int>(read_bytes);
 }

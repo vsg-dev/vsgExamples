@@ -26,37 +26,35 @@
 //
 
 #if defined(_WIN32) && !defined(__CYGWIN__)
-#include <winsock.h>
+#    include <winsock.h>
 #else
-#include <netinet/in.h>
+#    include <netinet/in.h>
 #endif
 
 #include <vsg/core/Inherit.h>
 
 class Receiver : public vsg::Inherit<vsg::Object, Receiver>
 {
-public :
-
+public:
     Receiver();
 
     // setBuffer defines the buffer into which the broadcasted
     // message will be received.
-    void setBuffer( void *buffer, const unsigned int size );
+    void setBuffer(void* buffer, const unsigned int size);
 
     // Define what port to listen and bind to
-    void setPort( const short port );
+    void setPort(const short port);
 
     // Sync does a blocking wait to recieve next message
-    unsigned int sync( void );
+    unsigned int sync(void);
 
-private :
-    bool init( void );
+private:
+    bool init(void);
 
-private :
-
+private:
     virtual ~Receiver();
 
-#if defined (_WIN32) && !defined(__CYGWIN__)
+#if defined(_WIN32) && !defined(__CYGWIN__)
     SOCKET _so;
     SOCKADDR_IN saddr;
 #else
@@ -66,6 +64,6 @@ private :
 
     bool _initialized;
     short _port;
-    void *_buffer;
+    void* _buffer;
     unsigned int _buffer_size;
 };

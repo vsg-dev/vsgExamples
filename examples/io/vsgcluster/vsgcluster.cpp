@@ -44,20 +44,19 @@ int main(int argc, char** argv)
     if (arguments.read("--ifr-names"))
     {
         auto ifr_names = listNetworkConnections();
-        for(auto& name : ifr_names)
+        for (auto& name : ifr_names)
         {
-            std::cout<<name<<std::endl;
+            std::cout << name << std::endl;
         }
         return 0;
     }
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-
-    std::cout<<"portNumber = "<<portNumber<<std::endl;
-    std::cout<<"ifrName = "<<ifrName<<std::endl;
-    std::cout<<"hostName = "<<hostName<<std::endl;
-    std::cout<<"viewerMode = "<<viewerMode<<std::endl;
+    std::cout << "portNumber = " << portNumber << std::endl;
+    std::cout << "ifrName = " << ifrName << std::endl;
+    std::cout << "hostName = " << hostName << std::endl;
+    std::cout << "viewerMode = " << viewerMode << std::endl;
 
     auto bc = Broadcaster::create_if(viewerMode == SERVER);
     auto rc = Receiver::create_if(viewerMode == CLIENT);
@@ -73,9 +72,8 @@ int main(int argc, char** argv)
         rc->setPort(portNumber);
     }
 
-    std::cout<<"bc = "<<bc<<std::endl;
-    std::cout<<"rc = "<<rc<<std::endl;
-
+    std::cout << "bc = " << bc << std::endl;
+    std::cout << "rc = " << rc << std::endl;
 
 #ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
@@ -172,9 +170,9 @@ int main(int argc, char** argv)
     viewer->compile();
 
     std::vector<uint64_t> buffer(1);
-    uint32_t buffer_size = buffer.size()*sizeof(decltype(buffer)::value_type);
+    uint32_t buffer_size = buffer.size() * sizeof(decltype(buffer)::value_type);
 
-    std::cout<<"buffer_size = "<<buffer_size<<std::endl;
+    std::cout << "buffer_size = " << buffer_size << std::endl;
 
     // rendering main loop
     while (viewer->advanceToNextFrame())
@@ -190,7 +188,7 @@ int main(int argc, char** argv)
             rc->setBuffer(buffer.data(), buffer_size);
             unsigned int size = rc->sync();
 
-            std::cout<<"read size = "<<size<<std::endl;
+            std::cout << "read size = " << size << std::endl;
         }
 
         // pass any events into EventHandlers assigned to the Viewer

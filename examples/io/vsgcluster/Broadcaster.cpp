@@ -16,52 +16,51 @@
 *  THE SOFTWARE.
 */
 
-#include <stdio.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <iostream>
+#include <stdio.h>
+#include <sys/types.h>
 
-#if !defined (WIN32) || defined(__CYGWIN__)
-#include <sys/ioctl.h>
-#include <sys/uio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/time.h>
-#include <net/if.h>
-#include <netdb.h>
-#include <errno.h>
+#if !defined(WIN32) || defined(__CYGWIN__)
+#    include <arpa/inet.h>
+#    include <errno.h>
+#    include <net/if.h>
+#    include <netdb.h>
+#    include <netinet/in.h>
+#    include <sys/ioctl.h>
+#    include <sys/socket.h>
+#    include <sys/time.h>
+#    include <sys/uio.h>
 #endif
 
 #include <string.h>
 
 #if defined(__linux)
-    #include <unistd.h>
-    #include <linux/sockios.h>
+#    include <linux/sockios.h>
+#    include <unistd.h>
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-    #include <unistd.h>
-    #include <sys/sockio.h>
+#    include <sys/sockio.h>
+#    include <unistd.h>
 #elif defined(__sgi)
-    #include <unistd.h>
-    #include <net/soioctl.h>
-#elif defined(__CYGWIN__) 
-    #include <unistd.h>
-#elif defined (__GNU__)
-    #include <unistd.h>
-#elif defined(__sun) 
-    #include <unistd.h>
-    #include <sys/sockio.h>
-#elif defined (__APPLE__)
-    #include <unistd.h>
-    #include <sys/sockio.h>
-#elif defined (WIN32)
-    #include <winsock.h>
-    #include <stdio.h>
-#elif defined (__hpux)
-    #include <unistd.h>
+#    include <net/soioctl.h>
+#    include <unistd.h>
+#elif defined(__CYGWIN__)
+#    include <unistd.h>
+#elif defined(__GNU__)
+#    include <unistd.h>
+#elif defined(__sun)
+#    include <sys/sockio.h>
+#    include <unistd.h>
+#elif defined(__APPLE__)
+#    include <sys/sockio.h>
+#    include <unistd.h>
+#elif defined(WIN32)
+#    include <stdio.h>
+#    include <winsock.h>
+#elif defined(__hpux)
+#    include <unistd.h>
 #else
-    #error Teach me how to build on this system
+#    error Teach me how to build on this system
 #endif
 
 #include "Broadcaster.h"
@@ -73,7 +72,7 @@ std::vector<std::string> listNetworkConnections()
 {
     std::vector<std::string> ifr_names;
 
-#if defined (__linux)
+#if defined(__linux)
     int socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
     if (socketfd == -1)
     {
@@ -84,7 +83,7 @@ std::vector<std::string> listNetworkConnections()
     int result = 0;
 
     ifr.ifr_ifindex = 1;
-    while((result = ioctl(socketfd, SIOCGIFNAME, &ifr)) != -1)
+    while ((result = ioctl(socketfd, SIOCGIFNAME, &ifr)) != -1)
     {
         ifr_names.push_back(ifr.ifr_name);
         ++ifr.ifr_ifindex;
@@ -96,152 +95,150 @@ std::vector<std::string> listNetworkConnections()
     return ifr_names;
 }
 
-
-Broadcaster::Broadcaster( void )
+Broadcaster::Broadcaster(void)
 {
-#if defined (__linux) || defined(__CYGWIN__)
-     _ifr_name = "eth0";
+#if defined(__linux) || defined(__CYGWIN__)
+    _ifr_name = "eth0";
 #elif defined(__sun)
-     _ifr_name = "hme0";
-#elif !defined (WIN32)
-     _ifr_name = "ef0";
+    _ifr_name = "hme0";
+#elif !defined(WIN32)
+    _ifr_name = "ef0";
 #endif
     _port = 0;
     _initialized = false;
     _buffer = 0L;
     _address = 0;
 
-#if defined (WIN32) && !defined(__CYGWIN__)
-    WORD version = MAKEWORD(1,1);
+#if defined(WIN32) && !defined(__CYGWIN__)
+    WORD version = MAKEWORD(1, 1);
     WSADATA wsaData;
     // First, we start up Winsock
     WSAStartup(version, &wsaData);
 #endif
-
 }
 
-Broadcaster::~Broadcaster( void )
+Broadcaster::~Broadcaster(void)
 {
-#if defined (WIN32) && !defined(__CYGWIN__)
-    closesocket( _so);
+#if defined(WIN32) && !defined(__CYGWIN__)
+    closesocket(_so);
 
     WSACleanup();
 #else
-    close( _so );
+    close(_so);
 #endif
 }
 
-bool Broadcaster::init( void )
+bool Broadcaster::init(void)
 {
-    if( _port == 0 )
+    if (_port == 0)
     {
-        fprintf( stderr, "Broadcaster::init() - port not defined\n" );
+        fprintf(stderr, "Broadcaster::init() - port not defined\n");
         return false;
     }
 
-    if( (_so = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 )
+    if ((_so = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
-        perror( "Broadcaster::init() - socket error" );
+        perror("Broadcaster::init() - socket error");
         return false;
     }
 
-#if defined (WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     const BOOL on = TRUE;
-    setsockopt( _so, SOL_SOCKET, SO_REUSEADDR, (const char *) &on, sizeof(int));
+    setsockopt(_so, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(int));
 #else
     int on = 1;
-    setsockopt( _so, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    setsockopt(_so, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 #endif
 
     saddr.sin_family = AF_INET;
-    saddr.sin_port   = htons( _port );
-    if( _address != 0 )
+    saddr.sin_port = htons(_port);
+    if (_address != 0)
     {
         saddr.sin_addr.s_addr = _address;
     }
     else
     {
-    #if defined (WIN32) && !defined(__CYGWIN__)
-        setsockopt( _so, SOL_SOCKET, SO_BROADCAST, (const char *) &on, sizeof(int));
+#if defined(WIN32) && !defined(__CYGWIN__)
+        setsockopt(_so, SOL_SOCKET, SO_BROADCAST, (const char*)&on, sizeof(int));
         saddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-    #else
-        setsockopt( _so, SOL_SOCKET, SO_BROADCAST, &on, sizeof(on));
+#else
+        setsockopt(_so, SOL_SOCKET, SO_BROADCAST, &on, sizeof(on));
 
         struct ifreq ifr;
-        strcpy( ifr.ifr_name, _ifr_name.c_str());
+        strcpy(ifr.ifr_name, _ifr_name.c_str());
 
-        if( (ioctl( _so, SIOCGIFBRDADDR, &ifr)) < 0 )
+        if ((ioctl(_so, SIOCGIFBRDADDR, &ifr)) < 0)
         {
-            printf(" ifr.ifr_name = %s\n",ifr.ifr_name);
-            perror( "Broadcaster::init() - cannot get Broadcast Address" );
+            printf(" ifr.ifr_name = %s\n", ifr.ifr_name);
+            perror("Broadcaster::init() - cannot get Broadcast Address");
             return false;
         }
-        saddr.sin_addr.s_addr = (((sockaddr_in *)&ifr.ifr_broadaddr)->sin_addr.s_addr);
-    #endif
+        saddr.sin_addr.s_addr = (((sockaddr_in*)&ifr.ifr_broadaddr)->sin_addr.s_addr);
+#endif
     }
 
 #define _VERBOSE 1
 #ifdef _VERBOSE
-    unsigned char *ptr = (unsigned char *)&saddr.sin_addr.s_addr;
-    printf( "Broadcast address : %u.%u.%u.%u\n", ptr[0], ptr[1], ptr[2], ptr[3] );
+    unsigned char* ptr = (unsigned char*)&saddr.sin_addr.s_addr;
+    printf("Broadcast address : %u.%u.%u.%u\n", ptr[0], ptr[1], ptr[2], ptr[3]);
 #endif
 
     _initialized = true;
     return _initialized;
 }
 
-void Broadcaster::setIFRName( const std::string& name )
+void Broadcaster::setIFRName(const std::string& name)
 {
     _ifr_name = name;
 }
 
-void Broadcaster::setHost( const char *hostname )
+void Broadcaster::setHost(const char* hostname)
 {
-    struct hostent *h;
-    if( (h = gethostbyname( hostname )) == 0L )
+    struct hostent* h;
+    if ((h = gethostbyname(hostname)) == 0L)
     {
-        fprintf( stderr, "Broadcaster::setHost() - Cannot resolve an address for \"%s\".\n", hostname );
+        fprintf(stderr, "Broadcaster::setHost() - Cannot resolve an address for \"%s\".\n", hostname);
         _address = 0;
     }
     else
-        _address = *(( unsigned long  *)h->h_addr);
+        _address = *((unsigned long*)h->h_addr);
 }
 
-void Broadcaster::setPort( const short port )
+void Broadcaster::setPort(const short port)
 {
     _port = port;
 }
 
-void Broadcaster::setBuffer( const void *buffer, unsigned int size )
+void Broadcaster::setBuffer(const void* buffer, unsigned int size)
 {
     _buffer = buffer;
     _buffer_size = size;
 }
 
-void Broadcaster::sync( void )
+void Broadcaster::sync(void)
 {
-    if(!_initialized) init();
+    if (!_initialized) init();
 
-    if( _buffer == 0L )
+    if (_buffer == 0L)
     {
-        fprintf( stderr, "Broadcaster::sync() - No buffer\n" );
+        fprintf(stderr, "Broadcaster::sync() - No buffer\n");
         return;
     }
 
-#if defined (WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
 
-    unsigned int size = sizeof( SOCKADDR_IN );
-    int result = sendto( _so, (const char *)_buffer, _buffer_size, 0, (struct sockaddr *)&saddr, size );
-    if (result==SOCKET_ERROR)
+    unsigned int size = sizeof(SOCKADDR_IN);
+    int result = sendto(_so, (const char*)_buffer, _buffer_size, 0, (struct sockaddr*)&saddr, size);
+    if (result == SOCKET_ERROR)
     {
-		int err = WSAGetLastError();
-		if (err != 0)
+        int err = WSAGetLastError();
+        if (err != 0)
         {
-            wchar_t *s = NULL;
+            wchar_t* s = NULL;
             FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                        NULL, WSAGetLastError(),
-                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                        (LPWSTR)&s, 0, NULL);
+                           NULL, WSAGetLastError(),
+                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                           (LPWSTR)&s, 0, NULL);
             fprintf(stderr, "Broadcaster::sync() - error  : %S\n", s);
             LocalFree(s);
         }
@@ -249,14 +246,12 @@ void Broadcaster::sync( void )
 
 #else
 
-    unsigned int size = sizeof( struct sockaddr_in );
-    ssize_t result = sendto( _so, (const void *)_buffer, _buffer_size, 0, (struct sockaddr *)&saddr, size );
-    if (result<0)
+    unsigned int size = sizeof(struct sockaddr_in);
+    ssize_t result = sendto(_so, (const void*)_buffer, _buffer_size, 0, (struct sockaddr*)&saddr, size);
+    if (result < 0)
     {
-        OSG_WARN<<"Broadcaster::sync() - error : "<<strerror(errno)<<std::endl;
+        OSG_WARN << "Broadcaster::sync() - error : " << strerror(errno) << std::endl;
     }
 
 #endif
-
 }
-
