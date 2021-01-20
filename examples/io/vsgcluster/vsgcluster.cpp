@@ -58,19 +58,8 @@ int main(int argc, char** argv)
     std::cout << "hostName = " << hostName << std::endl;
     std::cout << "viewerMode = " << viewerMode << std::endl;
 
-    auto bc = Broadcaster::create_if(viewerMode == SERVER);
-    auto rc = Receiver::create_if(viewerMode == CLIENT);
-
-    if (bc)
-    {
-        if (!ifrName.empty()) bc->setIFRName(ifrName);
-        bc->setPort(portNumber);
-    }
-
-    if (rc)
-    {
-        rc->setPort(portNumber);
-    }
+    auto bc = Broadcaster::create_if(viewerMode == SERVER, portNumber, ifrName);
+    auto rc = Receiver::create_if(viewerMode == CLIENT, portNumber);
 
     std::cout << "bc = " << bc << std::endl;
     std::cout << "rc = " << rc << std::endl;
@@ -179,16 +168,13 @@ int main(int argc, char** argv)
     {
         if (bc)
         {
-            bc->setBuffer(buffer.data(), buffer_size);
-            bc->sync();
+            bc->broadcast(buffer.data(), buffer_size);
         }
 
         if (rc)
         {
-            rc->setBuffer(buffer.data(), buffer_size);
-            unsigned int size = rc->sync();
-
-            std::cout << "read size = " << size << std::endl;
+            unsigned int size = rc->recieve(buffer.data(), buffer_size);
+            std::cout << "recieved size = " << size << std::endl;
         }
 
         // pass any events into EventHandlers assigned to the Viewer

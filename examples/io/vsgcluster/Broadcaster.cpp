@@ -95,19 +95,22 @@ std::vector<std::string> listNetworkConnections()
     return ifr_names;
 }
 
-Broadcaster::Broadcaster(void)
+Broadcaster::Broadcaster(const std::string& hostname, uint16_t port, const std::string& ifrName) :
+    _port(port),
+    _ifr_name(ifrName),
+    _initialized(false),
+    _address(0)
 {
-#if defined(__linux) || defined(__CYGWIN__)
-    _ifr_name = "eth0";
-#elif defined(__sun)
-    _ifr_name = "hme0";
-#elif !defined(WIN32)
-    _ifr_name = "ef0";
-#endif
-    _port = 0;
-    _initialized = false;
-    _buffer = 0L;
-    _address = 0;
+    if (_ifr_name.empty())
+    {
+    #if defined(__linux) || defined(__CYGWIN__)
+        _ifr_name = "eth0";
+    #elif defined(__sun)
+        _ifr_name = "hme0";
+    #elif !defined(WIN32)
+        _ifr_name = "ef0";
+    #endif
+    }
 
 #if defined(WIN32) && !defined(__CYGWIN__)
     WORD version = MAKEWORD(1, 1);
@@ -115,6 +118,23 @@ Broadcaster::Broadcaster(void)
     // First, we start up Winsock
     WSAStartup(version, &wsaData);
 #endif
+
+    if (!hostname.empty())
+    {
+        struct hostent* h;
+        if ((h = gethostbyname(hostname.c_str())) == 0L)
+        {
+            std::cerr<<"Broadcaster::setHost() - Cannot resolve an address for "<<hostname<<std::endl;
+            _address = 0;
+        }
+        else
+            _address = *((unsigned long*)h->h_addr);
+    }
+}
+
+Broadcaster::Broadcaster(uint16_t port, const std::string& ifrName) :
+    Broadcaster({}, port, ifrName)
+{
 }
 
 Broadcaster::~Broadcaster(void)
@@ -187,39 +207,11 @@ bool Broadcaster::init(void)
     return _initialized;
 }
 
-void Broadcaster::setIFRName(const std::string& name)
-{
-    _ifr_name = name;
-}
-
-void Broadcaster::setHost(const char* hostname)
-{
-    struct hostent* h;
-    if ((h = gethostbyname(hostname)) == 0L)
-    {
-        fprintf(stderr, "Broadcaster::setHost() - Cannot resolve an address for \"%s\".\n", hostname);
-        _address = 0;
-    }
-    else
-        _address = *((unsigned long*)h->h_addr);
-}
-
-void Broadcaster::setPort(const short port)
-{
-    _port = port;
-}
-
-void Broadcaster::setBuffer(const void* buffer, unsigned int size)
-{
-    _buffer = buffer;
-    _buffer_size = size;
-}
-
-void Broadcaster::sync(void)
+void Broadcaster::broadcast(const void* buffer, unsigned int buffer_size)
 {
     if (!_initialized) init();
 
-    if (_buffer == 0L)
+    if (buffer == 0L)
     {
         fprintf(stderr, "Broadcaster::sync() - No buffer\n");
         return;
@@ -228,7 +220,7 @@ void Broadcaster::sync(void)
 #if defined(WIN32) && !defined(__CYGWIN__)
 
     unsigned int size = sizeof(SOCKADDR_IN);
-    int result = sendto(_so, (const char*)_buffer, _buffer_size, 0, (struct sockaddr*)&saddr, size);
+    int result = sendto(_so, (const char*)buffer, buffer_size, 0, (struct sockaddr*)&saddr, size);
     if (result == SOCKET_ERROR)
     {
         int err = WSAGetLastError();
@@ -247,7 +239,7 @@ void Broadcaster::sync(void)
 #else
 
     unsigned int size = sizeof(struct sockaddr_in);
-    ssize_t result = sendto(_so, (const void*)_buffer, _buffer_size, 0, (struct sockaddr*)&saddr, size);
+    ssize_t result = sendto(_so, (const void*)buffer, buffer_size, 0, (struct sockaddr*)&saddr, size);
     if (result < 0)
     {
         OSG_WARN << "Broadcaster::sync() - error : " << strerror(errno) << std::endl;

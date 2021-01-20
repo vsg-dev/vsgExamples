@@ -39,24 +39,14 @@ std::vector<std::string> listNetworkConnections();
 class Broadcaster : public vsg::Inherit<vsg::Object, Broadcaster>
 {
 public:
-    Broadcaster();
+    Broadcaster(uint16_t port, const std::string& ifrName = {});
 
-    // Set the broadcast port
-    void setPort(const short port);
+    Broadcaster(const std::string& hostname, uint16_t port, const std::string& ifrName = {});
 
     // Set the buffer to be broadcast
-    void setBuffer(const void* buffer, unsigned int buffer_size);
+    void setBuffer();
 
-    // Set the IFRName i.e. eth0, will default to platform appropriate setting where possible.
-    void setIFRName(const std::string& name);
-
-    // Set a recipient host.  If this is used, the Broadcaster
-    // no longer broadcasts, but rather directs UDP packets at
-    // host.
-    void setHost(const char* hostname);
-
-    // Sync broadcasts the buffer
-    void sync(void);
+    void broadcast(const void* buffer, unsigned int buffer_size);
 
 private:
     bool init(void);
@@ -73,8 +63,6 @@ private:
 #endif
     bool _initialized;
     short _port;
-    const void* _buffer;
-    unsigned int _buffer_size;
 #if defined(_WIN32) && !defined(__CYGWIN__)
     SOCKADDR_IN saddr;
 #else

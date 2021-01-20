@@ -38,12 +38,10 @@
 #include <iostream>
 #include <osg/Notify>
 
-Receiver::Receiver(void)
+Receiver::Receiver(uint16_t port) :
+    _port(port),
+    _initialized(false)
 {
-    _port = 0;
-    _initialized = false;
-    _buffer = 0L;
-
 #if defined(_WIN32) && !defined(__CYGWIN__)
     WORD version = MAKEWORD(1, 1);
     WSADATA wsaData;
@@ -122,22 +120,11 @@ bool Receiver::init(void)
     return _initialized;
 }
 
-void Receiver::setPort(const short port)
-{
-    _port = port;
-}
-
-void Receiver::setBuffer(void* buffer, const unsigned int size)
-{
-    _buffer = buffer;
-    _buffer_size = size;
-}
-
-unsigned int Receiver::sync(void)
+unsigned int Receiver::recieve(void* buffer, const unsigned int buffer_size)
 {
     if (!_initialized) init();
 
-    if (_buffer == 0L)
+    if (buffer == 0L)
     {
         fprintf(stderr, "Receiver::sync() - No buffer\n");
         return 0;
@@ -160,7 +147,7 @@ unsigned int Receiver::sync(void)
 
 #if defined(_WIN32) && !defined(__CYGWIN__)
 
-    int read_bytes = recvfrom(_so, (char*)_buffer, _buffer_size, 0, (sockaddr*)&saddr, &size);
+    int read_bytes = recvfrom(_so, (char*)buffer, buffer_size, 0, (sockaddr*)&saddr, &size);
 
     if (read_bytes < 0)
     {
@@ -187,7 +174,7 @@ unsigned int Receiver::sync(void)
 
 #else
 
-    ssize_t read_bytes = recvfrom(_so, (caddr_t)_buffer, _buffer_size, 0, 0, &size);
+    ssize_t read_bytes = recvfrom(_so, (caddr_t)buffer, buffer_size, 0, 0, &size);
 
     if (read_bytes < 0)
     {

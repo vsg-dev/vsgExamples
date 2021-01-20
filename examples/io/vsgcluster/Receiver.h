@@ -36,17 +36,10 @@
 class Receiver : public vsg::Inherit<vsg::Object, Receiver>
 {
 public:
-    Receiver();
-
-    // setBuffer defines the buffer into which the broadcasted
-    // message will be received.
-    void setBuffer(void* buffer, const unsigned int size);
-
-    // Define what port to listen and bind to
-    void setPort(const short port);
+    Receiver(uint16_t port);
 
     // Sync does a blocking wait to recieve next message
-    unsigned int sync(void);
+    unsigned int recieve(void* buffer, const unsigned int buffer_size);
 
 private:
     bool init(void);
@@ -64,6 +57,4 @@ private:
 
     bool _initialized;
     short _port;
-    void* _buffer;
-    unsigned int _buffer_size;
 };
