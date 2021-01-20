@@ -8,6 +8,35 @@
 
 #include "Broadcaster.h"
 #include "Receiver.h"
+#include "Packet.h"
+
+
+void test()
+{
+    std::cout<<"void test()"<<std::endl;
+
+    Packets packets;
+
+    packets.packets[0] = std::unique_ptr<Packet>(new Packet);
+
+    std::cout<<"middle"<<std::endl;
+
+    packets.packets[1] = std::unique_ptr<Packet>(new Packet);
+
+    packets.clear();
+
+    packets.copy(std::string("ABCDEFGHIJKLMNOPQRSTUVCW0123"));
+
+    std::cout<<"assemble = ["<<packets.assemble()<<"]"<<std::endl;
+
+    packets.copy(std::string("23"));
+
+    std::cout<<"assemble = ["<<packets.assemble()<<"]"<<std::endl;
+
+    std::cout<<"end"<<std::endl;
+
+}
+
 
 enum ViewerMode
 {
@@ -40,6 +69,12 @@ int main(int argc, char** argv)
     ViewerMode viewerMode = STAND_ALONE;
     if (arguments.read({"-s", "--serve"})) viewerMode = SERVER;
     if (arguments.read({"-c", "--client"})) viewerMode = CLIENT;
+
+    if (arguments.read("--test"))
+    {
+        test();
+        return 0;
+    }
 
     if (arguments.read("--ifr-names"))
     {

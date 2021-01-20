@@ -1,6 +1,7 @@
 set(SOURCES
     Broadcaster.cpp
     Receiver.cpp
+    Packet.cpp
     vsgcluster.cpp
 )
 
