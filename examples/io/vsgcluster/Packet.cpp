@@ -24,7 +24,7 @@ Packet::~Packet()
 //
 // Packets
 //
-void Packets::clear()
+void PacketSet::clear()
 {
     for(auto& packet : packets)
     {
@@ -33,7 +33,16 @@ void Packets::clear()
     packets.clear();
 }
 
-void Packets::copy(const std::string& str)
+bool PacketSet::add(std::unique_ptr<Packet> packet)
+{
+    bool complete = (packets.size() + 1) == packet->header.packetCount;
+
+    packets[packet->header.packetIndex] = std::move(packet);
+
+    return complete;
+}
+
+void PacketSet::copy(const std::string& str)
 {
     clear();
 
@@ -67,7 +76,16 @@ void Packets::copy(const std::string& str)
     }
 }
 
-std::string Packets::assemble() const
+void PacketSet::copy(vsg::ref_ptr<vsg::Object> object)
+{
+    std::ostringstream ostr;
+    vsg::ReaderWriter_vsg rw;
+    rw.write(object, ostr);
+
+    copy(ostr.str());
+}
+
+std::string PacketSet::assemble() const
 {
     if (packets.empty())
     {
@@ -90,17 +108,20 @@ std::string Packets::assemble() const
     return str;
 }
 
+vsg::ref_ptr<vsg::Object> PacketSet::convert()
+{
+    std::istringstream istr(assemble());
+    vsg::ReaderWriter_vsg rw;
+    return rw.read(istr);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 //
 // PacketBroadcaster
 //
 void PacketBroadcaster::broadcast(uint64_t set, vsg::ref_ptr<vsg::Object> object)
 {
-    std::ostringstream ostr;
-    vsg::ReaderWriter_vsg rw;
-    rw.write(object, ostr);
-
-    packets.copy(ostr.str());
+    packets.copy(object);
 
     for(auto& packet : packets.packets)
     {
@@ -116,48 +137,113 @@ void PacketBroadcaster::broadcast(uint64_t set, vsg::ref_ptr<vsg::Object> object
 //
 // PacketReciever
 //
+std::unique_ptr<Packet> PacketReceiver::createPacket()
+{
+    if (!packetPool.empty())
+    {
+        std::unique_ptr<Packet> packet = std::move(packetPool.top());
+        packetPool.pop();
+        return packet;
+    }
+#if 0
+    for(auto& packetSet : packetSetPool)
+    {
+        auto packet = packetSet->takePacketFromPool();
+        if (packet)
+        {
+            std::cout<<"PacketReceiver::createPacket() taken from inactive pool"<<std::endl;
+            return packet;
+        }
+    }
+#endif
+    for(auto& packetSet : packetSetMap)
+    {
+        auto packet = packetSet.second->takePacketFromPool();
+        if (packet)
+        {
+            std::cout<<"PacketReceiver::createPacket() taken from active pool"<<std::endl;
+            return packet;
+        }
+    }
+
+    std::cout<<"PacketReceiver::createPacket() created new Packet"<<std::endl;
+    return std::unique_ptr<Packet>(new Packet);
+}
+
+vsg::ref_ptr<vsg::Object> PacketReceiver::completed(uint64_t set)
+{
+    auto set_itr = packetSetMap.find(set);
+    if (set_itr == packetSetMap.end()) return {};
+
+    auto object = (set_itr->second)->convert();
+
+    auto next_itr = set_itr; ++next_itr;
+
+    for(auto itr = packetSetMap.begin(); itr != next_itr; ++itr)
+    {
+        packetSetPool.push(std::move(itr->second));
+    }
+
+    packetSetMap.erase(packetSetMap.begin(), next_itr);
+
+    return object;
+}
+
+bool PacketReceiver::add(std::unique_ptr<Packet> packet)
+{
+    uint64_t set = packet->header.set;
+    if (packetSetMap.count(set) == 0)
+    {
+        // packet applies to a new set.
+        // need to get a PacketSet from the pool if one is available.
+        if (!packetSetPool.empty())
+        {
+            std::cout<<"Reusing a PacketSet from the pool."<<std::endl;
+            packetSetMap[set] = std::move(packetSetPool.top());
+            packetSetPool.pop();
+        }
+        else
+        {
+            std::cout<<"Creating a new PacketSet."<<std::endl;
+            packetSetMap[set] = std::unique_ptr<PacketSet>(new PacketSet);
+        }
+    }
+    return packetSetMap[set]->add(std::move(packet));
+}
+
 vsg::ref_ptr<vsg::Object> PacketReceiver::receive()
 {
     std::cout<<"\nPacketReceiver::receive()"<<std::endl;
 
-    packets.clear();
-
-    auto packet = packets.createPacket();
-
+    auto packet = createPacket();
     unsigned int size = receiver->recieve(&(*packet), sizeof(Packet));
     if (size == 0)
     {
-        packets.pool.emplace(std::move(packet));
+        packetPool.emplace(std::move(packet));
         return {};
     }
 
-    uint32_t packetCount = packet->header.packetCount;
-
-    std::cout<<"    assinging to "<<packet->header.packetIndex<<std::endl;
-    packets.packets[packet->header.packetIndex] = std::move(packet);
-
-    while (packets.packets.size() < packetCount)
+    uint64_t set = packet->header.set;
+    if (add(std::move(packet)))
     {
-        auto additional_packet = packets.createPacket();
+        return completed(set);
+    }
 
-        unsigned int size = receiver->recieve(&(*additional_packet), sizeof(Packet));
+    while(true)
+    {
+        auto packet = createPacket();
+        unsigned int size = receiver->recieve(&(*packet), sizeof(Packet));
         if (size == 0)
         {
-            packets.pool.emplace(std::move(additional_packet));
+            packetPool.emplace(std::move(packet));
             return {};
         }
 
-        std::cout<<"    assinging to "<<additional_packet->header.packetIndex<<std::endl;
-
-        packets.packets[additional_packet->header.packetIndex] = std::move(additional_packet);
-
-    }
-
-    if (packets.packets.size() == packetCount)
-    {
-        std::istringstream istr(packets.assemble());
-        vsg::ReaderWriter_vsg rw;
-        return rw.read(istr);
+        set = packet->header.set;
+        if (add(std::move(packet)))
+        {
+            return completed(set);
+        }
     }
 
     return {};

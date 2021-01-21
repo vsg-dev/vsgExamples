@@ -15,23 +15,23 @@ void test()
 {
     std::cout<<"void test()"<<std::endl;
 
-    Packets packets;
+    PacketSet packetSet;
 
-    packets.packets[0] = std::unique_ptr<Packet>(new Packet);
+    packetSet.packets[0] = std::unique_ptr<Packet>(new Packet);
 
     std::cout<<"middle"<<std::endl;
 
-    packets.packets[1] = std::unique_ptr<Packet>(new Packet);
+    packetSet.packets[1] = std::unique_ptr<Packet>(new Packet);
 
-    packets.clear();
+    packetSet.clear();
 
-    packets.copy(std::string("ABCDEFGHIJKLMNOPQRSTUVCW0123"));
+    packetSet.copy(std::string("ABCDEFGHIJKLMNOPQRSTUVCW0123"));
 
-    std::cout<<"assemble = ["<<packets.assemble()<<"]"<<std::endl;
+    std::cout<<"assemble = ["<<packetSet.assemble()<<"]"<<std::endl;
 
-    packets.copy(std::string("23"));
+    packetSet.copy(std::string("23"));
 
-    std::cout<<"assemble = ["<<packets.assemble()<<"]"<<std::endl;
+    std::cout<<"assemble = ["<<packetSet.assemble()<<"]"<<std::endl;
 
     std::cout<<"end"<<std::endl;
 
