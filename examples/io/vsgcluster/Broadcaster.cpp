@@ -217,10 +217,12 @@ void Broadcaster::broadcast(const void* buffer, unsigned int buffer_size)
         return;
     }
 
+
 #if defined(WIN32) && !defined(__CYGWIN__)
 
+    int flags = 0;
     unsigned int size = sizeof(SOCKADDR_IN);
-    int result = sendto(_so, (const char*)buffer, buffer_size, 0, (struct sockaddr*)&saddr, size);
+    int result = sendto(_so, (const char*)buffer, buffer_size, flags , (struct sockaddr*)&saddr, size);
     if (result == SOCKET_ERROR)
     {
         int err = WSAGetLastError();
@@ -238,11 +240,21 @@ void Broadcaster::broadcast(const void* buffer, unsigned int buffer_size)
 
 #else
 
+    int flags = MSG_DONTWAIT;
     unsigned int size = sizeof(struct sockaddr_in);
-    ssize_t result = sendto(_so, (const void*)buffer, buffer_size, 0, (struct sockaddr*)&saddr, size);
+    ssize_t result = sendto(_so, (const void*)buffer, buffer_size, flags , (struct sockaddr*)&saddr, size);
+
+    if (result < 0 && errno==EAGAIN)
+    {
+        //std::cout<<"reeat sendto()"<<std::endl;
+        flags = 0;
+        result = sendto(_so, (const void*)buffer, buffer_size, flags, (struct sockaddr*)&saddr, size);
+    }
+
     if (result < 0)
     {
-        OSG_WARN << "Broadcaster::sync() - error : " << strerror(errno) << std::endl;
+        OSG_WARN << "Broadcaster::sync() - errno = "<<errno<<", error : " << strerror(errno) << std::endl;
+        return;
     }
 
 #endif

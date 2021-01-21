@@ -198,18 +198,32 @@ int main(int argc, char** argv)
 
     std::cout << "buffer_size = " << buffer_size << std::endl;
 
+    PacketBroadcaster broadcaster;
+    broadcaster.broadcaster = bc;
+
+    PacketReceiver receiver;
+    receiver.receiver = rc;
+
+    //auto testmodel = vsg::Group::create();//scene;
+    auto testmodel = scene;
+
     // rendering main loop
     while (viewer->advanceToNextFrame())
     {
         if (bc)
         {
-            bc->broadcast(buffer.data(), buffer_size);
+            uint64_t set = viewer->getFrameStamp()->frameCount;
+
+            // bc->broadcast(buffer.data(), buffer_size);
+            broadcaster.broadcast(set, testmodel);
         }
 
         if (rc)
         {
-            unsigned int size = rc->recieve(buffer.data(), buffer_size);
-            std::cout << "recieved size = " << size << std::endl;
+            //unsigned int size = rc->recieve(buffer.data(), buffer_size);
+            //std::cout << "recieved size = " << size << std::endl;
+            auto object = receiver.receive();
+            std::cout<<"recieved "<<object<<std::endl;
         }
 
         // pass any events into EventHandlers assigned to the Viewer

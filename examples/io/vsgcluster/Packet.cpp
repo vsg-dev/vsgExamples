@@ -1,8 +1,10 @@
 
 #include <iostream>
+#include <sstream>
 
 #include "Packet.h"
 
+#include <vsg/io/ReaderWriter_vsg.h>
 
 //////////////////////////////////////////////////////////////////////////////////////
 //
@@ -42,23 +44,14 @@ void Packets::copy(const std::string& str)
 
     while(i < totalSize)
     {
-        std::unique_ptr<Packet> packet;
-        if (pool.empty())
-        {
-            packet = std::unique_ptr<Packet>(new Packet);
-        }
-        else
-        {
-            packet = std::move(pool.top());
-            pool.pop();
-        }
+        auto packet = createPacket();
 
         std::size_t remaining = totalSize - i;
 
-        packet->packetIndex = packetIndex;
-        packet->packetSize = (remaining < DATA_SIZE) ? remaining : DATA_SIZE;
+        packet->header.packetIndex = packetIndex;
+        packet->header.packetSize = (remaining < DATA_SIZE) ? remaining : DATA_SIZE;
 
-        for(std::size_t j = 0; j < packet->packetSize; ++j, ++i)
+        for(std::size_t j = 0; j < packet->header.packetSize; ++j, ++i)
         {
             packet->data[j] = str[i];
         }
@@ -69,8 +62,8 @@ void Packets::copy(const std::string& str)
 
     for(auto& packet : packets)
     {
-        packet.second->packetCount = packetIndex;
-        packet.second->totalSize = totalSize;
+        packet.second->header.packetCount = packetIndex;
+        packet.second->header.totalSize = totalSize;
     }
 }
 
@@ -82,13 +75,13 @@ std::string Packets::assemble() const
     }
 
     std::size_t i = 0;
-    std::size_t totalSize = packets.begin()->second->totalSize;
+    std::size_t totalSize = packets.begin()->second->header.totalSize;
 
     std::string str(totalSize, '\0');
 
     for(auto& packet : packets)
     {
-        for(std::size_t j=0; j<packet.second->packetSize; ++j, ++i)
+        for(std::size_t j=0; j<packet.second->header.packetSize; ++j, ++i)
         {
             str[i] = packet.second->data[j];
         }
@@ -97,3 +90,75 @@ std::string Packets::assemble() const
     return str;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////
+//
+// PacketBroadcaster
+//
+void PacketBroadcaster::broadcast(uint64_t set, vsg::ref_ptr<vsg::Object> object)
+{
+    std::ostringstream ostr;
+    vsg::ReaderWriter_vsg rw;
+    rw.write(object, ostr);
+
+    packets.copy(ostr.str());
+
+    for(auto& packet : packets.packets)
+    {
+        Packet& ref = *packet.second;
+        ref.header.set = set;
+        std::size_t size = sizeof(Packet::Header) + ref.header.packetSize;
+        broadcaster->broadcast(&ref, size);
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+//
+// PacketReciever
+//
+vsg::ref_ptr<vsg::Object> PacketReceiver::receive()
+{
+    std::cout<<"\nPacketReceiver::receive()"<<std::endl;
+
+    packets.clear();
+
+    auto packet = packets.createPacket();
+
+    unsigned int size = receiver->recieve(&(*packet), sizeof(Packet));
+    if (size == 0)
+    {
+        packets.pool.emplace(std::move(packet));
+        return {};
+    }
+
+    uint32_t packetCount = packet->header.packetCount;
+
+    std::cout<<"    assinging to "<<packet->header.packetIndex<<std::endl;
+    packets.packets[packet->header.packetIndex] = std::move(packet);
+
+    while (packets.packets.size() < packetCount)
+    {
+        auto additional_packet = packets.createPacket();
+
+        unsigned int size = receiver->recieve(&(*additional_packet), sizeof(Packet));
+        if (size == 0)
+        {
+            packets.pool.emplace(std::move(additional_packet));
+            return {};
+        }
+
+        std::cout<<"    assinging to "<<additional_packet->header.packetIndex<<std::endl;
+
+        packets.packets[additional_packet->header.packetIndex] = std::move(additional_packet);
+
+    }
+
+    if (packets.packets.size() == packetCount)
+    {
+        std::istringstream istr(packets.assemble());
+        vsg::ReaderWriter_vsg rw;
+        return rw.read(istr);
+    }
+
+    return {};
+}
