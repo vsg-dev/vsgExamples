@@ -76,15 +76,6 @@ void PacketSet::copy(const std::string& str)
     }
 }
 
-void PacketSet::copy(vsg::ref_ptr<vsg::Object> object)
-{
-    std::ostringstream ostr;
-    vsg::ReaderWriter_vsg rw;
-    rw.write(object, ostr);
-
-    copy(ostr.str());
-}
-
 std::string PacketSet::assemble() const
 {
     if (packets.empty())
@@ -108,20 +99,20 @@ std::string PacketSet::assemble() const
     return str;
 }
 
-vsg::ref_ptr<vsg::Object> PacketSet::convert()
-{
-    std::istringstream istr(assemble());
-    vsg::ReaderWriter_vsg rw;
-    return rw.read(istr);
-}
-
 //////////////////////////////////////////////////////////////////////////////////////
 //
 // PacketBroadcaster
 //
 void PacketBroadcaster::broadcast(uint64_t set, vsg::ref_ptr<vsg::Object> object)
 {
-    packets.copy(object);
+    auto options = vsg::Options::create();
+    options->extensionHint = "vsgb";
+
+    std::ostringstream ostr(std::ios::out | std::ios::binary);
+    vsg::ReaderWriter_vsg rw;
+    rw.write(object, ostr, options);
+
+    packets.copy(ostr.str());
 
     for(auto& packet : packets.packets)
     {
@@ -175,8 +166,16 @@ vsg::ref_ptr<vsg::Object> PacketReceiver::completed(uint64_t set)
     auto set_itr = packetSetMap.find(set);
     if (set_itr == packetSetMap.end()) return {};
 
-    auto object = (set_itr->second)->convert();
+    vsg::ref_ptr<vsg::Object> convert();
 
+
+    // convert the PacketSet into a vsg::Object
+    std::istringstream istr((set_itr->second)->assemble());
+    vsg::ReaderWriter_vsg rw;
+    auto object = rw.read(istr);
+
+
+    // clean up the PacketSet
     auto next_itr = set_itr; ++next_itr;
 
     for(auto itr = packetSetMap.begin(); itr != next_itr; ++itr)

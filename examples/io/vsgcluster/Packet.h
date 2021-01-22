@@ -62,11 +62,7 @@ struct PacketSet
     bool add(std::unique_ptr<Packet> packet);
 
     void copy(const std::string& str);
-    void copy(vsg::ref_ptr<vsg::Object> object);
-
     std::string assemble() const;
-    vsg::ref_ptr<vsg::Object> convert();
-
 };
 
 struct PacketBroadcaster
