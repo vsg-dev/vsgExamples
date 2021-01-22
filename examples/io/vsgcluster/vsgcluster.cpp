@@ -10,6 +10,52 @@
 #include "Receiver.h"
 #include "Packet.h"
 
+namespace cluster
+{
+
+class ViewerData : public vsg::Inherit<vsg::Object, ViewerData>
+{
+public:
+
+    bool alive = true;
+    vsg::ref_ptr<vsg::FrameStamp> frameStamp;
+    vsg::ref_ptr<vsg::LookAt> lookAt;
+
+    void read(vsg::Input& input) override
+    {
+        vsg::Object::read(input);
+
+        if (!frameStamp) frameStamp = vsg::FrameStamp::create();
+        if (!lookAt) lookAt = vsg::LookAt::create();
+
+        input.read("alive", alive);
+        input.read("frameCount", frameStamp->frameCount);
+        input.read("lookAt.eye", lookAt->eye);
+        input.read("lookAt.center", lookAt->center);
+        input.read("lookAt.up", lookAt->up);
+    }
+
+    void write(vsg::Output& output) const override
+    {
+        vsg::Object::write(output);
+
+        output.write("alive", alive);
+        output.write("frameCount", frameStamp->frameCount);
+        output.write("lookAt.eye", lookAt->eye);
+        output.write("lookAt.center", lookAt->center);
+        output.write("lookAt.up", lookAt->up);
+    }
+};
+
+}
+
+// Provide the means for the vsg::type_name<class> to get the human readable class name.
+EVSG_type_name(cluster::ViewerData);
+
+// Register the ProjectorScene::create() method with vsg::ObjectFactory::instance() so it can be used for creating objects during reading.
+vsg::RegisterWithObjectFactoryProxy<cluster::ViewerData> s_Register_ViewerData;
+
+
 enum ViewerMode
 {
     STAND_ALONE,
@@ -170,18 +216,19 @@ int main(int argc, char** argv)
     PacketReceiver receiver;
     receiver.receiver = rc;
 
-    //auto testmodel = vsg::Group::create();//scene;
-    auto testmodel = scene;
+    auto viewerData = cluster::ViewerData::create();
+    viewerData->frameStamp = viewer->getFrameStamp();
+    viewerData->lookAt = lookAt;
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (!viewerData || viewerData->alive))
     {
         if (bc)
         {
-            uint64_t set = viewer->getFrameStamp()->frameCount;
+            viewerData->frameStamp = viewer->getFrameStamp();
+            viewerData->lookAt = lookAt;
 
-            // bc->broadcast(buffer.data(), buffer_size);
-            broadcaster.broadcast(set, testmodel);
+            broadcaster.broadcast(viewer->getFrameStamp()->frameCount, viewerData);
         }
 
         if (rc)
@@ -189,7 +236,19 @@ int main(int argc, char** argv)
             //unsigned int size = rc->recieve(buffer.data(), buffer_size);
             //std::cout << "recieved size = " << size << std::endl;
             auto object = receiver.receive();
-            std::cout<<"recieved "<<object<<std::endl;
+            viewerData = object.cast<cluster::ViewerData>();
+            if (viewerData)
+            {
+                std::cout<<"recieved viewerData "<<viewerData->alive<<std::endl;
+
+                lookAt->eye = viewerData->lookAt->eye;
+                lookAt->center = viewerData->lookAt->center;
+                lookAt->up = viewerData->lookAt->up;
+            }
+            else
+            {
+                std::cout<<"recieved "<<object<<std::endl;
+            }
         }
 
         // pass any events into EventHandlers assigned to the Viewer
@@ -200,6 +259,15 @@ int main(int argc, char** argv)
         viewer->recordAndSubmit();
 
         viewer->present();
+    }
+
+    if (bc)
+    {
+        viewerData->alive = false;
+
+        broadcaster.broadcast(viewer->getFrameStamp()->frameCount, viewerData);
+
+        vsg::write(viewerData, "test.vsgt");
     }
 
     // clean up done automatically thanks to ref_ptr<>
