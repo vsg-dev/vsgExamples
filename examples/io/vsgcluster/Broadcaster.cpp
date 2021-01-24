@@ -64,7 +64,6 @@
 #endif
 
 #include "Broadcaster.h"
-#include <osg/Notify>
 
 #define _VERBOSE 1
 
@@ -253,7 +252,7 @@ void Broadcaster::broadcast(const void* buffer, unsigned int buffer_size)
 
     if (result < 0)
     {
-        OSG_WARN << "Broadcaster::sync() - errno = "<<errno<<", error : " << strerror(errno) << std::endl;
+        std::cerr << "Broadcaster::sync() - errno = "<<errno<<", error : " << strerror(errno) << std::endl;
         return;
     }
 

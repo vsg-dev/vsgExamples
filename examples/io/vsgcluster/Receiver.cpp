@@ -36,7 +36,6 @@
 #include "Receiver.h"
 
 #include <iostream>
-#include <osg/Notify>
 
 Receiver::Receiver(uint16_t port) :
     _port(port),
@@ -178,7 +177,7 @@ unsigned int Receiver::recieve(void* buffer, const unsigned int buffer_size)
 
     if (read_bytes < 0)
     {
-        OSG_INFO << "Receiver::sync() : " << strerror(errno) << std::endl;
+        std::cerr << "Receiver::sync() : " << strerror(errno) << std::endl;
         return 0;
     }
 
