@@ -400,7 +400,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
 #ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->readerWriters.push_back(vsgXchange::ReaderWriter_all::create());
+    options->add(vsgXchange::ReaderWriter_all::create());
 #endif
 
     auto vsg_scene = vsg::read_cast<vsg::Node>(argv[1], options);

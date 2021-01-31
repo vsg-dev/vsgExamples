@@ -162,7 +162,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->paths = searchPaths;
 #ifdef USE_VSGXCHANGE
-    options->readerWriters.push_back(vsgXchange::ReaderWriter_all::create());
+    options->add(vsgXchange::ReaderWriter_all::create());
 #endif
 
     // load shaders
