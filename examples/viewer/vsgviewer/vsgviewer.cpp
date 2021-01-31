@@ -4,6 +4,10 @@
 #    include <vsgXchange/ReaderWriter_all.h>
 #endif
 
+#ifdef USE_VSGGIS
+#    include <vsgGIS/ReaderWriter_GDAL.h>
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -167,10 +171,16 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
+
+#ifdef USE_VSGGIS
+    options->add(vsgGIS::ReaderWriter_GDAL::create());
+#endif
+
 #ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::ReaderWriter_all::create());
 #endif
+
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgviewer";
