@@ -12,10 +12,7 @@ if (vsgXchange_FOUND)
     target_link_libraries(vsgviewer vsgXchange::vsgXchange)
 endif()
 
-message("vsgGIS_FOUND" ${vsgGIS_FOUND})
-
 if (vsgGIS_FOUND)
-
     target_compile_definitions(vsgviewer PRIVATE USE_VSGGIS)
     target_link_libraries(vsgviewer vsgGIS::vsgGIS)
 endif()
