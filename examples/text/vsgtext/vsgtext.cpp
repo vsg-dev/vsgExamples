@@ -189,7 +189,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->paths = searchPaths;
 #ifdef USE_VSGXCHANGE
-    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+    options->add(vsgXchange::ReaderWriter_all::create());
 #endif
 
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);

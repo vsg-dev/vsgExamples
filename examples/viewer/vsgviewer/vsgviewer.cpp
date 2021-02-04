@@ -4,6 +4,10 @@
 #    include <vsgXchange/ReaderWriter_all.h>
 #endif
 
+#ifdef USE_VSGGIS
+#    include <vsgGIS/ReaderWriter_GDAL.h>
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -166,18 +170,23 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO realted options to use when reading and writing files.
     auto options = vsg::Options::create();
-#ifdef USE_VSGXCHANGE
-    // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+
+#ifdef USE_VSGGIS
+    options->add(vsgGIS::ReaderWriter_GDAL::create()); // add the optional ReaderWriter_GDAL fron vsgGIS to read geospatial imagery
 #endif
+
+#ifdef USE_VSGXCHANGE
+    options->add(vsgXchange::ReaderWriter_all::create()); // add the optional ReaderWriter_all fron vsgXchange to read 3d models and imagery
+#endif
+
+    arguments.read(options);
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgviewer";
-
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-    arguments.read(options);
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
