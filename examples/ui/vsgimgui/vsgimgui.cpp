@@ -223,7 +223,7 @@ int main(int argc, char** argv)
             vsg::write(recordEvents->events, event_output_filename);
         }
     }
-    catch (vsg::Exception& ve)
+    catch (const vsg::Exception& ve)
     {
         std::cerr << "[Exception] - " << ve.message << std::endl;
     }
