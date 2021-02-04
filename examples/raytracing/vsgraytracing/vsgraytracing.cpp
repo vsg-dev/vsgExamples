@@ -101,7 +101,7 @@ int main(int argc, char** argv)
     {
         device = window->getOrCreateDevice();
     }
-    catch (vsg::Exception exception)
+    catch (const vsg::Exception& exception)
     {
         std::cout << exception.message << " VkResult = " << exception.result << std::endl;
         return 0;
