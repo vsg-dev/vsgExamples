@@ -221,6 +221,8 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
     auto group = vsg::Group::create();
 
     vsg::Path path;
