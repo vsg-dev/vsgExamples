@@ -174,6 +174,7 @@ int main(int argc, char** argv)
 
     // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO realted options to use when reading and writing files.
     auto options = vsg::Options::create();
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
 #ifdef USE_VSGGIS
     options->add(vsgGIS::ReaderWriter_GDAL::create()); // add the optional ReaderWriter_GDAL fron vsgGIS to read geospatial imagery
@@ -221,7 +222,6 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     auto group = vsg::Group::create();
 

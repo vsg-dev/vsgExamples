@@ -159,7 +159,9 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
-#ifdef USE_VSGXCHANGE
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+    #ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::ReaderWriter_all::create());
 #endif
@@ -207,6 +209,7 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = false;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
 
     auto group = vsg::Group::create();
 
