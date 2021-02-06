@@ -12,9 +12,8 @@
 #include "skybox.h"
 
 
-vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path &filename)
+vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg::Options> options)
 {
-    auto reader = vsgXchange::ReaderWriter_all::create();
     auto vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", skybox_vert);
     auto fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", skybox_frag);
     const vsg::ShaderStages shaders{ vertexShader, fragmentShader };
@@ -61,7 +60,7 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path &filename)
 
     // create texture image and associated DescriptorSets and binding
     auto sampler = vsg::Sampler::create();
-    auto data = reader->read_cast<vsg::Data>(filename);
+    auto data = vsg::read_cast<vsg::Data>(filename, options);
     const auto layout = data->getLayout();
     sampler->maxLod = layout.maxNumMipmaps;
     
@@ -161,7 +160,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    #ifdef USE_VSGXCHANGE
+#ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::ReaderWriter_all::create());
 #endif
@@ -215,7 +214,7 @@ int main(int argc, char** argv)
 
     if (!skyboxFilename.empty())
     {
-        if (auto node = createSkybox(skyboxFilename); node)
+        if (auto node = createSkybox(skyboxFilename, options); node)
         {
             group->addChild(node);
         }
