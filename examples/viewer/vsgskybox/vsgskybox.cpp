@@ -203,9 +203,7 @@ int main(int argc, char** argv)
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto skyboxFilename = arguments.value(vsg::Path(), "--skybox");
-
-    windowTraits->debugLayer = true;
-    windowTraits->apiDumpLayer = false;
+    auto outputFilename = arguments.value(vsg::Path(), "-o");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -257,6 +255,13 @@ int main(int argc, char** argv)
         vsg_scene = group->getChild(0);
     else
         vsg_scene = group;
+
+
+    if (!outputFilename.empty())
+    {
+        vsg::write(vsg_scene, outputFilename);
+        return 0;
+    }
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
