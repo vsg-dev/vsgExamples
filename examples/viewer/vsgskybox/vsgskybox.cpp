@@ -83,66 +83,66 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
     auto root = vsg::StateGroup::create();
     root->add(bindGraphicsPipeline);
     root->add(bindDescriptorSet); 
-    
-    vsg::ref_ptr<vsg::vec3Array> vertices(new vsg::vec3Array({// Back
-                                                              {-1.0f, -1.0f, -1.0f},
-                                                              {1.0f, -1.0f, -1.0f},
-                                                              {-1.0f, 1.0f, -1.0f},
-                                                              {1.0f, 1.0f, -1.0f},
 
-                                                              // Front
-                                                              {-1.0f, -1.0f, 1.0f},
-                                                              {1.0f, -1.0f, 1.0f},
-                                                              {-1.0f, 1.0f, 1.0f},
-                                                              {1.0f, 1.0f, 1.0f},
+    auto vertices = vsg::vec3Array::create({// Back
+                                            {-1.0f, -1.0f, -1.0f},
+                                            {1.0f, -1.0f, -1.0f},
+                                            {-1.0f, 1.0f, -1.0f},
+                                            {1.0f, 1.0f, -1.0f},
 
-                                                              // Left
-                                                              {-1.0f, -1.0f, -1.0f},
-                                                              {-1.0f, -1.0f, 1.0f},
-                                                              {-1.0f, 1.0f, -1.0f},
-                                                              {-1.0f, 1.0f, 1.0f},
+                                            // Front
+                                            {-1.0f, -1.0f, 1.0f},
+                                            {1.0f, -1.0f, 1.0f},
+                                            {-1.0f, 1.0f, 1.0f},
+                                            {1.0f, 1.0f, 1.0f},
 
-                                                              // Right
-                                                              {1.0f, -1.0f, -1.0f},
-                                                              {1.0f, -1.0f, 1.0f},
-                                                              {1.0f, 1.0f, -1.0f},
-                                                              {1.0f, 1.0f, 1.0f},
+                                            // Left
+                                            {-1.0f, -1.0f, -1.0f},
+                                            {-1.0f, -1.0f, 1.0f},
+                                            {-1.0f, 1.0f, -1.0f},
+                                            {-1.0f, 1.0f, 1.0f},
 
-                                                              // Bottom
-                                                              {-1.0f, -1.0f, -1.0f},
-                                                              {-1.0f, -1.0f, 1.0f},
-                                                              {1.0f, -1.0f, -1.0f},
-                                                              {1.0f, -1.0f, 1.0f},
+                                            // Right
+                                            {1.0f, -1.0f, -1.0f},
+                                            {1.0f, -1.0f, 1.0f},
+                                            {1.0f, 1.0f, -1.0f},
+                                            {1.0f, 1.0f, 1.0f},
 
-                                                              // Top
-                                                              {-1.0f, 1.0f, -1.0f},
-                                                              {-1.0f, 1.0f, 1.0f},
-                                                              {1.0f, 1.0f, -1.0f},
-                                                              {1.0f, 1.0f, 1.0} }));
+                                            // Bottom
+                                            {-1.0f, -1.0f, -1.0f},
+                                            {-1.0f, -1.0f, 1.0f},
+                                            {1.0f, -1.0f, -1.0f},
+                                            {1.0f, -1.0f, 1.0f},
 
-    vsg::ref_ptr<vsg::ushortArray> indices(new vsg::ushortArray({// Back
-                                                                 0, 2, 1,
-                                                                 1, 2, 3,
+                                            // Top
+                                            {-1.0f, 1.0f, -1.0f},
+                                            {-1.0f, 1.0f, 1.0f},
+                                            {1.0f, 1.0f, -1.0f},
+                                            {1.0f, 1.0f, 1.0} });
 
-                                                                 // Front
-                                                                 6, 4, 5,
-                                                                 7, 6, 5,
+    auto indices = vsg::ushortArray::create({// Back
+                                            0, 2, 1,
+                                            1, 2, 3,
 
-                                                                 // Left
-                                                                 10, 8, 9,
-                                                                 11, 10, 9,
-                                                                 
-                                                                 // Right
-                                                                 14, 13, 12,
-                                                                 15, 13, 14,
+                                            // Front
+                                            6, 4, 5,
+                                            7, 6, 5,
 
-                                                                 // Bottom
-                                                                 17, 16, 19,
-                                                                 19, 16, 18,
+                                            // Left
+                                            10, 8, 9,
+                                            11, 10, 9,
 
-                                                                 // Top
-                                                                 23, 20, 21,
-                                                                 22, 20, 23 }));
+                                            // Right
+                                            14, 13, 12,
+                                            15, 13, 14,
+
+                                            // Bottom
+                                            17, 16, 19,
+                                            19, 16, 18,
+
+                                            // Top
+                                            23, 20, 21,
+                                            22, 20, 23 });
 
     root->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{ vertices }));
     root->addChild(vsg::BindIndexBuffer::create(indices));
