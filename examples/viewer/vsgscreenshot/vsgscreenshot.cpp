@@ -516,7 +516,7 @@ int main(int argc, char** argv)
 
 #ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+    options->add(vsgXchange::ReaderWriter_all::create());
 #endif
 
     vsg::Path filename;

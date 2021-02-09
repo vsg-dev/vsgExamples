@@ -78,8 +78,8 @@ public:
             if (ellipsoidModel)
             {
                 std::cout.precision(10);
-                auto location = ellipsoidModel->convertECEFToLatLongHeight(intersection.worldIntersection);
-                std::cout << " lat = " << vsg::degrees(location[0]) << ", long = " << vsg::degrees(location[1]) << ", height = " << location[2];
+                auto location = ellipsoidModel->convertECEFToLatLongAltitude(intersection.worldIntersection);
+                std::cout << " lat = " << location[0] << ", long = " << location[1] << ", height = " << location[2];
             }
 
             if (lastIntersection)
@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 
 #ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+    options->add(vsgXchange::ReaderWriter_all::create());
 #endif
 
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -196,7 +196,7 @@ int main(int argc, char** argv)
     {
         if (ellipsoidModel)
         {
-            auto ecef = ellipsoidModel->convertLatLongHeightToECEF({vsg::radians(pointOfInterest[0]), vsg::radians(pointOfInterest[1]), 0.0});
+            auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF({pointOfInterest[0], pointOfInterest[1], 0.0});
             auto ecef_normal = vsg::normalize(ecef);
 
             vsg::dvec3 centre = ecef;

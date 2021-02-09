@@ -6,8 +6,6 @@ project(vsgExamples
         LANGUAGES CXX C
 )
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules;${CMAKE_MODULE_PATH}")
-
 # build all examples into the bin directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
@@ -28,6 +26,9 @@ find_package(vsgXchange QUIET)
 
 # find the optional vsgImGui that can be used for GUI elements added into graphics window.
 find_package(vsgImGui QUIET)
+
+# find the optional vsgGIS utlity library that can be used for loader/processing GIS related data.
+find_package(vsgGIS QUIET)
 
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)

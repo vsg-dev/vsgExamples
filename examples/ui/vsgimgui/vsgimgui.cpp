@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
 #ifdef USE_VSGXCHANGE
     // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->readerWriter = vsgXchange::ReaderWriter_all::create();
+    options->add(vsgXchange::ReaderWriter_all::create());
 #endif
 
     auto windowTraits = vsg::WindowTraits::create();
@@ -223,7 +223,7 @@ int main(int argc, char** argv)
             vsg::write(recordEvents->events, event_output_filename);
         }
     }
-    catch (vsg::Exception& ve)
+    catch (const vsg::Exception& ve)
     {
         std::cerr << "[Exception] - " << ve.message << std::endl;
     }

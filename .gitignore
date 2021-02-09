@@ -71,3 +71,6 @@ DerivedData/
 build/
 local.properties
 
+#ImGUi
+*.ini
+
