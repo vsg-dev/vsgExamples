@@ -14,6 +14,13 @@
 
 vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg::Options> options)
 {
+    auto data = vsg::read_cast<vsg::Data>(filename, options);
+    if (!data)
+    {
+        std::cout<<"Error: failed to load cubemap file : "<<filename<<std::endl;
+        return {};
+    }
+
     auto vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", skybox_vert);
     auto fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", skybox_frag);
     const vsg::ShaderStages shaders{ vertexShader, fragmentShader };
@@ -60,7 +67,6 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
 
     // create texture image and associated DescriptorSets and binding
     auto sampler = vsg::Sampler::create();
-    auto data = vsg::read_cast<vsg::Data>(filename, options);
     const auto layout = data->getLayout();
     sampler->maxLod = layout.maxNumMipmaps;
 
@@ -204,6 +210,10 @@ int main(int argc, char** argv)
         if (auto node = createSkybox(skyboxFilename, options); node)
         {
             group->addChild(node);
+        }
+        else
+        {
+            return 1;
         }
     }
 
