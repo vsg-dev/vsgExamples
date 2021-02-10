@@ -63,19 +63,8 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
     auto data = vsg::read_cast<vsg::Data>(filename, options);
     const auto layout = data->getLayout();
     sampler->maxLod = layout.maxNumMipmaps;
-    
-    auto image = vsg::Image::create(data);
-    image->usage |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-    image->flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-    image->imageType = VK_IMAGE_TYPE_2D;
-    image->arrayLayers = 6;
-    
-    auto imageView = vsg::ImageView::create(image);
-    imageView->viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-    imageView->subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, layout.maxNumMipmaps, 0, 6 };
 
-    auto imageInfo = vsg::ImageInfo(sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    auto texture = vsg::DescriptorImage::create(imageInfo, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    auto texture = vsg::DescriptorImage::create(sampler, data, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{ texture });
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
