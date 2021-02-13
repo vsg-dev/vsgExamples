@@ -51,13 +51,55 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        auto vsg_scene = vsg::read_cast<vsg::Node>(arguments[1], options);
-        if (!vsg_scene)
+
+        std::vector< std::pair<vsg::Path, vsg::ref_ptr<vsg::MatrixTransform>> > filenameAttachments;
+
+        vsg::dvec3 origin(0.0, 0.0, 0.0);
+        vsg::dvec3 primary(2.0, 0.0, 0.0);
+        vsg::dvec3 secondary(0.0, 2.0, 0.0);
+
+        int numColumns = 3; //static_cast<int>(std::ceil(std::sqrt(static_cast<float>(argc-1))));
+
+        std::cout<<"numColumns = "<<numColumns<<std::endl;
+
+        // root of the scene graph that will contain all nodes.
+        auto vsg_scene = vsg::Group::create();
+
+        for(int i = 1; i<argc; ++i)
         {
-            std::cout << "Could not load model." << std::endl;
-            return 1;
+            vsg::Path filename = argv[i];
+
+            int index = i-1;
+            vsg::dvec3 position = origin + primary * static_cast<double>(index % numColumns) + secondary * static_cast<double>(index / numColumns);
+            auto transform = vsg::MatrixTransform::create(vsg::translate(position));
+
+            transform->setValue("filename", filename);
+
+            vsg_scene->addChild(transform);
+
+            filenameAttachments.push_back({filename, transform});
         }
 
+        for(auto& [filename, attachment] : filenameAttachments)
+        {
+            std::cout<<filename<<" "<<attachment<<std::endl;
+
+            auto model = vsg::read_cast<vsg::Node>(filename, options);
+            if (model)
+            {
+                vsg::ComputeBounds computeBounds;
+                model->accept(computeBounds);
+
+                vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+                double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
+                auto scale = vsg::MatrixTransform::create(vsg::scale(1.0/radius, 1.0/radius, 1.0/radius) * vsg::translate(-centre));
+
+                scale->addChild(model);
+                attachment->addChild(scale);
+            }
+        }
+
+        vsg::write(vsg_scene, "test.vsgt");
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
