@@ -258,7 +258,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::cout << "Unable to load model from file " << filename << std::endl;
+                std::cout << "Unable to load file " << filename << std::endl;
             }
         }
 
@@ -362,7 +362,8 @@ int main(int argc, char** argv)
     }
     catch (const vsg::Exception& ve)
     {
-        std::cerr << "[Exception] - " << ve.message << " result = "<<ve.result<<std::endl;
+        for(int i=0; i<argc; ++i) std::cerr<<argv[i]<<" ";
+        std::cerr << "\n[Exception] - " << ve.message << " result = "<<ve.result<<std::endl;
         return 1;
     }
 
