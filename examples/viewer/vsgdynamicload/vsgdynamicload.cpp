@@ -25,6 +25,18 @@ class DynamicLoadAndCompile : public vsg::Inherit<vsg::Object, DynamicLoadAndCom
 {
 public:
 
+    vsg::ref_ptr<vsg::ActivityStatus> status;
+    vsg::ref_ptr<vsg::OperationQueue> loadQueue;
+    vsg::ref_ptr<vsg::OperationQueue> compileQueue;
+    vsg::ref_ptr<vsg::OperationQueue> mergeQueue;
+
+    DynamicLoadAndCompile(vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
+        status(in_status)
+    {
+        loadQueue = vsg::OperationQueue::create(status);
+        compileQueue = vsg::OperationQueue::create(status);
+        mergeQueue = vsg::OperationQueue::create(status);
+    }
 
     struct Request : public vsg::Inherit<vsg::Object, Request>
     {
@@ -36,21 +48,25 @@ public:
         vsg::Path filename;
         vsg::ref_ptr<vsg::Group> attachmentPoint;
         vsg::ref_ptr<vsg::Options> options;
+        vsg::ref_ptr<vsg::Node> loaded;
     };
 
-    std::list<vsg::ref_ptr<Request>> requests;
-
-    void request(const vsg::Path& filename, vsg::ref_ptr<vsg::Group> attachmentPoint, vsg::ref_ptr<vsg::Options> options)
+    struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
     {
-        requests.push_back(Request::create(filename, attachmentPoint, options));
+        LoadOperation(vsg::ref_ptr<Request> in_request, vsg::observer_ptr<DynamicLoadAndCompile> in_dlac) :
+            request(in_request),
+            dlac(in_dlac) {}
 
-    }
-    void merge()
-    {
-        std::cout<<"merge()"<<std::endl;
-        for(auto& request : requests)
+        vsg::ref_ptr<Request> request;
+        vsg::observer_ptr<DynamicLoadAndCompile> dlac;
+
+        void run() override
         {
-            std::cout<<"   "<<request<<std::endl;
+            vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
+            if (!dynamicLoadAndCompile) return;
+
+            std::cout<<"Loading "<<request->filename<<std::endl;
+
             if (auto node = vsg::read_cast<vsg::Node>(request->filename, request->options); node)
             {
                 vsg::ComputeBounds computeBounds;
@@ -61,8 +77,94 @@ public:
                 auto scale = vsg::MatrixTransform::create(vsg::scale(1.0 / radius, 1.0 / radius, 1.0 / radius) * vsg::translate(-centre));
 
                 scale->addChild(node);
-                request->attachmentPoint->addChild(scale);
+
+                request->loaded = scale;
+
+                dynamicLoadAndCompile->compileRequest(request);
             }
+        }
+    };
+
+    struct CompileOperation : public vsg::Inherit<vsg::Operation, CompileOperation>
+    {
+        CompileOperation(vsg::ref_ptr<Request> in_request, vsg::observer_ptr<DynamicLoadAndCompile> in_dlac) :
+            request(in_request),
+            dlac(in_dlac) {}
+
+        vsg::ref_ptr<Request> request;
+        vsg::observer_ptr<DynamicLoadAndCompile> dlac;
+
+        void run() override
+        {
+            vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
+            if (!dynamicLoadAndCompile) return;
+
+            std::cout<<"Compiling "<<request->filename<<std::endl;
+
+            dynamicLoadAndCompile->mergeRequest(request);
+        }
+    };
+
+    struct MergeOperation : public vsg::Inherit<vsg::Operation, MergeOperation>
+    {
+        MergeOperation(vsg::ref_ptr<Request> in_request, vsg::observer_ptr<DynamicLoadAndCompile> in_dlac) :
+            request(in_request),
+            dlac(in_dlac) {}
+
+        vsg::ref_ptr<Request> request;
+        vsg::observer_ptr<DynamicLoadAndCompile> dlac;
+
+        void run() override
+        {
+            std::cout<<"Merging "<<request->filename<<std::endl;
+
+            request->attachmentPoint->addChild(request->loaded);
+        }
+    };
+
+    void loadRequest(const vsg::Path& filename, vsg::ref_ptr<vsg::Group> attachmentPoint, vsg::ref_ptr<vsg::Options> options)
+    {
+        auto request = Request::create(filename, attachmentPoint, options);
+        loadQueue->add(LoadOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
+    }
+
+    void compileRequest(vsg::ref_ptr<Request> request)
+    {
+        compileQueue->add(CompileOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
+    }
+
+    void mergeRequest(vsg::ref_ptr<Request> request)
+    {
+        mergeQueue->add(MergeOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
+    }
+
+    void load()
+    {
+        std::cout<<"\nstarting load"<<std::endl;
+        vsg::ref_ptr<vsg::Operation> operation;
+        while(operation = loadQueue->take())
+        {
+            operation->run();
+        }
+    }
+
+    void compile()
+    {
+        std::cout<<"\nstarting compile"<<std::endl;
+        vsg::ref_ptr<vsg::Operation> operation;
+        while(operation = compileQueue->take())
+        {
+            operation->run();
+        }
+    }
+
+    void merge()
+    {
+        std::cout<<"\nstarting merge"<<std::endl;
+        vsg::ref_ptr<vsg::Operation> operation;
+        while(operation = mergeQueue->take())
+        {
+            operation->run();
         }
     }
 };
@@ -134,10 +236,12 @@ int main(int argc, char** argv)
 
             vsg_scene->addChild(transform);
 
-            dynamicLoadAndCompile->request(argv[i], transform, options);
+            dynamicLoadAndCompile->loadRequest(argv[i], transform, options);
         }
 
         // merge any loaded scene graph elements with the main scene graph
+        dynamicLoadAndCompile->load();
+        dynamicLoadAndCompile->compile();
         dynamicLoadAndCompile->merge();
 
         // vsg::write(vsg_scene, "test.vsgt");
