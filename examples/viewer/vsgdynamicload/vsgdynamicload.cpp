@@ -16,6 +16,13 @@
 #include "../../shared/AnimationPath.h"
 
 
+// 1. Load data
+// 2. compile data.
+// 3. submit compile data.
+// 4. wait for submission to complete
+// 5. add to main scene graph
+
+
 int main(int argc, char** argv)
 {
     try
@@ -43,14 +50,17 @@ int main(int argc, char** argv)
         arguments.read("--display", windowTraits->display);
         auto numFrames = arguments.value(-1, "-f");
 
+        // provide setting of the resource hints on the command line
+        vsg::ref_ptr<vsg::ResourceHints> resourceHints;
+        if (vsg::Path resourceFile; arguments.read("--resource", resourceFile)) resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceFile);
+
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         if (argc<=1)
         {
-            std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
+            std::cout << "Please specify a 3d models on the command line." << std::endl;
             return 1;
         }
-
 
         std::vector< std::pair<vsg::Path, vsg::ref_ptr<vsg::MatrixTransform>> > filenameAttachments;
 
@@ -58,12 +68,16 @@ int main(int argc, char** argv)
         vsg::dvec3 primary(2.0, 0.0, 0.0);
         vsg::dvec3 secondary(0.0, 2.0, 0.0);
 
-        int numColumns = 3; //static_cast<int>(std::ceil(std::sqrt(static_cast<float>(argc-1))));
-
-        std::cout<<"numColumns = "<<numColumns<<std::endl;
+        int numColumns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(argc-1))));
 
         // root of the scene graph that will contain all nodes.
         auto vsg_scene = vsg::Group::create();
+
+        // Assign any ResourceHints so that the Compile traversal can allocate suffucient DescriptorPool resources for the needs of loading all possible models.
+        if (resourceHints)
+        {
+            vsg_scene->setObject("ResourceHints", resourceHints);
+        }
 
         for(int i = 1; i<argc; ++i)
         {
@@ -99,7 +113,7 @@ int main(int argc, char** argv)
             }
         }
 
-        vsg::write(vsg_scene, "test.vsgt");
+        // vsg::write(vsg_scene, "test.vsgt");
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -132,8 +146,35 @@ int main(int argc, char** argv)
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-
         viewer->compile();
+
+        for(auto& task : viewer->recordAndSubmitTasks)
+        {
+            std::cout<<task<<std::endl;
+            std::cout<<"  windows.size() = "<<task->windows.size()<<std::endl;
+            for(auto& window : task->windows)
+            {
+                std::cout<<"    "<<window<<std::endl;
+            }
+
+            std::cout<<"  waitSemaphores.size() "<<task->waitSemaphores.size()<<std::endl;
+            for(auto& semaphore : task->waitSemaphores)
+            {
+                std::cout<<"    "<<semaphore<<std::endl;
+            }
+
+            std::cout<<"  commandGraphs.size() = "<<task->commandGraphs.size()<<std::endl;
+            for(auto& cg : task->commandGraphs)
+            {
+                std::cout<<"    "<<cg<<std::endl;
+            }
+
+            std::cout<<"  signalSemaphores.size() = "<<task->signalSemaphores.size()<<std::endl;
+            for(auto& semaphore : task->signalSemaphores)
+            {
+                std::cout<<"    "<<semaphore<<std::endl;
+            }
+        }
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
