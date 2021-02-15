@@ -21,6 +21,52 @@
 // 4. wait for submission to complete
 // 5. add to main scene graph
 
+class DynamicLoadAndCompile : public vsg::Inherit<vsg::Object, DynamicLoadAndCompile>
+{
+public:
+
+
+    struct Request : public vsg::Inherit<vsg::Object, Request>
+    {
+        Request(const vsg::Path& in_filename, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Options> in_options) :
+            filename(in_filename),
+            attachmentPoint(in_attachmentPoint),
+            options(in_options) {}
+
+        vsg::Path filename;
+        vsg::ref_ptr<vsg::Group> attachmentPoint;
+        vsg::ref_ptr<vsg::Options> options;
+    };
+
+    std::list<vsg::ref_ptr<Request>> requests;
+
+    void request(const vsg::Path& filename, vsg::ref_ptr<vsg::Group> attachmentPoint, vsg::ref_ptr<vsg::Options> options)
+    {
+        requests.push_back(Request::create(filename, attachmentPoint, options));
+
+    }
+    void merge()
+    {
+        std::cout<<"merge()"<<std::endl;
+        for(auto& request : requests)
+        {
+            std::cout<<"   "<<request<<std::endl;
+            if (auto node = vsg::read_cast<vsg::Node>(request->filename, request->options); node)
+            {
+                vsg::ComputeBounds computeBounds;
+                node->accept(computeBounds);
+
+                vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+                double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
+                auto scale = vsg::MatrixTransform::create(vsg::scale(1.0 / radius, 1.0 / radius, 1.0 / radius) * vsg::translate(-centre));
+
+                scale->addChild(node);
+                request->attachmentPoint->addChild(scale);
+            }
+        }
+    }
+};
+
 int main(int argc, char** argv)
 {
     try
@@ -39,7 +85,7 @@ int main(int argc, char** argv)
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgviewer";
+        windowTraits->windowTitle = "vsgdynamicload";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
@@ -60,7 +106,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        std::vector<std::pair<vsg::Path, vsg::ref_ptr<vsg::MatrixTransform>>> filenameAttachments;
+        std::vector<std::pair<vsg::Path, vsg::ref_ptr<vsg::Group>>> filenameAttachments;
 
         vsg::dvec3 origin(0.0, 0.0, 0.0);
         vsg::dvec3 primary(2.0, 0.0, 0.0);
@@ -68,7 +114,7 @@ int main(int argc, char** argv)
 
         int numColumns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(argc - 1))));
 
-        // root of the scene graph that will contain all nodes.
+        // create a Group to contain all the nodes
         auto vsg_scene = vsg::Group::create();
 
         // Assign any ResourceHints so that the Compile traversal can allocate suffucient DescriptorPool resources for the needs of loading all possible models.
@@ -77,39 +123,22 @@ int main(int argc, char** argv)
             vsg_scene->setObject("ResourceHints", resourceHints);
         }
 
+        auto dynamicLoadAndCompile = DynamicLoadAndCompile::create();
+
+        // build the sene graph attachmments points to place all of the loaded models at.
         for (int i = 1; i < argc; ++i)
         {
-            vsg::Path filename = argv[i];
-
             int index = i - 1;
             vsg::dvec3 position = origin + primary * static_cast<double>(index % numColumns) + secondary * static_cast<double>(index / numColumns);
             auto transform = vsg::MatrixTransform::create(vsg::translate(position));
 
-            transform->setValue("filename", filename);
-
             vsg_scene->addChild(transform);
 
-            filenameAttachments.push_back({filename, transform});
+            dynamicLoadAndCompile->request(argv[i], transform, options);
         }
 
-        for (auto& [filename, attachment] : filenameAttachments)
-        {
-            std::cout << filename << " " << attachment << std::endl;
-
-            auto model = vsg::read_cast<vsg::Node>(filename, options);
-            if (model)
-            {
-                vsg::ComputeBounds computeBounds;
-                model->accept(computeBounds);
-
-                vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-                double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
-                auto scale = vsg::MatrixTransform::create(vsg::scale(1.0 / radius, 1.0 / radius, 1.0 / radius) * vsg::translate(-centre));
-
-                scale->addChild(model);
-                attachment->addChild(scale);
-            }
-        }
+        // merge any loaded scene graph elements with the main scene graph
+        dynamicLoadAndCompile->merge();
 
         // vsg::write(vsg_scene, "test.vsgt");
 
