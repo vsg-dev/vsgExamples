@@ -116,8 +116,12 @@ public:
             }
         }
 
+        vsg::CollectDescriptorStats collectStats;
+
         std::cout<<"takeCompileTraversal() creating a new CompileTraversal"<<std::endl;
-        return vsg::CompileTraversal::create(window, viewport, buildPreferences);
+        auto ct = vsg::CompileTraversal::create(window, viewport, buildPreferences);
+
+        return ct;
     }
 
     void addCompileTraversal(vsg::ref_ptr<vsg::CompileTraversal> ct)
@@ -174,6 +178,15 @@ void DynamicLoadAndCompile::CompileOperation::run()
         std::cout<<"Compiling "<<request->filename<<std::endl;
 
         auto compileTraversal = dynamicLoadAndCompile->takeCompileTraversal();
+
+        vsg::CollectDescriptorStats collectStats;
+        request->loaded->accept(collectStats);
+
+        auto maxSets = collectStats.computeNumDescriptorSets();
+        auto descriptorPoolSizes = collectStats.computeDescriptorPoolSizes();
+
+        // brute force allocation of new DescrptorPool for this subgraph, TODO : need to preallocate large DescritorPoil for multiple loaded subgraphs
+        if (descriptorPoolSizes.size() > 0) compileTraversal->context.descriptorPool = vsg::DescriptorPool::create(compileTraversal->context.device, maxSets, descriptorPoolSizes);
 
         request->loaded->accept(*compileTraversal);
 
@@ -284,6 +297,8 @@ int main(int argc, char** argv)
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
+        viewer->compile();
+
         // create the DynamicLoadAndCompile obbject that manages loading, compile and merging of new objects.
         // Pass in window and viewportState to help initalize CompilTraversals
         auto dynamicLoadAndCompile = DynamicLoadAndCompile::create(window, viewportState);
@@ -299,11 +314,6 @@ int main(int argc, char** argv)
 
             dynamicLoadAndCompile->loadRequest(argv[i], transform, options);
         }
-
-        //std::cout<<"Main thread waiting"<<std::endl;
-        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-        viewer->compile();
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
