@@ -4,37 +4,37 @@
 #    include <vsgXchange/ReaderWriter_all.h>
 #endif
 
-#ifdef USE_VSGGIS
-#    include <vsgGIS/ReaderWriter_GDAL.h>
-#endif
-
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <thread>
-
-#include "../../shared/AnimationPath.h"
-
-// 1. Load data
-// 2. compile data.
-// 3. submit compile data.
-// 4. wait for submission to complete
-// 5. add to main scene graph
 
 class DynamicLoadAndCompile : public vsg::Inherit<vsg::Object, DynamicLoadAndCompile>
 {
 public:
 
     vsg::ref_ptr<vsg::ActivityStatus> status;
-    vsg::ref_ptr<vsg::OperationQueue> loadQueue;
-    vsg::ref_ptr<vsg::OperationQueue> compileQueue;
+
+    vsg::ref_ptr<vsg::OperationThreads> loadThreads;
+    vsg::ref_ptr<vsg::OperationThreads> compileThreads;
     vsg::ref_ptr<vsg::OperationQueue> mergeQueue;
 
-    DynamicLoadAndCompile(vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
+    std::mutex mutex_compileTraversals;
+    std::list<vsg::ref_ptr<vsg::CompileTraversal>> compileTraversals;
+
+    // window related settings used to set up the CompileTraversal
+    vsg::ref_ptr<vsg::Window> window;
+    vsg::ref_ptr<vsg::ViewportState> viewport;
+    vsg::BufferPreferences buildPreferences;
+
+
+    DynamicLoadAndCompile(vsg::ref_ptr<vsg::Window> in_window, vsg::ref_ptr<vsg::ViewportState> in_viewport, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
+        window(in_window),
+        viewport(in_viewport),
         status(in_status)
     {
-        loadQueue = vsg::OperationQueue::create(status);
-        compileQueue = vsg::OperationQueue::create(status);
+        loadThreads = vsg::OperationThreads::create(12, status);
+        compileThreads = vsg::OperationThreads::create(1, status);
         mergeQueue = vsg::OperationQueue::create(status);
     }
 
@@ -60,29 +60,7 @@ public:
         vsg::ref_ptr<Request> request;
         vsg::observer_ptr<DynamicLoadAndCompile> dlac;
 
-        void run() override
-        {
-            vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
-            if (!dynamicLoadAndCompile) return;
-
-            std::cout<<"Loading "<<request->filename<<std::endl;
-
-            if (auto node = vsg::read_cast<vsg::Node>(request->filename, request->options); node)
-            {
-                vsg::ComputeBounds computeBounds;
-                node->accept(computeBounds);
-
-                vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-                double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
-                auto scale = vsg::MatrixTransform::create(vsg::scale(1.0 / radius, 1.0 / radius, 1.0 / radius) * vsg::translate(-centre));
-
-                scale->addChild(node);
-
-                request->loaded = scale;
-
-                dynamicLoadAndCompile->compileRequest(request);
-            }
-        }
+        void run() override;
     };
 
     struct CompileOperation : public vsg::Inherit<vsg::Operation, CompileOperation>
@@ -94,15 +72,7 @@ public:
         vsg::ref_ptr<Request> request;
         vsg::observer_ptr<DynamicLoadAndCompile> dlac;
 
-        void run() override
-        {
-            vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
-            if (!dynamicLoadAndCompile) return;
-
-            std::cout<<"Compiling "<<request->filename<<std::endl;
-
-            dynamicLoadAndCompile->mergeRequest(request);
-        }
+        void run() override;
     };
 
     struct MergeOperation : public vsg::Inherit<vsg::Operation, MergeOperation>
@@ -114,23 +84,18 @@ public:
         vsg::ref_ptr<Request> request;
         vsg::observer_ptr<DynamicLoadAndCompile> dlac;
 
-        void run() override
-        {
-            std::cout<<"Merging "<<request->filename<<std::endl;
-
-            request->attachmentPoint->addChild(request->loaded);
-        }
+        void run() override;
     };
 
     void loadRequest(const vsg::Path& filename, vsg::ref_ptr<vsg::Group> attachmentPoint, vsg::ref_ptr<vsg::Options> options)
     {
         auto request = Request::create(filename, attachmentPoint, options);
-        loadQueue->add(LoadOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
+        loadThreads->add(LoadOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
     }
 
     void compileRequest(vsg::ref_ptr<Request> request)
     {
-        compileQueue->add(CompileOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
+        compileThreads->add(CompileOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
     }
 
     void mergeRequest(vsg::ref_ptr<Request> request)
@@ -138,29 +103,32 @@ public:
         mergeQueue->add(MergeOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
     }
 
-    void load()
+    vsg::ref_ptr<vsg::CompileTraversal> takeCompileTraversal()
     {
-        std::cout<<"\nstarting load"<<std::endl;
-        vsg::ref_ptr<vsg::Operation> operation;
-        while(operation = loadQueue->take())
         {
-            operation->run();
+            std::scoped_lock lock(mutex_compileTraversals);
+            if (!compileTraversals.empty())
+            {
+                auto ct = compileTraversals.front();
+                compileTraversals.erase(compileTraversals.begin());
+                std::cout<<"takeCompileTraversal() resuing "<<ct<<std::endl;
+                return ct;
+            }
         }
+
+        std::cout<<"takeCompileTraversal() creating a new CompileTraversal"<<std::endl;
+        return vsg::CompileTraversal::create(window, viewport, buildPreferences);
     }
 
-    void compile()
+    void addCompileTraversal(vsg::ref_ptr<vsg::CompileTraversal> ct)
     {
-        std::cout<<"\nstarting compile"<<std::endl;
-        vsg::ref_ptr<vsg::Operation> operation;
-        while(operation = compileQueue->take())
-        {
-            operation->run();
-        }
+        std::cout<<"addCompileTraversal("<<ct<<")"<<std::endl;
+        std::scoped_lock lock(mutex_compileTraversals);
+        compileTraversals.push_back(ct);
     }
 
     void merge()
     {
-        std::cout<<"\nstarting merge"<<std::endl;
         vsg::ref_ptr<vsg::Operation> operation;
         while(operation = mergeQueue->take())
         {
@@ -168,6 +136,65 @@ public:
         }
     }
 };
+
+void DynamicLoadAndCompile::LoadOperation::run()
+{
+    vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
+    if (!dynamicLoadAndCompile) return;
+
+    std::cout<<"Loading "<<request->filename<<std::endl;
+
+    if (auto node = vsg::read_cast<vsg::Node>(request->filename, request->options); node)
+    {
+        vsg::ComputeBounds computeBounds;
+        node->accept(computeBounds);
+
+        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
+        auto scale = vsg::MatrixTransform::create(vsg::scale(1.0 / radius, 1.0 / radius, 1.0 / radius) * vsg::translate(-centre));
+
+        scale->addChild(node);
+
+        request->loaded = scale;
+
+        std::cout<<"Loaded "<<request->filename<<std::endl;
+
+
+        dynamicLoadAndCompile->compileRequest(request);
+    }
+}
+
+void DynamicLoadAndCompile::CompileOperation::run()
+{
+    vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
+    if (!dynamicLoadAndCompile) return;
+
+    if (request->loaded)
+    {
+        std::cout<<"Compiling "<<request->filename<<std::endl;
+
+        auto compileTraversal = dynamicLoadAndCompile->takeCompileTraversal();
+
+        request->loaded->accept(*compileTraversal);
+
+        std::cout<<"Finished compile traversal "<<request->filename<<std::endl;
+
+        compileTraversal->context.waitForCompletion();
+
+        std::cout<<"Finished waiting for compile "<<request->filename<<std::endl;
+
+        dynamicLoadAndCompile->mergeRequest(request);
+
+        dynamicLoadAndCompile->addCompileTraversal(compileTraversal);
+    }
+}
+
+void DynamicLoadAndCompile::MergeOperation::run()
+{
+    std::cout<<"Merging "<<request->filename<<std::endl;
+
+    request->attachmentPoint->addChild(request->loaded);
+}
 
 int main(int argc, char** argv)
 {
@@ -208,14 +235,6 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        std::vector<std::pair<vsg::Path, vsg::ref_ptr<vsg::Group>>> filenameAttachments;
-
-        vsg::dvec3 origin(0.0, 0.0, 0.0);
-        vsg::dvec3 primary(2.0, 0.0, 0.0);
-        vsg::dvec3 secondary(0.0, 2.0, 0.0);
-
-        int numColumns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(argc - 1))));
-
         // create a Group to contain all the nodes
         auto vsg_scene = vsg::Group::create();
 
@@ -225,7 +244,49 @@ int main(int argc, char** argv)
             vsg_scene->setObject("ResourceHints", resourceHints);
         }
 
-        auto dynamicLoadAndCompile = DynamicLoadAndCompile::create();
+        vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
+        if (!window)
+        {
+            std::cout << "Could not create windows." << std::endl;
+            return 1;
+        }
+
+        // create the viewer and assign window(s) to it
+        auto viewer = vsg::Viewer::create();
+
+        viewer->addWindow(window);
+
+        // set up the grid dimensions to place the loaded models on.
+        vsg::dvec3 origin(0.0, 0.0, 0.0);
+        vsg::dvec3 primary(2.0, 0.0, 0.0);
+        vsg::dvec3 secondary(0.0, 2.0, 0.0);
+
+        int numModels = static_cast<float>(argc - 1);
+        int numColumns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(numModels))));
+        int numRows = static_cast<int>(std::ceil(static_cast<float>(numModels) / static_cast<float>(numColumns)));
+
+        // compute the bounds of the scene graph to help position camera
+        vsg::dvec3 centre = origin + primary * (static_cast<double>(numColumns-1) * 0.5) + secondary * (static_cast<double>(numRows-1) * 0.5);
+        double viewingDistance = std::sqrt(static_cast<float>(numModels))*3.0;
+        double nearFarRatio = 0.001;
+
+        // set up the camera
+        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -viewingDistance, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+        auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * viewingDistance, viewingDistance * 2.0);
+        auto viewportState = vsg::ViewportState::create(window->extent2D());
+        auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
+
+        // add close handler to respond the close window button and pressing escape
+        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
+        viewer->addEventHandler(vsg::Trackball::create(camera));
+
+        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+        // create the DynamicLoadAndCompile obbject that manages loading, compile and merging of new objects.
+        // Pass in window and viewportState to help initalize CompilTraversals
+        auto dynamicLoadAndCompile = DynamicLoadAndCompile::create(window, viewportState);
 
         // build the sene graph attachmments points to place all of the loaded models at.
         for (int i = 1; i < argc; ++i)
@@ -239,79 +300,18 @@ int main(int argc, char** argv)
             dynamicLoadAndCompile->loadRequest(argv[i], transform, options);
         }
 
-        // merge any loaded scene graph elements with the main scene graph
-        dynamicLoadAndCompile->load();
-        dynamicLoadAndCompile->compile();
-        dynamicLoadAndCompile->merge();
+        //std::cout<<"Main thread waiting"<<std::endl;
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-        // vsg::write(vsg_scene, "test.vsgt");
-
-        // create the viewer and assign window(s) to it
-        auto viewer = vsg::Viewer::create();
-
-        vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
-        if (!window)
-        {
-            std::cout << "Could not create windows." << std::endl;
-            return 1;
-        }
-
-        viewer->addWindow(window);
-
-        // compute the bounds of the scene graph to help position camera
-        vsg::ComputeBounds computeBounds;
-        vsg_scene->accept(computeBounds);
-        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-        double nearFarRatio = 0.001;
-
-        // set up the camera
-        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-        auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
-        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-
-        // add close handler to respond the close window button and pressing escape
-        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-        viewer->addEventHandler(vsg::Trackball::create(camera));
-
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
         viewer->compile();
-
-        for (auto& task : viewer->recordAndSubmitTasks)
-        {
-            std::cout << task << std::endl;
-            std::cout << "  windows.size() = " << task->windows.size() << std::endl;
-            for (auto& window : task->windows)
-            {
-                std::cout << "    " << window << std::endl;
-            }
-
-            std::cout << "  waitSemaphores.size() " << task->waitSemaphores.size() << std::endl;
-            for (auto& semaphore : task->waitSemaphores)
-            {
-                std::cout << "    " << semaphore << std::endl;
-            }
-
-            std::cout << "  commandGraphs.size() = " << task->commandGraphs.size() << std::endl;
-            for (auto& cg : task->commandGraphs)
-            {
-                std::cout << "    " << cg << std::endl;
-            }
-
-            std::cout << "  signalSemaphores.size() = " << task->signalSemaphores.size() << std::endl;
-            for (auto& semaphore : task->signalSemaphores)
-            {
-                std::cout << "    " << semaphore << std::endl;
-            }
-        }
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
+
+            dynamicLoadAndCompile->merge();
 
             viewer->update();
 
