@@ -11,25 +11,22 @@
 
 #include "skybox.h"
 
-
 vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg::Options> options)
 {
     auto data = vsg::read_cast<vsg::Data>(filename, options);
     if (!data)
     {
-        std::cout<<"Error: failed to load cubemap file : "<<filename<<std::endl;
+        std::cout << "Error: failed to load cubemap file : " << filename << std::endl;
         return {};
     }
 
     auto vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", skybox_vert);
     auto fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", skybox_frag);
-    const vsg::ShaderStages shaders{ vertexShader, fragmentShader };
-
+    const vsg::ShaderStages shaders{vertexShader, fragmentShader};
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}
-    };
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
@@ -38,30 +35,27 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}
-    };
+        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}};
 
     vsg::VertexInputState::Attributes vertexAttributeDescriptions{
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}
-    };
-    
+        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}};
+
     auto rasterState = vsg::RasterizationState::create();
     rasterState->cullMode = VK_CULL_MODE_FRONT_BIT;
 
     auto depthState = vsg::DepthStencilState::create();
     depthState->depthTestEnable = VK_FALSE;
     depthState->depthWriteEnable = VK_FALSE;
-    
+
     vsg::GraphicsPipelineStates pipelineStates{
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
         rasterState,
         vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
-        depthState
-    };
+        depthState};
 
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{ descriptorSetLayout }, pushConstantRanges);
+    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
     auto pipeline = vsg::GraphicsPipeline::create(pipelineLayout, shaders, pipelineStates);
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(pipeline);
 
@@ -72,12 +66,12 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
 
     auto texture = vsg::DescriptorImage::create(sampler, data, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{ texture });
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
 
     auto root = vsg::StateGroup::create();
     root->add(bindGraphicsPipeline);
-    root->add(bindDescriptorSet); 
+    root->add(bindDescriptorSet);
 
     auto vertices = vsg::vec3Array::create({// Back
                                             {-1.0f, -1.0f, -1.0f},
@@ -113,33 +107,33 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
                                             {-1.0f, 1.0f, -1.0f},
                                             {-1.0f, 1.0f, 1.0f},
                                             {1.0f, 1.0f, -1.0f},
-                                            {1.0f, 1.0f, 1.0} });
+                                            {1.0f, 1.0f, 1.0}});
 
     auto indices = vsg::ushortArray::create({// Back
-                                            0, 2, 1,
-                                            1, 2, 3,
+                                             0, 2, 1,
+                                             1, 2, 3,
 
-                                            // Front
-                                            6, 4, 5,
-                                            7, 6, 5,
+                                             // Front
+                                             6, 4, 5,
+                                             7, 6, 5,
 
-                                            // Left
-                                            10, 8, 9,
-                                            11, 10, 9,
+                                             // Left
+                                             10, 8, 9,
+                                             11, 10, 9,
 
-                                            // Right
-                                            14, 13, 12,
-                                            15, 13, 14,
+                                             // Right
+                                             14, 13, 12,
+                                             15, 13, 14,
 
-                                            // Bottom
-                                            17, 16, 19,
-                                            19, 16, 18,
+                                             // Bottom
+                                             17, 16, 19,
+                                             19, 16, 18,
 
-                                            // Top
-                                            23, 20, 21,
-                                            22, 20, 23 });
+                                             // Top
+                                             23, 20, 21,
+                                             22, 20, 23});
 
-    root->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{ vertices }));
+    root->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices}));
     root->addChild(vsg::BindIndexBuffer::create(indices));
     root->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
 
@@ -166,28 +160,28 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
     arguments.read(options);
-    windowTraits->debugLayer = arguments.read({ "--debug", "-d" });
-    windowTraits->apiDumpLayer = arguments.read({ "--api", "-a" });
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
     if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
     if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    if (arguments.read({ "-t", "--test" }))
+    if (arguments.read({"-t", "--test"}))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         windowTraits->fullscreen = true;
     }
-    if (arguments.read({ "--st", "--small-test" }))
+    if (arguments.read({"--st", "--small-test"}))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         windowTraits->width = 192, windowTraits->height = 108;
         windowTraits->decoration = false;
     }
-    if (arguments.read({ "--fullscreen", "--fs" })) windowTraits->fullscreen = true;
-    if (arguments.read({ "--window", "-w" }, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    if (arguments.read({ "--no-frame", "--nf" })) windowTraits->decoration = false;
+    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
+    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
     if (arguments.read("--or")) windowTraits->overrideRedirect = true;
     if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
     arguments.read("--screen", windowTraits->screenNum);
@@ -201,7 +195,6 @@ int main(int argc, char** argv)
     auto outputFilename = arguments.value(vsg::Path(), "-o");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
-
 
     auto group = vsg::Group::create();
 
@@ -242,7 +235,7 @@ int main(int argc, char** argv)
             std::cout << "Unable to load model from file " << filename << std::endl;
         }
     }
-    
+
     if (group->getNumChildren() == 0)
     {
         std::cout << "Please specify a 3d model file on the command line." << std::endl;
@@ -254,7 +247,6 @@ int main(int argc, char** argv)
         vsg_scene = group->getChild(0);
     else
         vsg_scene = group;
-
 
     if (!outputFilename.empty())
     {
@@ -301,7 +293,7 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-    viewer->assignRecordAndSubmitTaskAndPresentation({ commandGraph });
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
 
