@@ -27,7 +27,6 @@ public:
     vsg::ref_ptr<vsg::ViewportState> viewport;
     vsg::BufferPreferences buildPreferences;
 
-
     DynamicLoadAndCompile(vsg::ref_ptr<vsg::Window> in_window, vsg::ref_ptr<vsg::ViewportState> in_viewport, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
         window(in_window),
         viewport(in_viewport),
@@ -116,8 +115,6 @@ public:
             }
         }
 
-        vsg::CollectDescriptorStats collectStats;
-
         std::cout<<"takeCompileTraversal() creating a new CompileTraversal"<<std::endl;
         auto ct = vsg::CompileTraversal::create(window, viewport, buildPreferences);
 
@@ -163,7 +160,6 @@ void DynamicLoadAndCompile::LoadOperation::run()
 
         std::cout<<"Loaded "<<request->filename<<std::endl;
 
-
         dynamicLoadAndCompile->compileRequest(request);
     }
 }
@@ -191,6 +187,8 @@ void DynamicLoadAndCompile::CompileOperation::run()
         request->loaded->accept(*compileTraversal);
 
         std::cout<<"Finished compile traversal "<<request->filename<<std::endl;
+
+        compileTraversal->context.record(); // records and submits to queue
 
         compileTraversal->context.waitForCompletion();
 
@@ -297,11 +295,9 @@ int main(int argc, char** argv)
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-        viewer->compile();
-
         // create the DynamicLoadAndCompile obbject that manages loading, compile and merging of new objects.
         // Pass in window and viewportState to help initalize CompilTraversals
-        auto dynamicLoadAndCompile = DynamicLoadAndCompile::create(window, viewportState);
+        auto dynamicLoadAndCompile = DynamicLoadAndCompile::create(window, viewportState, viewer->status);
 
         // build the sene graph attachmments points to place all of the loaded models at.
         for (int i = 1; i < argc; ++i)
