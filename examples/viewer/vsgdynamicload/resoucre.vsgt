@@ -1,0 +1,10 @@
+#vsga 0.0.4
+Root id=1 vsg::ResourceHints
+{
+  NumUserObjects 0
+  MaxSlot 1
+  NumDescriptorSets 50000
+  NumDescriptorPoolSize 1
+  type 1
+  count 50000
+}
