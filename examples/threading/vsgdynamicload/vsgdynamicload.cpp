@@ -12,7 +12,6 @@
 class DynamicLoadAndCompile : public vsg::Inherit<vsg::Object, DynamicLoadAndCompile>
 {
 public:
-
     vsg::ref_ptr<vsg::ActivityStatus> status;
 
     vsg::ref_ptr<vsg::OperationThreads> loadThreads;
@@ -110,12 +109,12 @@ public:
             {
                 auto ct = compileTraversals.front();
                 compileTraversals.erase(compileTraversals.begin());
-                std::cout<<"takeCompileTraversal() resuing "<<ct<<std::endl;
+                std::cout << "takeCompileTraversal() resuing " << ct << std::endl;
                 return ct;
             }
         }
 
-        std::cout<<"takeCompileTraversal() creating a new CompileTraversal"<<std::endl;
+        std::cout << "takeCompileTraversal() creating a new CompileTraversal" << std::endl;
         auto ct = vsg::CompileTraversal::create(window, viewport, buildPreferences);
 
         return ct;
@@ -123,7 +122,7 @@ public:
 
     void addCompileTraversal(vsg::ref_ptr<vsg::CompileTraversal> ct)
     {
-        std::cout<<"addCompileTraversal("<<ct<<")"<<std::endl;
+        std::cout << "addCompileTraversal(" << ct << ")" << std::endl;
         std::scoped_lock lock(mutex_compileTraversals);
         compileTraversals.push_back(ct);
     }
@@ -131,7 +130,7 @@ public:
     void merge()
     {
         vsg::ref_ptr<vsg::Operation> operation;
-        while(operation = mergeQueue->take())
+        while (operation = mergeQueue->take())
         {
             operation->run();
         }
@@ -143,7 +142,7 @@ void DynamicLoadAndCompile::LoadOperation::run()
     vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
     if (!dynamicLoadAndCompile) return;
 
-    std::cout<<"Loading "<<request->filename<<std::endl;
+    std::cout << "Loading " << request->filename << std::endl;
 
     if (auto node = vsg::read_cast<vsg::Node>(request->filename, request->options); node)
     {
@@ -158,7 +157,7 @@ void DynamicLoadAndCompile::LoadOperation::run()
 
         request->loaded = scale;
 
-        std::cout<<"Loaded "<<request->filename<<std::endl;
+        std::cout << "Loaded " << request->filename << std::endl;
 
         dynamicLoadAndCompile->compileRequest(request);
     }
@@ -171,7 +170,7 @@ void DynamicLoadAndCompile::CompileOperation::run()
 
     if (request->loaded)
     {
-        std::cout<<"Compiling "<<request->filename<<std::endl;
+        std::cout << "Compiling " << request->filename << std::endl;
 
         auto compileTraversal = dynamicLoadAndCompile->takeCompileTraversal();
 
@@ -186,13 +185,13 @@ void DynamicLoadAndCompile::CompileOperation::run()
 
         request->loaded->accept(*compileTraversal);
 
-        std::cout<<"Finished compile traversal "<<request->filename<<std::endl;
+        std::cout << "Finished compile traversal " << request->filename << std::endl;
 
         compileTraversal->context.record(); // records and submits to queue
 
         compileTraversal->context.waitForCompletion();
 
-        std::cout<<"Finished waiting for compile "<<request->filename<<std::endl;
+        std::cout << "Finished waiting for compile " << request->filename << std::endl;
 
         dynamicLoadAndCompile->mergeRequest(request);
 
@@ -202,7 +201,7 @@ void DynamicLoadAndCompile::CompileOperation::run()
 
 void DynamicLoadAndCompile::MergeOperation::run()
 {
-    std::cout<<"Merging "<<request->filename<<std::endl;
+    std::cout << "Merging " << request->filename << std::endl;
 
     request->attachmentPoint->addChild(request->loaded);
 }
@@ -277,8 +276,8 @@ int main(int argc, char** argv)
         int numRows = static_cast<int>(std::ceil(static_cast<float>(numModels) / static_cast<float>(numColumns)));
 
         // compute the bounds of the scene graph to help position camera
-        vsg::dvec3 centre = origin + primary * (static_cast<double>(numColumns-1) * 0.5) + secondary * (static_cast<double>(numRows-1) * 0.5);
-        double viewingDistance = std::sqrt(static_cast<float>(numModels))*3.0;
+        vsg::dvec3 centre = origin + primary * (static_cast<double>(numColumns - 1) * 0.5) + secondary * (static_cast<double>(numRows - 1) * 0.5);
+        double viewingDistance = std::sqrt(static_cast<float>(numModels)) * 3.0;
         double nearFarRatio = 0.001;
 
         // set up the camera
