@@ -42,7 +42,7 @@ add_custom_target(clobber
 find_program(CLANGFORMAT clang-format)
 if (CLANGFORMAT)
     add_custom_target(clang-format
-        COMMAND ${CLANGFORMAT} -i ${CMAKE_SOURCE_DIR}/*/*/*.h ${CMAKE_SOURCE_DIR}/*/*/*.cpp
+        COMMAND ${CLANGFORMAT} -i ${CMAKE_SOURCE_DIR}/*/*/*.h ${CMAKE_SOURCE_DIR}/*/*/*.cpp ${CMAKE_SOURCE_DIR}/*/*/*/*.h ${CMAKE_SOURCE_DIR}/*/*/*/*.cpp
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Automated code format using clang-format"
     )
@@ -57,6 +57,7 @@ add_subdirectory(examples/state)
 add_subdirectory(examples/commands)
 add_subdirectory(examples/nodes)
 add_subdirectory(examples/traversals)
+add_subdirectory(examples/threading)
 add_subdirectory(examples/viewer)
 add_subdirectory(examples/vk)
 add_subdirectory(examples/text)

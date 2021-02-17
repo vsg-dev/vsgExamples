@@ -178,13 +178,13 @@ int main(int argc, char** argv)
         auto options = vsg::Options::create();
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-    #ifdef USE_VSGGIS
+#ifdef USE_VSGGIS
         options->add(vsgGIS::ReaderWriter_GDAL::create()); // add the optional ReaderWriter_GDAL fron vsgGIS to read geospatial imagery
-    #endif
+#endif
 
-    #ifdef USE_VSGXCHANGE
+#ifdef USE_VSGXCHANGE
         options->add(vsgXchange::ReaderWriter_all::create()); // add the optional ReaderWriter_all fron vsgXchange to read 3d models and imagery
-    #endif
+#endif
 
         arguments.read(options);
 
@@ -224,7 +224,7 @@ int main(int argc, char** argv)
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-        if (argc<=1)
+        if (argc <= 1)
         {
             std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
             return 1;
@@ -362,11 +362,10 @@ int main(int argc, char** argv)
     }
     catch (const vsg::Exception& ve)
     {
-        for(int i=0; i<argc; ++i) std::cerr<<argv[i]<<" ";
-        std::cerr << "\n[Exception] - " << ve.message << " result = "<<ve.result<<std::endl;
+        for (int i = 0; i < argc; ++i) std::cerr << argv[i] << " ";
+        std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
         return 1;
     }
-
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;
