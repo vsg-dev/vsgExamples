@@ -2,7 +2,7 @@
 #include <vsg/all.h>
 
 #ifdef USE_VSGXCHANGE
-#    include <vsgXchange/ReaderWriter_all.h>
+#    include <vsgXchange/all.h>
 #endif
 
 vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& horizontal, const vsg::vec3& vertical, vsg::ref_ptr<vsg::Data> sourceData = {})
@@ -189,7 +189,8 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->paths = searchPaths;
 #ifdef USE_VSGXCHANGE
-    options->add(vsgXchange::ReaderWriter_all::create());
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
 #endif
 
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);

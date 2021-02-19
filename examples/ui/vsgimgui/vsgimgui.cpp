@@ -5,7 +5,7 @@
 #include <vsg/all.h>
 
 #ifdef USE_VSGXCHANGE
-#    include <vsgXchange/ReaderWriter_all.h>
+#    include <vsgXchange/all.h>
 #endif
 
 struct Params : public vsg::Inherit<vsg::Object, Params>
@@ -85,8 +85,8 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
 #ifdef USE_VSGXCHANGE
-    // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::ReaderWriter_all::create());
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
 #endif
 
     auto windowTraits = vsg::WindowTraits::create();
