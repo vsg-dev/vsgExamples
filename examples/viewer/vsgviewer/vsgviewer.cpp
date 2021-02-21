@@ -183,8 +183,8 @@ int main(int argc, char** argv)
 #endif
 
 #ifdef USE_VSGXCHANGE
-    // add vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::all::create());
+        // add vsgXchange's support for reading and writing 3rd party file formats
+        options->add(vsgXchange::all::create());
 #endif
 
         arguments.read(options);
