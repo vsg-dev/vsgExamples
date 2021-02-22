@@ -182,7 +182,7 @@ int main(int argc, char** argv)
         options->add(vsgGIS::ReaderWriter_GDAL::create()); // add the optional ReaderWriter_GDAL fron vsgGIS to read geospatial imagery
 #endif
 
-#ifdef USE_VSGXCHANGE
+#ifdef VSGXCHANGE_all
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
 #endif

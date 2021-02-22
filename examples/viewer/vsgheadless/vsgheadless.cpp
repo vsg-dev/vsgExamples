@@ -398,7 +398,7 @@ int main(int argc, char** argv)
     }
 
     auto options = vsg::Options::create();
-#ifdef USE_VSGXCHANGE
+#ifdef VSGXCHANGE_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
