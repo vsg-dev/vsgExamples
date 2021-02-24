@@ -3,7 +3,7 @@
 #include <chrono>
 #include <iostream>
 
-#ifdef USE_VSGXCHANGE
+#ifdef vsgXchange_FOUND
 #    include <vsgXchange/all.h>
 #endif
 
@@ -44,7 +44,7 @@ int main(int argc, char** argv)
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     auto options = vsg::Options::create();
-#ifdef VSGXCHANGE_all
+#ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif

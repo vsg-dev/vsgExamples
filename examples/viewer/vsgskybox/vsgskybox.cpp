@@ -1,6 +1,6 @@
 #include <vsg/all.h>
 
-#ifdef USE_VSGXCHANGE
+#ifdef vsgXchange_FOUND
 #    include <vsgXchange/all.h>
 #endif
 
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-#ifdef VSGXCHANGE_all
+#ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
