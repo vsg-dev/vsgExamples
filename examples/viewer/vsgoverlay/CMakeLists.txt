@@ -7,6 +7,6 @@ add_executable(vsgoverlay ${SOURCES})
 target_link_libraries(vsgoverlay vsg::vsg)
 
 if (vsgXchange_FOUND)
-    target_compile_definitions(vsgoverlay PRIVATE USE_VSGXCHANGE)
+    target_compile_definitions(vsgoverlay PRIVATE vsgXchange_FOUND)
     target_link_libraries(vsgoverlay vsgXchange::vsgXchange)
 endif()

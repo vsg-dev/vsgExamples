@@ -1,7 +1,7 @@
 #include <vsg/all.h>
 
-#ifdef USE_VSGXCHANGE
-#    include <vsgXchange/ReaderWriter_all.h>
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
 #endif
 
 #include <algorithm>
@@ -217,8 +217,9 @@ int main(int argc, char** argv)
         auto options = vsg::Options::create();
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-#ifdef USE_VSGXCHANGE
-        options->add(vsgXchange::ReaderWriter_all::create()); // add the optional ReaderWriter_all fron vsgXchange to read 3d models and imagery
+#ifdef vsgXchange_all
+        // add vsgXchange's support for reading and writing 3rd party file formats
+        options->add(vsgXchange::all::create());
 #endif
 
         arguments.read(options);

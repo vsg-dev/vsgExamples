@@ -91,7 +91,7 @@ int main(int argc, char** argv)
     {
         if (vsg::fileExists(inputFilename))
         {
-            vsg::ReaderWriter_vsg io;
+            vsg::VSG io;
             object = io.read(inputFilename);
             if (!object)
             {
@@ -108,15 +108,15 @@ int main(int argc, char** argv)
 
     if (object)
     {
-        vsg::ReaderWriter_vsg io;
         if (outputFilename.empty())
         {
             // write graph to console
+            vsg::VSG io;
             io.write(object, std::cout);
         }
         else
         {
-            io.write(object, outputFilename);
+            vsg::write(object, outputFilename);
         }
     }
 
