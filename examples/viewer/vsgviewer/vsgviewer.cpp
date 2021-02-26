@@ -214,6 +214,7 @@ int main(int argc, char** argv)
         auto pathFilename = arguments.value(std::string(), "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
+        if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
