@@ -11,7 +11,7 @@
 
 #include "../../shared/AnimationPath.h"
 
-vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
+vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHints)
 {
     struct ConvertToRGBA : public vsg::Visitor
     {
@@ -107,7 +107,9 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData)
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
     // create texture image and associated DescriptorSets and binding
-    auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    auto sampler = vsg::Sampler::create();
+    sampler->maxLod = mipmapLevelsHints;
+    auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
@@ -214,6 +216,7 @@ int main(int argc, char** argv)
         auto pathFilename = arguments.value(std::string(), "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
+        auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"} );
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -241,7 +244,7 @@ int main(int argc, char** argv)
             }
             else if (auto data = object.cast<vsg::Data>(); data)
             {
-                if (auto node = createTextureQuad(data); node)
+                if (auto node = createTextureQuad(data, mipmapLevelsHint); node)
                 {
                     group->addChild(node);
                 }
