@@ -30,7 +30,11 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
+    if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    auto numFrames = arguments.value(-1, "-f");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -165,6 +169,7 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
 
     auto copyCmd = vsg::CopyAndReleaseImage::create();
+    copyCmd->stagingMemoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
     commandGraph->getChildren().insert(commandGraph->getChildren().begin(), copyCmd);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
@@ -180,11 +185,8 @@ int main(int argc, char** argv)
     vsg::ImageInfo textureImageInfo;
     if (!texture->imageInfoList.empty()) textureImageInfo = texture->imageInfoList[0]; // contextID=0, and only one imageData
 
-    // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
-    vsg::Context context(window->getOrCreateDevice());
-
     // main frame loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
@@ -196,11 +198,8 @@ int main(int argc, char** argv)
         // update texture data
         update(*textureData, time);
 
-        // transfer data to staging buffer
-        auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
-
-        // schedule a copy command to do the staging buffer to the texture image, this copy command is recorded to the appropriate command buffer by viewer->recordAndSubmit().
-        copyCmd->add(stagingBufferData, textureImageInfo);
+        // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
+        copyCmd->copy(textureData, textureImageInfo);
 
         viewer->update();
 
