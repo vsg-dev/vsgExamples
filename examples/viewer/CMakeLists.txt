@@ -8,3 +8,7 @@ add_subdirectory(vsgscreenshot)
 add_subdirectory(vsgsubpass)
 add_subdirectory(vsgskybox)
 add_subdirectory(vsgviewer)
+
+if (vsgXchange_FOUND)
+    add_subdirectory(vsghelloworld)
+endif()
