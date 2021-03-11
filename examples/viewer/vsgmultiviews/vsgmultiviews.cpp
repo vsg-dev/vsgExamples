@@ -72,7 +72,6 @@ int main(int argc, char** argv)
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
-
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {

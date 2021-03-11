@@ -256,8 +256,7 @@ int main(int argc, char** argv)
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
-
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
+    auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
         std::cout << "Could not create windows." << std::endl;
