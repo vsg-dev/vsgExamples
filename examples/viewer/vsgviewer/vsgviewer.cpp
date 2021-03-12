@@ -331,6 +331,13 @@ int main(int argc, char** argv)
         {
             vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
 
+            if (!path.empty())
+            {
+                options->paths.insert(options->paths.begin(), path);
+            }
+
+            loadPagedLOD.options = options;
+
             auto startTime = std::chrono::steady_clock::now();
 
             vsg_scene->accept(loadPagedLOD);
