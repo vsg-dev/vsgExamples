@@ -25,12 +25,19 @@ public:
         vsg::Path terrainLayer;
         uint32_t mipmapLevelsHint = 16;
 
+        void init();
+
         vsg::dbox computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const;
         vsg::Path getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const;
 
         vsg::ref_ptr<vsg::Object> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {}) const override;
 
         vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHint) const;
+
+        vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout;
+        vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
+
+        vsg::ref_ptr<vsg::StateGroup> createRoot() const;
 };
 
 vsg::dbox TileReader::computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const
@@ -76,7 +83,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_p
     std::string tile_info = filename.substr(0, filename.length()-5);
     if (tile_info == "root")
     {
-        auto group = vsg::Group::create();
+        auto group = createRoot();
         uint32_t lod = 0;
         for(uint32_t y = 0; y < noY; ++y)
         {
@@ -124,10 +131,24 @@ vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_p
     return {};
 }
 
-vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> textureData, uint32_t mipmapLevelsHint) const
+void TileReader::init()
 {
-    if (!textureData) return {};
+    // set up graphics pipeline
+    vsg::DescriptorSetLayoutBindings descriptorBindings{
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+    };
 
+    descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+    vsg::PushConstantRanges pushConstantRanges{
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+    };
+
+    pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+}
+
+vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const
+{
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
@@ -139,17 +160,6 @@ vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, 
         std::cout << "Could not create shaders." << std::endl;
         return {};
     }
-
-    // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
-    };
-
-    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-
-    vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
-    };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
         VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
@@ -171,9 +181,18 @@ vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, 
         vsg::ColorBlendState::create(),
         vsg::DepthStencilState::create()};
 
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+
+    auto root = vsg::StateGroup::create();
+    root->add(bindGraphicsPipeline);
+
+    return root;
+}
+
+vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> textureData, uint32_t mipmapLevelsHint) const
+{
+    if (!textureData) return {};
 
     // create texture image and associated DescriptorSets and binding
     auto sampler = vsg::Sampler::create();
@@ -186,9 +205,8 @@ vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
 
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // create StateGroup to bind any texture state
     auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSets);
 
     // set up model transformation node
@@ -282,6 +300,7 @@ int main(int argc, char** argv)
         auto tileReader = TileReader::create();
         tileReader->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
         tileReader->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+        tileReader->init();
 
         options->readerWriters.insert(options->readerWriters.begin(), tileReader);
 
