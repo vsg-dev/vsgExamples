@@ -11,52 +11,121 @@
 
 #include "../../shared/AnimationPath.h"
 
-vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHint)
+
+class TileReader : public vsg::Inherit<vsg::ReaderWriter, TileReader>
 {
-    struct ConvertToRGBA : public vsg::Visitor
+public:
+
+        // defaults for readymap
+        vsg::dbox extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        uint32_t noX = 2;
+        uint32_t noY = 1;
+
+        vsg::Path imageLayer;
+        vsg::Path terrainLayer;
+        uint32_t mipmapLevelsHint = 16;
+
+        vsg::dbox computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const;
+        vsg::Path getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const;
+
+        vsg::ref_ptr<vsg::Object> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {}) const override;
+
+        vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHint) const;
+};
+
+vsg::dbox TileReader::computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const
+{
+    double multiplier = pow(0.5, double(level));
+    double tileWidth = multiplier * (extents.max.x - extents.min.x) / double(noX);
+    double tileHeight = multiplier * (extents.max.y - extents.min.y) / double(noY);
+
+    vsg::dbox tile_extents;
+    tile_extents.min = vsg::dvec3(double(x) * tileWidth, double(y) * tileHeight, 0.0);
+    tile_extents.max = vsg::dvec3(double(x+1) * tileWidth, double(y+1) * tileHeight, 1.0);
+
+    return tile_extents;
+}
+
+vsg::Path TileReader::getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const
+{
+    vsg::Path path = src;
+
+    std::stringstream sstr;
+
+    auto replace = [&sstr](vsg::Path& path, const std::string& match, uint32_t value)
     {
-        vsg::ref_ptr<vsg::Data> textureData;
+        auto levelPos = path.find(match);
+        sstr.clear(std::stringstream::goodbit);
+        sstr.seekp(0);
+        sstr << value;
+        if (levelPos != std::string::npos) path.replace(levelPos, match.length(), sstr.str());
+    };
 
-        void apply(vsg::Data& data) override
+    replace(path, "{z}", level);
+    replace(path, "{x}", x);
+    replace(path, "{y}", y);
+
+    return path;
+}
+
+vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options) const
+{
+    auto extension = vsg::fileExtension(filename);
+    if (extension != "tile") return {};
+
+    std::string tile_info = filename.substr(0, filename.length()-5);
+    if (tile_info == "root")
+    {
+        auto group = vsg::Group::create();
+        uint32_t lod = 0;
+        for(uint32_t y = 0; y < noY; ++y)
         {
-            textureData = &data;
-        }
-
-        void apply(vsg::uintArray2D& fa) override
-        {
-            // treat as a 24bit depth buffer
-            float div = 1.0f / static_cast<float>(1 << 24);
-
-            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
-            auto dest_itr = rgba->begin();
-            for (auto& v : fa)
+            for(uint32_t x = 0; x < noX; ++x)
             {
-                float m = static_cast<float>(v) * div;
-                (*dest_itr++).set(m, m, m, 1.0);
+                auto imagePath = getTilePath(imageLayer, x, y, lod);
+                //auto terrainPath = getTilePath(terrainLayer, x, y, lod);
+
+                auto imageTile = vsg::read_cast<vsg::Data>(imagePath, options);
+                //auto terrainTile = vsg::read(terrainPath, options);
+
+                if (imageTile)
+                {
+                    auto tile_extents = computeTileExtents(x, y, lod);
+                    auto tile = createTextureQuad(tile_extents, imageTile, mipmapLevelsHint);
+
+                    if (tile) group->addChild(tile);
+                }
             }
-            textureData = rgba;
         }
+        return group;
+    }
 
-        void apply(vsg::floatArray2D& fa) override
-        {
-            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
-            auto dest_itr = rgba->begin();
-            for (auto& v : fa)
-            {
-                (*dest_itr++).set(v, v, v, 1.0);
-            }
-            textureData = rgba;
-        }
+    std::stringstream sstr(tile_info);
 
-        vsg::ref_ptr<vsg::Data> convert(vsg::ref_ptr<vsg::Data> data)
-        {
-            data->accept(*this);
-            return textureData;
-        }
+    uint32_t x, y, lod;
+    sstr >> x >> y >> lod;
 
-    } convertToRGBA;
+    auto imagePath = getTilePath(imageLayer, x, y, lod);
+    //auto terrainPath = getTilePath(terrainLayer, x, y, lod);
 
-    auto textureData = convertToRGBA.convert(sourceData);
+    auto imageTile = vsg::read_cast<vsg::Data>(imagePath, options);
+    //auto terrainTile = vsg::read(terrainPath, options);
+
+    //std::cout<<"   "<<imageTile<<std::endl;
+    //std::cout<<"   "<<terrainTile<<std::endl;
+
+    if (imageTile)
+    {
+        auto tile_extents = computeTileExtents(x, y, lod);
+        auto tile = createTextureQuad(tile_extents, imageTile, mipmapLevelsHint);
+        return tile;
+    }
+
+    return {};
+}
+
+vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> textureData, uint32_t mipmapLevelsHint) const
+{
     if (!textureData) return {};
 
     // set up search paths to SPIRV shaders and textures
@@ -175,118 +244,6 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr
     return scenegraph;
 }
 
-
-class TileReader : public vsg::Inherit<vsg::ReaderWriter, TileReader>
-{
-public:
-
-        // defaults for readymap
-        vsg::dbox extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        uint32_t noX = 2;
-        uint32_t noY = 1;
-
-        vsg::Path imageLayer;
-        vsg::Path terrainLayer;
-        uint32_t mipmapLevelsHint = 16;
-
-        vsg::dbox computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const;
-        vsg::Path getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const;
-
-        vsg::ref_ptr<vsg::Object> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {}) const override;
-};
-
-vsg::dbox TileReader::computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const
-{
-    double multiplier = pow(0.5, double(level));
-    double tileWidth = multiplier * (extents.max.x - extents.min.x) / double(noX);
-    double tileHeight = multiplier * (extents.max.y - extents.min.y) / double(noY);
-
-    vsg::dbox tile_extents;
-    tile_extents.min = vsg::dvec3(double(x) * tileWidth, double(y) * tileHeight, 0.0);
-    tile_extents.max = vsg::dvec3(double(x+1) * tileWidth, double(y+1) * tileHeight, 1.0);
-
-    return tile_extents;
-}
-
-vsg::Path TileReader::getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const
-{
-    vsg::Path path = src;
-
-    std::stringstream sstr;
-
-    auto replace = [&sstr](vsg::Path& path, const std::string& match, uint32_t value)
-    {
-        auto levelPos = path.find(match);
-        sstr.clear(std::stringstream::goodbit);
-        sstr.seekp(0);
-        sstr << value;
-        if (levelPos != std::string::npos) path.replace(levelPos, match.length(), sstr.str());
-    };
-
-    replace(path, "{z}", level);
-    replace(path, "{x}", x);
-    replace(path, "{y}", y);
-
-    return path;
-}
-
-vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options) const
-{
-    auto extension = vsg::fileExtension(filename);
-    if (extension != "tile") return {};
-
-    std::string tile_info = filename.substr(0, filename.length()-5);
-    if (tile_info == "root")
-    {
-        auto group = vsg::Group::create();
-        uint32_t lod = 0;
-        for(uint32_t y = 0; y < noY; ++y)
-        {
-            for(uint32_t x = 0; x < noX; ++x)
-            {
-                auto imagePath = getTilePath(imageLayer, x, y, lod);
-                //auto terrainPath = getTilePath(terrainLayer, x, y, lod);
-
-                auto imageTile = vsg::read_cast<vsg::Data>(imagePath, options);
-                //auto terrainTile = vsg::read(terrainPath, options);
-
-                if (imageTile)
-                {
-                    auto tile_extents = computeTileExtents(x, y, lod);
-                    auto tile = createTextureQuad(tile_extents, imageTile, mipmapLevelsHint);
-
-                    if (tile) group->addChild(tile);
-                }
-            }
-        }
-        return group;
-    }
-
-
-    std::stringstream sstr(tile_info);
-
-    uint32_t x, y, lod;
-    sstr >> x >> y >> lod;
-
-    auto imagePath = getTilePath(imageLayer, x, y, lod);
-    //auto terrainPath = getTilePath(terrainLayer, x, y, lod);
-
-    auto imageTile = vsg::read_cast<vsg::Data>(imagePath, options);
-    //auto terrainTile = vsg::read(terrainPath, options);
-
-    //std::cout<<"   "<<imageTile<<std::endl;
-    //std::cout<<"   "<<terrainTile<<std::endl;
-
-    if (imageTile)
-    {
-        auto tile_extents = computeTileExtents(x, y, lod);
-        auto tile = createTextureQuad(tile_extents, imageTile, mipmapLevelsHint);
-        return tile;
-    }
-
-    return {};
-}
-
 int main(int argc, char** argv)
 {
     try
@@ -305,7 +262,7 @@ int main(int argc, char** argv)
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgviewer";
+        windowTraits->windowTitle = "vsgpagedlod";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
@@ -313,6 +270,7 @@ int main(int argc, char** argv)
         arguments.read("--screen", windowTraits->screenNum);
         arguments.read("--display", windowTraits->display);
         arguments.read("--samples", windowTraits->samples);
+        auto outputFilename = arguments.value(std::string(), "-o");
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
@@ -333,6 +291,12 @@ int main(int argc, char** argv)
         std::cout<<"vsg_scene " <<vsg_scene<<std::endl;
 
         if (!vsg_scene) return 1;
+
+        if (!outputFilename.empty())
+        {
+            vsg::write(vsg_scene, outputFilename);
+            return 0;
+        }
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
