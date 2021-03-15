@@ -20,6 +20,8 @@ public:
         vsg::dbox extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
         uint32_t noX = 2;
         uint32_t noY = 1;
+        bool originTopLeft = true;
+        std::string projection;
 
         vsg::Path imageLayer;
         vsg::Path terrainLayer;
@@ -27,10 +29,14 @@ public:
 
         void init();
 
+        vsg::ref_ptr<vsg::Object> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {}) const override;
+
+protected:
+
+        // internal methods
         vsg::dbox computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const;
         vsg::Path getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const;
 
-        vsg::ref_ptr<vsg::Object> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {}) const override;
 
         vsg::ref_ptr<vsg::Object> read_root(vsg::ref_ptr<const vsg::Options> options = {}) const;
         vsg::ref_ptr<vsg::Object> read_subtile(uint32_t x, uint32_t y, uint32_t lod, vsg::ref_ptr<const vsg::Options> options = {}) const;
@@ -50,27 +56,30 @@ vsg::dbox TileReader::computeTileExtents(uint32_t x, uint32_t y, uint32_t level)
     double tileHeight = multiplier * (extents.max.y - extents.min.y) / double(noY);
 
     vsg::dbox tile_extents;
-    tile_extents.min = vsg::dvec3(double(x) * tileWidth, double(y) * tileHeight, 0.0);
-    tile_extents.max = vsg::dvec3(double(x+1) * tileWidth, double(y+1) * tileHeight, 1.0);
-
+    if (originTopLeft)
+    {
+        tile_extents.min = vsg::dvec3(double(x) * tileWidth, -double(y+1) * tileHeight, 0.0);
+        tile_extents.max = vsg::dvec3(double(x+1) * tileWidth, -double(y) * tileHeight, 1.0);
+    }
+    else
+    {
+        tile_extents.min = vsg::dvec3(double(x) * tileWidth, double(y) * tileHeight, 0.0);
+        tile_extents.max = vsg::dvec3(double(x+1) * tileWidth, double(y+1) * tileHeight, 1.0);
+    }
     return tile_extents;
 }
 
 vsg::Path TileReader::getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const
 {
-    vsg::Path path = src;
-
-    std::stringstream sstr;
-
-    auto replace = [&sstr](vsg::Path& path, const std::string& match, uint32_t value)
+    auto replace = [](vsg::Path& path, const std::string& match, uint32_t value)
     {
-        auto levelPos = path.find(match);
-        sstr.clear(std::stringstream::goodbit);
-        sstr.seekp(0);
+        std::stringstream sstr;
         sstr << value;
+        auto levelPos = path.find(match);
         if (levelPos != std::string::npos) path.replace(levelPos, match.length(), sstr.str());
     };
 
+    vsg::Path path = src;
     replace(path, "{z}", level);
     replace(path, "{x}", x);
     replace(path, "{y}", y);
@@ -95,6 +104,8 @@ vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_p
 
         uint32_t x, y, lod;
         sstr >> x >> y >> lod;
+
+        // std::cout<<"read("<<filename<<") -> tile_info = "<<tile_info<<", x = "<<x<<", y = "<<y<<", z = "<<lod<<std::endl;
 
         return read_subtile(x, y, lod, options);
     }
@@ -183,13 +194,11 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
             uint32_t local_x = subtile_x + dx;
             uint32_t local_y = subtile_y + dy;
 
-            auto imagePath = getTilePath(imageLayer, local_x, local_y, local_lod);
-            //auto terrainPath = getTilePath(terrainLayer, x, y, lod);
 
+            auto imagePath = getTilePath(imageLayer, local_x, local_y, local_lod);
             auto imageTile = vsg::read_cast<vsg::Data>(imagePath, options);
 
-            //std::cout<<"   "<<imageTile<<std::endl;
-            //std::cout<<"   "<<terrainTile<<std::endl;
+            // std::cout<<"    local_x = "<<local_x<<", local_y = "<<local_y<<", local_lod = "<<local_lod<<", imagePath =  "<<imagePath<<std::endl;
 
             if (imageTile)
             {
@@ -205,7 +214,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
                     plod->filename = vsg::make_string(local_x," ", local_y, " ", local_lod, ".tile");
                     plod->options = options;
 
-                    // std::cout<<"plod->filename "<<plod->filename<<std::endl;
+                    //std::cout<<"plod->filename "<<plod->filename<<std::endl;
 
                     group->addChild(plod);
                 }
@@ -314,8 +323,13 @@ vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, 
     // set up vertex and index arrays
     float min_x = extents.min.x;
     float min_y = extents.min.y;
-    float max_x = (extents.min.x*0.1 + extents.max.x*0.9);
-    float max_y = (extents.min.y*0.1 + extents.max.y*0.9);
+#if 1
+    float max_x = extents.max.x;
+    float max_y = extents.max.y;
+#else
+    float max_x = extents.min.x*0.05 + extents.max.x*0.95;
+    float max_y = extents.min.y*0.05 + extents.max.y*0.95;
+#endif
 
     auto vertices = vsg::vec3Array::create(
         {{min_x, 0.0f, min_y},
@@ -368,6 +382,9 @@ int main(int argc, char** argv)
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
+        auto tileReader = TileReader::create();
+        options->add(tileReader);
+
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
 
@@ -389,20 +406,35 @@ int main(int argc, char** argv)
         auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+
+        if (arguments.read("--osm"))
+        {
+            tileReader->noX = 1;
+            tileReader->noY = 1;
+            tileReader->originTopLeft = true;
+            tileReader->projection = "EPSG:3857"; // spherical-mercator
+            tileReader->imageLayer = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+        }
+
+        if (arguments.read("--rm") || tileReader->imageLayer.empty())
+        {
+            // setup ready mapp settings
+            tileReader->noX = 2;
+            tileReader->noY = 1;
+            tileReader->originTopLeft = false;
+            //tileReader->projection = "EPSG:3857";
+            tileReader->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
+            // tileReader->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+        }
+
+
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-        auto tileReader = TileReader::create();
-        tileReader->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
-        tileReader->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+        // initial the state that will be shared between tiles.
         tileReader->init();
 
-        options->readerWriters.insert(options->readerWriters.begin(), tileReader);
-
+        // load the root tile.
         auto vsg_scene = vsg::read_cast<vsg::Node>("root.tile", options);
-        //auto vsg_scene = vsg::read_cast<vsg::Node>("3 4 6.tile", options);
-
-        std::cout<<"vsg_scene " <<vsg_scene<<std::endl;
-
         if (!vsg_scene) return 1;
 
         if (!outputFilename.empty())
