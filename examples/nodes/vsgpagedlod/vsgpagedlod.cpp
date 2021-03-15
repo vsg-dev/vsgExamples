@@ -11,42 +11,38 @@
 
 #include "../../shared/AnimationPath.h"
 
-
 class TileReader : public vsg::Inherit<vsg::ReaderWriter, TileReader>
 {
 public:
+    // defaults for readymap
+    vsg::dbox extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+    uint32_t noX = 2;
+    uint32_t noY = 1;
+    bool originTopLeft = true;
+    std::string projection;
 
-        // defaults for readymap
-        vsg::dbox extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        uint32_t noX = 2;
-        uint32_t noY = 1;
-        bool originTopLeft = true;
-        std::string projection;
+    vsg::Path imageLayer;
+    vsg::Path terrainLayer;
+    uint32_t mipmapLevelsHint = 16;
 
-        vsg::Path imageLayer;
-        vsg::Path terrainLayer;
-        uint32_t mipmapLevelsHint = 16;
+    void init();
 
-        void init();
-
-        vsg::ref_ptr<vsg::Object> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {}) const override;
+    vsg::ref_ptr<vsg::Object> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {}) const override;
 
 protected:
+    // internal methods
+    vsg::dbox computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const;
+    vsg::Path getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const;
 
-        // internal methods
-        vsg::dbox computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const;
-        vsg::Path getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const;
+    vsg::ref_ptr<vsg::Object> read_root(vsg::ref_ptr<const vsg::Options> options = {}) const;
+    vsg::ref_ptr<vsg::Object> read_subtile(uint32_t x, uint32_t y, uint32_t lod, vsg::ref_ptr<const vsg::Options> options = {}) const;
 
+    vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHint) const;
 
-        vsg::ref_ptr<vsg::Object> read_root(vsg::ref_ptr<const vsg::Options> options = {}) const;
-        vsg::ref_ptr<vsg::Object> read_subtile(uint32_t x, uint32_t y, uint32_t lod, vsg::ref_ptr<const vsg::Options> options = {}) const;
+    vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout;
+    vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
 
-        vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHint) const;
-
-        vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout;
-        vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
-
-        vsg::ref_ptr<vsg::StateGroup> createRoot() const;
+    vsg::ref_ptr<vsg::StateGroup> createRoot() const;
 };
 
 vsg::dbox TileReader::computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const
@@ -58,21 +54,20 @@ vsg::dbox TileReader::computeTileExtents(uint32_t x, uint32_t y, uint32_t level)
     vsg::dbox tile_extents;
     if (originTopLeft)
     {
-        tile_extents.min = vsg::dvec3(double(x) * tileWidth, -double(y+1) * tileHeight, 0.0);
-        tile_extents.max = vsg::dvec3(double(x+1) * tileWidth, -double(y) * tileHeight, 1.0);
+        tile_extents.min = vsg::dvec3(double(x) * tileWidth, -double(y + 1) * tileHeight, 0.0);
+        tile_extents.max = vsg::dvec3(double(x + 1) * tileWidth, -double(y) * tileHeight, 1.0);
     }
     else
     {
         tile_extents.min = vsg::dvec3(double(x) * tileWidth, double(y) * tileHeight, 0.0);
-        tile_extents.max = vsg::dvec3(double(x+1) * tileWidth, double(y+1) * tileHeight, 1.0);
+        tile_extents.max = vsg::dvec3(double(x + 1) * tileWidth, double(y + 1) * tileHeight, 1.0);
     }
     return tile_extents;
 }
 
 vsg::Path TileReader::getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const
 {
-    auto replace = [](vsg::Path& path, const std::string& match, uint32_t value)
-    {
+    auto replace = [](vsg::Path& path, const std::string& match, uint32_t value) {
         std::stringstream sstr;
         sstr << value;
         auto levelPos = path.find(match);
@@ -87,13 +82,12 @@ vsg::Path TileReader::getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, 
     return path;
 }
 
-
 vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options) const
 {
     auto extension = vsg::fileExtension(filename);
     if (extension != "tile") return {};
 
-    std::string tile_info = filename.substr(0, filename.length()-5);
+    std::string tile_info = filename.substr(0, filename.length() - 5);
     if (tile_info == "root")
     {
         return read_root(options);
@@ -116,9 +110,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
     auto group = createRoot();
 
     uint32_t lod = 0;
-    for(uint32_t y = 0; y < noY; ++y)
+    for (uint32_t y = 0; y < noY; ++y)
     {
-        for(uint32_t x = 0; x < noX; ++x)
+        for (uint32_t x = 0; x < noX; ++x)
         {
             auto imagePath = getTilePath(imageLayer, x, y, lod);
             //auto terrainPath = getTilePath(terrainLayer, x, y, lod);
@@ -135,9 +129,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
                 {
                     auto plod = vsg::PagedLOD::create();
                     plod->setBound(vsg::dsphere(0.0, 0.0, 0.0, 180.0));
-                    plod->setChild(0, vsg::PagedLOD::Child{0.25, {}}); // external child visible when it's bound occupies more than 1/4 of the height of the window
+                    plod->setChild(0, vsg::PagedLOD::Child{0.25, {}});  // external child visible when it's bound occupies more than 1/4 of the height of the window
                     plod->setChild(1, vsg::PagedLOD::Child{0.0, tile}); // visible always
-                    plod->filename = vsg::make_string(x," ", y, " 0.tile");
+                    plod->filename = vsg::make_string(x, " ", y, " 0.tile");
                     plod->options = options;
 
                     group->addChild(plod);
@@ -186,14 +180,13 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
 
     uint32_t subtile_x = x * 2;
     uint32_t subtile_y = y * 2;
-    uint32_t local_lod = lod+1;
-    for(uint32_t dy = 0; dy<2; ++dy)
+    uint32_t local_lod = lod + 1;
+    for (uint32_t dy = 0; dy < 2; ++dy)
     {
-        for(uint32_t dx = 0; dx<2; ++dx)
+        for (uint32_t dx = 0; dx < 2; ++dx)
         {
             uint32_t local_x = subtile_x + dx;
             uint32_t local_y = subtile_y + dy;
-
 
             auto imagePath = getTilePath(imageLayer, local_x, local_y, local_lod);
             auto imageTile = vsg::read_cast<vsg::Data>(imagePath, options);
@@ -209,9 +202,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
                 {
                     auto plod = vsg::PagedLOD::create();
                     plod->setBound(vsg::dsphere(0.0, 0.0, 0.0, 180.0));
-                    plod->setChild(0, vsg::PagedLOD::Child{0.25, {}}); // external child visible when it's bound occupies more than 1/4 of the height of the window
+                    plod->setChild(0, vsg::PagedLOD::Child{0.25, {}});  // external child visible when it's bound occupies more than 1/4 of the height of the window
                     plod->setChild(1, vsg::PagedLOD::Child{0.0, tile}); // visible always
-                    plod->filename = vsg::make_string(local_x," ", local_y, " ", local_lod, ".tile");
+                    plod->filename = vsg::make_string(local_x, " ", local_y, " ", local_lod, ".tile");
                     plod->options = options;
 
                     //std::cout<<"plod->filename "<<plod->filename<<std::endl;
@@ -226,9 +219,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
         }
     }
 
-    if (group->getNumChildren()!=4)
+    if (group->getNumChildren() != 4)
     {
-        std::cout<<"Warning: could not load all 4 subtiles, loaded only "<<group->getNumChildren()<<std::endl;
+        std::cout << "Warning: could not load all 4 subtiles, loaded only " << group->getNumChildren() << std::endl;
 
         return {};
     }
@@ -327,8 +320,8 @@ vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, 
     float max_x = extents.max.x;
     float max_y = extents.max.y;
 #else
-    float max_x = extents.min.x*0.05 + extents.max.x*0.95;
-    float max_y = extents.min.y*0.05 + extents.max.y*0.95;
+    float max_x = extents.min.x * 0.05 + extents.max.x * 0.95;
+    float max_y = extents.min.y * 0.05 + extents.max.y * 0.95;
 #endif
 
     auto vertices = vsg::vec3Array::create(
@@ -406,7 +399,6 @@ int main(int argc, char** argv)
         auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
-
         if (arguments.read("--osm"))
         {
             tileReader->noX = 1;
@@ -426,7 +418,6 @@ int main(int argc, char** argv)
             tileReader->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
             // tileReader->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
         }
-
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
