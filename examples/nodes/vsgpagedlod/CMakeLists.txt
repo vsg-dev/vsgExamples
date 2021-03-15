@@ -1,5 +1,7 @@
 set(SOURCES
     ../../shared/AnimationPath.cpp
+    TileReader.h
+    TileReader.cpp
     vsgpagedlod.cpp
 )
 
