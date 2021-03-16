@@ -1,8 +1,6 @@
 #include <vsg/all.h>
 
-#ifdef vsgXchange_FOUND
-#    include <vsgXchange/all.h>
-#endif
+#include <vsgXchange/all.h>
 
 #include <algorithm>
 #include <chrono>
@@ -64,7 +62,6 @@ int main(int argc, char** argv)
             tileReader->noX = 2;
             tileReader->noY = 1;
             tileReader->originTopLeft = false;
-            //tileReader->projection = "EPSG:3857";
             tileReader->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
             // tileReader->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
         }

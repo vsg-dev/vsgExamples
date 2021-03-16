@@ -25,6 +25,7 @@ public:
 
 protected:
 
+    vsg::dvec3 computeLatitudeLongitudeAltitude(const vsg::dvec3& src) const;
     vsg::dbox computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const;
     vsg::Path getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, uint32_t level) const;
 

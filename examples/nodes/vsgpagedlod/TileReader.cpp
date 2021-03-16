@@ -1,5 +1,19 @@
 #include "TileReader.h"
 
+vsg::dvec3 TileReader::computeLatitudeLongitudeAltitude(const vsg::dvec3& src) const
+{
+    if (projection == "EPSG:3857" || projection == "spherical-mercator")
+    {
+        double n = 2.0 * vsg::radians(src.y);
+        double adjustedLatitude = vsg::degrees(atan(0.5 * (exp(n) - exp(-n))));
+        return vsg::dvec3(adjustedLatitude, src.x, src.z);
+    }
+    else
+    {
+        return vsg::dvec3(src.y, src.x, src.z);
+    }
+}
+
 vsg::dbox TileReader::computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const
 {
     double multiplier = pow(0.5, double(level));
@@ -286,7 +300,8 @@ vsg::ref_ptr<vsg::Node> TileReader::createTile(const vsg::dbox& tile_extents, vs
 
 vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> textureData) const
 {
-    vsg::dvec3 center = (tile_extents.min + tile_extents.max)*0.5;
+    vsg::dvec3 center = computeLatitudeLongitudeAltitude((tile_extents.min + tile_extents.max)*0.5);
+
     auto localToWorld = ellipsoidModel->computeLocalToWorldTransform(center);
     auto worldToLocal = vsg::inverse(localToWorld);
 
@@ -311,10 +326,10 @@ vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents
     uint32_t numVertices = numRows * numCols;
     uint32_t numTriangles = (numRows-1) * (numCols -1) * 2;
 
-    double latitudeOrigin = tile_extents.min.y;
-    double latitudeScale = (tile_extents.max.y - tile_extents.min.y) / double(numRows-1);
     double longitudeOrigin = tile_extents.min.x;
     double longitudeScale = (tile_extents.max.x - tile_extents.min.x) / double(numCols-1);
+    double latitudeOrigin = tile_extents.min.y;
+    double latitudeScale = (tile_extents.max.y - tile_extents.min.y) / double(numRows-1);
 
     float sCoordScale = 1.0f / float(numCols-1);
     float tCoordScale = 1.0f / float(numRows-1);
@@ -335,8 +350,10 @@ vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents
     {
         for(uint32_t c = 0; c < numCols; ++c)
         {
-            vsg::dvec3 location(latitudeOrigin + double(r)*latitudeScale, longitudeOrigin + double(c)*longitudeScale, 0.0);
-            auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF(location);
+            vsg::dvec3 location(longitudeOrigin + double(c)*longitudeScale, latitudeOrigin + double(r)*latitudeScale, 0.0);
+            vsg::dvec3 latitudeLongitudeAltitude = computeLatitudeLongitudeAltitude(location);
+
+            auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF(latitudeLongitudeAltitude);
             vsg::vec3 vertex(worldToLocal * ecef);
             vsg::vec2 texcoord(float(c)*sCoordScale, tCoordOrigin + float(r)*tCoordScale);
 
