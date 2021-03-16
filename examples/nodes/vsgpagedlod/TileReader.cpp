@@ -155,8 +155,13 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
 
                 if (tile)
                 {
+                    vsg::ComputeBounds computeBound;
+                    tile->accept(computeBound);
+                    auto& bb = computeBound.bounds;
+                    vsg::dsphere bound((bb.min.x+bb.max.x)*0.5, (bb.min.y+bb.max.y)*0.5, (bb.min.z+bb.max.z)*0.5, vsg::length(bb.max - bb.min)*0.5);
+
                     auto plod = vsg::PagedLOD::create();
-                    plod->setBound(vsg::dsphere(0.0, 0.0, 0.0, 180.0));
+                    plod->setBound(bound);
                     plod->setChild(0, vsg::PagedLOD::Child{0.25, {}});  // external child visible when it's bound occupies more than 1/4 of the height of the window
                     plod->setChild(1, vsg::PagedLOD::Child{0.0, tile}); // visible always
                     plod->filename = vsg::make_string(local_x, " ", local_y, " ", local_lod, ".tile");
