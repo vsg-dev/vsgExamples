@@ -9,8 +9,11 @@ public:
     vsg::dbox extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
     uint32_t noX = 2;
     uint32_t noY = 1;
+    uint32_t maxLevel = 22;
     bool originTopLeft = true;
+
     std::string projection;
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel = vsg::EllipsoidModel::create();
 
     vsg::Path imageLayer;
     vsg::Path terrainLayer;
@@ -28,7 +31,7 @@ protected:
     vsg::ref_ptr<vsg::Object> read_root(vsg::ref_ptr<const vsg::Options> options = {}) const;
     vsg::ref_ptr<vsg::Object> read_subtile(uint32_t x, uint32_t y, uint32_t lod, vsg::ref_ptr<const vsg::Options> options = {}) const;
 
-    vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHint) const;
+    vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> sourceData) const;
 
     vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout;
     vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
