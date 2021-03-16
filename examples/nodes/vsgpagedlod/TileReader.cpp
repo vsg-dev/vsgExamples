@@ -9,13 +9,14 @@ vsg::dbox TileReader::computeTileExtents(uint32_t x, uint32_t y, uint32_t level)
     vsg::dbox tile_extents;
     if (originTopLeft)
     {
-        tile_extents.min = vsg::dvec3(double(x) * tileWidth, -double(y + 1) * tileHeight, 0.0);
-        tile_extents.max = vsg::dvec3(double(x + 1) * tileWidth, -double(y) * tileHeight, 1.0);
+        vsg::dvec3 origin(extents.min.x, extents.max.y, extents.min.z);
+        tile_extents.min = origin + vsg::dvec3(double(x) * tileWidth, -double(y + 1) * tileHeight, 0.0);
+        tile_extents.max = origin + vsg::dvec3(double(x + 1) * tileWidth, -double(y) * tileHeight, 1.0);
     }
     else
     {
-        tile_extents.min = vsg::dvec3(double(x) * tileWidth, double(y) * tileHeight, 0.0);
-        tile_extents.max = vsg::dvec3(double(x + 1) * tileWidth, double(y + 1) * tileHeight, 1.0);
+        tile_extents.min = extents.min + vsg::dvec3(double(x) * tileWidth, double(y) * tileHeight, 0.0);
+        tile_extents.max = extents.min + vsg::dvec3(double(x + 1) * tileWidth, double(y + 1) * tileHeight, 1.0);
     }
     return tile_extents;
 }
@@ -78,12 +79,16 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
             if (imageTile)
             {
                 auto tile_extents = computeTileExtents(x, y, lod);
-                auto tile = createTextureQuad(tile_extents, imageTile);
-
+                auto tile = createTile(tile_extents, imageTile);
                 if (tile)
                 {
+                    vsg::ComputeBounds computeBound;
+                    tile->accept(computeBound);
+                    auto& bb = computeBound.bounds;
+                    vsg::dsphere bound((bb.min.x+bb.max.x)*0.5, (bb.min.y+bb.max.y)*0.5, (bb.min.z+bb.max.z)*0.5, vsg::length(bb.max - bb.min)*0.5);
+
                     auto plod = vsg::PagedLOD::create();
-                    plod->setBound(vsg::dsphere(0.0, 0.0, 0.0, 180.0));
+                    plod->setBound(bound);
                     plod->setChild(0, vsg::PagedLOD::Child{0.25, {}});  // external child visible when it's bound occupies more than 1/4 of the height of the window
                     plod->setChild(1, vsg::PagedLOD::Child{0.0, tile}); // visible always
                     plod->filename = vsg::make_string(x, " ", y, " 0.tile");
@@ -151,8 +156,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
             if (imageTile)
             {
                 auto tile_extents = computeTileExtents(local_x, local_y, local_lod);
-                auto tile = createTextureQuad(tile_extents, imageTile);
-
+                auto tile = createTile(tile_extents, imageTile);
                 if (tile)
                 {
                     vsg::ComputeBounds computeBound;
@@ -214,6 +218,12 @@ void TileReader::init()
     };
 
     pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+
+    sampler = vsg::Sampler::create();
+    sampler->maxLod = mipmapLevelsHint;
+    sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler->addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 }
 
 vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const
@@ -259,16 +269,113 @@ vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const
     return root;
 }
 
-vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> textureData) const
+
+vsg::ref_ptr<vsg::Node> TileReader::createTile(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> sourceData) const
+{
+#if 1
+    return createECEFTile(tile_extents, sourceData);
+#else
+    return createTextureQuad(tile_extents, sourceData);
+#endif
+}
+
+vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> textureData) const
+{
+    vsg::dvec3 center = (tile_extents.min + tile_extents.max)*0.5;
+    auto localToWorld = ellipsoidModel->computeLocalToWorldTransform(center);
+    auto worldToLocal = vsg::inverse(localToWorld);
+
+    // create texture image and associated DescriptorSets and binding
+    auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
+    auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
+
+    // create StateGroup to bind any texture state
+    auto scenegraph = vsg::StateGroup::create();
+    scenegraph->add(bindDescriptorSets);
+
+    // set up model transformation node
+    auto transform = vsg::MatrixTransform::create(localToWorld); // VK_SHADER_STAGE_VERTEX_BIT
+
+    // add transform to root of the scene graph
+    scenegraph->addChild(transform);
+
+    uint32_t numRows = 32;
+    uint32_t numCols = 32;
+    uint32_t numVertices = numRows * numCols;
+    uint32_t numTriangles = (numRows-1) * (numCols -1) * 2;
+
+    double latitudeOrigin = tile_extents.min.y;
+    double latitudeScale = (tile_extents.max.y - tile_extents.min.y) / double(numRows-1);
+    double longitudeOrigin = tile_extents.min.x;
+    double longitudeScale = (tile_extents.max.x - tile_extents.min.x) / double(numCols-1);
+
+    float sCoordScale = 1.0f / float(numCols-1);
+    float tCoordScale = 1.0f / float(numRows-1);
+    float tCoordOrigin = 0.0;
+    if (textureData->getLayout().origin == vsg::TOP_LEFT)
+    {
+        tCoordScale = -tCoordScale;
+        tCoordOrigin = 1.0f;
+    }
+
+    vsg::vec3 color(1.0f, 1.0f, 1.0f);
+
+    // set up vertex coords
+    auto vertices = vsg::vec3Array::create(numVertices);
+    auto colors = vsg::vec3Array::create(numVertices);
+    auto texcoords = vsg::vec2Array::create(numVertices);
+    for(uint32_t r = 0; r < numRows; ++r)
+    {
+        for(uint32_t c = 0; c < numCols; ++c)
+        {
+            vsg::dvec3 location(latitudeOrigin + double(r)*latitudeScale, longitudeOrigin + double(c)*longitudeScale, 0.0);
+            auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF(location);
+            vsg::vec3 vertex(worldToLocal * ecef);
+            vsg::vec2 texcoord(float(c)*sCoordScale, tCoordOrigin + float(r)*tCoordScale);
+
+            uint32_t vi = c + r*numCols;
+            vertices->set(vi, vertex);
+            colors->set(vi, color);
+            texcoords->set(vi, texcoord);
+        }
+    }
+
+    // set up indices
+    auto indices = vsg::ushortArray::create(numTriangles*3);
+    auto itr = indices->begin();
+    for(uint32_t r = 0; r < numRows-1; ++r)
+    {
+        for(uint32_t c = 0; c < numCols-1; ++c)
+        {
+            uint32_t vi = c + r*numCols;
+            (*itr++) = vi;
+            (*itr++) = vi + 1;
+            (*itr++) = vi + numCols;
+            (*itr++) = vi + numCols;
+            (*itr++) = vi + 1;
+            (*itr++) = vi + numCols + 1;
+        }
+    }
+
+    // setup geometry
+    auto drawCommands = vsg::Commands::create();
+    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
+    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+    drawCommands->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
+
+    // add drawCommands to transform
+    transform->addChild(drawCommands);
+
+    return scenegraph;
+}
+
+vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> textureData) const
 {
     if (!textureData) return {};
 
     // create texture image and associated DescriptorSets and binding
-    auto sampler = vsg::Sampler::create();
-    sampler->maxLod = mipmapLevelsHint;
-    sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    sampler->addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
@@ -285,14 +392,14 @@ vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& extents, 
     scenegraph->addChild(transform);
 
     // set up vertex and index arrays
-    float min_x = extents.min.x;
-    float min_y = extents.min.y;
-#if 0
-    float max_x = extents.max.x;
-    float max_y = extents.max.y;
+    float min_x = tile_extents.min.x;
+    float min_y = tile_extents.min.y;
+#if 1
+    float max_x = tile_extents.max.x;
+    float max_y = tile_extents.max.y;
 #else
-    float max_x = extents.min.x * 0.05 + extents.max.x * 0.95;
-    float max_y = extents.min.y * 0.05 + extents.max.y * 0.95;
+    float max_x = tile_extents.min.x * 0.05 + tile_extents.max.x * 0.95;
+    float max_y = tile_extents.min.y * 0.05 + tile_extents.max.y * 0.95;
 #endif
 
     auto vertices = vsg::vec3Array::create(

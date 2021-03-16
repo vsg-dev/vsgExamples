@@ -31,10 +31,13 @@ protected:
     vsg::ref_ptr<vsg::Object> read_root(vsg::ref_ptr<const vsg::Options> options = {}) const;
     vsg::ref_ptr<vsg::Object> read_subtile(uint32_t x, uint32_t y, uint32_t lod, vsg::ref_ptr<const vsg::Options> options = {}) const;
 
-    vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& extents, vsg::ref_ptr<vsg::Data> sourceData) const;
+    vsg::ref_ptr<vsg::Node> createTile(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> sourceData) const;
+    vsg::ref_ptr<vsg::Node> createECEFTile(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> sourceData) const;
+    vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> sourceData) const;
+
+    vsg::ref_ptr<vsg::StateGroup> createRoot() const;
 
     vsg::ref_ptr<vsg::DescriptorSetLayout> descriptorSetLayout;
     vsg::ref_ptr<vsg::PipelineLayout> pipelineLayout;
-
-    vsg::ref_ptr<vsg::StateGroup> createRoot() const;
+    vsg::ref_ptr<vsg::Sampler> sampler;
 };
