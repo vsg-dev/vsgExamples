@@ -112,6 +112,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
 
     uint32_t tileMultiplier = std::min(estimatedNumOfTilesBelow, maxNumTilesBelow) + 1;
 
+    // set up the ResourceHints required to make sure the VSG preallocates enough Vulkan resources for the paged database
     vsg::CollectDescriptorStats collectStats;
     group->accept(collectStats);
 
@@ -127,7 +128,11 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
     }
 
     group->setObject("ResourceHints", resourceHints);
-    return group;
+
+    // assign the EllipsoidModel so that the overall geometry of the database can be used as guide for clipping and navigation.
+    group->setObject("EllipsoidModel", ellipsoidModel);
+
+return group;
 }
 
 vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint32_t lod, vsg::ref_ptr<const vsg::Options> options) const
