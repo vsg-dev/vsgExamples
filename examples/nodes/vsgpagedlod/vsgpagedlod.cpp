@@ -43,6 +43,7 @@ int main(int argc, char** argv)
         auto outputFilename = arguments.value(std::string(), "-o");
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
+        auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
@@ -65,6 +66,13 @@ int main(int argc, char** argv)
             tileReader->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
             // tileReader->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
         }
+
+        const double invalid_value = std::numeric_limits<double>::max();
+        double poi_latitude = invalid_value;
+        double poi_longitude = invalid_value;
+        double poi_distance = invalid_value;
+        while(arguments.read("--poi", poi_latitude, poi_longitude)) {};
+        while(arguments.read("--distance", poi_distance)) {};
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -100,16 +108,34 @@ int main(int argc, char** argv)
         double nearFarRatio = 0.0005;
 
         // set up the camera
-        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-
+        vsg::ref_ptr<vsg::LookAt> lookAt;
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
         if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
         {
+            if (poi_latitude != invalid_value && poi_longitude != invalid_value)
+            {
+                double height = (poi_distance != invalid_value) ? poi_distance : radius*3.5 ;
+                auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF({poi_latitude, poi_longitude, 0.0});
+                auto ecef_normal = vsg::normalize(ecef);
+
+                vsg::dvec3 centre = ecef;
+                vsg::dvec3 eye = centre + ecef_normal * height;
+                vsg::dvec3 up = vsg::normalize( vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal) ) );
+
+                // set up the camera
+                lookAt = vsg::LookAt::create(eye, centre, up);
+            }
+            else
+            {
+                lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+            }
+
             perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
         }
         else
         {
             perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
         }
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
@@ -134,6 +160,28 @@ int main(int argc, char** argv)
             animationPath->read(in);
 
             viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
+        }
+
+        // if required pre load specific number of PagedLOD levels.
+        if (loadLevels > 0)
+        {
+            vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
+
+#if 0
+            if (!path.empty())
+            {
+                options->paths.insert(options->paths.begin(), path);
+            }
+#endif
+
+            loadPagedLOD.options = options;
+
+            auto startTime = std::chrono::steady_clock::now();
+
+            vsg_scene->accept(loadPagedLOD);
+
+            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
+            std::cout << "No. of tiles loaed " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
