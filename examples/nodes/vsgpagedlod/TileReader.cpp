@@ -243,6 +243,8 @@ void TileReader::init()
     sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler->addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler->anisotropyEnable = VK_TRUE;
+    sampler->maxAnisotropy = 16.0f;
 }
 
 vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const
