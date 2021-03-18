@@ -71,10 +71,10 @@ dvec2 GlobeTrackball::ndc(PointerEvent& event)
 {
     auto renderArea = _camera->getRenderArea();
 
+    double aspectRatio = static_cast<double>(renderArea.extent.width) / static_cast<double>(renderArea.extent.height);
     dvec2 v(
-        (renderArea.extent.width > 0) ? static_cast<double>(event.x - renderArea.offset.x) / static_cast<double>(renderArea.extent.width) * 2.0 - 1.0 : 0.0,
+        (renderArea.extent.width > 0) ? (static_cast<double>(event.x - renderArea.offset.x) / static_cast<double>(renderArea.extent.width) * 2.0 - 1.0) * aspectRatio : 0.0,
         (renderArea.extent.height > 0) ? static_cast<double>(event.y - renderArea.offset.y) / static_cast<double>(renderArea.extent.height) * 2.0 - 1.0 : 0.0);
-
     return v;
 }
 
@@ -231,8 +231,6 @@ void GlobeTrackball::pan(dvec2& delta)
     double distance = length(lookVector);
 
     distance *= 0.25;
-
-    sideNormal *= 2.0;
 
     dvec3 translation = sideNormal * (delta.x * distance) + upNormal * (delta.y * distance);
 
