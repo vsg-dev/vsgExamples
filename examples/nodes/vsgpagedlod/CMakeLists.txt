@@ -2,6 +2,8 @@ set(SOURCES
     ../../shared/AnimationPath.cpp
     TileReader.h
     TileReader.cpp
+    GlobeTrackball.h
+    GlobeTrackball.cpp
     vsgpagedlod.cpp
 )
 

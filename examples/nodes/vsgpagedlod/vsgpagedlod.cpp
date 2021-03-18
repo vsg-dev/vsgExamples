@@ -10,6 +10,7 @@
 #include "../../shared/AnimationPath.h"
 
 #include "TileReader.h"
+#include "GlobeTrackball.h"
 
 int main(int argc, char** argv)
 {
@@ -35,6 +36,7 @@ int main(int argc, char** argv)
         windowTraits->windowTitle = "vsgpagedlod";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         arguments.read("--screen", windowTraits->screenNum);
@@ -110,7 +112,8 @@ int main(int argc, char** argv)
         // set up the camera
         vsg::ref_ptr<vsg::LookAt> lookAt;
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
+        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+        if (ellipsoidModel)
         {
             if (poi_latitude != invalid_value && poi_longitude != invalid_value)
             {
@@ -145,7 +148,14 @@ int main(int argc, char** argv)
 
         if (pathFilename.empty())
         {
-            viewer->addEventHandler(vsg::Trackball::create(camera));
+            if (ellipsoidModel)
+            {
+                viewer->addEventHandler(vsg::GlobeTrackball::create(camera, ellipsoidModel));
+            }
+            else
+            {
+                viewer->addEventHandler(vsg::Trackball::create(camera));
+            }
         }
         else
         {
