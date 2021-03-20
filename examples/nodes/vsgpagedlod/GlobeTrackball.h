@@ -25,7 +25,7 @@ namespace vsg
     class VSG_DECLSPEC GlobeTrackball : public Inherit<Visitor, GlobeTrackball>
     {
     public:
-        GlobeTrackball(ref_ptr<Camera> camera, ref_ptr<EllipsoidModel> ellipsoidModel);
+        GlobeTrackball(ref_ptr<Camera> camera, ref_ptr<EllipsoidModel> ellipsoidModel = {});
 
         /// compute non dimensional window coordinate (-1,1) from event coords
         dvec2 ndc(PointerEvent& event);
@@ -56,6 +56,8 @@ namespace vsg
 
         bool _hasFocus = false;
         bool _lastPointerEventWithinRenderArea = false;
+        bool _zoomActive = false;
+        double _zoomPreviousRatio = 0.0;
 
         KeySymbol _homeKey = KEY_Space;
         double _direction;

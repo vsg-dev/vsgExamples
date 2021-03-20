@@ -36,7 +36,7 @@ GlobeTrackball::GlobeTrackball(ref_ptr<Camera> camera, ref_ptr<EllipsoidModel> e
 
 void GlobeTrackball::clampToGlobe()
 {
-    std::cout<<"GlobeTrackball::clampToGlobe()"<<std::endl;
+//    std::cout<<"GlobeTrackball::clampToGlobe()"<<std::endl;
 
     if (!_ellipsoidModel) return;
 
@@ -55,6 +55,13 @@ void GlobeTrackball::clampToGlobe()
 
     // apply the new clamped position to the LookAt.
     _lookAt->center = ecef;
+
+    double minimum_altitude = 1.0;
+    if (location_eye.z < minimum_altitude)
+    {
+        location_eye.z = minimum_altitude;
+        _lookAt->eye = _ellipsoidModel->convertLatLongAltitudeToECEF(location_eye);
+    }
 }
 
 
@@ -123,6 +130,8 @@ void GlobeTrackball::apply(ButtonPressEvent& buttonPress)
     _hasFocus = withinRenderArea(buttonPress.x, buttonPress.y);
     _lastPointerEventWithinRenderArea = _hasFocus;
 
+    if (buttonPress.mask & BUTTON_MASK_3) _zoomActive = true;
+
     if (_hasFocus) buttonPress.handled = true;
 }
 
@@ -133,6 +142,8 @@ void GlobeTrackball::apply(ButtonReleaseEvent& buttonRelease)
 
     _lastPointerEventWithinRenderArea = withinRenderArea(buttonRelease.x, buttonRelease.y);
     _hasFocus = false;
+    _zoomActive = false;
+    _zoomPreviousRatio = 0.0;
 }
 
 void GlobeTrackball::apply(MoveEvent& moveEvent)
@@ -169,7 +180,11 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
         moveEvent.handled = true;
 
         dvec2 delta = new_ndc - prev_ndc;
+#if 0
         zoom(delta.y);
+#else
+        _zoomPreviousRatio = 2.0 * delta.y;
+#endif
     }
 
     prev_ndc = new_ndc;
@@ -188,6 +203,11 @@ void GlobeTrackball::apply(ScrollWheelEvent& scrollWheel)
 void GlobeTrackball::apply(FrameEvent& /*frame*/)
 {
     //    std::cout<<"Frame "<<frame.frameStamp->frameCount<<std::endl;
+    //std::cout<<"Zoom active "<<_zoomActive<<std::endl;
+    if (_zoomActive && _zoomPreviousRatio != 0.0)
+    {
+        zoom(_zoomPreviousRatio);
+    }
 }
 
 void GlobeTrackball::rotate(double angle, const dvec3& axis)
@@ -201,41 +221,62 @@ void GlobeTrackball::rotate(double angle, const dvec3& axis)
     _lookAt->up = normalize(matrix * (_lookAt->eye + _lookAt->up) - matrix * _lookAt->eye);
     _lookAt->center = matrix * _lookAt->center;
     _lookAt->eye = matrix * _lookAt->eye;
+
+    clampToGlobe();
 }
 
 void GlobeTrackball::zoom(double ratio)
 {
     dvec3 lookVector = _lookAt->center - _lookAt->eye;
     _lookAt->eye = _lookAt->eye + lookVector * ratio;
+
+    clampToGlobe();
 }
 
 void GlobeTrackball::pan(dvec2& delta)
 {
     dvec3 lookVector = _lookAt->center - _lookAt->eye;
     dvec3 lookNormal = normalize(lookVector);
-    dvec3 sideNormal = cross(_lookAt->up, lookNormal);
     dvec3 upNormal = _lookAt->up;
+    dvec3 sideNormal = cross(lookNormal, upNormal);
+
+    double distance = length(lookVector);
+    distance *= 0.3; // TODO use Camera project matrix to guide how much to scale
 
 #if 1
     if (_ellipsoidModel)
     {
-        dvec3 globeNormal = vsg::normalize(_lookAt->center);
-        dvec3 newSideNormal = vsg::cross(vsg::cross(sideNormal, globeNormal), -globeNormal);
-        dvec3 newUpNormal = vsg::cross(vsg::cross(upNormal, globeNormal), -globeNormal);
 
-        sideNormal = normalize(newSideNormal);
-        upNormal = normalize(newUpNormal);
+        dvec3 globeNormal = normalize(_lookAt->center);
+
+        double scale = distance;
+        dvec3 m = upNormal * (-scale*delta.y) + sideNormal * (scale * delta.x);
+        dvec3 v = m + lookNormal * dot(m, globeNormal);
+        double angle = length(v)/_ellipsoidModel->radiusEquator();
+
+        if (angle != 0.0)
+        {
+            dvec3 n = normalize(_lookAt->center + v);
+            dvec3 axis = normalize(cross(globeNormal, n));
+
+            dmat4 matrix = vsg::rotate(-angle , axis);
+
+            _lookAt->up = normalize(matrix * (_lookAt->eye + _lookAt->up) - matrix * _lookAt->eye);
+            _lookAt->center = matrix * _lookAt->center;
+            _lookAt->eye = matrix * _lookAt->eye;
+
+            clampToGlobe();
+        }
+
+
     }
+    else
 #endif
+    {
+        dvec3 translation = sideNormal * (-delta.x * distance) + upNormal * (delta.y * distance);
 
-    double distance = length(lookVector);
+        _lookAt->eye = _lookAt->eye + translation;
+        _lookAt->center = _lookAt->center + translation;
+    }
 
-    distance *= 0.25;
-
-    dvec3 translation = sideNormal * (delta.x * distance) + upNormal * (delta.y * distance);
-
-    _lookAt->eye = _lookAt->eye + translation;
-    _lookAt->center = _lookAt->center + translation;
-
-    clampToGlobe();
 }
