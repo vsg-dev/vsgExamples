@@ -42,7 +42,7 @@ namespace vsg
 
         void rotate(double angle, const dvec3& axis);
         void zoom(double ratio);
-        void pan(dvec2& delta);
+        void pan(const dvec2& delta);
 
         bool withinRenderArea(int32_t x, int32_t y) const;
 
@@ -56,8 +56,19 @@ namespace vsg
 
         bool _hasFocus = false;
         bool _lastPointerEventWithinRenderArea = false;
-        bool _zoomActive = false;
+
+        enum UpdateMode
+        {
+            INACTIVE = 0,
+            ZOOM,
+            PAN,
+            ROTATE
+        };
+        UpdateMode _updateMode = INACTIVE;
         double _zoomPreviousRatio = 0.0;
+        dvec2 _pan;
+        double _rotateAngle = 0.0;
+        dvec3 _rotateAxis;
 
         KeySymbol _homeKey = KEY_Space;
         double _direction;

@@ -130,9 +130,16 @@ void GlobeTrackball::apply(ButtonPressEvent& buttonPress)
     _hasFocus = withinRenderArea(buttonPress.x, buttonPress.y);
     _lastPointerEventWithinRenderArea = _hasFocus;
 
-    if (buttonPress.mask & BUTTON_MASK_3) _zoomActive = true;
+    if (buttonPress.mask & BUTTON_MASK_1) _updateMode = ROTATE;
+    else if (buttonPress.mask & BUTTON_MASK_2) _updateMode = PAN;
+    else if (buttonPress.mask & BUTTON_MASK_3) _updateMode = ZOOM;
+    else _updateMode = INACTIVE;
 
     if (_hasFocus) buttonPress.handled = true;
+
+    _zoomPreviousRatio = 0.0;
+    _pan.set(0.0, 0.0);
+    _rotateAngle = 0.0;
 }
 
 void GlobeTrackball::apply(ButtonReleaseEvent& buttonRelease)
@@ -142,8 +149,10 @@ void GlobeTrackball::apply(ButtonReleaseEvent& buttonRelease)
 
     _lastPointerEventWithinRenderArea = withinRenderArea(buttonRelease.x, buttonRelease.y);
     _hasFocus = false;
-    _zoomActive = false;
+    _updateMode = INACTIVE;
     _zoomPreviousRatio = 0.0;
+    _pan.set(0.0, 0.0);
+    _rotateAngle = 0.0;
 }
 
 void GlobeTrackball::apply(MoveEvent& moveEvent)
@@ -163,9 +172,18 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
         double xp_len = length(xp);
         if (xp_len > 0.0)
         {
+#if 1
+            _rotateAngle = asin(xp_len);
+            _rotateAxis = xp / xp_len;
+#else
             dvec3 axis = xp / xp_len;
             double angle = asin(xp_len);
             rotate(angle, axis);
+#endif
+        }
+        else
+        {
+            _rotateAngle = 0.0;
         }
     }
     else if (moveEvent.mask & BUTTON_MASK_2)
@@ -173,7 +191,12 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
         moveEvent.handled = true;
 
         dvec2 delta = new_ndc - prev_ndc;
+
+#if 1
+        _pan = delta;
+#else
         pan(delta);
+#endif
     }
     else if (moveEvent.mask & BUTTON_MASK_3)
     {
@@ -211,11 +234,33 @@ void GlobeTrackball::apply(FrameEvent& frame)
 
     if (!first_frame)
     {
-        if (_zoomActive && _zoomPreviousRatio != 0.0)
+        switch(_updateMode)
         {
-            double dt = std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count();
-            zoom(_zoomPreviousRatio * dt * 60.0);
+            case(ZOOM):
+                if (_zoomPreviousRatio != 0.0)
+                {
+                    double dt = std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count();
+                    zoom(_zoomPreviousRatio * dt * 60.0);
+                }
+                break;
+            case(PAN):
+                if (_pan != dvec2(0.0, 0.0))
+                {
+                    double dt = std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count();
+                    pan(_pan  * (dt * 60.0));
+                }
+                break;
+            case(ROTATE):
+                if (_rotateAngle != 0.0)
+                {
+                    double dt = std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count();
+                    rotate( _rotateAngle * (dt * 60.0), _rotateAxis);
+                }
+                break;
+            default:
+                break;
         }
+
     }
     else first_frame = false;
 
@@ -245,7 +290,7 @@ void GlobeTrackball::zoom(double ratio)
     clampToGlobe();
 }
 
-void GlobeTrackball::pan(dvec2& delta)
+void GlobeTrackball::pan(const dvec2& delta)
 {
     dvec3 lookVector = _lookAt->center - _lookAt->eye;
     dvec3 lookNormal = normalize(lookVector);
