@@ -61,6 +61,7 @@ void GlobeTrackball::clampToGlobe()
     {
         location_eye.z = minimum_altitude;
         _lookAt->eye = _ellipsoidModel->convertLatLongAltitudeToECEF(location_eye);
+        _updateMode = INACTIVE;
     }
 }
 
@@ -166,6 +167,8 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
 
     if (moveEvent.mask & BUTTON_MASK_1)
     {
+        _updateMode = ROTATE;
+
         moveEvent.handled = true;
 
         dvec3 xp = cross(normalize(new_tbc), normalize(prev_tbc));
@@ -188,6 +191,8 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
     }
     else if (moveEvent.mask & BUTTON_MASK_2)
     {
+        _updateMode = PAN;
+
         moveEvent.handled = true;
 
         dvec2 delta = new_ndc - prev_ndc;
@@ -200,6 +205,8 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
     }
     else if (moveEvent.mask & BUTTON_MASK_3)
     {
+        _updateMode = ZOOM;
+
         moveEvent.handled = true;
 
         dvec2 delta = new_ndc - prev_ndc;

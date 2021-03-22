@@ -48,6 +48,8 @@ namespace vsg
 
         void clampToGlobe();
 
+        // TODO user controls for mouse button bindings and scales and button hold motion
+
     protected:
         ref_ptr<Camera> _camera;
         ref_ptr<LookAt> _lookAt;
