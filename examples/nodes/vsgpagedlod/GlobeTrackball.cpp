@@ -180,11 +180,15 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
         moveEvent.handled = true;
 
         dvec2 delta = new_ndc - prev_ndc;
-#if 0
-        zoom(delta.y);
-#else
-        _zoomPreviousRatio = 2.0 * delta.y;
-#endif
+
+        if (delta.y != 0.0)
+        {
+    #if 0
+            zoom(delta.y);
+    #else
+            _zoomPreviousRatio = 2.0 * delta.y;
+    #endif
+        }
     }
 
     prev_ndc = new_ndc;
@@ -200,14 +204,22 @@ void GlobeTrackball::apply(ScrollWheelEvent& scrollWheel)
     zoom(scrollWheel.delta.y * 0.1);
 }
 
-void GlobeTrackball::apply(FrameEvent& /*frame*/)
+void GlobeTrackball::apply(FrameEvent& frame)
 {
     //    std::cout<<"Frame "<<frame.frameStamp->frameCount<<std::endl;
     //std::cout<<"Zoom active "<<_zoomActive<<std::endl;
-    if (_zoomActive && _zoomPreviousRatio != 0.0)
+
+    if (!first_frame)
     {
-        zoom(_zoomPreviousRatio);
+        if (_zoomActive && _zoomPreviousRatio != 0.0)
+        {
+            double dt = std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count();
+            zoom(_zoomPreviousRatio * dt * 60.0);
+        }
     }
+    else first_frame = false;
+
+    prev_time = frame.time;
 }
 
 void GlobeTrackball::rotate(double angle, const dvec3& axis)
