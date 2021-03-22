@@ -48,6 +48,7 @@ int main(int argc, char** argv)
         auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"});
+        auto oldTrackball = arguments.read("--trackball");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
         if (arguments.read("--osm"))
@@ -148,13 +149,13 @@ int main(int argc, char** argv)
 
         if (pathFilename.empty())
         {
-            if (ellipsoidModel)
+            if (oldTrackball)
             {
-                viewer->addEventHandler(vsg::GlobeTrackball::create(camera, ellipsoidModel));
+                viewer->addEventHandler(vsg::Trackball::create(camera));
             }
             else
             {
-                viewer->addEventHandler(vsg::Trackball::create(camera));
+                viewer->addEventHandler(vsg::GlobeTrackball::create(camera, ellipsoidModel));
             }
         }
         else
