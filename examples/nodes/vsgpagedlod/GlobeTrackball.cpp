@@ -196,7 +196,6 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
         double xp_len = length(xp);
         if (xp_len > 0.0)
         {
-
             _rotateAngle = asin(xp_len);
             _rotateAxis = xp / xp_len;
 
@@ -250,7 +249,7 @@ void GlobeTrackball::apply(ScrollWheelEvent& scrollWheel)
 
 void GlobeTrackball::apply(FrameEvent& frame)
 {
-    if (!_fristFrame && _thrown)
+    if (_thrown)
     {
         double scale = _previousDelta > 0.0 ? std::chrono::duration<double, std::chrono::seconds::period>(frame.time-_previousTime).count()/_previousDelta : 0.0;
         switch(_updateMode)
@@ -269,7 +268,6 @@ void GlobeTrackball::apply(FrameEvent& frame)
         }
 
     }
-    else _fristFrame = false;
 
     _previousTime = frame.time;
 }
