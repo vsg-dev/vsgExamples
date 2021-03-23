@@ -76,9 +76,8 @@ namespace vsg
         double _direction;
 
         bool first_frame = true;
-        dvec2 prev_ndc;
-        dvec3 prev_tbc;
         time_point prev_time;
+        ref_ptr<PointerEvent> _previousPointerEvent;
     };
 
 } // namespace vsg

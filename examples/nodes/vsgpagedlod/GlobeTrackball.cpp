@@ -123,9 +123,6 @@ void GlobeTrackball::apply(KeyPressEvent& keyPress)
 
 void GlobeTrackball::apply(ButtonPressEvent& buttonPress)
 {
-    prev_ndc = ndc(buttonPress);
-    prev_tbc = tbc(buttonPress);
-
     if (buttonPress.handled) return;
 
     _hasFocus = withinRenderArea(buttonPress.x, buttonPress.y);
@@ -141,19 +138,20 @@ void GlobeTrackball::apply(ButtonPressEvent& buttonPress)
     _zoomPreviousRatio = 0.0;
     _pan.set(0.0, 0.0);
     _rotateAngle = 0.0;
+
+    _previousPointerEvent = &buttonPress;
 }
 
 void GlobeTrackball::apply(ButtonReleaseEvent& buttonRelease)
 {
-    prev_ndc = ndc(buttonRelease);
-    prev_tbc = tbc(buttonRelease);
-
     _lastPointerEventWithinRenderArea = withinRenderArea(buttonRelease.x, buttonRelease.y);
     _hasFocus = false;
     _updateMode = INACTIVE;
     _zoomPreviousRatio = 0.0;
     _pan.set(0.0, 0.0);
     _rotateAngle = 0.0;
+
+    _previousPointerEvent = &buttonRelease;
 }
 
 void GlobeTrackball::apply(MoveEvent& moveEvent)
@@ -164,6 +162,11 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
 
     dvec2 new_ndc = ndc(moveEvent);
     dvec3 new_tbc = tbc(moveEvent);
+
+    if (!_previousPointerEvent) _previousPointerEvent = &moveEvent;
+
+    dvec2 prev_ndc = ndc(*_previousPointerEvent);
+    dvec3 prev_tbc = tbc(*_previousPointerEvent);
 
 #if 0
     dvec2 control_ndc = new_ndc;
@@ -229,8 +232,7 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
         }
     }
 
-    prev_ndc = new_ndc;
-    prev_tbc = new_tbc;
+    _previousPointerEvent = &moveEvent;
 }
 
 void GlobeTrackball::apply(ScrollWheelEvent& scrollWheel)
