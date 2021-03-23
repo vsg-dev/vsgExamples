@@ -11,6 +11,7 @@ public:
     uint32_t noY = 1;
     uint32_t maxLevel = 22;
     bool originTopLeft = true;
+    double lodTransitionScreenHeightRatio = 0.25;
 
     std::string projection;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel = vsg::EllipsoidModel::create();

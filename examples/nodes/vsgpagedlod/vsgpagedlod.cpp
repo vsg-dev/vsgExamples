@@ -51,11 +51,14 @@ int main(int argc, char** argv)
         auto oldTrackball = arguments.read("--trackball");
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
+        arguments.read("--file-cache", options->fileCache);
 
         if (arguments.read("--osm"))
         {
+            // setup OpenStreetMap settings
             tileReader->noX = 1;
             tileReader->noY = 1;
+            tileReader->maxLevel = 19;
             tileReader->originTopLeft = true;
             tileReader->projection = "EPSG:3857"; // spherical-mercator
             tileReader->imageLayer = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -63,13 +66,17 @@ int main(int argc, char** argv)
 
         if (arguments.read("--rm") || tileReader->imageLayer.empty())
         {
-            // setup ready mapp settings
+            // setup ready map settings
             tileReader->noX = 2;
             tileReader->noY = 1;
+            tileReader->maxLevel = 10;
             tileReader->originTopLeft = false;
             tileReader->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
             // tileReader->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
         }
+
+        arguments.read("-t", tileReader->lodTransitionScreenHeightRatio);
+        arguments.read("-m", tileReader->maxLevel);
 
         const double invalid_value = std::numeric_limits<double>::max();
         double poi_latitude = invalid_value;
