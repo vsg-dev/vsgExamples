@@ -165,13 +165,21 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
     dvec2 new_ndc = ndc(moveEvent);
     dvec3 new_tbc = tbc(moveEvent);
 
+#if 0
+    dvec2 control_ndc = new_ndc;
+    dvec3 control_tbc = new_tbc;
+#else
+    dvec2 control_ndc = (new_ndc + prev_ndc)*0.5;
+    dvec3 control_tbc = (new_tbc + prev_tbc)*0.5;
+#endif
+
     if (moveEvent.mask & BUTTON_MASK_1)
     {
         _updateMode = ROTATE;
 
         moveEvent.handled = true;
 
-        dvec3 xp = cross(normalize(new_tbc), normalize(prev_tbc));
+        dvec3 xp = cross(normalize(control_tbc), normalize(prev_tbc));
         double xp_len = length(xp);
         if (xp_len > 0.0)
         {
@@ -195,7 +203,7 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
 
         moveEvent.handled = true;
 
-        dvec2 delta = new_ndc - prev_ndc;
+        dvec2 delta = control_ndc - prev_ndc;
 
 #if 1
         _pan = delta;
@@ -209,7 +217,7 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
 
         moveEvent.handled = true;
 
-        dvec2 delta = new_ndc - prev_ndc;
+        dvec2 delta = control_ndc - prev_ndc;
 
         if (delta.y != 0.0)
         {
@@ -239,6 +247,8 @@ void GlobeTrackball::apply(FrameEvent& frame)
     //    std::cout<<"Frame "<<frame.frameStamp->frameCount<<std::endl;
     //std::cout<<"Zoom active "<<_zoomActive<<std::endl;
 
+    double scale = 120.0;
+
     if (!first_frame)
     {
         switch(_updateMode)
@@ -247,21 +257,21 @@ void GlobeTrackball::apply(FrameEvent& frame)
                 if (_zoomPreviousRatio != 0.0)
                 {
                     double dt = std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count();
-                    zoom(_zoomPreviousRatio * dt * 60.0);
+                    zoom(_zoomPreviousRatio * dt * scale);
                 }
                 break;
             case(PAN):
                 if (_pan != dvec2(0.0, 0.0))
                 {
                     double dt = std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count();
-                    pan(_pan  * (dt * 60.0));
+                    pan(_pan  * (dt * scale));
                 }
                 break;
             case(ROTATE):
                 if (_rotateAngle != 0.0)
                 {
                     double dt = std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count();
-                    rotate( _rotateAngle * (dt * 60.0), _rotateAxis);
+                    rotate( _rotateAngle * (dt * scale), _rotateAxis);
                 }
                 break;
             default:
@@ -305,7 +315,7 @@ void GlobeTrackball::pan(const dvec2& delta)
     dvec3 sideNormal = cross(lookNormal, upNormal);
 
     double distance = length(lookVector);
-    distance *= 0.3; // TODO use Camera project matrix to guide how much to scale
+    distance *= 0.5; // TODO use Camera project matrix to guide how much to scale
 
 #if 1
     if (_ellipsoidModel)
