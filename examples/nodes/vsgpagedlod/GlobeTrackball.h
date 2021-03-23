@@ -40,20 +40,34 @@ namespace vsg
         void apply(ScrollWheelEvent& scrollWheel) override;
         void apply(FrameEvent& frame) override;
 
-        void rotate(double angle, const dvec3& axis);
-        void zoom(double ratio);
-        void pan(const dvec2& delta);
+        virtual void home();
+        virtual void rotate(double angle, const dvec3& axis);
+        virtual void zoom(double ratio);
+        virtual void pan(const dvec2& delta);
 
         bool withinRenderArea(int32_t x, int32_t y) const;
 
         void clampToGlobe();
 
-        // TODO user controls for mouse button bindings and scales and button hold motion
+        /// Key that returns the view to hone
+        KeySymbol homeKey = KEY_Space;
+        ref_ptr<LookAt> homeLookAt;
+
+        /// Button mask value used to enable panning of the view, defaults to left mouse button
+        ButtonMask rotateButtonMask = BUTTON_MASK_1;
+
+        /// Button mask value used to enable panning of the view, defaults to middle mouse button
+        ButtonMask panButtonMask = BUTTON_MASK_2;
+
+        /// Button mask value used to enable zooming of the view, defaults to right mouse button
+        ButtonMask zoomButtonMask = BUTTON_MASK_3;
+
+        /// Scale for control how rapidly the view zooms in/out. Positive value zooms in when mouse moved downwards
+        double zoomScale = 1.0;
 
     protected:
         ref_ptr<Camera> _camera;
         ref_ptr<LookAt> _lookAt;
-        ref_ptr<LookAt> _homeLookAt;
         ref_ptr<EllipsoidModel> _ellipsoidModel;
 
         bool _hasFocus = false;
@@ -71,9 +85,6 @@ namespace vsg
         dvec2 _pan;
         double _rotateAngle = 0.0;
         dvec3 _rotateAxis;
-
-        KeySymbol _homeKey = KEY_Space;
-        double _direction;
 
         time_point _previousTime;
         ref_ptr<PointerEvent> _previousPointerEvent;

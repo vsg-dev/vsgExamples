@@ -31,7 +31,7 @@ GlobeTrackball::GlobeTrackball(ref_ptr<Camera> camera, ref_ptr<EllipsoidModel> e
 
     clampToGlobe();
 
-    _homeLookAt = new LookAt(_lookAt->eye, _lookAt->center, _lookAt->up);
+    homeLookAt = new LookAt(_lookAt->eye, _lookAt->center, _lookAt->up);
 }
 
 void GlobeTrackball::clampToGlobe()
@@ -107,19 +107,11 @@ void GlobeTrackball::apply(KeyPressEvent& keyPress)
 {
     if (keyPress.handled || !_lastPointerEventWithinRenderArea) return;
 
-    if (keyPress.keyBase == _homeKey)
+    if (keyPress.keyBase == homeKey)
     {
         keyPress.handled = true;
 
-        LookAt* lookAt = dynamic_cast<LookAt*>(_camera->getViewMatrix());
-        if (lookAt && _homeLookAt)
-        {
-            lookAt->eye = _homeLookAt->eye;
-            lookAt->center = _homeLookAt->center;
-            lookAt->up = _homeLookAt->up;
-        }
-
-        _thrown = false;
+        home();
     }
 }
 
@@ -186,7 +178,7 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
 
     _previousTime = moveEvent.time;
 
-    if (moveEvent.mask & BUTTON_MASK_1)
+    if (moveEvent.mask & rotateButtonMask)
     {
         _updateMode = ROTATE;
 
@@ -206,7 +198,7 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
             _rotateAngle = 0.0;
         }
     }
-    else if (moveEvent.mask & BUTTON_MASK_2)
+    else if (moveEvent.mask & panButtonMask)
     {
         _updateMode = PAN;
 
@@ -218,7 +210,7 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
 
         pan(delta * scale);
     }
-    else if (moveEvent.mask & BUTTON_MASK_3)
+    else if (moveEvent.mask & zoomButtonMask)
     {
         _updateMode = ZOOM;
 
@@ -228,7 +220,7 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
 
         if (delta.y != 0.0)
         {
-            _zoomPreviousRatio = 2.0 * delta.y;
+            _zoomPreviousRatio = zoomScale * 2.0 * delta.y;
             zoom(_zoomPreviousRatio * scale);
         }
     }
@@ -270,6 +262,19 @@ void GlobeTrackball::apply(FrameEvent& frame)
     }
 
     _previousTime = frame.time;
+}
+
+void GlobeTrackball::home()
+{
+    LookAt* lookAt = dynamic_cast<LookAt*>(_camera->getViewMatrix());
+    if (lookAt && homeLookAt)
+    {
+        lookAt->eye = homeLookAt->eye;
+        lookAt->center = homeLookAt->center;
+        lookAt->up = homeLookAt->up;
+    }
+
+    _thrown = false;
 }
 
 void GlobeTrackball::rotate(double angle, const dvec3& axis)
