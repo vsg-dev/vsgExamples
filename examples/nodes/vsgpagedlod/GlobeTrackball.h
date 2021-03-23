@@ -62,9 +62,9 @@ namespace vsg
         enum UpdateMode
         {
             INACTIVE = 0,
-            ZOOM,
+            ROTATE,
             PAN,
-            ROTATE
+            ZOOM
         };
         UpdateMode _updateMode = INACTIVE;
         double _zoomPreviousRatio = 0.0;
@@ -78,6 +78,8 @@ namespace vsg
         bool first_frame = true;
         time_point prev_time;
         ref_ptr<PointerEvent> _previousPointerEvent;
+        double _previousDelta = 0.0;
+        bool _thrown = false;
     };
 
 } // namespace vsg
