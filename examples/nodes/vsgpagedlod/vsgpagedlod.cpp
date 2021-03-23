@@ -49,6 +49,7 @@ int main(int argc, char** argv)
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"});
         auto oldTrackball = arguments.read("--trackball");
+        bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
         if (arguments.read("--osm"))
@@ -134,7 +135,14 @@ int main(int argc, char** argv)
                 lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
             }
 
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+            if (useEllipsoidPerspective)
+            {
+                perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+            }
+            else
+            {
+                perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            }
         }
         else
         {
