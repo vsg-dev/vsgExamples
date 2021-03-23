@@ -75,8 +75,8 @@ namespace vsg
         KeySymbol _homeKey = KEY_Space;
         double _direction;
 
-        bool first_frame = true;
-        time_point prev_time;
+        bool _fristFrame = true;
+        time_point _previousTime;
         ref_ptr<PointerEvent> _previousPointerEvent;
         double _previousDelta = 0.0;
         bool _thrown = false;

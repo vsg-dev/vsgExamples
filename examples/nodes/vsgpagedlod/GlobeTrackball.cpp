@@ -168,7 +168,7 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
     dvec2 prev_ndc = ndc(*_previousPointerEvent);
     dvec3 prev_tbc = tbc(*_previousPointerEvent);
 
-#if 0
+#if 1
     dvec2 control_ndc = new_ndc;
     dvec3 control_tbc = new_tbc;
 #else
@@ -180,11 +180,11 @@ void GlobeTrackball::apply(MoveEvent& moveEvent)
     _previousDelta = dt;
 
     double scale = 1.0;
-    if (prev_time > _previousPointerEvent->time) scale = std::chrono::duration<double, std::chrono::seconds::period>(moveEvent.time-prev_time).count()/dt;
+    if (_previousTime > _previousPointerEvent->time) scale = std::chrono::duration<double, std::chrono::seconds::period>(moveEvent.time-_previousTime).count()/dt;
 
-    scale *= 2.0;
+//    scale *= 2.0;
 
-    prev_time = moveEvent.time;
+    _previousTime = moveEvent.time;
 
     if (moveEvent.mask & BUTTON_MASK_1)
     {
@@ -250,9 +250,9 @@ void GlobeTrackball::apply(ScrollWheelEvent& scrollWheel)
 
 void GlobeTrackball::apply(FrameEvent& frame)
 {
-    if (!first_frame && _thrown)
+    if (!_fristFrame && _thrown)
     {
-        double scale = _previousDelta > 0.0 ? std::chrono::duration<double, std::chrono::seconds::period>(frame.time-prev_time).count()/_previousDelta : 0.0;
+        double scale = _previousDelta > 0.0 ? std::chrono::duration<double, std::chrono::seconds::period>(frame.time-_previousTime).count()/_previousDelta : 0.0;
         switch(_updateMode)
         {
             case(ROTATE):
@@ -269,9 +269,9 @@ void GlobeTrackball::apply(FrameEvent& frame)
         }
 
     }
-    else first_frame = false;
+    else _fristFrame = false;
 
-    prev_time = frame.time;
+    _previousTime = frame.time;
 }
 
 void GlobeTrackball::rotate(double angle, const dvec3& axis)
