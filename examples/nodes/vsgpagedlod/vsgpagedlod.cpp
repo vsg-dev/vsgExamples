@@ -10,7 +10,6 @@
 #include "../../shared/AnimationPath.h"
 
 #include "TileReader.h"
-#include "GlobeTrackball.h"
 
 int main(int argc, char** argv)
 {
@@ -48,7 +47,6 @@ int main(int argc, char** argv)
         auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"});
-        auto oldTrackball = arguments.read("--trackball");
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
         arguments.read("--file-cache", options->fileCache);
@@ -164,13 +162,9 @@ int main(int argc, char** argv)
 
         if (pathFilename.empty())
         {
-            if (oldTrackball)
+            if (ellipsoidModel)
             {
-                viewer->addEventHandler(vsg::Trackball::create(camera));
-            }
-            else
-            {
-                auto trackball = vsg::GlobeTrackball::create(camera, ellipsoidModel);
+                auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
                 trackball->addKeyViewpoint(vsg::KeySymbol('1'), 51.47697994218272, -0.0, 2000.0, 2.0); // Grenwish Observatory
                 trackball->addKeyViewpoint(vsg::KeySymbol('2'), 55.948642740309324, -3.199226855522667, 1000.0, 2.0); // Edinburgh Castle
                 trackball->addKeyViewpoint(vsg::KeySymbol('3'), 48.858264952330764, 2.2945039609604665, 2000.0, 2.0);// Eiffel Town, Paris
@@ -181,8 +175,11 @@ int main(int argc, char** argv)
                 trackball->addKeyViewpoint(vsg::KeySymbol('8'), 25.99773226509226, -97.15922497326818, 10000.0, 2.0); // Boca Chica, Taxas
                 trackball->addKeyViewpoint(vsg::KeySymbol('9'), 40.689618207006355, -74.04465595488215, 10000.0, 2.0); // Emoire State Building
 
-
                 viewer->addEventHandler(trackball);
+            }
+            else
+            {
+                viewer->addEventHandler(vsg::Trackball::create(camera));
             }
         }
         else
