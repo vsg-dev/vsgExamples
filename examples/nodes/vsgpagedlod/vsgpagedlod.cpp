@@ -170,7 +170,19 @@ int main(int argc, char** argv)
             }
             else
             {
-                viewer->addEventHandler(vsg::GlobeTrackball::create(camera, ellipsoidModel));
+                auto trackball = vsg::GlobeTrackball::create(camera, ellipsoidModel);
+                trackball->addKeyViewpoint(vsg::KeySymbol('1'), 51.47697994218272, -0.0, 2000.0, 2.0); // Grenwish Observatory
+                trackball->addKeyViewpoint(vsg::KeySymbol('2'), 55.948642740309324, -3.199226855522667, 1000.0, 2.0); // Edinburgh Castle
+                trackball->addKeyViewpoint(vsg::KeySymbol('3'), 48.858264952330764, 2.2945039609604665, 2000.0, 2.0);// Eiffel Town, Paris
+                trackball->addKeyViewpoint(vsg::KeySymbol('4'), 52.5162603714634, 13.377684902745642, 2000.0, 2.0); // Brandenburg Gate, Berlin
+                trackball->addKeyViewpoint(vsg::KeySymbol('5'), 30.047448591298807, 31.236319571791213, 10000.0, 2.0); // Cairo
+                trackball->addKeyViewpoint(vsg::KeySymbol('6'), 35.653099536061156, 139.74704060056993, 10000.0, 2.0); // Tokyo
+                trackball->addKeyViewpoint(vsg::KeySymbol('7'), 37.38701052699002, -122.08555895549424, 10000.0, 2.0); // Mountain View, California
+                trackball->addKeyViewpoint(vsg::KeySymbol('8'), 25.99773226509226, -97.15922497326818, 10000.0, 2.0); // Boca Chica, Taxas
+                trackball->addKeyViewpoint(vsg::KeySymbol('9'), 40.689618207006355, -74.04465595488215, 10000.0, 2.0); // Emoire State Building
+
+
+                viewer->addEventHandler(trackball);
             }
         }
         else
