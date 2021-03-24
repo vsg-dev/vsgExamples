@@ -12,84 +12,38 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-#include <vsg/maths/transform.h>
-#include <vsg/ui/ApplicationEvent.h>
-#include <vsg/ui/KeyEvent.h>
-#include <vsg/ui/PointerEvent.h>
-#include <vsg/ui/ScrollWheelEvent.h>
-#include <vsg/viewer/Camera.h>
-#include <vsg/viewer/EllipsoidModel.h>
+#include <vsg/viewer/Trackball.h>
+
 
 namespace vsg
 {
-    class VSG_DECLSPEC GlobeTrackball : public Inherit<Visitor, GlobeTrackball>
+    class VSG_DECLSPEC GlobeTrackball : public Inherit<Trackball, GlobeTrackball>
     {
     public:
         GlobeTrackball(ref_ptr<Camera> camera, ref_ptr<EllipsoidModel> ellipsoidModel = {});
 
-        /// compute non dimensional window coordinate (-1,1) from event coords
-        dvec2 ndc(PointerEvent& event);
-
-        /// compute trackball coordinate from event coords
-        dvec3 tbc(PointerEvent& event);
-
         void apply(KeyPressEvent& keyPress) override;
-        void apply(ButtonPressEvent& buttonPress) override;
-        void apply(ButtonReleaseEvent& buttonRelease) override;
-        void apply(MoveEvent& moveEvent) override;
-        void apply(ScrollWheelEvent& scrollWheel) override;
         void apply(FrameEvent& frame) override;
 
-        virtual void home();
-        virtual void rotate(double angle, const dvec3& axis);
-        virtual void zoom(double ratio);
-        virtual void pan(const dvec2& delta);
+        void addKeyViewpoint(KeySymbol key, ref_ptr<LookAt> lookAt, double duration = 1.0);
+        void addKeyViewpoint(KeySymbol key, double latitude, double longitude, double altitude, double duration = 1.0);
 
-        bool withinRenderArea(int32_t x, int32_t y) const;
+        void setViewpoint(ref_ptr<LookAt> lookAt, double duration = 1.0);
 
-        void clampToGlobe();
+        struct Viewpoint
+        {
+            ref_ptr<LookAt> lookAt;
+            double duration = 0.0;
+        };
 
-        /// Key that returns the view to hone
-        KeySymbol homeKey = KEY_Space;
-        ref_ptr<LookAt> homeLookAt;
-
-        /// Button mask value used to enable panning of the view, defaults to left mouse button
-        ButtonMask rotateButtonMask = BUTTON_MASK_1;
-
-        /// Button mask value used to enable panning of the view, defaults to middle mouse button
-        ButtonMask panButtonMask = BUTTON_MASK_2;
-
-        /// Button mask value used to enable zooming of the view, defaults to right mouse button
-        ButtonMask zoomButtonMask = BUTTON_MASK_3;
-
-        /// Scale for control how rapidly the view zooms in/out. Positive value zooms in when mouse moved downwards
-        double zoomScale = 1.0;
+        std::map<KeySymbol, Viewpoint> keyViewpoitMap;
 
     protected:
-        ref_ptr<Camera> _camera;
-        ref_ptr<LookAt> _lookAt;
-        ref_ptr<EllipsoidModel> _ellipsoidModel;
 
-        bool _hasFocus = false;
-        bool _lastPointerEventWithinRenderArea = false;
-
-        enum UpdateMode
-        {
-            INACTIVE = 0,
-            ROTATE,
-            PAN,
-            ZOOM
-        };
-        UpdateMode _updateMode = INACTIVE;
-        double _zoomPreviousRatio = 0.0;
-        dvec2 _pan;
-        double _rotateAngle = 0.0;
-        dvec3 _rotateAxis;
-
-        time_point _previousTime;
-        ref_ptr<PointerEvent> _previousPointerEvent;
-        double _previousDelta = 0.0;
-        bool _thrown = false;
+        time_point _startTime;
+        ref_ptr<LookAt> _startLookAt;
+        ref_ptr<LookAt> _endLookAt;
+        double _animationDuration = 0.0;
     };
 
 } // namespace vsg
