@@ -187,7 +187,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
                     {
                         auto plod = vsg::PagedLOD::create();
                         plod->setBound(bound);
-                        plod->setChild(0, vsg::PagedLOD::Child{0.25, {}});  // external child visible when it's bound occupies more than 1/4 of the height of the window
+                        plod->setChild(0, vsg::PagedLOD::Child{lodTransitionScreenHeightRatio, {}});  // external child visible when it's bound occupies more than 1/4 of the height of the window
                         plod->setChild(1, vsg::PagedLOD::Child{0.0, tile}); // visible always
                         plod->filename = vsg::make_string(local_x, " ", local_y, " ", local_lod, ".tile");
                         plod->options = options;
@@ -243,6 +243,8 @@ void TileReader::init()
     sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler->addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler->anisotropyEnable = VK_TRUE;
+    sampler->maxAnisotropy = 16.0f;
 }
 
 vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const

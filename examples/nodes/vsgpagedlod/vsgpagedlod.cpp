@@ -35,6 +35,7 @@ int main(int argc, char** argv)
         windowTraits->windowTitle = "vsgpagedlod";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         arguments.read("--screen", windowTraits->screenNum);
@@ -43,14 +44,19 @@ int main(int argc, char** argv)
         auto outputFilename = arguments.value(std::string(), "-o");
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
+        auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"});
+        bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
+        arguments.read("--file-cache", options->fileCache);
 
         if (arguments.read("--osm"))
         {
+            // setup OpenStreetMap settings
             tileReader->noX = 1;
             tileReader->noY = 1;
+            tileReader->maxLevel = 19;
             tileReader->originTopLeft = true;
             tileReader->projection = "EPSG:3857"; // spherical-mercator
             tileReader->imageLayer = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -58,13 +64,24 @@ int main(int argc, char** argv)
 
         if (arguments.read("--rm") || tileReader->imageLayer.empty())
         {
-            // setup ready mapp settings
+            // setup ready map settings
             tileReader->noX = 2;
             tileReader->noY = 1;
+            tileReader->maxLevel = 10;
             tileReader->originTopLeft = false;
             tileReader->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
             // tileReader->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
         }
+
+        arguments.read("-t", tileReader->lodTransitionScreenHeightRatio);
+        arguments.read("-m", tileReader->maxLevel);
+
+        const double invalid_value = std::numeric_limits<double>::max();
+        double poi_latitude = invalid_value;
+        double poi_longitude = invalid_value;
+        double poi_distance = invalid_value;
+        while(arguments.read("--poi", poi_latitude, poi_longitude)) {};
+        while(arguments.read("--distance", poi_distance)) {};
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -100,16 +117,42 @@ int main(int argc, char** argv)
         double nearFarRatio = 0.0005;
 
         // set up the camera
-        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-
+        vsg::ref_ptr<vsg::LookAt> lookAt;
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
+        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+        if (ellipsoidModel)
         {
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+            if (poi_latitude != invalid_value && poi_longitude != invalid_value)
+            {
+                double height = (poi_distance != invalid_value) ? poi_distance : radius*3.5 ;
+                auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF({poi_latitude, poi_longitude, 0.0});
+                auto ecef_normal = vsg::normalize(ecef);
+
+                vsg::dvec3 centre = ecef;
+                vsg::dvec3 eye = centre + ecef_normal * height;
+                vsg::dvec3 up = vsg::normalize( vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal) ) );
+
+                // set up the camera
+                lookAt = vsg::LookAt::create(eye, centre, up);
+            }
+            else
+            {
+                lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+            }
+
+            if (useEllipsoidPerspective)
+            {
+                perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+            }
+            else
+            {
+                perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            }
         }
         else
         {
             perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
         }
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
@@ -119,7 +162,25 @@ int main(int argc, char** argv)
 
         if (pathFilename.empty())
         {
-            viewer->addEventHandler(vsg::Trackball::create(camera));
+            if (ellipsoidModel)
+            {
+                auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
+                trackball->addKeyViewpoint(vsg::KeySymbol('1'), 51.47697994218272, -0.0, 2000.0, 2.0); // Grenwish Observatory
+                trackball->addKeyViewpoint(vsg::KeySymbol('2'), 55.948642740309324, -3.199226855522667, 1000.0, 2.0); // Edinburgh Castle
+                trackball->addKeyViewpoint(vsg::KeySymbol('3'), 48.858264952330764, 2.2945039609604665, 2000.0, 2.0);// Eiffel Town, Paris
+                trackball->addKeyViewpoint(vsg::KeySymbol('4'), 52.5162603714634, 13.377684902745642, 2000.0, 2.0); // Brandenburg Gate, Berlin
+                trackball->addKeyViewpoint(vsg::KeySymbol('5'), 30.047448591298807, 31.236319571791213, 10000.0, 2.0); // Cairo
+                trackball->addKeyViewpoint(vsg::KeySymbol('6'), 35.653099536061156, 139.74704060056993, 10000.0, 2.0); // Tokyo
+                trackball->addKeyViewpoint(vsg::KeySymbol('7'), 37.38701052699002, -122.08555895549424, 10000.0, 2.0); // Mountain View, California
+                trackball->addKeyViewpoint(vsg::KeySymbol('8'), 25.99773226509226, -97.15922497326818, 10000.0, 2.0); // Boca Chica, Taxas
+                trackball->addKeyViewpoint(vsg::KeySymbol('9'), 40.689618207006355, -74.04465595488215, 10000.0, 2.0); // Emoire State Building
+
+                viewer->addEventHandler(trackball);
+            }
+            else
+            {
+                viewer->addEventHandler(vsg::Trackball::create(camera));
+            }
         }
         else
         {
@@ -134,6 +195,28 @@ int main(int argc, char** argv)
             animationPath->read(in);
 
             viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
+        }
+
+        // if required pre load specific number of PagedLOD levels.
+        if (loadLevels > 0)
+        {
+            vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
+
+#if 0
+            if (!path.empty())
+            {
+                options->paths.insert(options->paths.begin(), path);
+            }
+#endif
+
+            loadPagedLOD.options = options;
+
+            auto startTime = std::chrono::steady_clock::now();
+
+            vsg_scene->accept(loadPagedLOD);
+
+            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
+            std::cout << "No. of tiles loaed " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
