@@ -50,6 +50,7 @@ int main(int argc, char** argv)
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
         arguments.read("--file-cache", options->fileCache);
+        bool osgEarthStyleMouseButtons = arguments.read({"--osgearth","-e"});
 
         if (arguments.read("--osm"))
         {
@@ -174,6 +175,13 @@ int main(int argc, char** argv)
                 trackball->addKeyViewpoint(vsg::KeySymbol('7'), 37.38701052699002, -122.08555895549424, 10000.0, 2.0); // Mountain View, California
                 trackball->addKeyViewpoint(vsg::KeySymbol('8'), 40.689618207006355, -74.04465595488215, 10000.0, 2.0); // Empire State Building
                 trackball->addKeyViewpoint(vsg::KeySymbol('9'), 25.997055873649554, -97.15543476551771, 1000.0, 2.0);  // Boca Chica, Taxas
+
+                if (osgEarthStyleMouseButtons)
+                {
+                    trackball->panButtonMask = vsg::BUTTON_MASK_1;
+                    trackball->rotateButtonMask = vsg::BUTTON_MASK_2;
+                    trackball->zoomButtonMask = vsg::BUTTON_MASK_3;
+                }
 
                 viewer->addEventHandler(trackball);
             }
