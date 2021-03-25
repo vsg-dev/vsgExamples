@@ -99,7 +99,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
                     vsg::ComputeBounds computeBound;
                     tile->accept(computeBound);
                     auto& bb = computeBound.bounds;
-                    vsg::dsphere bound((bb.min.x+bb.max.x)*0.5, (bb.min.y+bb.max.y)*0.5, (bb.min.z+bb.max.z)*0.5, vsg::length(bb.max - bb.min)*0.5);
+                    vsg::dsphere bound((bb.min.x + bb.max.x) * 0.5, (bb.min.y + bb.max.y) * 0.5, (bb.min.z + bb.max.z) * 0.5, vsg::length(bb.max - bb.min) * 0.5);
 
                     auto plod = vsg::PagedLOD::create();
                     plod->setBound(bound);
@@ -146,7 +146,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
     // assign the EllipsoidModel so that the overall geometry of the database can be used as guide for clipping and navigation.
     group->setObject("EllipsoidModel", ellipsoidModel);
 
-return group;
+    return group;
 }
 
 vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint32_t lod, vsg::ref_ptr<const vsg::Options> options) const
@@ -181,14 +181,14 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
                     vsg::ComputeBounds computeBound;
                     tile->accept(computeBound);
                     auto& bb = computeBound.bounds;
-                    vsg::dsphere bound((bb.min.x+bb.max.x)*0.5, (bb.min.y+bb.max.y)*0.5, (bb.min.z+bb.max.z)*0.5, vsg::length(bb.max - bb.min)*0.5);
+                    vsg::dsphere bound((bb.min.x + bb.max.x) * 0.5, (bb.min.y + bb.max.y) * 0.5, (bb.min.z + bb.max.z) * 0.5, vsg::length(bb.max - bb.min) * 0.5);
 
                     if (local_lod < maxLevel)
                     {
                         auto plod = vsg::PagedLOD::create();
                         plod->setBound(bound);
-                        plod->setChild(0, vsg::PagedLOD::Child{lodTransitionScreenHeightRatio, {}});  // external child visible when it's bound occupies more than 1/4 of the height of the window
-                        plod->setChild(1, vsg::PagedLOD::Child{0.0, tile}); // visible always
+                        plod->setChild(0, vsg::PagedLOD::Child{lodTransitionScreenHeightRatio, {}}); // external child visible when it's bound occupies more than 1/4 of the height of the window
+                        plod->setChild(1, vsg::PagedLOD::Child{0.0, tile});                          // visible always
                         plod->filename = vsg::make_string(local_x, " ", local_y, " ", local_lod, ".tile");
                         plod->options = options;
 
@@ -290,7 +290,6 @@ vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const
     return root;
 }
 
-
 vsg::ref_ptr<vsg::Node> TileReader::createTile(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> sourceData) const
 {
 #if 1
@@ -302,7 +301,7 @@ vsg::ref_ptr<vsg::Node> TileReader::createTile(const vsg::dbox& tile_extents, vs
 
 vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents, vsg::ref_ptr<vsg::Data> textureData) const
 {
-    vsg::dvec3 center = computeLatitudeLongitudeAltitude((tile_extents.min + tile_extents.max)*0.5);
+    vsg::dvec3 center = computeLatitudeLongitudeAltitude((tile_extents.min + tile_extents.max) * 0.5);
 
     auto localToWorld = ellipsoidModel->computeLocalToWorldTransform(center);
     auto worldToLocal = vsg::inverse(localToWorld);
@@ -326,15 +325,15 @@ vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents
     uint32_t numRows = 32;
     uint32_t numCols = 32;
     uint32_t numVertices = numRows * numCols;
-    uint32_t numTriangles = (numRows-1) * (numCols -1) * 2;
+    uint32_t numTriangles = (numRows - 1) * (numCols - 1) * 2;
 
     double longitudeOrigin = tile_extents.min.x;
-    double longitudeScale = (tile_extents.max.x - tile_extents.min.x) / double(numCols-1);
+    double longitudeScale = (tile_extents.max.x - tile_extents.min.x) / double(numCols - 1);
     double latitudeOrigin = tile_extents.min.y;
-    double latitudeScale = (tile_extents.max.y - tile_extents.min.y) / double(numRows-1);
+    double latitudeScale = (tile_extents.max.y - tile_extents.min.y) / double(numRows - 1);
 
-    float sCoordScale = 1.0f / float(numCols-1);
-    float tCoordScale = 1.0f / float(numRows-1);
+    float sCoordScale = 1.0f / float(numCols - 1);
+    float tCoordScale = 1.0f / float(numRows - 1);
     float tCoordOrigin = 0.0;
     if (textureData->getLayout().origin == vsg::TOP_LEFT)
     {
@@ -348,18 +347,18 @@ vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents
     auto vertices = vsg::vec3Array::create(numVertices);
     auto colors = vsg::vec3Array::create(numVertices);
     auto texcoords = vsg::vec2Array::create(numVertices);
-    for(uint32_t r = 0; r < numRows; ++r)
+    for (uint32_t r = 0; r < numRows; ++r)
     {
-        for(uint32_t c = 0; c < numCols; ++c)
+        for (uint32_t c = 0; c < numCols; ++c)
         {
-            vsg::dvec3 location(longitudeOrigin + double(c)*longitudeScale, latitudeOrigin + double(r)*latitudeScale, 0.0);
+            vsg::dvec3 location(longitudeOrigin + double(c) * longitudeScale, latitudeOrigin + double(r) * latitudeScale, 0.0);
             vsg::dvec3 latitudeLongitudeAltitude = computeLatitudeLongitudeAltitude(location);
 
             auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF(latitudeLongitudeAltitude);
             vsg::vec3 vertex(worldToLocal * ecef);
-            vsg::vec2 texcoord(float(c)*sCoordScale, tCoordOrigin + float(r)*tCoordScale);
+            vsg::vec2 texcoord(float(c) * sCoordScale, tCoordOrigin + float(r) * tCoordScale);
 
-            uint32_t vi = c + r*numCols;
+            uint32_t vi = c + r * numCols;
             vertices->set(vi, vertex);
             colors->set(vi, color);
             texcoords->set(vi, texcoord);
@@ -367,13 +366,13 @@ vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents
     }
 
     // set up indices
-    auto indices = vsg::ushortArray::create(numTriangles*3);
+    auto indices = vsg::ushortArray::create(numTriangles * 3);
     auto itr = indices->begin();
-    for(uint32_t r = 0; r < numRows-1; ++r)
+    for (uint32_t r = 0; r < numRows - 1; ++r)
     {
-        for(uint32_t c = 0; c < numCols-1; ++c)
+        for (uint32_t c = 0; c < numCols - 1; ++c)
         {
-            uint32_t vi = c + r*numCols;
+            uint32_t vi = c + r * numCols;
             (*itr++) = vi;
             (*itr++) = vi + 1;
             (*itr++) = vi + numCols;
