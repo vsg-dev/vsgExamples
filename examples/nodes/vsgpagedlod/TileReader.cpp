@@ -155,7 +155,18 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
 
     // need to load subtile x y lod
 
+    vsg::time_point start_read = vsg::clock::now();
+
     auto group = vsg::Group::create();
+
+    struct TileID
+    {
+        uint32_t local_x;
+        uint32_t local_y;
+    };
+
+    vsg::Paths tiles;
+    std::map<vsg::Path, TileID> pathToTileID;
 
     uint32_t subtile_x = x * 2;
     uint32_t subtile_y = y * 2;
@@ -166,15 +177,23 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
         {
             uint32_t local_x = subtile_x + dx;
             uint32_t local_y = subtile_y + dy;
+            auto tilePath = getTilePath(imageLayer, local_x, local_y, local_lod);
+            tiles.push_back(tilePath);
+            pathToTileID[tilePath] = TileID{local_x, local_y};
+        }
+    }
 
-            auto imagePath = getTilePath(imageLayer, local_x, local_y, local_lod);
-            auto imageTile = vsg::read_cast<vsg::Data>(imagePath, options);
+    auto pathObjects = vsg::read(tiles, options);
 
-            // std::cout<<"    local_x = "<<local_x<<", local_y = "<<local_y<<", local_lod = "<<local_lod<<", imagePath =  "<<imagePath<<std::endl;
-
+    if (pathObjects.size()==4)
+    {
+        for(auto& [tilePath, object] : pathObjects)
+        {
+            auto& tileID = pathToTileID[tilePath];
+            auto imageTile = object.cast<vsg::Data>();
             if (imageTile)
             {
-                auto tile_extents = computeTileExtents(local_x, local_y, local_lod);
+                auto tile_extents = computeTileExtents(tileID.local_x, tileID.local_y, local_lod);
                 auto tile = createTile(tile_extents, imageTile);
                 if (tile)
                 {
@@ -189,7 +208,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
                         plod->setBound(bound);
                         plod->setChild(0, vsg::PagedLOD::Child{lodTransitionScreenHeightRatio, {}}); // external child visible when it's bound occupies more than 1/4 of the height of the window
                         plod->setChild(1, vsg::PagedLOD::Child{0.0, tile});                          // visible always
-                        plod->filename = vsg::make_string(local_x, " ", local_y, " ", local_lod, ".tile");
+                        plod->filename = vsg::make_string(tileID.local_x, " ", tileID.local_y, " ", local_lod, ".tile");
                         plod->options = options;
 
                         //std::cout<<"plod->filename "<<plod->filename<<std::endl;
@@ -206,11 +225,17 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
                     }
                 }
             }
-            else
-            {
-                // std::cout<<"Failed to read subtile "<<local_x<<", "<<local_y<<", "<<local_lod<<std::endl;
-            }
         }
+    }
+
+    vsg::time_point end_read = vsg::clock::now();
+
+    double time_to_read_tile =  std::chrono::duration<float, std::chrono::milliseconds::period>(end_read - start_read).count();
+
+    {
+        std::scoped_lock<std::mutex> lock(statsMutex);
+        numTilesRead += 1;
+        totalTimeReadingTiles += time_to_read_tile;
     }
 
     if (group->getNumChildren() != 4)

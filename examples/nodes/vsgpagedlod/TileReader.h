@@ -24,6 +24,11 @@ public:
 
     vsg::ref_ptr<vsg::Object> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {}) const override;
 
+    // timing stats
+    mutable std::mutex statsMutex;
+    mutable uint64_t numTilesRead{0};
+    mutable double totalTimeReadingTiles{0.0};
+
 protected:
     vsg::dvec3 computeLatitudeLongitudeAltitude(const vsg::dvec3& src) const;
     vsg::dbox computeTileExtents(uint32_t x, uint32_t y, uint32_t level) const;
