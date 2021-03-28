@@ -293,7 +293,8 @@ int main(int argc, char** argv)
         auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
+        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+        if (ellipsoidModel)
         {
             perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
         }
@@ -309,7 +310,7 @@ int main(int argc, char** argv)
 
         if (pathFilename.empty())
         {
-            viewer->addEventHandler(vsg::Trackball::create(camera));
+            viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
         }
         else
         {
