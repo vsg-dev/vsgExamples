@@ -66,11 +66,12 @@ int main(int argc, char** argv)
         auto viewer = vsg::Viewer::create();
 
         windowTraits->queueFlags = VK_QUEUE_GRAPHICS_BIT;
-        windowTraits->instanceExtensionNames = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
+        windowTraits->instanceExtensionNames = {
+            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        };
 
         windowTraits->deviceExtensionNames = {
-                VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-                VK_NV_MESH_SHADER_EXTENSION_NAME
+            VK_NV_MESH_SHADER_EXTENSION_NAME
         };
 
         auto window = vsg::Window::create(windowTraits);
