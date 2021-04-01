@@ -19,9 +19,16 @@ int main(int argc, char** argv)
     {
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
-        auto debugLayer = arguments.read({"--debug", "-d"});
-        auto apiDumpLayer = arguments.read({"--api", "-a"});
-        auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1280, 720), {"--window", "-w"});
+
+
+        auto windowTraits = vsg::WindowTraits::create();
+        windowTraits->windowTitle = "vsgraytracing";
+        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
+        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+        arguments.read("--screen", windowTraits->screenNum);
+
         auto numFrames = arguments.value(-1, "-f");
         auto filename = arguments.value(std::string(), "-i");
         if (arguments.read("-m")) filename = "models/raytracing_scene.vsgt";
@@ -33,24 +40,18 @@ int main(int argc, char** argv)
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgraytracing";
-        windowTraits->debugLayer = debugLayer;
-        windowTraits->apiDumpLayer = apiDumpLayer;
-        windowTraits->width = width;
-        windowTraits->height = height;
         windowTraits->queueFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
         windowTraits->imageAvailableSemaphoreWaitFlag = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
         windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // enable the transfer bit as we want to copy the raytraced image to swapchain
 
-        windowTraits->instanceExtensionNames =
-            {
-                VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
+        windowTraits->instanceExtensionNames = {
+                VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        };
 
-        windowTraits->deviceExtensionNames =
-            {
+        windowTraits->deviceExtensionNames = {
                 VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-                VK_NV_RAY_TRACING_EXTENSION_NAME};
+                VK_NV_RAY_TRACING_EXTENSION_NAME
+        };
 
         auto window = vsg::Window::create(windowTraits);
         if (!window)
@@ -95,7 +96,7 @@ int main(int argc, char** argv)
         auto shaderGroups = vsg::RayTracingShaderGroups{raygenShaderGroup, missShaderGroup, closestHitShaderGroup};
 
         // create camera matrices and uniform for shader
-        auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
+        auto perspective = vsg::Perspective::create(60.0, static_cast<double>(windowTraits->width) / static_cast<double>(windowTraits->height), 0.1, 10.0);
         vsg::ref_ptr<vsg::LookAt> lookAt;
 
         vsg::ref_ptr<vsg::Device> device;
@@ -175,8 +176,8 @@ int main(int argc, char** argv)
         auto storageImage = vsg::Image::create();
         storageImage->imageType = VK_IMAGE_TYPE_2D;
         storageImage->format = VK_FORMAT_B8G8R8A8_UNORM; //VK_FORMAT_R8G8B8A8_UNORM;
-        storageImage->extent.width = width;
-        storageImage->extent.height = height;
+        storageImage->extent.width = windowTraits->width;
+        storageImage->extent.height = windowTraits->height;
         storageImage->extent.depth = 1;
         storageImage->mipLevels = 1;
         storageImage->arrayLayers = 1;
@@ -230,14 +231,14 @@ int main(int argc, char** argv)
         traceRays->raygen = raygenShaderGroup;
         traceRays->missShader = missShaderGroup;
         traceRays->hitShader = closestHitShaderGroup;
-        traceRays->width = width;
-        traceRays->height = height;
+        traceRays->width = windowTraits->width;
+        traceRays->height = windowTraits->height;
         traceRays->depth = 1;
 
         scenegraph->addChild(traceRays);
 
         // camera related details
-        auto viewport = vsg::ViewportState::create(0, 0, width, height);
+        auto viewport = vsg::ViewportState::create(0, 0, windowTraits->width, windowTraits->height);
         auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
         // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
