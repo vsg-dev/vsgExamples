@@ -11,4 +11,4 @@ void main()
     gl_MeshVerticesNV[id].gl_Position = vec4(vertices[id], 2);
     gl_PrimitiveIndicesNV[id] = id;
     gl_PrimitiveCountNV = 1;
-};
+}
