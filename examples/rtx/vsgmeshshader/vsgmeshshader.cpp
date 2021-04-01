@@ -11,14 +11,14 @@ class DrawMeshTasks : public vsg::Inherit<vsg::Command, DrawMeshTasks>
 public:
     DrawMeshTasks() {}
 
-    DrawMeshTasks(uint32_t in_first, uint32_t in_count) :
-        first(in_first),
-        count(in_count)
+    DrawMeshTasks(uint32_t in_taskCount, uint32_t in_firstTask) :
+        taskCount(in_taskCount),
+        firstTask(in_firstTask)
     {
     }
 
-    uint32_t first = 0;
-    uint32_t count = 0;
+    uint32_t taskCount = 0;
+    uint32_t firstTask = 0;
 
     PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV = nullptr;
 
@@ -31,7 +31,7 @@ public:
     void record(vsg::CommandBuffer& commandBuffer) const override
     {
         // assume that point is valid.
-        vkCmdDrawMeshTasksNV(commandBuffer, first, count);
+        vkCmdDrawMeshTasksNV(commandBuffer, taskCount, firstTask);
     }
 };
 
@@ -42,9 +42,15 @@ int main(int argc, char** argv)
     {
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
-        auto debugLayer = arguments.read({"--debug", "-d"});
-        auto apiDumpLayer = arguments.read({"--api", "-a"});
-        auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(1280, 720), {"--window", "-w"});
+
+        auto windowTraits = vsg::WindowTraits::create();
+        windowTraits->windowTitle = "vsgmmeshshader";
+        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
+        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+        arguments.read("--screen", windowTraits->screenNum);
+
         auto numFrames = arguments.value(-1, "-f");
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -59,14 +65,7 @@ int main(int argc, char** argv)
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgmeshshader";
-        windowTraits->debugLayer = debugLayer;
-        windowTraits->apiDumpLayer = apiDumpLayer;
-        windowTraits->width = width;
-        windowTraits->height = height;
-        windowTraits->queueFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
-
+        windowTraits->queueFlags = VK_QUEUE_GRAPHICS_BIT;
         windowTraits->instanceExtensionNames = { VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME };
 
         windowTraits->deviceExtensionNames = {
@@ -82,6 +81,17 @@ int main(int argc, char** argv)
         }
 
         viewer->addWindow(window);
+
+        auto nv_features = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceMeshShaderFeaturesNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV>();
+        std::cout<<"nv_features.meshShader = "<<nv_features.meshShader<<std::endl;
+        std::cout<<"nv_features.taskShader = "<<nv_features.taskShader<<std::endl;
+
+        if (!nv_features.meshShader || !nv_features.taskShader)
+        {
+            std::cout<<"Mesh shaders not supported."<<std::endl;
+            return 1;
+        }
+
 
         // load shaders
         auto meshShader = vsg::read_cast<vsg::ShaderStage>("shaders/meshshader.mesh", options);
@@ -112,18 +122,14 @@ int main(int argc, char** argv)
         // state group to bind the pipeline and descriptorset
         auto scenegraph = vsg::Commands::create();
         scenegraph->addChild(bindGraphicsPipeline);
-        scenegraph->addChild(DrawMeshTasks::create(0, 1));
+        scenegraph->addChild(DrawMeshTasks::create(1, 0));
 
-
-        // camera related details
-        auto viewport = vsg::ViewportState::create(0, 0, width, height);
 
         // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
         viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-        // set up commandGraph to rendering viewport
+        // set up commandGraph for rendering
         auto commandGraph = vsg::CommandGraph::create(window);
-
         commandGraph->addChild(scenegraph);
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
