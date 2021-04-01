@@ -92,6 +92,14 @@ int main(int argc, char** argv)
             return 1;
         }
 
+        auto barycentric_features = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV,VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV>();
+        std::cout<<"barycentric_features.fragmentShaderBarycentric = "<<barycentric_features.fragmentShaderBarycentric<<std::endl;
+        if (!barycentric_features.fragmentShaderBarycentric)
+        {
+            std::cout<<"fragmentShaderBarycentric not supported."<<std::endl;
+            return 1;
+        }
+
 
         // load shaders
         auto meshShader = vsg::read_cast<vsg::ShaderStage>("shaders/meshshader.mesh", options);
