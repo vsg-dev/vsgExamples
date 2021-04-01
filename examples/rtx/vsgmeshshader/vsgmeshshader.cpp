@@ -1,6 +1,10 @@
 #include <iostream>
 #include <vsg/all.h>
 
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
+#endif
+
 
 class DrawMeshTasks : public vsg::Inherit<vsg::Command, DrawMeshTasks>
 {
@@ -45,7 +49,12 @@ int main(int argc, char** argv)
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         // set up search paths to SPIRV shaders and textures
-        vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+        auto options = vsg::Options::create();
+        options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+    #ifdef vsgXchange_all
+        // add vsgXchange's support for reading and writing 3rd party file formats
+        options->add(vsgXchange::all::create());
+    #endif
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -75,8 +84,8 @@ int main(int argc, char** argv)
         viewer->addWindow(window);
 
         // load shaders
-        vsg::ref_ptr<vsg::ShaderStage> meshShader = vsg::ShaderStage::read(VK_SHADER_STAGE_MESH_BIT_NV, "main", vsg::findFile("shaders/meshshader.mesh", searchPaths));
-        vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/meshshader.frag", searchPaths));
+        auto meshShader = vsg::read_cast<vsg::ShaderStage>("shaders/meshshader.mesh", options);
+        auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/meshshader.frag", options);
 
         if (!meshShader || !fragmentShader)
         {
@@ -85,7 +94,6 @@ int main(int argc, char** argv)
         }
 
         auto shaderStages = vsg::ShaderStages{meshShader, fragmentShader};
-
 
         // set up graphics pipeline
         vsg::DescriptorSetLayoutBindings descriptorBindings{};
