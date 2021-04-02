@@ -102,9 +102,6 @@ int main(int argc, char** argv)
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
-    // enable required device features.
-    windowTraits->deviceFeatures.samplerAnisotropy = VK_TRUE;
-
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     try
