@@ -5,36 +5,6 @@
 #    include <vsgXchange/all.h>
 #endif
 
-
-class DrawMeshTasks : public vsg::Inherit<vsg::Command, DrawMeshTasks>
-{
-public:
-    DrawMeshTasks() {}
-
-    DrawMeshTasks(uint32_t in_taskCount, uint32_t in_firstTask) :
-        taskCount(in_taskCount),
-        firstTask(in_firstTask)
-    {
-    }
-
-    uint32_t taskCount = 0;
-    uint32_t firstTask = 0;
-
-    PFN_vkCmdDrawMeshTasksNV vkCmdDrawMeshTasksNV = nullptr;
-
-    void compile(vsg::Context& context) override
-    {
-        vkCmdDrawMeshTasksNV = reinterpret_cast<PFN_vkCmdDrawMeshTasksNV>(vkGetDeviceProcAddr(*context.device, "vkCmdDrawMeshTasksNV"));
-        std::cout<<"this->vkCmdDrawMeshTasksNV = "<<this->vkCmdDrawMeshTasksNV<<std::endl;
-    }
-
-    void record(vsg::CommandBuffer& commandBuffer) const override
-    {
-        // assume vkCmdDrawMeshTasksNV pointer is valid.
-        vkCmdDrawMeshTasksNV(commandBuffer, taskCount, firstTask);
-    }
-};
-
 int main(int argc, char** argv)
 {
     try
@@ -144,8 +114,19 @@ int main(int argc, char** argv)
         // state group to bind the pipeline and descriptorset
         auto scenegraph = vsg::Commands::create();
         scenegraph->addChild(bindGraphicsPipeline);
-        scenegraph->addChild(DrawMeshTasks::create(1, 0));
 
+
+        // Use vsg::DrawMeshTasks
+        //scenegraph->addChild(vsg::DrawMeshTasks::create(1, 0));
+
+        // Use vsg::DrawMeshTasksIndirect
+        auto data = vsg::DrawMeshTasksIndirectCommandArray::create(1);
+        data->at(0).taskCount = 1;
+        data->at(0).firstTask = 0;
+        scenegraph->addChild(vsg::DrawMeshTasksIndirect::create(data, 1, 8));
+
+
+        vsg::write(scenegraph, "mesh.vsgt");
 
         // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
         viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
