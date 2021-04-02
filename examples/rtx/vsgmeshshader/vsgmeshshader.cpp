@@ -30,11 +30,10 @@ public:
 
     void record(vsg::CommandBuffer& commandBuffer) const override
     {
-        // assume that point is valid.
+        // assume vkCmdDrawMeshTasksNV pointer is valid.
         vkCmdDrawMeshTasksNV(commandBuffer, taskCount, firstTask);
     }
 };
-
 
 int main(int argc, char** argv)
 {
@@ -65,14 +64,21 @@ int main(int argc, char** argv)
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
 
-        windowTraits->queueFlags = VK_QUEUE_GRAPHICS_BIT;
-        windowTraits->instanceExtensionNames = {
-            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+        windowTraits->deviceExtensionNames = {
+            VK_NV_MESH_SHADER_EXTENSION_NAME,
+            VK_NV_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME
         };
 
-        windowTraits->deviceExtensionNames = {
-            VK_NV_MESH_SHADER_EXTENSION_NAME
-        };
+        // set up features
+        auto features = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+
+        auto& meshFeatures = features->get<VkPhysicalDeviceMeshShaderFeaturesNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV>();
+        meshFeatures.meshShader = 1;
+        meshFeatures.taskShader = 1;
+
+        auto& barycentricFeatures = features->get<VkPhysicalDeviceFragmentShaderBarycentricFeaturesNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_NV>();
+        barycentricFeatures.fragmentShaderBarycentric = 1;
+
 
         auto window = vsg::Window::create(windowTraits);
         if (!window)
@@ -83,11 +89,11 @@ int main(int argc, char** argv)
 
         viewer->addWindow(window);
 
-        auto nv_features = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceMeshShaderFeaturesNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV>();
-        std::cout<<"nv_features.meshShader = "<<nv_features.meshShader<<std::endl;
-        std::cout<<"nv_features.taskShader = "<<nv_features.taskShader<<std::endl;
+        auto mesh_features = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceMeshShaderFeaturesNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV>();
+        std::cout<<"nv_features.meshShader = "<<mesh_features.meshShader<<std::endl;
+        std::cout<<"nv_features.taskShader = "<<mesh_features.taskShader<<std::endl;
 
-        if (!nv_features.meshShader || !nv_features.taskShader)
+        if (!mesh_features.meshShader || !mesh_features.taskShader)
         {
             std::cout<<"Mesh shaders not supported."<<std::endl;
             return 1;
@@ -100,6 +106,13 @@ int main(int argc, char** argv)
             std::cout<<"fragmentShaderBarycentric not supported."<<std::endl;
             return 1;
         }
+
+        auto mesh_properites = window->getOrCreatePhysicalDevice()->getProperties<VkPhysicalDeviceMeshShaderPropertiesNV, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_NV>();
+        std::cout<<"mesh_properites.maxDrawMeshTasksCount = "<<mesh_properites.maxDrawMeshTasksCount<<std::endl;
+        std::cout<<"mesh_properites.maxTaskTotalMemorySize = "<<mesh_properites.maxTaskTotalMemorySize<<std::endl;
+        std::cout<<"mesh_properites.maxMeshTotalMemorySize = "<<mesh_properites.maxMeshTotalMemorySize<<std::endl;
+        std::cout<<"mesh_properites.maxMeshOutputVertices = "<<mesh_properites.maxMeshOutputVertices<<std::endl;
+        std::cout<<"mesh_properites.maxMeshOutputPrimitives = "<<mesh_properites.maxMeshOutputPrimitives<<std::endl;
 
 
         // load shaders
@@ -138,9 +151,7 @@ int main(int argc, char** argv)
         viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
         // set up commandGraph for rendering
-        auto commandGraph = vsg::CommandGraph::create(window);
-        commandGraph->addChild(scenegraph);
-
+        auto commandGraph = vsg::createCommandGraphForView(window, {}, scenegraph);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         viewer->compile();

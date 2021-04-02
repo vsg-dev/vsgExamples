@@ -20,7 +20,6 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-
         auto windowTraits = vsg::WindowTraits::create();
         windowTraits->windowTitle = "vsgraytracing";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
@@ -43,11 +42,6 @@ int main(int argc, char** argv)
         windowTraits->queueFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
         windowTraits->imageAvailableSemaphoreWaitFlag = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
         windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // enable the transfer bit as we want to copy the raytraced image to swapchain
-
-        windowTraits->instanceExtensionNames = {
-                VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-        };
-
         windowTraits->deviceExtensionNames = {
                 VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
                 VK_NV_RAY_TRACING_EXTENSION_NAME
