@@ -19,6 +19,8 @@ int main(int argc, char** argv)
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         arguments.read("--screen", windowTraits->screenNum);
+        auto type = arguments.value<int>(0, {"--type", "-t"});
+        auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
         auto numFrames = arguments.value(-1, "-f");
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -116,17 +118,35 @@ int main(int argc, char** argv)
         scenegraph->addChild(bindGraphicsPipeline);
 
 
-        // Use vsg::DrawMeshTasks
-        //scenegraph->addChild(vsg::DrawMeshTasks::create(1, 0));
+        if (type<=1)
+        {
+            std::cout<<"Using vsg::DrawMeshTasks"<<std::endl;
+            scenegraph->addChild(vsg::DrawMeshTasks::create(1, 0));
+        }
+        else if (type<=2)
+        {
+            std::cout<<"Using vsg::DrawMeshTasksIndirect"<<std::endl;
+            auto data = vsg::DrawMeshTasksIndirectCommandArray::create(1);
+            data->at(0).taskCount = 1;
+            data->at(0).firstTask = 0;
+            scenegraph->addChild(vsg::DrawMeshTasksIndirect::create(data, 1, 8));
+        }
+        else
+        {
+            std::cout<<"Using vsg::DrawMeshTasksIndirectCount"<<std::endl;
+            auto data = vsg::DrawMeshTasksIndirectCommandArray::create(1);
+            data->at(0).taskCount = 1;
+            data->at(0).firstTask = 0;
+            auto count = vsg::uintArray::create(1);
+            count->at(0) = 1;
+            scenegraph->addChild(vsg::DrawMeshTasksIndirectCount::create(data, count, 1, 8));
+        }
 
-        // Use vsg::DrawMeshTasksIndirect
-        auto data = vsg::DrawMeshTasksIndirectCommandArray::create(1);
-        data->at(0).taskCount = 1;
-        data->at(0).firstTask = 0;
-        scenegraph->addChild(vsg::DrawMeshTasksIndirect::create(data, 1, 8));
-
-
-        vsg::write(scenegraph, "mesh.vsgt");
+        if (!outputFilename.empty())
+        {
+            vsg::write(scenegraph, outputFilename);
+            return 1;
+        }
 
         // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
         viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
