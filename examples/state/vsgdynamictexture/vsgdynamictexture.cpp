@@ -1,26 +1,49 @@
 #include <iostream>
 #include <vsg/all.h>
 
-void update(vsg::vec4Array2D& image, float value)
+
+class UpdateImage : public vsg::Visitor
 {
-    for (size_t r = 0; r < image.height(); ++r)
+public:
+
+    double value = 0.0;
+
+    template<class A>
+    void update(A& image)
     {
-        float r_ratio = static_cast<float>(r) / static_cast<float>(image.height() - 1);
-        for (size_t c = 0; c < image.width(); ++c)
+        using value_type = typename A::value_type;
+        for (size_t r = 0; r < image.height(); ++r)
         {
-            float c_ratio = static_cast<float>(c) / static_cast<float>(image.width() - 1);
+            float r_ratio = static_cast<float>(r) / static_cast<float>(image.height() - 1);
+            for (size_t c = 0; c < image.width(); ++c)
+            {
+                float c_ratio = static_cast<float>(c) / static_cast<float>(image.width() - 1);
 
-            vsg::vec2 delta((r_ratio - 0.5f), (c_ratio - 0.5f));
+                vsg::vec2 delta((r_ratio - 0.5f), (c_ratio - 0.5f));
 
-            float angle = atan2(delta.x, delta.y);
+                float angle = atan2(delta.x, delta.y);
 
-            float distance_from_center = vsg::length(delta);
+                float distance_from_center = vsg::length(delta);
 
-            float intensity = (sin(1.0 * angle + 30.0f * distance_from_center + 10.0 * value) + 1.0f) * 0.5f;
-            image.set(c, r, vsg::vec4(intensity * intensity, intensity, intensity, 1.0f));
+                float intensity = (sin(1.0 * angle + 30.0f * distance_from_center + 10.0 * value) + 1.0f) * 0.5f;
+
+                auto& value = image.at(c, r);
+                value.r = intensity * intensity;
+                value.g = intensity;
+                value.b = intensity;
+
+                if constexpr (std::is_same_v<value_type, vsg::vec4>) value.a = 1.0f;
+            }
         }
     }
-}
+
+    // use the vsg::Visitor to safely cast to types handled by the UpdateImage class
+    void apply(vsg::vec3Array2D& image) override { update(image); }
+    void apply(vsg::vec4Array2D& image) override { update(image); }
+
+    // provide convinient way to invoke the UpdateImage as a functor
+    void operator() (vsg::Data* image, double v) { value = v; image->accept(*this); }
+};
 
 int main(int argc, char** argv)
 {
@@ -35,6 +58,7 @@ int main(int argc, char** argv)
     if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
     auto numFrames = arguments.value(-1, "-f");
+    bool useRGB = arguments.read("--rgb");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -50,11 +74,23 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // read texture image
-    auto textureData = vsg::vec4Array2D::create(256, 256);
-    textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    // setup texture image
+    vsg::ref_ptr<vsg::Data> textureData;
 
-    update(*textureData, 1.0f);
+    if (useRGB)
+    {
+        textureData = vsg::vec3Array2D::create(256, 256);
+        textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
+    }
+    else
+    {
+        textureData = vsg::vec4Array2D::create(256, 256);
+        textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    }
+
+    // initialize the image
+    UpdateImage updateImage;
+    updateImage(textureData, 0.0);
 
     vsg::write(textureData, "test.vsgt");
 
@@ -196,7 +232,7 @@ int main(int argc, char** argv)
         transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
 
         // update texture data
-        update(*textureData, time);
+        updateImage(textureData, time);
 
         // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
         copyCmd->copy(textureData, textureImageInfo);
