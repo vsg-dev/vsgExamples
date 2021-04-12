@@ -56,9 +56,11 @@ int main(int argc, char** argv)
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
     if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
-    arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    arguments.read("--window", windowTraits->width, windowTraits->height);
     auto numFrames = arguments.value(-1, "-f");
+    auto workgroupSize = arguments.value(32, "-w");
     bool useRGB = arguments.read("--rgb");
+    bool useCompute = useRGB ? arguments.read("--compute") : false;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -81,6 +83,8 @@ int main(int argc, char** argv)
     {
         textureData = vsg::vec3Array2D::create(256, 256);
         textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
+
+        if (useCompute) windowTraits->queueFlags |= VK_QUEUE_COMPUTE_BIT;
     }
     else
     {
@@ -91,8 +95,6 @@ int main(int argc, char** argv)
     // initialize the image
     UpdateImage updateImage;
     updateImage(textureData, 0.0);
-
-    vsg::write(textureData, "test.vsgt");
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings{
@@ -202,13 +204,82 @@ int main(int argc, char** argv)
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
+    auto copyImageCmd = vsg::CopyAndReleaseImage::create();
+    copyImageCmd->stagingMemoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
 
-    auto copyCmd = vsg::CopyAndReleaseImage::create();
-    copyCmd->stagingMemoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
-    commandGraph->getChildren().insert(commandGraph->getChildren().begin(), copyCmd);
+    auto copyBufferCmd = vsg::CopyAndReleaseBuffer::create();
+    //copyBufferCmd->stagingMemoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
 
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+    if (useCompute)
+    {
+        std::cout<<"Using compute path"<<std::endl;
+
+        auto physicalDevice = window->getOrCreatePhysicalDevice();
+        auto device = window->getOrCreateDevice();
+
+        vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+        auto computeStage = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/RGBtoRGBA.spv", searchPaths));
+        if (!computeStage)
+        {
+            std::cout << "Error : No shader loaded." << std::endl;
+            return 1;
+        }
+
+        auto width = textureData->width();
+        auto height = textureData->height();
+
+        computeStage->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+            {0, vsg::intValue::create(width)},
+            {1, vsg::intValue::create(height)},
+            {2, vsg::intValue::create(workgroupSize)}};
+
+        // binding 0 source buffer
+        // binding 1 image2d
+
+        // allocate output storage buffer
+        VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
+
+        auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        auto bufferMemory = buffer->getDeviceMemory(device->deviceID);
+
+        // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
+        vsg::DescriptorSetLayoutBindings descriptorBindings{
+            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        };
+        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+        vsg::Descriptors descriptors{
+            vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
+            texture // need to be a VK_DESCRIPTOR_TYPE_STORAGE_IMAGE rather than VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER as defined above,
+        };
+        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
+
+        // set up the compute pipeline
+        auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeStage);
+        auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
+
+        int computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
+        auto compute_commandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
+        compute_commandGraph->addChild(copyBufferCmd);
+        compute_commandGraph->addChild(bindPipeline);
+        compute_commandGraph->addChild(bindDescriptorSet);
+        compute_commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
+
+
+        auto grahics_commandGraph = vsg::createCommandGraphForView(window, camera, {copyBufferCmd, scenegraph});
+
+        viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, grahics_commandGraph});
+    }
+    else
+    {
+        auto grahics_commandGraph = vsg::createCommandGraphForView(window, camera, {copyImageCmd, scenegraph});
+
+        //grahics_commandGraph->getChildren().insert(grahics_commandGraph->getChildren().begin(), copyCmd);
+
+        viewer->assignRecordAndSubmitTaskAndPresentation({grahics_commandGraph});
+    }
 
     // add event handlers
     viewer->addEventHandler(vsg::Trackball::create(camera));
@@ -230,15 +301,13 @@ int main(int argc, char** argv)
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
-        // animate the transform
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
+        double time = std::chrono::duration<double, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
 
         // update texture data
         updateImage(textureData, time);
 
         // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
-        copyCmd->copy(textureData, textureImageInfo);
+        copyImageCmd->copy(textureData, textureImageInfo);
 
         viewer->update();
 
