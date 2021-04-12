@@ -221,6 +221,9 @@ int main(int argc, char** argv)
     vsg::ImageInfo textureImageInfo;
     if (!texture->imageInfoList.empty()) textureImageInfo = texture->imageInfoList[0]; // contextID=0, and only one imageData
 
+    auto startTime = vsg::clock::now();
+    double numFramesCompleted = 0.0;
+
     // main frame loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
@@ -242,7 +245,18 @@ int main(int argc, char** argv)
         viewer->recordAndSubmit();
 
         viewer->present();
+
+        numFramesCompleted += 1.0;
     }
+
+    auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
+    if (numFramesCompleted > 0.0)
+    {
+        std::cout<<"Average frame rate = "<<(numFramesCompleted / duration)<<std::endl;
+    }
+
+
+
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;
