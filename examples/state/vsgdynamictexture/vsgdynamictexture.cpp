@@ -274,9 +274,9 @@ int main(int argc, char** argv)
     }
     else
     {
-        auto grahics_commandGraph = vsg::createCommandGraphForView(window, camera, {copyImageCmd, scenegraph});
-
-        //grahics_commandGraph->getChildren().insert(grahics_commandGraph->getChildren().begin(), copyCmd);
+        auto grahics_commandGraph = vsg::CommandGraph::create(window);
+        grahics_commandGraph->addChild(copyImageCmd);
+        grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
 
         viewer->assignRecordAndSubmitTaskAndPresentation({grahics_commandGraph});
     }
