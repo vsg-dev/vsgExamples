@@ -100,13 +100,27 @@ int main(int argc, char** argv)
     UpdateImage updateImage;
     updateImage(textureData, 0.0);
 
-    auto image = vsg::Image::create(textureData);
-    image->usage |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+    vsg::ref_ptr<vsg::Image> image;
+    if (useCompute)
+    {
+        image = vsg::Image::create();
+        image->usage |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+        image->format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        image->mipLevels = 1;
+        image->extent = VkExtent3D{textureData->width(), textureData->height(), 1};
+        image->imageType = VK_IMAGE_TYPE_2D;
+        image->arrayLayers = 1;
+    }
+    else
+    {
+        image = vsg::Image::create(textureData);
+        image->usage |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    }
 
     auto imageView = vsg::ImageView::create(image, VK_IMAGE_ASPECT_COLOR_BIT);
     auto sampler = vsg::Sampler::create();
 
-    VkImageLayout imageLayout = VK_IMAGE_LAYOUT_GENERAL;//VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkImageLayout imageLayout = useCompute ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     vsg::ImageInfo imageInfo(sampler, imageView, imageLayout);
 
@@ -289,12 +303,47 @@ int main(int argc, char** argv)
 
         copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
 
+        auto preCopyBarrier = vsg::ImageMemoryBarrier::create();
+        preCopyBarrier->srcAccessMask = 0;
+        preCopyBarrier->dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        preCopyBarrier->oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        preCopyBarrier->newLayout = VK_IMAGE_LAYOUT_GENERAL;
+        preCopyBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        preCopyBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        preCopyBarrier->image = image;
+        preCopyBarrier->subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        preCopyBarrier->subresourceRange.baseArrayLayer = 0;
+        preCopyBarrier->subresourceRange.layerCount = 1;
+        preCopyBarrier->subresourceRange.levelCount = 1;
+        preCopyBarrier->subresourceRange.baseMipLevel = 0;
+
+        auto preCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, preCopyBarrier);
+
+        auto postCopyBarrier = vsg::ImageMemoryBarrier::create();
+        postCopyBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        postCopyBarrier->dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        postCopyBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+        postCopyBarrier->newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        postCopyBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        postCopyBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        postCopyBarrier->image = image;
+        postCopyBarrier->subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        postCopyBarrier->subresourceRange.baseArrayLayer = 0;
+        postCopyBarrier->subresourceRange.layerCount = 1;
+        postCopyBarrier->subresourceRange.levelCount = 1;
+        postCopyBarrier->subresourceRange.baseMipLevel = 0;
+
+        auto postCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, postCopyBarrier);
+
         int computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
         auto compute_commandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
+
+        compute_commandGraph->addChild(preCopyBarrierCmd);
         compute_commandGraph->addChild(copyBufferCmd);
         compute_commandGraph->addChild(bindPipeline);
         compute_commandGraph->addChild(bindDescriptorSet);
         compute_commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
+        compute_commandGraph->addChild(postCopyBarrierCmd);
 
         auto grahics_commandGraph = vsg::CommandGraph::create(window);
         grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
