@@ -12,27 +12,29 @@ public:
     void update(A& image)
     {
         using value_type = typename A::value_type;
+        float r_mult = 1.0f / static_cast<float>(image.height() - 1);
+        float r_offset = 0.5f + sin(value)*0.25f;
+
+        float c_mult = 1.0f / static_cast<float>(image.width() - 1);
+        float c_offset = 0.5f + cos(value)*0.25f;
+
         for (size_t r = 0; r < image.height(); ++r)
         {
-            float r_ratio = static_cast<float>(r) / static_cast<float>(image.height() - 1);
+            float r_ratio = static_cast<float>(r) * r_mult;
+            value_type* ptr = &image.at(0, r);
             for (size_t c = 0; c < image.width(); ++c)
             {
-                float c_ratio = static_cast<float>(c) / static_cast<float>(image.width() - 1);
+                float c_ratio = static_cast<float>(c) * c_mult;
 
-                vsg::vec2 delta((r_ratio - 0.5f), (c_ratio - 0.5f));
+                float intensity = 0.5f - ((r_ratio-r_offset)*(r_ratio-r_offset)) + ((c_ratio-c_offset)*(c_ratio-c_offset));
 
-                float angle = atan2(delta.x, delta.y);
+                ptr->r = intensity * intensity;
+                ptr->g = intensity;
+                ptr->b = intensity;
 
-                float distance_from_center = vsg::length(delta);
+                if constexpr (std::is_same_v<value_type, vsg::vec4>) ptr->a = 1.0f;
 
-                float intensity = (sin(1.0 * angle + 30.0f * distance_from_center + 10.0 * value) + 1.0f) * 0.5f;
-
-                auto& value = image.at(c, r);
-                value.r = intensity * intensity;
-                value.g = intensity;
-                value.b = intensity;
-
-                if constexpr (std::is_same_v<value_type, vsg::vec4>) value.a = 1.0f;
+                ++ptr;
             }
         }
     }
@@ -57,6 +59,8 @@ int main(int argc, char** argv)
     if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
     if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
     arguments.read("--window", windowTraits->width, windowTraits->height);
+    arguments.read("--screen", windowTraits->screenNum);
+    arguments.read("--display", windowTraits->display);
     auto numFrames = arguments.value(-1, "-f");
     auto workgroupSize = arguments.value(32, "-w");
     bool useRGB = arguments.read("--rgb");
@@ -97,103 +101,107 @@ int main(int argc, char** argv)
     updateImage(textureData, 0.0);
 
     auto image = vsg::Image::create(textureData);
-    image->usage |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    image->usage |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
 
     auto imageView = vsg::ImageView::create(image, VK_IMAGE_ASPECT_COLOR_BIT);
     auto sampler = vsg::Sampler::create();
 
-    vsg::ImageInfo imageInfo(sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    VkImageLayout imageLayout = VK_IMAGE_LAYOUT_GENERAL;//VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-
-    // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
-    };
-
-    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-
-    vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
-    };
-
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
-        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-    };
-
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
-    };
-
-    vsg::GraphicsPipelineStates pipelineStates{
-        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
-        vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
-        vsg::MultisampleState::create(),
-        vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()};
-
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
-    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
-    auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+    vsg::ImageInfo imageInfo(sampler, imageView, imageLayout);
 
     // create texture image and associated DescriptorSets and binding
     auto texture = vsg::DescriptorImage::create(imageInfo, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
-
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // setup graphics rendering subgraph
     auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(bindGraphicsPipeline);
-    scenegraph->add(bindDescriptorSet);
+    {
+        // set up graphics pipeline
+        vsg::DescriptorSetLayoutBindings descriptorBindings{
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        };
 
-    // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
+        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    // add transform to root of the scene graph
-    scenegraph->addChild(transform);
+        vsg::PushConstantRanges pushConstantRanges{
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        };
 
-    // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create(
-        {{-0.5f, -0.5f, 0.0f},
-         {0.5f, -0.5f, 0.0f},
-         {0.5f, 0.5f, 0.0f},
-         {-0.5f, 0.5f, 0.0f},
-         {-0.5f, -0.5f, -0.5f},
-         {0.5f, -0.5f, -0.5f},
-         {0.5f, 0.5f, -0.5f},
-         {-0.5f, 0.5f, -0.5f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        vsg::VertexInputState::Bindings vertexBindingsDescriptions{
+            VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+            VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+            VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+        };
 
-    auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
+        vsg::VertexInputState::Attributes vertexAttributeDescriptions{
+            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+            VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+            VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+        };
 
-    auto texcoords = vsg::vec2Array::create(
-        {{0.0f, 0.0f},
-         {1.0f, 0.0f},
-         {1.0f, 1.0f},
-         {0.0f, 1.0f},
-         {0.0f, 0.0f},
-         {1.0f, 0.0f},
-         {1.0f, 1.0f},
-         {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        vsg::GraphicsPipelineStates pipelineStates{
+            vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
+            vsg::InputAssemblyState::create(),
+            vsg::RasterizationState::create(),
+            vsg::MultisampleState::create(),
+            vsg::ColorBlendState::create(),
+            vsg::DepthStencilState::create()};
 
-    auto indices = vsg::ushortArray::create(
-        {0, 1, 2,
-         2, 3, 0,
-         4, 5, 6,
-         6, 7, 4}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+        auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+        auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
-    // setup geometry
-    auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
-    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
+        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
 
-    // add drawCommands to transform
-    transform->addChild(drawCommands);
+        // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+        scenegraph->add(bindGraphicsPipeline);
+        scenegraph->add(bindDescriptorSet);
+
+        // set up model transformation node
+        auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
+
+        // add transform to root of the scene graph
+        scenegraph->addChild(transform);
+
+        // set up vertex and index arrays
+        auto vertices = vsg::vec3Array::create(
+            {{-0.5f, -0.5f, 0.0f},
+            {0.5f, -0.5f, 0.0f},
+            {0.5f, 0.5f, 0.0f},
+            {-0.5f, 0.5f, 0.0f},
+            {-0.5f, -0.5f, -0.5f},
+            {0.5f, -0.5f, -0.5f},
+            {0.5f, 0.5f, -0.5f},
+            {-0.5f, 0.5f, -0.5f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+
+        auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
+
+        auto texcoords = vsg::vec2Array::create(
+            {{0.0f, 0.0f},
+            {1.0f, 0.0f},
+            {1.0f, 1.0f},
+            {0.0f, 1.0f},
+            {0.0f, 0.0f},
+            {1.0f, 0.0f},
+            {1.0f, 1.0f},
+            {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+
+        auto indices = vsg::ushortArray::create(
+            {0, 1, 2,
+            2, 3, 0,
+            4, 5, 6,
+            6, 7, 4}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+
+        // setup geometry
+        auto drawCommands = vsg::Commands::create();
+        drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
+        drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+        drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
+
+        // add drawCommands to transform
+        transform->addChild(drawCommands);
+    }
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -213,11 +221,11 @@ int main(int argc, char** argv)
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
-    auto copyImageCmd = vsg::CopyAndReleaseImage::create();
-    copyImageCmd->stagingMemoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
+    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
+    vsg::ref_ptr<vsg::CopyAndReleaseImage> copyImageCmd;
+    vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd;
 
-    auto copyBufferCmd = vsg::CopyAndReleaseBuffer::create();
-    //copyBufferCmd->stagingMemoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
+    vsg::BufferInfo bufferInfo;
 
     if (useCompute)
     {
@@ -248,19 +256,29 @@ int main(int argc, char** argv)
         // allocate output storage buffer
         VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
 
-        auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         auto bufferMemory = buffer->getDeviceMemory(device->deviceID);
 
         // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
         vsg::DescriptorSetLayoutBindings descriptorBindings{
-            {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
             {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
         };
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
+        bufferInfo.buffer = buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = bufferSize;
+
+
+        auto sourceBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto writeTexture = vsg::DescriptorImage::create(imageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout},vsg::PushConstantRanges{});
+
         vsg::Descriptors descriptors{
-            vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER),
-            texture // need to be a VK_DESCRIPTOR_TYPE_STORAGE_IMAGE rather than VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER as defined above,
+            sourceBuffer,
+            writeTexture
         };
         auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
@@ -269,6 +287,8 @@ int main(int argc, char** argv)
         auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeStage);
         auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
 
+        copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
+
         int computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
         auto compute_commandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
         compute_commandGraph->addChild(copyBufferCmd);
@@ -276,13 +296,15 @@ int main(int argc, char** argv)
         compute_commandGraph->addChild(bindDescriptorSet);
         compute_commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
 
-
-        auto grahics_commandGraph = vsg::createCommandGraphForView(window, camera, {copyBufferCmd, scenegraph});
+        auto grahics_commandGraph = vsg::CommandGraph::create(window);
+        grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
 
         viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, grahics_commandGraph});
     }
     else
     {
+        copyImageCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
+
         auto grahics_commandGraph = vsg::CommandGraph::create(window);
         grahics_commandGraph->addChild(copyImageCmd);
         grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
@@ -316,7 +338,8 @@ int main(int argc, char** argv)
         updateImage(textureData, time);
 
         // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
-        copyImageCmd->copy(textureData, textureImageInfo);
+        if (copyImageCmd) copyImageCmd->copy(textureData, textureImageInfo);
+        if (copyBufferCmd) copyBufferCmd->copy(textureData, bufferInfo);
 
         viewer->update();
 

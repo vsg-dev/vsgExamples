@@ -1,17 +1,15 @@
 #version 450
 
-layout(constant_id = 0) const int WIDTH = 1024;
-layout(constant_id = 1) const int HEIGHT = 1024;
+layout (constant_id = 0) const int WIDTH = 1024;
+layout (constant_id = 1) const int HEIGHT = 1024;
 layout (local_size_x_id = 2, local_size_y_id = 2, local_size_z = 1 ) in;  // pass in WORKGROUP_SIZE as specialization constant_id=2
 
 // code taken from https://stackoverflow.com/questions/56671889/vulkan-upload-3-channel-image-to-device
 
 
-// should be tightly packed if I read the spec correctly
-// https://www.khronos.org/registry/OpenGL/specs/gl/glspec45.core.pdf
-layout(std430, binding = 0) buffer in_3_channel
+layout (binding = 0) buffer in_3_channel
 {
-    vec3 input_channel[];
+    float input_channel[];
 };
 
 layout (binding = 1, rgba32f) uniform image2D result_image;
@@ -22,10 +20,9 @@ void main()
     uint col = gl_GlobalInvocationID.x;
     uint row = gl_GlobalInvocationID.y;
 
-    if (col >= WIDTH || row >= WIDTH) return;
+    if (col >= WIDTH || row >= HEIGHT) return;
 
-    uint index = col + row * WIDTH;
-    vec3 in_color = input_channel[index];
-    vec4 out_color = vec4(in_color, 1.0);
-    imageStore(result_image, ivec2(row, col), out_color);
+    uint index = (col + row * WIDTH)*3;
+    vec4 color = vec4(input_channel[index], input_channel[index+1], input_channel[index+2], 1.0);
+    imageStore(result_image, ivec2(row, col), color);
 }
