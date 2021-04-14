@@ -69,7 +69,6 @@ int main(int argc, char** argv)
     }
     auto numFrames = arguments.value(-1, "-f");
     auto workgroupSize = arguments.value(32, "-w");
-    bool useRGBA = arguments.read("--rgba");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -79,11 +78,15 @@ int main(int argc, char** argv)
     // load shaders
     auto vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
     auto fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
-    if (!vertexShader || !fragmentShader)
+    auto computeShader = vsg::ShaderStage::read(VK_SHADER_STAGE_COMPUTE_BIT, "main", vsg::findFile("shaders/RGBtoRGBA.spv", searchPaths));
+    if (!vertexShader || !fragmentShader || !computeShader)
     {
         std::cout << "Could not create shaders." << std::endl;
         return 1;
     }
+
+    // enable the use of compute shader when we create the vsg::Device which will be done at Window creation time
+    windowTraits->queueFlags |= VK_QUEUE_COMPUTE_BIT;
 
     auto window = vsg::Window::create(windowTraits);
     if (!window)
@@ -108,34 +111,26 @@ int main(int argc, char** argv)
 
 
     // setup texture image
-    vsg::ref_ptr<vsg::Data> textureData;
-    if (useRGBA)
-    {
-        // R, RG and RGBA data can be copied to vkImage without any conversion so is efficient, while RGB requires conversion, see below explanation
-        textureData = vsg::vec4Array2D::create(256, 256);
-        textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    }
-    else
-    {
-        // note, RGB image data has to be converted to RGBA when copying to a vkImage,
-        // the VSG will do this automatically do the RGB to RGBA conversion for you each time the data is copied
-        // this makes RGB substantially slower than using RGBA data.
-        // one approach, illustrated in the vsgdynamictexture_cs example, for avoiding this conversion overhead is to use a compute shader to map the RGB data to RGBA.
-        textureData = vsg::vec3Array2D::create(256, 256);
-        textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
-    }
+    vsg::ref_ptr<vsg::Data> textureData = vsg::vec3Array2D::create(256, 256);
+    textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
+
 
     // initialize the image
     UpdateImage updateImage;
     updateImage(textureData, 0.0);
 
-    vsg::ref_ptr<vsg::Image> image = vsg::Image::create(textureData);
-    image->usage |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    vsg::ref_ptr<vsg::Image> image = vsg::Image::create();
+    image->usage |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+    image->format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    image->mipLevels = 1;
+    image->extent = VkExtent3D{textureData->width(), textureData->height(), 1};
+    image->imageType = VK_IMAGE_TYPE_2D;
+    image->arrayLayers = 1;
 
     auto imageView = vsg::ImageView::create(image, VK_IMAGE_ASPECT_COLOR_BIT);
     auto sampler = vsg::Sampler::create();
 
-    vsg::ImageInfo imageInfo(sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    vsg::ImageInfo imageInfo(sampler, imageView, VK_IMAGE_LAYOUT_GENERAL);
 
     // create texture image and associated DescriptorSets and binding
     auto texture = vsg::DescriptorImage::create(imageInfo, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -232,23 +227,110 @@ int main(int argc, char** argv)
 
 
     auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
-    vsg::ref_ptr<vsg::CopyAndReleaseImage> copyImageCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
+    vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
 
-    // setup command graph to copy the image data each frame then rendering the scene graph
+    vsg::BufferInfo bufferInfo;
+
+    // set up compute shader subgraph
     {
+        auto physicalDevice = window->getOrCreatePhysicalDevice();
+        auto device = window->getOrCreateDevice();
+
+        auto width = textureData->width();
+        auto height = textureData->height();
+
+        computeShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+            {0, vsg::intValue::create(width)},
+            {1, vsg::intValue::create(height)},
+            {2, vsg::intValue::create(workgroupSize)}};
+
+        // binding 0 source buffer
+        // binding 1 image2d
+
+        // allocate output storage buffer
+        VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
+
+        auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        auto bufferMemory = buffer->getDeviceMemory(device->deviceID);
+
+        // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
+        vsg::DescriptorSetLayoutBindings descriptorBindings{
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        };
+        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+        bufferInfo.buffer = buffer;
+        bufferInfo.offset = 0;
+        bufferInfo.range = bufferSize;
+
+
+        auto sourceBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto writeTexture = vsg::DescriptorImage::create(imageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout},vsg::PushConstantRanges{});
+
+        vsg::Descriptors descriptors{
+            sourceBuffer,
+            writeTexture
+        };
+        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
+
+        // set up the compute pipeline
+        auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
+        auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
+
+        auto preCopyBarrier = vsg::ImageMemoryBarrier::create();
+        preCopyBarrier->srcAccessMask = 0;
+        preCopyBarrier->dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        preCopyBarrier->oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        preCopyBarrier->newLayout = VK_IMAGE_LAYOUT_GENERAL;
+        preCopyBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        preCopyBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        preCopyBarrier->image = image;
+        preCopyBarrier->subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        preCopyBarrier->subresourceRange.baseArrayLayer = 0;
+        preCopyBarrier->subresourceRange.layerCount = 1;
+        preCopyBarrier->subresourceRange.levelCount = 1;
+        preCopyBarrier->subresourceRange.baseMipLevel = 0;
+
+        auto preCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, preCopyBarrier);
+
+        auto postCopyBarrier = vsg::ImageMemoryBarrier::create();
+        postCopyBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        postCopyBarrier->dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        postCopyBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+        postCopyBarrier->newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        postCopyBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        postCopyBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        postCopyBarrier->image = image;
+        postCopyBarrier->subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        postCopyBarrier->subresourceRange.baseArrayLayer = 0;
+        postCopyBarrier->subresourceRange.layerCount = 1;
+        postCopyBarrier->subresourceRange.levelCount = 1;
+        postCopyBarrier->subresourceRange.baseMipLevel = 0;
+
+        auto postCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, postCopyBarrier);
+
+        int computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
+        auto compute_commandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
+
+        compute_commandGraph->addChild(preCopyBarrierCmd);
+        compute_commandGraph->addChild(copyBufferCmd);
+        compute_commandGraph->addChild(bindPipeline);
+        compute_commandGraph->addChild(bindDescriptorSet);
+        compute_commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
+        compute_commandGraph->addChild(postCopyBarrierCmd);
+
         auto grahics_commandGraph = vsg::CommandGraph::create(window);
-        grahics_commandGraph->addChild(copyImageCmd);
         grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({grahics_commandGraph});
+        viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, grahics_commandGraph});
     }
 
     // compile the Vulkan objects
     viewer->compile();
-
-    // texture has been filled in so it's now safe to get the ImageInfo that holds the handles to the texture's
-    vsg::ImageInfo textureImageInfo;
-    if (!texture->imageInfoList.empty()) textureImageInfo = texture->imageInfoList[0]; // contextID=0, and only one imageData
 
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
@@ -265,7 +347,7 @@ int main(int argc, char** argv)
         updateImage(textureData, time);
 
         // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
-        copyImageCmd->copy(textureData, textureImageInfo);
+        copyBufferCmd->copy(textureData, bufferInfo);
 
         viewer->update();
 
