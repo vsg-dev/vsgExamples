@@ -1,28 +1,30 @@
 #version 450
 
+// specialization constants setting image dimensions and workgroup size
 layout (constant_id = 0) const int WIDTH = 1024;
 layout (constant_id = 1) const int HEIGHT = 1024;
 layout (local_size_x_id = 2, local_size_y_id = 2, local_size_z = 1 ) in;  // pass in WORKGROUP_SIZE as specialization constant_id=2
 
-// code taken from https://stackoverflow.com/questions/56671889/vulkan-upload-3-channel-image-to-device
-
-
-layout (binding = 0) buffer in_3_channel
+// source data provided as a vsg::vec3Array2D, but treated as a float array
+layout (binding = 0) buffer vec3_array
 {
-    float input_channel[];
+    float source[];
 };
 
-layout (binding = 1, rgba32f) uniform image2D result_image;
-
+// destination set up a 2d image of vec4
+layout (binding = 1, rgba32f) uniform image2D destination;
 
 void main()
 {
-    uint col = gl_GlobalInvocationID.x;
+    // use the invocation ids as column and row values
+    uint column = gl_GlobalInvocationID.x;
     uint row = gl_GlobalInvocationID.y;
 
-    if (col >= WIDTH || row >= HEIGHT) return;
+    // only accept values within image dimensions
+    if (column >= WIDTH || row >= HEIGHT) return;
 
-    uint index = (col + row * WIDTH)*3;
-    vec4 color = vec4(input_channel[index], input_channel[index+1], input_channel[index+2], 1.0);
-    imageStore(result_image, ivec2(row, col), color);
+    // copy the vec3 texel from the source array to the final image and expand to vec4 by setting the alpha to 1.0.
+    uint index = (column + row * WIDTH)*3;
+    vec4 color = vec4(source[index], source[index+1], source[index+2], 1.0);
+    imageStore(destination, ivec2(row, column), color);
 }
