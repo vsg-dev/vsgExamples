@@ -61,6 +61,12 @@ int main(int argc, char** argv)
     arguments.read("--window", windowTraits->width, windowTraits->height);
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
+    if (arguments.read("-t"))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->width = 192, windowTraits->height = 108;
+        windowTraits->decoration = false;
+    }
     auto numFrames = arguments.value(-1, "-f");
     auto workgroupSize = arguments.value(32, "-w");
 
