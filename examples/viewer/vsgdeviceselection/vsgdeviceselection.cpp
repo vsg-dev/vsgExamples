@@ -51,6 +51,14 @@ int main(int argc, char** argv)
         auto instance = window->getOrCreateInstance();
         auto surface = window->getOrCreateSurface();
 
+        auto physicalDevices = instance->getPhysicalDevices();
+
+        std::cout<<"\nphysicalDevices.size() = "<<physicalDevices.size()<<std::endl;
+        for(auto& physicalDevice : physicalDevices)
+        {
+            std::cout<<"   "<<physicalDevice<<std::endl;
+        }
+
         vsg::Names requestedLayers;
         if (windowTraits->debugLayer)
         {
