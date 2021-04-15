@@ -17,6 +17,11 @@ int main(int argc, char** argv)
     options->paths = vsg::getEnvPaths("VSG_FILE_FILE");
     arguments.read(options);
 
+    auto windowTraits = vsg::WindowTraits::create();
+    windowTraits->windowTitle = "vsgdeviceslection";
+    arguments.read("--screen", windowTraits->screenNum);
+    arguments.read("--display", windowTraits->display);
+
     vsg::Path filename = "https://raw.githubusercontent.com/robertosfield/TestData/master/Earth_VSG/earth.vsgb";
     if (argc > 1) filename = arguments[1];
 
@@ -27,8 +32,6 @@ int main(int argc, char** argv)
     if (!vsg_scene) return 0;
 
     // create the viewer and assign window(s) to it
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "Hello World";
     auto viewer = vsg::Viewer::create();
     auto window = vsg::Window::create(windowTraits);
     if (!window)
@@ -38,7 +41,6 @@ int main(int argc, char** argv)
     }
 
     viewer->addWindow(window);
-
 
     std::cout<<"Before initialization"<<std::endl;
     std::cout<<"    instance = "<<window->getInstance()<<std::endl;
@@ -56,7 +58,9 @@ int main(int argc, char** argv)
         std::cout<<"\nphysicalDevices.size() = "<<physicalDevices.size()<<std::endl;
         for(auto& physicalDevice : physicalDevices)
         {
-            std::cout<<"   "<<physicalDevice<<std::endl;
+            auto [graphicsFamily, presentFamily] = physicalDevice->getQueueFamily(windowTraits->queueFlags, surface);
+            if (graphicsFamily >= 0 && presentFamily >= 0) std::cout<<"    matched "<<physicalDevice<<std::endl;
+            else std::cout<<"    not matched "<<physicalDevice<<std::endl;
         }
 
         vsg::Names requestedLayers;
