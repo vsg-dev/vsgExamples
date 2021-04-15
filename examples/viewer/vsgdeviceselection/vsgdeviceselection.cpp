@@ -40,22 +40,48 @@ int main(int argc, char** argv)
     viewer->addWindow(window);
 
 
-    std::cout<<"instance = "<<window->getInstance()<<std::endl;
-    std::cout<<"surface = "<<window->getSurface()<<std::endl;
-    std::cout<<"device = "<<window->getDevice()<<std::endl;
+    std::cout<<"Before initialization"<<std::endl;
+    std::cout<<"    instance = "<<window->getInstance()<<std::endl;
+    std::cout<<"    surface = "<<window->getSurface()<<std::endl;
+    std::cout<<"    device = "<<window->getDevice()<<std::endl;
 
-    window->getOrCreateInstance();
-    window->getOrCreateSurface();
+    // custom device setup based on Window::_initDevice()
+    {
+        // use the Window implementation to create the device and surface
+        auto instance = window->getOrCreateInstance();
+        auto surface = window->getOrCreateSurface();
 
-    std::cout<<"\nAfter initialization\n"<<std::endl;
+        vsg::Names requestedLayers;
+        if (windowTraits->debugLayer)
+        {
+            requestedLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+            if (windowTraits->apiDumpLayer) requestedLayers.push_back("VK_LAYER_LUNARG_api_dump");
+        }
 
-    std::cout<<"instance = "<<window->getInstance()<<std::endl;
-    std::cout<<"surface = "<<window->getSurface()<<std::endl;
-    std::cout<<"device = "<<window->getDevice()<<std::endl;
+        vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
-    return 1;
+        vsg::Names deviceExtensions;
+        deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
+        deviceExtensions.insert(deviceExtensions.end(), windowTraits->deviceExtensionNames.begin(), windowTraits->deviceExtensionNames.end());
 
+        // set up device
+        auto [physicalDevice, queueFamily, presentFamily] = instance->getPhysicalDeviceAndQueueFamily(windowTraits->queueFlags, surface);
+        if (!physicalDevice || queueFamily < 0 || presentFamily < 0) throw vsg::Exception{"Error: vsg::Window::create(...) failed to create Window, no Vulkan PhysicalDevice supported.", VK_ERROR_INVALID_EXTERNAL_HANDLE};
+
+        vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}, vsg::QueueSetting{presentFamily, {1.0}}};
+        auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, windowTraits->deviceFeatures, instance->getAllocationCallbacks());
+
+        std::cout<<"\ncreated our own device "<<device<<std::endl;
+
+        windowTraits->device = device;
+    }
+
+    std::cout<<"\nAfter custom device initialization"<<std::endl;
+
+    std::cout<<"    instance = "<<window->getInstance()<<std::endl;
+    std::cout<<"    surface = "<<window->getSurface()<<std::endl;
+    std::cout<<"    device = "<<window->getOrCreateDevice()<<std::endl;
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
