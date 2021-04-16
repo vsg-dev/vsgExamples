@@ -98,7 +98,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout<<"Using vsg::Window default Device created."<<std::endl;
+        std::cout<<"Using vsg::Window default behavior to create the required vsg::Device."<<std::endl;
     }
 
 
