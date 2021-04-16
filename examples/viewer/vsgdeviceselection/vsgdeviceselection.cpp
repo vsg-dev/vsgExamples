@@ -22,14 +22,6 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
 
-    vsg::Path filename = "https://raw.githubusercontent.com/robertosfield/TestData/master/Earth_VSG/earth.vsgb";
-    if (argc > 1) filename = arguments[1];
-
-    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
-
-    // load the scene graph
-    vsg::ref_ptr<vsg::Node> vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
-    if (!vsg_scene) return 0;
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -42,12 +34,7 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    std::cout<<"Before initialization"<<std::endl;
-    std::cout<<"    instance = "<<window->getInstance()<<std::endl;
-    std::cout<<"    surface = "<<window->getSurface()<<std::endl;
-    std::cout<<"    device = "<<window->getDevice()<<std::endl;
-
-    // custom device setup based on Window::_initDevice()
+    if (arguments.read("--list"))
     {
         // use the Window implementation to create the device and surface
         auto instance = window->getOrCreateInstance();
@@ -58,10 +45,32 @@ int main(int argc, char** argv)
         std::cout<<"\nphysicalDevices.size() = "<<physicalDevices.size()<<std::endl;
         for(auto& physicalDevice : physicalDevices)
         {
+            auto properties = physicalDevice->getProperties();
+
             auto [graphicsFamily, presentFamily] = physicalDevice->getQueueFamily(windowTraits->queueFlags, surface);
-            if (graphicsFamily >= 0 && presentFamily >= 0) std::cout<<"    matched "<<physicalDevice<<std::endl;
-            else std::cout<<"    not matched "<<physicalDevice<<std::endl;
+            if (graphicsFamily >= 0 && presentFamily >= 0) std::cout<<"    matched "<<physicalDevice<<" "<<properties.deviceName<<" deviceType = "<<properties.deviceType<<std::endl;
+            else std::cout<<"    not matched "<<physicalDevice<<" "<<properties.deviceName<<" deviceType = "<<properties.deviceType<<std::endl;
         }
+    }
+
+    if (arguments.read({"--PhysicalDevice", "--pd"}))
+    {
+        // use the Window implementation to create the Instance and Surface
+        auto instance = window->getOrCreateInstance();
+        auto surface = window->getOrCreateSurface();
+
+        // create a vk/vsg::PhysicalDevice, prefer descrete GPU over integrated GPUs when they area available.
+        auto physicalDevice = instance->getPhysicalDevice(windowTraits->queueFlags, surface, {VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU});
+
+        std::cout<<"Ceated our own vsg::PhysicalDevice "<<physicalDevice<<std::endl;
+
+        window->setPhysicalDevice(physicalDevice);
+    }
+    else if (arguments.read({"-Device", "--device"}))
+    {
+        // use the Window implementation to create the Instance and Surface
+        auto instance = window->getOrCreateInstance();
+        auto surface = window->getOrCreateSurface();
 
         vsg::Names requestedLayers;
         if (windowTraits->debugLayer)
@@ -74,26 +83,31 @@ int main(int argc, char** argv)
 
         vsg::Names deviceExtensions;
         deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-
         deviceExtensions.insert(deviceExtensions.end(), windowTraits->deviceExtensionNames.begin(), windowTraits->deviceExtensionNames.end());
 
-        // set up device
+        // set up vk/vsg::Device
         auto [physicalDevice, queueFamily, presentFamily] = instance->getPhysicalDeviceAndQueueFamily(windowTraits->queueFlags, surface);
         if (!physicalDevice || queueFamily < 0 || presentFamily < 0) throw vsg::Exception{"Error: vsg::Window::create(...) failed to create Window, no Vulkan PhysicalDevice supported.", VK_ERROR_INVALID_EXTERNAL_HANDLE};
 
         vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}, vsg::QueueSetting{presentFamily, {1.0}}};
         auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, windowTraits->deviceFeatures, instance->getAllocationCallbacks());
 
-        std::cout<<"\ncreated our own device "<<device<<std::endl;
+        std::cout<<"Ceated our own vsg::Device "<<device<<std::endl;
 
-        windowTraits->device = device;
+        window->setDevice(device);
+    }
+    else
+    {
+        std::cout<<"Using vsg::Window default Device created."<<std::endl;
     }
 
-    std::cout<<"\nAfter custom device initialization"<<std::endl;
 
-    std::cout<<"    instance = "<<window->getInstance()<<std::endl;
-    std::cout<<"    surface = "<<window->getSurface()<<std::endl;
-    std::cout<<"    device = "<<window->getOrCreateDevice()<<std::endl;
+    // load the scene graph to render
+    vsg::Path filename = "https://raw.githubusercontent.com/robertosfield/TestData/master/Earth_VSG/earth.vsgb";
+    if (argc > 1) filename = arguments[1];
+    vsg::ref_ptr<vsg::Node> vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
+    if (!vsg_scene) return 0;
+
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
