@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 
         window->setPhysicalDevice(physicalDevice);
     }
-    else if (arguments.read({"-Device", "--device"}))
+    else if (arguments.read({"--Device", "--device"}))
     {
         // use the Window implementation to create the Instance and Surface
         auto instance = window->getOrCreateInstance();
@@ -87,7 +87,11 @@ int main(int argc, char** argv)
 
         // set up vk/vsg::Device
         auto [physicalDevice, queueFamily, presentFamily] = instance->getPhysicalDeviceAndQueueFamily(windowTraits->queueFlags, surface);
-        if (!physicalDevice || queueFamily < 0 || presentFamily < 0) throw vsg::Exception{"Error: vsg::Window::create(...) failed to create Window, no Vulkan PhysicalDevice supported.", VK_ERROR_INVALID_EXTERNAL_HANDLE};
+        if (!physicalDevice || queueFamily < 0 || presentFamily < 0)
+        {
+            std::cout<<"Error: vsg::Window::create(...) failed to create Window, no Vulkan PhysicalDevice supported."<< VK_ERROR_INVALID_EXTERNAL_HANDLE<<std::endl;
+            return 1;
+        }
 
         vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}, vsg::QueueSetting{presentFamily, {1.0}}};
         auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, windowTraits->deviceFeatures, instance->getAllocationCallbacks());
