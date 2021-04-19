@@ -24,7 +24,7 @@ endif()
 find_package(vsg REQUIRED)
 
 # find the optional vsgExamples that can be used for reading and range of image and 3d model formats and shader compilation
-find_package(vsgExamples QUIET)
+find_package(vsgXchange QUIET)
 
 # find the optional vsgImGui that can be used for GUI elements added into graphics window.
 find_package(vsgImGui QUIET)
