@@ -10,11 +10,13 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO realted options to use when reading and writing files.
-#ifdef vsgXchange_all
-    auto options = vsg::Options::create(vsgXchange::all::create());
-#endif
+    auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
-    options->paths = vsg::getEnvPaths("VSG_FILE_FILE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
     arguments.read(options);
 
     auto windowTraits = vsg::WindowTraits::create();
