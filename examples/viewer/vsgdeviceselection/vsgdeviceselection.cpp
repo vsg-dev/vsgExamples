@@ -53,6 +53,7 @@ int main(int argc, char** argv)
             if (graphicsFamily >= 0 && presentFamily >= 0) std::cout<<"    matched "<<physicalDevice<<" "<<properties.deviceName<<" deviceType = "<<properties.deviceType<<std::endl;
             else std::cout<<"    not matched "<<physicalDevice<<" "<<properties.deviceName<<" deviceType = "<<properties.deviceType<<std::endl;
         }
+        return 0;
     }
 
     if (arguments.read({"--PhysicalDevice", "--pd"}))
