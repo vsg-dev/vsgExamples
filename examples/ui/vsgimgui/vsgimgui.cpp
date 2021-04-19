@@ -4,8 +4,8 @@
 
 #include <vsg/all.h>
 
-#ifdef USE_VSGXCHANGE
-#    include <vsgXchange/ReaderWriter_all.h>
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
 #endif
 
 struct Params : public vsg::Inherit<vsg::Object, Params>
@@ -84,9 +84,9 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
-#ifdef USE_VSGXCHANGE
-    // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::ReaderWriter_all::create());
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
 #endif
 
     auto windowTraits = vsg::WindowTraits::create();
@@ -101,9 +101,6 @@ int main(int argc, char** argv)
 
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-
-    // enable required device features.
-    windowTraits->deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 

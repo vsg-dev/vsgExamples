@@ -15,8 +15,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <vsg/all.h>
 
-#ifdef USE_VSGXCHANGE
-#    include <vsgXchange/ReaderWriter_all.h>
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
 #endif
 
 #include <chrono>
@@ -398,9 +398,9 @@ int main(int argc, char** argv)
     }
 
     auto options = vsg::Options::create();
-#ifdef USE_VSGXCHANGE
-    // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::ReaderWriter_all::create());
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
 #endif
 
     auto vsg_scene = vsg::read_cast<vsg::Node>(argv[1], options);
@@ -415,6 +415,7 @@ int main(int argc, char** argv)
     vsg::Names requestedLayers;
     if (debugLayer || apiDumpLayer)
     {
+        instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
         instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         requestedLayers.push_back("VK_LAYER_KHRONOS_validation");
         requestedLayers.push_back("VK_LAYER_LUNARG_standard_validation");
@@ -434,8 +435,8 @@ int main(int argc, char** argv)
     vsg::Names deviceExtensions;
     vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}};
 
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
+    auto deviceFeatures = vsg::DeviceFeatures::create();
+    deviceFeatures->get().samplerAnisotropy = VK_TRUE;
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
 

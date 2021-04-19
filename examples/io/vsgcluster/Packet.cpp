@@ -4,7 +4,7 @@
 
 #include "Packet.h"
 
-#include <vsg/io/ReaderWriter_vsg.h>
+#include <vsg/io/VSG.h>
 
 //////////////////////////////////////////////////////////////////////////////////////
 //
@@ -109,7 +109,7 @@ void PacketBroadcaster::broadcast(uint64_t set, vsg::ref_ptr<vsg::Object> object
     options->extensionHint = "vsgb";
 
     std::ostringstream ostr(std::ios::out | std::ios::binary);
-    vsg::ReaderWriter_vsg rw;
+    vsg::VSG rw;
     rw.write(object, ostr, options);
 
     packets.copy(ostr.str());
@@ -168,7 +168,7 @@ vsg::ref_ptr<vsg::Object> PacketReceiver::completed(uint64_t set)
 
     // convert the PacketSet into a vsg::Object
     std::istringstream istr((set_itr->second)->assemble());
-    vsg::ReaderWriter_vsg rw;
+    vsg::VSG rw;
     auto object = rw.read(istr);
 
     // clean up the PacketSet

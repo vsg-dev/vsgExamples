@@ -10,7 +10,7 @@ add_executable(vsgcluster ${SOURCES})
 target_link_libraries(vsgcluster vsg::vsg)
 
 if (vsgXchange_FOUND)
-    target_compile_definitions(vsgcluster PRIVATE USE_VSGXCHANGE)
+    target_compile_definitions(vsgcluster PRIVATE vsgXchange_FOUND)
     target_link_libraries(vsgcluster vsgXchange::vsgXchange)
 endif()
 

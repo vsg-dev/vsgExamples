@@ -1,7 +1,7 @@
 #include <vsg/all.h>
 
-#ifdef USE_VSGXCHANGE
-#    include <vsgXchange/ReaderWriter_all.h>
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
 #endif
 
 #include <iostream>
@@ -67,6 +67,14 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgcluster";
 
@@ -110,13 +118,6 @@ int main(int argc, char** argv)
 
     std::cout << "bc = " << bc << std::endl;
     std::cout << "rc = " << rc << std::endl;
-
-#ifdef USE_VSGXCHANGE
-    // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::ReaderWriter_all::create());
-#endif
-
-    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     auto scene = vsg::Group::create();
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;

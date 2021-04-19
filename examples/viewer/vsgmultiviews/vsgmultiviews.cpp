@@ -3,8 +3,8 @@
 #include <chrono>
 #include <iostream>
 
-#ifdef USE_VSGXCHANGE
-#    include <vsgXchange/ReaderWriter_all.h>
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
 #endif
 
 vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x, int32_t y, uint32_t width, uint32_t height)
@@ -44,9 +44,9 @@ int main(int argc, char** argv)
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     auto options = vsg::Options::create();
-#ifdef USE_VSGXCHANGE
-    // add use of vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::ReaderWriter_all::create());
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
 #endif
 
     vsg::ref_ptr<vsg::Node> scenegraph;
@@ -72,7 +72,6 @@ int main(int argc, char** argv)
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
-
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {

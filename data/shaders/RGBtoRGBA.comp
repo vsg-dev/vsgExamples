@@ -1,0 +1,30 @@
+#version 450
+
+// specialization constants setting image dimensions and workgroup size
+layout (constant_id = 0) const int WIDTH = 1024;
+layout (constant_id = 1) const int HEIGHT = 1024;
+layout (local_size_x_id = 2, local_size_y_id = 2, local_size_z = 1 ) in;  // pass in WORKGROUP_SIZE as specialization constant_id=2
+
+// source data provided as a vsg::vec3Array2D, but treated as a float array
+layout (binding = 0) buffer vec3_array
+{
+    float source[];
+};
+
+// destination set up a 2d image of vec4
+layout (binding = 1, rgba32f) uniform image2D destination;
+
+void main()
+{
+    // use the invocation ids as column and row values
+    uint column = gl_GlobalInvocationID.x;
+    uint row = gl_GlobalInvocationID.y;
+
+    // only accept values within image dimensions
+    if (column >= WIDTH || row >= HEIGHT) return;
+
+    // copy the vec3 texel from the source array to the final image and expand to vec4 by setting the alpha to 1.0.
+    uint index = (column + row * WIDTH)*3;
+    vec4 color = vec4(source[index], source[index+1], source[index+2], 1.0);
+    imageStore(destination, ivec2(row, column), color);
+}

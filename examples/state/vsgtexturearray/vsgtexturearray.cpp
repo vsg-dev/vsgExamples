@@ -1,7 +1,7 @@
 #include <vsg/all.h>
 
-#ifdef USE_VSGXCHANGE
-#    include <vsgXchange/ReaderWriter_all.h>
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
 #endif
 
 #include <iostream>
@@ -161,8 +161,9 @@ int main(int argc, char** argv)
 
     auto options = vsg::Options::create();
     options->paths = searchPaths;
-#ifdef USE_VSGXCHANGE
-    options->add(vsgXchange::ReaderWriter_all::create());
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
 #endif
 
     // load shaders

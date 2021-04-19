@@ -6,7 +6,7 @@ Example programs that test and illustrate how to use the [VulkanSceneGraph](http
 * [viewer](examples/viewer/) examples
 * [vk](examples/vk/) examples
 * [text](examples/text/) examples
-* [raytracing](examples/raytracing/) examples
+* [rtx](examples/rtx/) examples
 * [state](examples/state/) examples
 * [commands](examples/commands/) examples
 * [introspection](examples/introspection/) examples
@@ -41,7 +41,7 @@ Full details on how to build of the VSG can be found in the [INSTALL.md](INSTALL
 
 After you have built the examples you should set your binary search path to the vsgExamples/bin directory, and the VSG_FILE_PATH env vars.
 
-	export PATH=/path/to/vsgExamples/bin
+	export PATH="$PATH:/path/to/vsgExamples/bin"
 	export VSG_FILE_PATH=/path/to/vsgExamples/data
 
 Then run examples:
