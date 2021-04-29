@@ -37,6 +37,63 @@ public:
     }
 };
 
+class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
+{
+public:
+    vsg::ref_ptr<vsg::Camera> camera;
+    vsg::ref_ptr<vsg::Node> scenegraph;
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
+    vsg::ref_ptr<vsg::vec4Array> world_ClipSetttings;
+    double scale;
+
+    IntersectionHandler(vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Node> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale) :
+        camera(in_camera),
+        scenegraph(in_scenegraph),
+        ellipsoidModel(in_ellipsoidModel),
+        scale(in_scale)
+    {
+    }
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (keyPress.keyBase == 'i' && lastPointerEvent)
+        {
+            interesection(*lastPointerEvent);
+        }
+    }
+
+    void apply(vsg::PointerEvent& pointerEvent) override
+    {
+        lastPointerEvent = &pointerEvent;
+    }
+
+    void apply(vsg::ScrollWheelEvent& scrollWheel) override
+    {
+        scrollWheel.handled = true;
+        scale *= (1.0 + scrollWheel.delta.y * 0.1);
+        world_ClipSetttings->at(0).w = scale;
+    }
+
+    void interesection(vsg::PointerEvent& pointerEvent)
+    {
+        auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
+        scenegraph->accept(*intersector);
+
+        if (intersector->intersections.empty()) return;
+
+        // sort the intersectors front to back
+        std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto lhs, auto rhs) { return lhs.ratio < rhs.ratio; });
+
+        auto& intersection = intersector->intersections.front();
+        world_ClipSetttings->at(0) = vsg::vec4(intersection.worldIntersection.x, intersection.worldIntersection.y, intersection.worldIntersection.z, scale);
+    }
+
+protected:
+    vsg::ref_ptr<vsg::PointerEvent> lastPointerEvent;
+};
+
+
+
 int main(int argc, char** argv)
 {
     try
@@ -113,11 +170,17 @@ int main(int argc, char** argv)
         auto shaderStages = vsg::ShaderStages{vertexShader, fragmentShader};
 
         // set up graphics pipeline
-        vsg::DescriptorSetLayoutBindings descriptorBindings{
+        vsg::DescriptorSetLayoutBindings baseTexture_descriptorBindings{
             {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
         };
 
-        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+        auto baseTexture_descriptorSetLayout = vsg::DescriptorSetLayout::create(baseTexture_descriptorBindings);
+
+        vsg::DescriptorSetLayoutBindings clipSettings_descriptorBindings{
+            { 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, nullptr }, // ClipSettings uniform
+        };
+
+        auto clipSettings_descriptorSetLayout = vsg::DescriptorSetLayout::create(clipSettings_descriptorBindings);
 
         vsg::PushConstantRanges pushConstantRanges{
             {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
@@ -143,7 +206,7 @@ int main(int argc, char** argv)
             vsg::ColorBlendState::create(),
             vsg::DepthStencilState::create()};
 
-        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{baseTexture_descriptorSetLayout, clipSettings_descriptorSetLayout}, pushConstantRanges);
         auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
 
         if (argc <= 1)
@@ -153,8 +216,8 @@ int main(int argc, char** argv)
         }
 
         vsg::Path filename = arguments[1];
-        auto vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
-        if (!vsg_scene)
+        auto model = vsg::read_cast<vsg::Node>(filename, options);
+        if (!model)
         {
             std::cout << "Unable to load file " << filename << std::endl;
             return 1;
@@ -162,7 +225,25 @@ int main(int argc, char** argv)
 
         // replace the GraphicsPipeline in the loaded scene graph with the one created for clipping.
         auto replaceState = ReplaceState::create(graphicsPipeline);
-        vsg_scene->accept(*replaceState);
+        model->accept(*replaceState);
+
+
+        auto worldClipSettings = vsg::vec4Array::create(1);
+        worldClipSettings->set(0, vsg::vec4(0.0, 0.0, 0.0, 10.0));
+
+
+        auto eyeClipSettings = vsg::vec4Array::create(1);
+        eyeClipSettings->set(0, vsg::vec4(0.0, 0.0, 0.0, 0.0));
+
+        auto clipSettings_buffer = vsg::DescriptorBuffer::create(eyeClipSettings, 0);
+
+        auto clipSettings_descriptorSet = vsg::DescriptorSet::create(clipSettings_descriptorSetLayout, vsg::Descriptors{clipSettings_buffer});
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, clipSettings_descriptorSet);
+        bindDescriptorSet->setSlot(2);
+
+        auto vsg_scene = vsg::StateGroup::create();
+        vsg_scene->add(bindDescriptorSet);
+        vsg_scene->addChild(model);
 
         if (!outputFilename.empty())
         {
@@ -197,6 +278,11 @@ int main(int argc, char** argv)
         // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
+        // add intersection handler to track the mouse position
+        auto interesectionHandler = IntersectionHandler::create(camera, vsg_scene, ellipsoidModel, radius * 0.3);
+        viewer->addEventHandler(interesectionHandler);
+        interesectionHandler->world_ClipSetttings = worldClipSettings;
+
         // add trackbal to control the Camera
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
@@ -206,6 +292,8 @@ int main(int argc, char** argv)
 
         viewer->compile();
 
+        worldClipSettings->set(0, vsg::vec4(centre.x, centre.y, centre.z, radius*0.3));
+
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
@@ -213,6 +301,24 @@ int main(int argc, char** argv)
             viewer->handleEvents();
 
             viewer->update();
+
+            for(size_t i=0; i<worldClipSettings->size(); ++i)
+            {
+                auto& world_sphere = worldClipSettings->at(i);
+                auto& eye_sphere = eyeClipSettings->at(i);
+
+                vsg::dmat4 viewMatrix;
+                camera->getViewMatrix()->get(viewMatrix);
+
+                vsg::dvec3 world_center(world_sphere.x, world_sphere.y, world_sphere.z);
+                vsg::dvec3 eye_center = viewMatrix * world_center;
+
+                eye_sphere.set(eye_center.x, eye_center.y, eye_center.z, world_sphere.w);
+
+                std::cout<<"world_sphere =  "<<world_sphere<<", eye_sphere = "<<eye_sphere<<std::endl;
+            }
+
+            clipSettings_buffer->copyDataListToBuffers();
 
             viewer->recordAndSubmit();
 
