@@ -14,7 +14,7 @@ layout(set = 1, binding = 0) uniform ClipSettings {
     vec4 sphere; // x,y,z, radius
 } clipSettings;
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 
 out gl_PerVertex {
@@ -25,7 +25,14 @@ out gl_PerVertex {
 
 void main() {
     gl_Position = (pc.projection * pc.modelview) * vec4(inPosition, 1.0);
-    fragColor = inColor;
+
+    //fragColor = vec4(inColor, 1.0);
+#if 0
+    fragColor = clipSettings.sphere;
+#else
+    fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+#endif
+
     fragTexCoord = inTexCoord;
 
     vec4 eye_Position = pc.modelview * vec4(inPosition, 1.0);

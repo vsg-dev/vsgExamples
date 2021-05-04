@@ -92,8 +92,6 @@ protected:
     vsg::ref_ptr<vsg::PointerEvent> lastPointerEvent;
 };
 
-
-
 int main(int argc, char** argv)
 {
     try
@@ -115,14 +113,36 @@ int main(int argc, char** argv)
         windowTraits->windowTitle = "vsgmmeshshader";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
+        if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
+        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         arguments.read("--screen", windowTraits->screenNum);
-        auto type = arguments.value<int>(0, {"--type", "-t"});
+        if (arguments.read({"-t", "--test"}))
+        {
+            windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            windowTraits->fullscreen = true;
+        }
+        if (arguments.read({"--st", "--small-test"}))
+        {
+            windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            windowTraits->width = 192, windowTraits->height = 108;
+            windowTraits->decoration = false;
+        }
         auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
         auto numFrames = arguments.value(-1, "-f");
+
+        bool useStagingBuffer = !arguments.read({"--no-staging-buffer", "-n"});
+        size_t frameToWait = useStagingBuffer ? 2 : 1;
+        arguments.read({"--frames-to-wait", "--f2w"}, frameToWait);
+        auto waitTimeout = arguments.value<uint64_t>(50000000, {"--timeout", "--to"});
+
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
+        std::cout<<"windowTraits->swapchainPreferences.imageCount = "<<windowTraits->swapchainPreferences.imageCount<<std::endl;
+
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -231,11 +251,38 @@ int main(int argc, char** argv)
         auto worldClipSettings = vsg::vec4Array::create(1);
         worldClipSettings->set(0, vsg::vec4(0.0, 0.0, 0.0, 10.0));
 
-
         auto eyeClipSettings = vsg::vec4Array::create(1);
         eyeClipSettings->set(0, vsg::vec4(0.0, 0.0, 0.0, 0.0));
 
-        auto clipSettings_buffer = vsg::DescriptorBuffer::create(eyeClipSettings, 0);
+        auto device = window->getOrCreateDevice();
+
+
+        vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd;
+        vsg::ref_ptr<vsg::DescriptorBuffer> clipSettings_buffer;
+        vsg::BufferInfo bufferInfo;
+
+        if (useStagingBuffer)
+        {
+            std::cout<<"Using Staging Buffer DescriptorBuffer"<<std::endl;
+            auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", device, vsg::BufferPreferences{});
+            copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
+
+            // allocate output storage buffer
+            VkDeviceSize bufferSize = sizeof(vsg::vec4) * 1;
+            auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+            auto bufferMemory = buffer->getDeviceMemory(device->deviceID);
+
+            bufferInfo.buffer = buffer;
+            bufferInfo.offset = 0;
+            bufferInfo.range = bufferSize;
+
+            clipSettings_buffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        }
+        else
+        {
+            std::cout<<"Using HOST_VISIBLE DescriptorBuffer"<<std::endl;
+            clipSettings_buffer = vsg::DescriptorBuffer::create(eyeClipSettings, 0);
+        }
 
         auto clipSettings_descriptorSet = vsg::DescriptorSet::create(clipSettings_descriptorSetLayout, vsg::Descriptors{clipSettings_buffer});
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, clipSettings_descriptorSet);
@@ -286,17 +333,37 @@ int main(int argc, char** argv)
         // add trackbal to control the Camera
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
+        auto renderGraph = vsg::createRenderGraphForView(window, camera, vsg_scene);
+
+
         // set up commandGraph for rendering
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        auto commandGraph = vsg::CommandGraph::create(window);
+
+        if (useStagingBuffer)
+        {
+            commandGraph->addChild(copyBufferCmd);
+            commandGraph->addChild(renderGraph);
+        }
+        else
+        {
+            commandGraph->addChild(renderGraph);
+        }
+
+
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         viewer->compile();
 
         worldClipSettings->set(0, vsg::vec4(centre.x, centre.y, centre.z, radius*0.3));
 
+        auto startTime = std::chrono::steady_clock::now();
+        double frameCount = 0.0;
+
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
+            ++frameCount;
+
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
@@ -314,16 +381,29 @@ int main(int argc, char** argv)
                 vsg::dvec3 eye_center = viewMatrix * world_center;
 
                 eye_sphere.set(eye_center.x, eye_center.y, eye_center.z, world_sphere.w);
-
-                std::cout<<"world_sphere =  "<<world_sphere<<", eye_sphere = "<<eye_sphere<<std::endl;
             }
 
-            clipSettings_buffer->copyDataListToBuffers();
+            if (frameToWait>0 && waitTimeout>0)
+            {
+                viewer->waitForFences(frameToWait, waitTimeout);
+            }
+
+            if (useStagingBuffer)
+            {
+                // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
+                copyBufferCmd->copy(eyeClipSettings, bufferInfo);
+            }
+            else
+            {
+                clipSettings_buffer->copyDataListToBuffers();
+            }
 
             viewer->recordAndSubmit();
-
             viewer->present();
         }
+
+        auto fps = frameCount / (std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now() - startTime).count());
+        std::cout<<"Average fps = "<<fps<<std::endl;
     }
     catch (const vsg::Exception& exception)
     {
