@@ -572,7 +572,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    vsg::ref_ptr<vsg::Event> event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignled state
+    auto event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignled state
 
     // Add ScreenshotHandler to respond to keyboard and mouse events.
     auto screenshotHandler = ScreenshotHandler::create(event);
