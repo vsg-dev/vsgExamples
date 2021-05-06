@@ -26,9 +26,8 @@ out gl_PerVertex {
 void main() {
     gl_Position = (pc.projection * pc.modelview) * vec4(inPosition, 1.0);
 
-    //fragColor = vec4(inColor, 1.0);
 #if 0
-    fragColor = clipSettings.sphere;
+    fragColor = vec4(inColor, 1.0);
 #else
     fragColor = vec4(1.0, 1.0, 1.0, 1.0);
 #endif
