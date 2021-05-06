@@ -1,5 +1,4 @@
 set(SOURCES
-    BufferedStateCommand.cpp
     vsgclip.cpp
 )
 
