@@ -101,6 +101,8 @@ int main(int argc, char** argv)
 
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+    arguments.read("--screen", windowTraits->screenNum);
+    arguments.read("--display", windowTraits->display);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
