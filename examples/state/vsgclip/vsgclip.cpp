@@ -110,7 +110,7 @@ int main(int argc, char** argv)
 #endif
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgmmeshshader";
+        windowTraits->windowTitle = "vsgclip";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
