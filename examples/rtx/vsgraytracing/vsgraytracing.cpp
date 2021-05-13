@@ -250,6 +250,8 @@ int main(int argc, char** argv)
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
+        viewer->addEventHandler(vsg::Trackball::create(camera));
+
         viewer->compile();
 
         // rendering main loop
@@ -257,6 +259,10 @@ int main(int argc, char** argv)
         {
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
+
+            //update camera matrix
+            lookAt->get_inverse(raytracingUniformValues->value().viewInverse);
+            raytracingUniformDescriptor->copyDataListToBuffers();
 
             viewer->update();
 
