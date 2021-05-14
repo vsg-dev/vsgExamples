@@ -7,6 +7,100 @@
 #    include <vsgXchange/all.h>
 #endif
 
+namespace vsg
+{
+    class VSG_DECLSPEC PerViewGraphicsPipelineState : public Inherit<GraphicsPipelineState, PerViewGraphicsPipelineState>
+    {
+    public:
+        PerViewGraphicsPipelineState() {}
+
+        std::vector<ref_ptr<GraphicsPipelineState>> graphicsPipesStates;
+
+        virtual void apply(Context& context, VkGraphicsPipelineCreateInfo& pipelineInfo) const
+        {
+            auto viewID = context.viewID;
+            if (viewID < graphicsPipesStates.size()) graphicsPipesStates[viewID]->apply(context, pipelineInfo);
+        }
+
+    protected:
+        virtual ~PerViewGraphicsPipelineState() {}
+    };
+    VSG_type_name(vsg::PerViewGraphicsPipelineState);
+}
+
+class ReplaceColorBlendState : public vsg::Visitor
+{
+public:
+
+    std::set<vsg::GraphicsPipeline*> visited;
+
+    void apply(vsg::Node& node) override
+    {
+        node.traverse(*this);
+    }
+
+    void apply(vsg::StateGroup& sg) override
+    {
+        for(auto& sg : sg.getStateCommands())
+        {
+            sg->accept(*this);
+        }
+    }
+
+    void apply(vsg::BindGraphicsPipeline& bgp) override
+    {
+        auto gp = bgp.pipeline;
+        if (visited.count(gp.get()) > 0)
+        {
+            return;
+        }
+
+        visited.insert(gp);
+
+        for(auto itr = gp->pipelineStates.begin(); itr != gp->pipelineStates.end(); ++itr)
+        {
+            if ((*itr)->is_compatible(typeid(vsg::ColorBlendState)))
+            {
+                auto colorBlendState = (*itr)->cast<vsg::ColorBlendState>();
+                auto perViewGraphicsPipelineState = vsg::PerViewGraphicsPipelineState::create();
+
+                VkPipelineColorBlendAttachmentState left_colorBlendAttachment = {
+                    VK_FALSE,                                                                                                 // blendEnable
+                    VK_BLEND_FACTOR_ZERO,                                                                                     // srcColorBlendFactor
+                    VK_BLEND_FACTOR_ZERO,                                                                                     // dstColorBlendFactor
+                    VK_BLEND_OP_ADD,                                                                                          // colorBlendOp
+                    VK_BLEND_FACTOR_ZERO,                                                                                     // srcAlphaBlendFactor
+                    VK_BLEND_FACTOR_ZERO,                                                                                     // dstAlphaBlendFactor
+                    VK_BLEND_OP_ADD,                                                                                          // alphaBlendOp
+                    VK_COLOR_COMPONENT_R_BIT /*| VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT*/ | VK_COLOR_COMPONENT_A_BIT // colorWriteMask
+                };
+
+                VkPipelineColorBlendAttachmentState right_colorBlendAttachment = {
+                    VK_FALSE,                                                                                                 // blendEnable
+                    VK_BLEND_FACTOR_ZERO,                                                                                     // srcColorBlendFactor
+                    VK_BLEND_FACTOR_ZERO,                                                                                     // dstColorBlendFactor
+                    VK_BLEND_OP_ADD,                                                                                          // colorBlendOp
+                    VK_BLEND_FACTOR_ZERO,                                                                                     // srcAlphaBlendFactor
+                    VK_BLEND_FACTOR_ZERO,                                                                                     // dstAlphaBlendFactor
+                    VK_BLEND_OP_ADD,                                                                                          // alphaBlendOp
+                    /*VK_COLOR_COMPONENT_R_BIT | */VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT // colorWriteMask
+                };
+
+                auto left_colorBlendState = vsg::ColorBlendState::create(*colorBlendState);
+                left_colorBlendState->attachments = {left_colorBlendAttachment};
+
+                auto right_colorBlendState = vsg::ColorBlendState::create(*colorBlendState);
+                right_colorBlendState->attachments = {right_colorBlendAttachment};
+
+                perViewGraphicsPipelineState->graphicsPipesStates.push_back(left_colorBlendState);
+                perViewGraphicsPipelineState->graphicsPipesStates.push_back(right_colorBlendState);
+
+                *itr = perViewGraphicsPipelineState;
+            }
+        }
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -37,6 +131,10 @@ int main(int argc, char** argv)
         std::cout << "Unable to load model." << std::endl;
         return 1;
     }
+
+    // ColorBlendState needs to be overriden per View, so remove existing instances in the scene graph
+    ReplaceColorBlendState removeColorBlendState;
+    vsg_scene->accept(removeColorBlendState);
 
 
     // create the viewer and assign window(s) to it
