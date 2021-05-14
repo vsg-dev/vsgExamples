@@ -106,11 +106,17 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
+    double eyeSeperation = 0.06;
+    double screenDistance = 1.0;
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "Anaglyphic Sterep";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    arguments.read("--screen", windowTraits->screenNum);
+    arguments.read("--display", windowTraits->display);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -175,22 +181,24 @@ int main(int argc, char** argv)
 
     auto master_camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
+    double windowAspectRatio = 1920.0/1024.0;
+    double shear = eyeSeperation/screenDistance*0.5*windowAspectRatio;
+
     // create the left eye camera
-    auto left_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(-0.1, 0.0, 0.0));
-    auto left_relative_view = vsg::RelativeView::create(lookAt, vsg::rotate(vsg::radians(5.0), 0.0, 1.0, 0.0));
+    auto left_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(-shear, 0.0, 0.0));
+    auto left_relative_view = vsg::RelativeView::create(lookAt, vsg::translate(-0.5*eyeSeperation, 0.0, 0.0));
     auto left_camera = vsg::Camera::create(left_relative_perspective, left_relative_view, vsg::ViewportState::create(window->extent2D()));
 
     // create the left eye camera
-    auto right_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(0.1, 0.0, 0.0));
-    auto right_relative_view = vsg::RelativeView::create(lookAt, vsg::rotate(vsg::radians(-5.0), 0.0, 1.0, 0.0));
+    auto right_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(shear, 0.0, 0.0));
+    auto right_relative_view = vsg::RelativeView::create(lookAt, vsg::translate(0.5*eyeSeperation, 0.0, 0.0));
     auto right_camera = vsg::Camera::create(right_relative_perspective, right_relative_view, vsg::ViewportState::create(window->extent2D()));
-
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     // add event handlers, in the order we wish event to be handled.
-    viewer->addEventHandler(vsg::Trackball::create(master_camera));
+    viewer->addEventHandler(vsg::Trackball::create(master_camera, ellipsoidModel));
 
     auto renderGraph = vsg::RenderGraph::create(window);
 
@@ -220,6 +228,13 @@ int main(int argc, char** argv)
         viewer->handleEvents();
 
         viewer->update();
+
+        double lookDistance = vsg::length(lookAt->center - lookAt->eye);
+        double horizontalSeperation = 0.5*eyeSeperation;
+        horizontalSeperation *= (lookDistance / screenDistance);
+
+        left_relative_view->matrix = vsg::translate(horizontalSeperation, 0.0, 0.0);
+        right_relative_view->matrix = vsg::translate(-horizontalSeperation, 0.0, 0.0);
 
         viewer->recordAndSubmit();
 
