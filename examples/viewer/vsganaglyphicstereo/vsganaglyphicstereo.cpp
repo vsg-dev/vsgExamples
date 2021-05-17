@@ -220,6 +220,9 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
 
+    vsg::vec3 offset(0.0f, 0.0f, 0.0f);
+    arguments.read("--offset", offset.x, offset.z);
+
     vsg::Path leftImageFilename, rightImageFilename;
     arguments.read({"-s", "--stereo-pair"}, leftImageFilename, rightImageFilename);
 
@@ -248,8 +251,8 @@ int main(int argc, char** argv)
             vsg::vec3 horizontal(leftImage->width(), 0.0f, 0.0f);
             vsg::vec3 vertical(0.0f, 0.0f, leftImage->height());
 
-            auto leftQuad = createTextureQuad(origin, horizontal, vertical, leftImage);
-            auto rightQuad = createTextureQuad(origin, horizontal, vertical, rightImage);
+            auto leftQuad = createTextureQuad(origin - offset * 0.5f, horizontal, vertical, leftImage);
+            auto rightQuad = createTextureQuad(origin + offset * 0.5f, horizontal, vertical, rightImage);
 
             auto maskGroup = vsg::MaskGroup::create();
             maskGroup->addChild(leftMask, leftQuad);
