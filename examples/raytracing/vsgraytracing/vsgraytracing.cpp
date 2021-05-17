@@ -1,6 +1,10 @@
 #include <iostream>
 #include <vsg/all.h>
 
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
+#endif
+
 struct RayTracingUniform
 {
     vsg::mat4 viewInverse;
@@ -20,6 +24,16 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
+        // set up search paths to SPIRV shaders and textures
+        vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+        auto options = vsg::Options::create();
+        options->paths = searchPaths;
+    #ifdef vsgXchange_all
+        // add vsgXchange's support for reading and writing 3rd party file formats
+        options->add(vsgXchange::all::create());
+    #endif
+
         auto windowTraits = vsg::WindowTraits::create();
         windowTraits->windowTitle = "vsgraytracing";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
@@ -27,14 +41,12 @@ int main(int argc, char** argv)
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         arguments.read("--screen", windowTraits->screenNum);
-
         auto numFrames = arguments.value(-1, "-f");
-        auto filename = arguments.value(std::string(), "-i");
-        if (arguments.read("-m")) filename = "models/raytracing_scene.vsgt";
-        if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-        // set up search paths to SPIRV shaders and textures
-        vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+        vsg::Path filename;
+        if (argc > 1) filename = arguments[1];
+
+        if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -142,16 +154,7 @@ int main(int argc, char** argv)
         }
         else
         {
-            vsg::Path path = vsg::fileExists(filename) ? filename : vsg::findFile(filename, searchPaths);
-            if (path.empty())
-            {
-                std::cout << "Could not find file " << filename << std::endl;
-                return 1;
-            }
-
-            auto loaded_scene = vsg::read_cast<vsg::Node>(path);
-            if (!loaded_scene) loaded_scene = vsg::read_cast<vsg::Node>(filename);
-
+            auto loaded_scene = vsg::read_cast<vsg::Node>(filename, options);
             if (!loaded_scene)
             {
                 std::cout << "Could not load model : " << filename << std::endl;

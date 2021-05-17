@@ -5,3 +5,8 @@ set(SOURCES
 add_executable(vsgraytracing ${SOURCES})
 
 target_link_libraries(vsgraytracing vsg::vsg)
+
+if (vsgXchange_FOUND)
+    target_compile_definitions(vsgraytracing PRIVATE vsgXchange_FOUND)
+    target_link_libraries(vsgraytracing vsgXchange::vsgXchange)
+endif()
