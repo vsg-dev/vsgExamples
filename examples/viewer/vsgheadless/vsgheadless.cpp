@@ -424,7 +424,7 @@ int main(int argc, char** argv)
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
-    auto instance = vsg::Instance::create(instanceExtensions, validatedNames, nullptr);
+    auto instance = vsg::Instance::create(instanceExtensions, validatedNames);
     auto [physicalDevice, queueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_GRAPHICS_BIT);
     if (!physicalDevice || queueFamily < 0)
     {
