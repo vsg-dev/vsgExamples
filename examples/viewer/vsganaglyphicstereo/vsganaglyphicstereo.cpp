@@ -101,6 +101,108 @@ public:
     }
 };
 
+vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::vec3& origin, const vsg::vec3& horizontal, const vsg::vec3& vertical, vsg::ref_ptr<vsg::Data> imageData, uint32_t mipmapLevelsHints = 0)
+{
+
+    // set up search paths to SPIRV shaders and textures
+    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+    // load shaders
+    vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
+    vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
+    if (!vertexShader || !fragmentShader)
+    {
+        std::cout << "Could not create shaders." << std::endl;
+        return {};
+    }
+
+    // set up graphics pipeline
+    vsg::DescriptorSetLayoutBindings descriptorBindings{
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+    };
+
+    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+    vsg::PushConstantRanges pushConstantRanges{
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+    };
+
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
+        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+    };
+
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
+        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+    };
+
+    vsg::GraphicsPipelineStates pipelineStates{
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
+        vsg::InputAssemblyState::create(),
+        vsg::RasterizationState::create(),
+        vsg::MultisampleState::create(),
+        vsg::ColorBlendState::create(),
+        vsg::DepthStencilState::create()};
+
+    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+    auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+
+    // create texture image and associated DescriptorSets and binding
+    auto sampler = vsg::Sampler::create();
+    sampler->maxLod = mipmapLevelsHints;
+    auto texture = vsg::DescriptorImage::create(sampler, imageData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
+    auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
+
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    auto scenegraph = vsg::StateGroup::create();
+    scenegraph->add(bindGraphicsPipeline);
+    scenegraph->add(bindDescriptorSets);
+
+    // set up vertex and index arrays
+    auto vertices = vsg::vec3Array::create(
+        {origin,
+         origin + horizontal,
+         origin + horizontal + vertical,
+         origin + vertical});
+
+    auto colors = vsg::vec3Array::create(
+        {{1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f}});
+
+    float left = 0.0f;
+    float right = 1.0f;
+    float top = (imageData->getLayout().origin == vsg::TOP_LEFT) ? 0.0f : 1.0f;
+    float bottom = (imageData->getLayout().origin == vsg::TOP_LEFT) ? 1.0f : 0.0f;
+    auto texcoords = vsg::vec2Array::create(
+        {{left, bottom},
+         {right, bottom},
+         {right, top},
+         {left, top}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+
+    auto indices = vsg::ushortArray::create(
+        {0, 1, 2,
+         2, 3, 0}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+
+    // setup geometry
+    auto drawCommands = vsg::Commands::create();
+    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
+    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+    drawCommands->addChild(vsg::DrawIndexed::create(6, 1, 0, 0, 0));
+
+    // add drawCommands to transform
+    scenegraph->addChild(drawCommands);
+
+    return scenegraph;
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -118,6 +220,9 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
 
+    vsg::Path leftImageFilename, rightImageFilename;
+    arguments.read({"-s", "--stereo-pair"}, leftImageFilename, rightImageFilename);
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     auto options = vsg::Options::create();
@@ -128,10 +233,39 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    vsg::Path filename = "models/lz.osgt";
-    if (argc > 1) filename = arguments[1];
+    uint32_t leftMask = 0x1;
+    uint32_t rightMask = 0x2;
 
-    auto vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
+    vsg::ref_ptr<vsg::Node> vsg_scene;
+    if (!leftImageFilename.empty() && !rightImageFilename.empty())
+    {
+        auto leftImage = vsg::read_cast<vsg::Data>(leftImageFilename, options);
+        auto rightImage = vsg::read_cast<vsg::Data>(rightImageFilename, options);
+
+        if (leftImage && rightImage)
+        {
+            vsg::vec3 origin(0.0f, 0.0f, 0.0f);
+            vsg::vec3 horizontal(leftImage->width(), 0.0f, 0.0f);
+            vsg::vec3 vertical(0.0f, 0.0f, leftImage->height());
+
+            auto leftQuad = createTextureQuad(origin, horizontal, vertical, leftImage);
+            auto rightQuad = createTextureQuad(origin, horizontal, vertical, rightImage);
+
+            auto maskGroup = vsg::MaskGroup::create();
+            maskGroup->addChild(leftMask, leftQuad);
+            maskGroup->addChild(rightMask, rightQuad);
+
+            vsg_scene = maskGroup;
+        }
+    }
+    else
+    {
+        vsg::Path filename = "models/lz.osgt";
+        if (argc > 1) filename = arguments[1];
+
+        vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
+    }
+
     if (!vsg_scene)
     {
         std::cout << "Unable to load model." << std::endl;
@@ -203,6 +337,7 @@ int main(int argc, char** argv)
     auto renderGraph = vsg::RenderGraph::create(window);
 
     auto left_view = vsg::View::create(left_camera, vsg_scene);
+    left_view->mask = leftMask;
     renderGraph->addChild(left_view);
 
     // clear the depth buffer before view2 gets rendered
@@ -212,6 +347,7 @@ int main(int argc, char** argv)
     renderGraph->addChild(clearAttachments);
 
     auto right_view = vsg::View::create(right_camera, vsg_scene);
+    right_view->mask = rightMask;
     renderGraph->addChild(right_view);
 
     auto commandGraph = vsg::CommandGraph::create(window);
