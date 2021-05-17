@@ -209,10 +209,13 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     double eyeSeperation = 0.06;
-    double screenDistance = 1.0;
+    double screenDistance = 0.75;
+    double screenWidth = 0.55;
+    double screenHorizontalResolution = 1920;
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "Anaglyphic Sterep";
+    windowTraits->fullscreen = true;
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
@@ -317,9 +320,7 @@ int main(int argc, char** argv)
     }
 
     auto master_camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-
-    double windowAspectRatio = 1920.0/1024.0;
-    double shear = eyeSeperation/screenDistance*0.5*windowAspectRatio;
+    double shear = (eyeSeperation/screenWidth) * 0.8; // quick hack to get convergance roughly conincident with the trackball center.
 
     // create the left eye camera
     auto left_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(-shear, 0.0, 0.0));
