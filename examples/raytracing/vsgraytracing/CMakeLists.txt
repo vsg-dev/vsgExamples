@@ -10,3 +10,5 @@ if (vsgXchange_FOUND)
     target_compile_definitions(vsgraytracing PRIVATE vsgXchange_FOUND)
     target_link_libraries(vsgraytracing vsgXchange::vsgXchange)
 endif()
+
+install(TARGETS vsgraytracing RUNTIME DESTINATION bin)

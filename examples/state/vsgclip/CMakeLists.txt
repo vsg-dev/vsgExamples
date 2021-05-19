@@ -10,3 +10,5 @@ if (vsgXchange_FOUND)
     target_compile_definitions(vsgclip PRIVATE vsgXchange_FOUND)
     target_link_libraries(vsgclip vsgXchange::vsgXchange)
 endif()
+
+install(TARGETS vsgclip RUNTIME DESTINATION bin)
