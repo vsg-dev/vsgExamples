@@ -11,3 +11,5 @@ target_link_libraries(vsgpagedlod vsg::vsg)
 
 target_compile_definitions(vsgpagedlod PRIVATE vsgXchange_FOUND)
 target_link_libraries(vsgpagedlod vsgXchange::vsgXchange)
+
+install(TARGETS vsgpagedlod RUNTIME DESTINATION bin)

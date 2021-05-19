@@ -10,3 +10,5 @@ if (vsgXchange_FOUND)
     target_compile_definitions(vsganaglyphicstereo PRIVATE vsgXchange_FOUND)
     target_link_libraries(vsganaglyphicstereo vsgXchange::vsgXchange)
 endif()
+
+install(TARGETS vsganaglyphicstereo RUNTIME DESTINATION bin)

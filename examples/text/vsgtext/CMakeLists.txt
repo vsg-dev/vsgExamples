@@ -10,3 +10,5 @@ if (vsgXchange_FOUND)
     target_compile_definitions(vsgtext PRIVATE vsgXchange_FOUND)
     target_link_libraries(vsgtext vsgXchange::vsgXchange)
 endif()
+
+install(TARGETS vsgtext RUNTIME DESTINATION bin)
