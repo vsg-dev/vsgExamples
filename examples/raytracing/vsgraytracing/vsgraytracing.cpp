@@ -76,9 +76,15 @@ int main(int argc, char** argv)
         const uint32_t shaderIndexMiss = 1;
         const uint32_t shaderIndexClosestHit = 2;
 
+#if 1
+        auto raygenShader = vsg::read_cast<vsg::ShaderStage>("shaders/simple_raygen.rgen", options);
+        auto missShader = vsg::read_cast<vsg::ShaderStage>("shaders/simple_miss.rmiss", options);
+        auto closesthitShader = vsg::read_cast<vsg::ShaderStage>("shaders/simple_closesthit.rchit", options);
+#else
         vsg::ref_ptr<vsg::ShaderStage> raygenShader = vsg::ShaderStage::read(VK_SHADER_STAGE_RAYGEN_BIT_KHR, "main", vsg::findFile("shaders/simple_raygen.spv", searchPaths));
         vsg::ref_ptr<vsg::ShaderStage> missShader = vsg::ShaderStage::read(VK_SHADER_STAGE_MISS_BIT_KHR, "main", vsg::findFile("shaders/simple_miss.spv", searchPaths));
         vsg::ref_ptr<vsg::ShaderStage> closesthitShader = vsg::ShaderStage::read(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "main", vsg::findFile("shaders/simple_closesthit.spv", searchPaths));
+#endif
 
         if (!raygenShader || !missShader || !closesthitShader)
         {
