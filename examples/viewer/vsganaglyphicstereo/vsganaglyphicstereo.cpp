@@ -41,7 +41,7 @@ public:
 
     void apply(vsg::StateGroup& sg) override
     {
-        for(auto& sg : sg.getStateCommands())
+        for(auto& sg : sg.stateCommands)
         {
             sg->accept(*this);
         }
