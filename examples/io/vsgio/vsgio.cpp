@@ -12,12 +12,12 @@ vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels, vsg::Node* shared
 
     --numLevels;
 
-    t->getChildren().reserve(4);
-
-    t->addChild(createQuadTree(numLevels, sharedLeaf));
-    t->addChild(createQuadTree(numLevels, sharedLeaf));
-    t->addChild(createQuadTree(numLevels, sharedLeaf));
-    t->addChild(createQuadTree(numLevels, sharedLeaf));
+    t->children = {
+        createQuadTree(numLevels, sharedLeaf),
+        createQuadTree(numLevels, sharedLeaf),
+        createQuadTree(numLevels, sharedLeaf),
+        createQuadTree(numLevels, sharedLeaf)
+    };
 
     return t;
 }
@@ -30,10 +30,12 @@ vsg::ref_ptr<vsg::Node> createQuadGroupTree(unsigned int numLevels, vsg::Node* s
 
     --numLevels;
 
-    t->setChild(0, createQuadGroupTree(numLevels, sharedLeaf));
-    t->setChild(1, createQuadGroupTree(numLevels, sharedLeaf));
-    t->setChild(2, createQuadGroupTree(numLevels, sharedLeaf));
-    t->setChild(3, createQuadGroupTree(numLevels, sharedLeaf));
+    t->children = {
+        createQuadGroupTree(numLevels, sharedLeaf),
+        createQuadGroupTree(numLevels, sharedLeaf),
+        createQuadGroupTree(numLevels, sharedLeaf),
+        createQuadGroupTree(numLevels, sharedLeaf)
+    };
 
     return t;
 }

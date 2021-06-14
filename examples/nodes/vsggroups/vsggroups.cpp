@@ -122,10 +122,10 @@ vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& 
     numNodes += 1;
     numBytes += sizeof(vsg::Group) + 4 * sizeof(vsg::ref_ptr<vsg::Node>);
 
-    t->setChild(0, createVsgQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(1, createVsgQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(2, createVsgQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(3, createVsgQuadTree(numLevels, numNodes, numBytes));
+    t->children[0] = createVsgQuadTree(numLevels, numNodes, numBytes);
+    t->children[1] = createVsgQuadTree(numLevels, numNodes, numBytes);
+    t->children[2] = createVsgQuadTree(numLevels, numNodes, numBytes);
+    t->children[3] = createVsgQuadTree(numLevels, numNodes, numBytes);
 
     return t;
 }
@@ -147,10 +147,12 @@ vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int
     numNodes += 1;
     numBytes += sizeof(vsg::QuadGroup);
 
-    t->setChild(0, createFixedQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(1, createFixedQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(2, createFixedQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(3, createFixedQuadTree(numLevels, numNodes, numBytes));
+    t->children = {
+        createFixedQuadTree(numLevels, numNodes, numBytes),
+        createFixedQuadTree(numLevels, numNodes, numBytes),
+        createFixedQuadTree(numLevels, numNodes, numBytes),
+        createFixedQuadTree(numLevels, numNodes, numBytes)
+    };
 
     return t;
 }

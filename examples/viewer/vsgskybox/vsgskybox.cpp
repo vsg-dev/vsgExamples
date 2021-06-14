@@ -236,15 +236,15 @@ int main(int argc, char** argv)
         }
     }
 
-    if (group->getNumChildren() == 0)
+    if (group->children.empty())
     {
         std::cout << "Please specify a 3d model file on the command line." << std::endl;
         return 1;
     }
 
     vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (group->getChildren().size() == 1)
-        vsg_scene = group->getChild(0);
+    if (group->children.size() == 1)
+        vsg_scene = group->children[0];
     else
         vsg_scene = group;
 

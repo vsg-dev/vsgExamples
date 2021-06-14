@@ -161,7 +161,7 @@ int main(int argc, char** argv)
         }
     }
 
-    if (scene->getNumChildren() == 0)
+    if (scene->children.empty())
     {
         GeometryInfo info;
         info.dimensions.set(100.f, 100.0f, 100.0f);
