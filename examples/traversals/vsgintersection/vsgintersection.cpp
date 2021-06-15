@@ -236,7 +236,7 @@ int main(int argc, char** argv)
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
     // set up the compilation support in builder to allow us to interactively create and compile subgraphs from wtihin the IntersectionHandler
-    builder->setup(window, camera->getViewportState());
+    builder->setup(window, camera->viewportState);
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));

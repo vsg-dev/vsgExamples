@@ -82,8 +82,7 @@ AnimationPathHandler::AnimationPathHandler(ref_ptr<Camera> camera, ref_ptr<Anima
     _path(animationPath),
     _start_point(start_point)
 {
-    _lookAt = dynamic_cast<LookAt*>(_camera->getViewMatrix());
-
+    _lookAt = _camera->viewMatrix.cast<LookAt>();
     if (!_lookAt)
     {
         // TODO: need to work out how to map the original ViewMatrix to a LookAt and back, for now just fallback to assigning our own LookAt

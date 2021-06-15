@@ -375,7 +375,7 @@ int main(int argc, char** argv)
                 auto& eye_sphere = eyeClipSettings->at(i);
 
                 vsg::dmat4 viewMatrix;
-                camera->getViewMatrix()->get(viewMatrix);
+                camera->viewMatrix->get(viewMatrix);
 
                 vsg::dvec3 world_center(world_sphere.x, world_sphere.y, world_sphere.z);
                 vsg::dvec3 eye_center = viewMatrix * world_center;
