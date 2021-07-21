@@ -15,7 +15,8 @@ public:
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::Group> scenegraph;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
-    double scale;
+    double scale = 1.0;
+    bool verbose = false;
 
     IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale) :
         builder(in_builder),
@@ -29,18 +30,40 @@ public:
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
-        if (keyPress.keyBase == 'i' && lastPointerEvent)
+        if (lastPointerEvent)
         {
             interesection(*lastPointerEvent);
+            if (!lastIntersection) return;
 
-            if (lastIntersection)
+            GeometryInfo info;
+            info.dimensions.set(scale, scale, scale);
+            info.position = vsg::vec3(lastIntersection.worldIntersection) - info.dimensions * 0.5f;
+
+            if (keyPress.keyBase == 'b')
             {
-                std::cout << "inserting at = " << lastIntersection.worldIntersection << " ";
-                GeometryInfo info;
-                info.dimensions.set(scale, scale, scale);
-                info.position = vsg::vec3(lastIntersection.worldIntersection) - info.dimensions * 0.5f;
                 scenegraph->addChild(builder->createBox(info));
             }
+            else if (keyPress.keyBase == 'q')
+            {
+                scenegraph->addChild(builder->createQuad(info));
+            }
+            else if (keyPress.keyBase == 'c')
+            {
+                scenegraph->addChild(builder->createCylinder(info));
+            }
+            else if (keyPress.keyBase == 'p')
+            {
+                scenegraph->addChild(builder->createCapsule(info));
+            }
+            else if (keyPress.keyBase == 's')
+            {
+                scenegraph->addChild(builder->createSphere(info));
+            }
+            else if (keyPress.keyBase == 'n')
+            {
+                scenegraph->addChild(builder->createCone(info));
+            }
+
         }
     }
 
@@ -64,47 +87,50 @@ public:
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
-        std::cout << "interesection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
+        if (verbose) std::cout << "interesection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
 
         if (intersector->intersections.empty()) return;
 
         // sort the intersectors front to back
         std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto lhs, auto rhs) { return lhs.ratio < rhs.ratio; });
 
-        std::cout << std::endl;
         for (auto& intersection : intersector->intersections)
         {
-            std::cout << "intersection = " << intersection.worldIntersection << " ";
+            if (verbose) std::cout << "intersection = " << intersection.worldIntersection << " ";
+
             if (ellipsoidModel)
             {
                 std::cout.precision(10);
                 auto location = ellipsoidModel->convertECEFToLatLongAltitude(intersection.worldIntersection);
-                std::cout << " lat = " << location[0] << ", long = " << location[1] << ", height = " << location[2];
+                if (verbose) std::cout << " lat = " << location[0] << ", long = " << location[1] << ", height = " << location[2];
             }
 
             if (lastIntersection)
             {
-                std::cout << ", distance from previous intersection = " << vsg::length(intersection.worldIntersection - lastIntersection.worldIntersection);
+                if (verbose) std::cout << ", distance from previous intersection = " << vsg::length(intersection.worldIntersection - lastIntersection.worldIntersection);
             }
 
-            for (auto& node : intersection.nodePath)
+            if (verbose)
             {
-                std::cout << ", " << node->className();
-            }
+                for (auto& node : intersection.nodePath)
+                {
+                    std::cout << ", " << node->className();
+                }
 
-            std::cout << ", Arrays[ ";
-            for (auto& array : intersection.arrays)
-            {
-                std::cout << array << " ";
-            }
-            std::cout << "] [";
-            for (auto& ir : intersection.indexRatios)
-            {
-                std::cout << "{" << ir.index << ", " << ir.ratio << "} ";
-            }
-            std::cout << "]";
+                std::cout << ", Arrays[ ";
+                for (auto& array : intersection.arrays)
+                {
+                    std::cout << array << " ";
+                }
+                std::cout << "] [";
+                for (auto& ir : intersection.indexRatios)
+                {
+                    std::cout << "{" << ir.index << ", " << ir.ratio << "} ";
+                }
+                std::cout << "]";
 
-            std::cout << std::endl;
+                std::cout << std::endl;
+            }
         }
 
         lastIntersection = intersector->intersections.front();
