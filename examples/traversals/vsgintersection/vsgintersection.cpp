@@ -36,8 +36,10 @@ public:
             if (!lastIntersection) return;
 
             GeometryInfo info;
-            info.dimensions.set(scale, scale, scale);
-            info.position = vsg::vec3(lastIntersection.worldIntersection) - info.dimensions * 0.5f;
+            info.position = vsg::vec3(lastIntersection.worldIntersection);
+            info.dx.set(scale, 0.0f, 0.0f);
+            info.dy.set(0.0f, scale, 0.0f);
+            info.dz.set(0.0f, 0.0f, scale);
 
             if (keyPress.keyBase == 'b')
             {
@@ -185,7 +187,9 @@ int main(int argc, char** argv)
     if (scene->children.empty())
     {
         GeometryInfo info;
-        info.dimensions.set(100.f, 100.0f, 100.0f);
+        info.dx.set(100.0f, 0.0f, 0.0f);
+        info.dy.set(0.0f, 100.0f, 0.0f);
+        info.dz.set(0.0f, 0.0f, 100.0f);
 
         vsg::Path textureFile("textures/lz.vsgb");
         info.image = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));

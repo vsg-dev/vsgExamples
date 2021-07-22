@@ -133,19 +133,19 @@ vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
     scenegraph->add(_createGraphicsPipeline());
     scenegraph->add(_createTexture(info));
 
-    vsg::vec3 origin = info.position;
-    vsg::vec3 dx(info.dimensions.x, 0.0f, 0.0f);
-    vsg::vec3 dy(0.0f, info.dimensions.y,  0.0f);
-    vsg::vec3 dz(0.0f, 0.0f, info.dimensions.z);
+    auto dx = info.dx;
+    auto dy = info.dy;
+    auto dz = info.dz;
+    auto origin = info.position - dx * 0.5f - dy * 0.5f - dz * 0.5f;
 
-    vsg::vec3 v000(info.position);
-    vsg::vec3 v100(info.position + dx);
-    vsg::vec3 v110(info.position + dx + dy);
-    vsg::vec3 v010(info.position + dy);
-    vsg::vec3 v001(info.position + dz);
-    vsg::vec3 v101(info.position + dx + dz);
-    vsg::vec3 v111(info.position + dx + dy + dz);
-    vsg::vec3 v011(info.position + dy + dz);
+    vsg::vec3 v000(origin);
+    vsg::vec3 v100(origin + dx);
+    vsg::vec3 v110(origin + dx + dy);
+    vsg::vec3 v010(origin + dy);
+    vsg::vec3 v001(origin + dz);
+    vsg::vec3 v101(origin + dx + dz);
+    vsg::vec3 v111(origin + dx + dy + dz);
+    vsg::vec3 v011(origin + dy + dz);
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
@@ -246,9 +246,9 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
     scenegraph->add(_createGraphicsPipeline());
     scenegraph->add(_createTexture(info));
 
-    vsg::vec3 origin = info.position;
-    vsg::vec3 dx(info.dimensions.x, 0.0f, 0.0f);
-    vsg::vec3 dy(0.0f, info.dimensions.y,  0.0f);
+    auto dx = info.dx;
+    auto dy = info.dy;
+    auto origin = info.position - dx * 0.5f - dy * 0.5f;
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(

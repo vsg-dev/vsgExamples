@@ -5,7 +5,9 @@
 struct GeometryInfo
 {
     vsg::vec3 position = {0.0, 0.0, 0.0};
-    vsg::vec3 dimensions = {1.0, 1.0, 1.0};
+    vsg::vec3 dx = {1.0f, 0.0f, 0.0f};
+    vsg::vec3 dy = {0.0f, 1.0f, 0.0f};
+    vsg::vec3 dz = {0.0f, 0.0f, 1.0f};
     vsg::vec4 color = {1.0, 1.0, 1.0, 1.0};
     vsg::ref_ptr<vsg::Data> image;
 
@@ -14,8 +16,14 @@ struct GeometryInfo
         if (position < rhs.position) return true;
         if (rhs.position < position) return false;
 
-        if (dimensions < rhs.dimensions) return true;
-        if (rhs.dimensions < dimensions) return false;
+        if (dx < rhs.dx) return true;
+        if (rhs.dx < dx) return false;
+
+        if (dy < rhs.dy) return true;
+        if (rhs.dy < dy) return false;
+
+        if (dz < rhs.dz) return true;
+        if (rhs.dz < dz) return false;
 
         if (color < rhs.color) return true;
         if (rhs.color < color) return false;
