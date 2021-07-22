@@ -27,15 +27,6 @@ struct GeometryInfo
 class Builder : public vsg::Inherit<vsg::Object, Builder>
 {
 public:
-    enum GeometryType
-    {
-        DRAW_COMMANDS,
-        DRAW_INDEXED_COMMANDS,
-        GEOMETRY,
-        VERTEX_INDEX_DRAW
-    };
-
-    GeometryType geometryType = VERTEX_INDEX_DRAW;
     bool verbose = false;
 
     /// set up the compile traversal to compile for specified window

@@ -194,13 +194,13 @@ vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
          20, 21, 22, 20, 22, 23}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
-    auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords})); // shader doesn't support normals yet..
-    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
+    auto vid = vsg::VertexIndexDraw::create();
+    vid->arrays = vsg::DataList{vertices, colors, texcoords};
+    vid->indices = indices;
+    vid->indexCount = indices->size();
+    vid->instanceCount = 1;
 
-    // add drawCommands to transform
-    scenegraph->addChild(drawCommands);
+    scenegraph->addChild(vid);
 
     compile(scenegraph);
 
@@ -271,61 +271,13 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
         }); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
-    switch (geometryType)
-    {
-    case (DRAW_COMMANDS):
-    {
-        // above vertex data is set up assuming that indices will be used, but for this code path we want to rendering using VkCmdDraw without indices
-        auto expanded_vertices = vsg::vec3Array::create(indices->size());
-        auto expanded_colors = vsg::vec3Array::create(indices->size());
-        auto expanded_texcoords = vsg::vec2Array::create(indices->size());
+    auto vid = vsg::VertexIndexDraw::create();
+    vid->arrays = vsg::DataList{vertices, colors, texcoords};
+    vid->indices = indices;
+    vid->indexCount = indices->size();
+    vid->instanceCount = 1;
 
-        for (size_t i = 0; i < indices->size(); ++i)
-        {
-            expanded_vertices->set(i, vertices->at(indices->at(i)));
-            expanded_colors->set(i, colors->at(indices->at(i)));
-            expanded_texcoords->set(i, texcoords->at(indices->at(i)));
-        }
-
-        auto drawCommands = vsg::Commands::create();
-        drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{expanded_vertices, expanded_colors, expanded_texcoords}));
-        drawCommands->addChild(vsg::Draw::create(expanded_vertices->size(), 1, 0, 0));
-
-        scenegraph->addChild(drawCommands);
-        break;
-    }
-    case (DRAW_INDEXED_COMMANDS):
-    {
-        auto drawCommands = vsg::Commands::create();
-        drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
-        drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-        drawCommands->addChild(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
-
-        scenegraph->addChild(drawCommands);
-        break;
-    }
-    case (GEOMETRY):
-    {
-        auto geometry = vsg::Geometry::create();
-        geometry->arrays = vsg::DataList{vertices, colors, texcoords};
-        geometry->indices = indices;
-        geometry->commands.push_back(vsg::DrawIndexed::create(indices->size(), 1, 0, 0, 0));
-
-        scenegraph->addChild(geometry);
-        break;
-    }
-    case (VERTEX_INDEX_DRAW):
-    {
-        auto vid = vsg::VertexIndexDraw::create();
-        vid->arrays = vsg::DataList{vertices, colors, texcoords};
-        vid->indices = indices;
-        vid->indexCount = indices->size();
-        vid->instanceCount = 1;
-
-        scenegraph->addChild(vid);
-        break;
-    }
-    }
+    scenegraph->addChild(vid);
 
     compile(scenegraph);
 

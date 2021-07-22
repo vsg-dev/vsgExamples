@@ -159,11 +159,6 @@ int main(int argc, char** argv)
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
 
-    if (arguments.read("--draw")) builder->geometryType = Builder::DRAW_COMMANDS;
-    if (arguments.read("--draw-indexed")) builder->geometryType = Builder::DRAW_INDEXED_COMMANDS;
-    if (arguments.read({"--geometry", "--geom"})) builder->geometryType = Builder::GEOMETRY;
-    if (arguments.read("--vid")) builder->geometryType = Builder::VERTEX_INDEX_DRAW;
-
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
 #ifdef vsgXchange_all
