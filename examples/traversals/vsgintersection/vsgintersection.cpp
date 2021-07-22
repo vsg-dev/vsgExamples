@@ -12,18 +12,20 @@ class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandle
 {
 public:
     vsg::ref_ptr<Builder> builder;
+    vsg::ref_ptr<vsg::Options> options;
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::Group> scenegraph;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
     double scale = 1.0;
     bool verbose = false;
 
-    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale) :
+    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale, vsg::ref_ptr<vsg::Options> in_options) :
         builder(in_builder),
         camera(in_camera),
         scenegraph(in_scenegraph),
         ellipsoidModel(in_ellipsoidModel),
-        scale(in_scale)
+        scale(in_scale),
+        options(in_options)
     {
         if (scale > 10.0) scale = 10.0;
     }
@@ -40,6 +42,8 @@ public:
             info.dx.set(scale, 0.0f, 0.0f);
             info.dy.set(0.0f, scale, 0.0f);
             info.dz.set(0.0f, 0.0f, scale);
+
+            info.image = vsg::read_cast<vsg::Data>("textures/land.vsgb", options);
 
             if (keyPress.keyBase == 'b')
             {
@@ -147,6 +151,8 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsginteresction";
 
@@ -168,7 +174,6 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     auto scene = vsg::Group::create();
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
@@ -192,7 +197,7 @@ int main(int argc, char** argv)
         info.dz.set(0.0f, 0.0f, 100.0f);
 
         vsg::Path textureFile("textures/lz.vsgb");
-        info.image = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));
+        info.image = vsg::read_cast<vsg::Data>(textureFile, options);
 
         scene->addChild(builder->createBox(info));
     }
@@ -268,7 +273,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene, ellipsoidModel, radius * 0.1));
+    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene, ellipsoidModel, radius * 0.1, options));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});

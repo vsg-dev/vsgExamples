@@ -295,6 +295,124 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
 
 vsg::ref_ptr<vsg::Node> Builder::createSphere(const GeometryInfo& info)
 {
+    auto& subgraph = _spheres[info];
+    if (subgraph)
+    {
+        std::cout<<"reused createSphere()"<<std::endl;
+        return subgraph;
+    }
+
     std::cout<<"createSphere()"<<std::endl;
-    return createBox(info);
+
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    auto scenegraph = vsg::StateGroup::create();
+    scenegraph->add(_createGraphicsPipeline());
+    scenegraph->add(_createTexture(info));
+
+    auto dx = info.dx * 0.5f;
+    auto dy = info.dy * 0.5f;
+    auto dz = info.dz * 0.5f;
+    auto origin = info.position;
+
+
+    unsigned int num_columns = 22;
+    unsigned int num_rows = 8;
+    unsigned int num_vertices = 2 + num_columns * num_rows;
+    unsigned int num_indices =  (num_columns-1) * num_rows * 6;
+
+    auto vertices = vsg::vec3Array::create(num_vertices);
+    auto normals = vsg::vec3Array::create(num_vertices);
+    auto texcoords = vsg::vec2Array::create(num_vertices);
+    auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
+    auto indices = vsg::ushortArray::create(num_indices);
+
+    unsigned int bottom_index = 0;
+    vertices->set(bottom_index, origin-dz);
+    normals->set(bottom_index, normalize(-dz));
+    texcoords->set(bottom_index, vsg::vec2(0.5f, 0.0f));
+
+    unsigned int top_index = num_columns * num_rows + 1;
+    vertices->set(top_index, origin + dz);
+    normals->set(top_index, normalize(dz));
+    texcoords->set(top_index, vsg::vec2(0.5f, 1.0f));
+
+    for(unsigned int r = 0; r < num_rows; ++r)
+    {
+        double beta = ((double(r+1)/double(num_rows+1)) - 0.5) * vsg::PI;
+        float ty = float(r+1)/float(num_rows+2);
+
+        vsg::vec3 v = dy * cosf(beta) + dz * sinf(beta);
+        vsg::vec3 n = normalize(v);
+
+        unsigned int left_i = 1 + r * num_columns;
+        vertices->set(left_i, v + origin);
+        normals->set(left_i, n);
+        texcoords->set(left_i, vsg::vec2(0.0f, ty));
+
+        unsigned int right_i = left_i + num_columns-1;
+        vertices->set(right_i, v + origin);
+        normals->set(right_i, n);
+        texcoords->set(right_i, vsg::vec2(1.0f, ty));
+
+        for(unsigned int c = 1; c < num_columns-1; ++c)
+        {
+            unsigned int i = left_i + c;
+            double alpha = (double(c)/double(num_columns-1)) * 2.0 * vsg::PI;
+            v = dx * (sinf(alpha) * cosf(beta)) + dy * (cosf(alpha) * cosf(beta)) + dz * sinf(beta);
+            n = normalize(v);
+            vertices->set(i, origin + v);
+            normals->set(i, n);
+            texcoords->set(i, vsg::vec2(float(c)/float(num_columns), ty));
+        }
+    }
+
+
+    // first row
+    unsigned int i = 0;
+    for(unsigned int c = 0; c < num_columns-1; ++c)
+    {
+        indices->set(i++, bottom_index);
+        indices->set(i++, 1 + c);
+        indices->set(i++, 1 + c + 1);
+    }
+
+    for(unsigned int r = 0; r < num_rows-1; ++r)
+    {
+        for(unsigned int c = 0; c < num_columns-1; ++c)
+        {
+            unsigned lower = 1 + num_columns * r + c;
+            unsigned upper = lower + num_columns;
+
+            indices->set(i++, lower);
+            indices->set(i++, upper);
+            indices->set(i++, lower + 1);
+
+            indices->set(i++, upper);
+            indices->set(i++, upper + 1);
+            indices->set(i++, lower + 1);
+        }
+    }
+
+    // last row
+    for(unsigned int c = 0; c < num_columns-1; ++c)
+    {
+        unsigned int lower = 1 + (num_rows-1) * num_columns + c;
+        indices->set(i++, lower);
+        indices->set(i++, top_index);
+        indices->set(i++, lower + 1);
+    }
+
+    // setup geometry
+    auto vid = vsg::VertexIndexDraw::create();
+    vid->arrays = vsg::DataList{vertices, colors, texcoords};
+    vid->indices = indices;
+    vid->indexCount = indices->size();
+    vid->instanceCount = 1;
+
+    scenegraph->addChild(vid);
+
+    compile(scenegraph);
+
+    subgraph = scenegraph;
+    return subgraph;
 }
