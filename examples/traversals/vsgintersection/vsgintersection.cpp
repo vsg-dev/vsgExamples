@@ -43,7 +43,8 @@ public:
             info.dy.set(0.0f, scale, 0.0f);
             info.dz.set(0.0f, 0.0f, scale);
 
-            info.image = vsg::read_cast<vsg::Data>("textures/land.vsgb", options);
+            //info.image = vsg::read_cast<vsg::Data>("textures/earth.vsgb", options);
+            //info.image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
 
             if (keyPress.keyBase == 'b')
             {
@@ -152,6 +153,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+    options->objectCache = vsg::ObjectCache::create();
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsginteresction";
