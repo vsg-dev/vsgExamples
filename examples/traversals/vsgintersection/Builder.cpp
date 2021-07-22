@@ -133,14 +133,19 @@ vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
     scenegraph->add(_createGraphicsPipeline());
     scenegraph->add(_createTexture(info));
 
+    vsg::vec3 origin = info.position;
+    vsg::vec3 dx(info.dimensions.x, 0.0f, 0.0f);
+    vsg::vec3 dy(0.0f, info.dimensions.y,  0.0f);
+    vsg::vec3 dz(0.0f, 0.0f, info.dimensions.z);
+
     vsg::vec3 v000(info.position);
-    vsg::vec3 v100(info.position + vsg::vec3(info.dimensions.x, 0.0f, 0.0f));
-    vsg::vec3 v110(info.position + vsg::vec3(info.dimensions.x, info.dimensions.y, 0.0f));
-    vsg::vec3 v010(info.position + vsg::vec3(0.0f, info.dimensions.y, 0.0f));
-    vsg::vec3 v001(info.position + vsg::vec3(0.0f, 0.0f, info.dimensions.z));
-    vsg::vec3 v101(info.position + vsg::vec3(info.dimensions.x, 0.0f, info.dimensions.z));
-    vsg::vec3 v111(info.position + vsg::vec3(info.dimensions.x, info.dimensions.y, info.dimensions.z));
-    vsg::vec3 v011(info.position + vsg::vec3(0.0f, info.dimensions.y, info.dimensions.z));
+    vsg::vec3 v100(info.position + dx);
+    vsg::vec3 v110(info.position + dx + dy);
+    vsg::vec3 v010(info.position + dy);
+    vsg::vec3 v001(info.position + dz);
+    vsg::vec3 v101(info.position + dx + dz);
+    vsg::vec3 v111(info.position + dx + dy + dz);
+    vsg::vec3 v011(info.position + dy + dz);
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
@@ -241,12 +246,16 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
     scenegraph->add(_createGraphicsPipeline());
     scenegraph->add(_createTexture(info));
 
+    vsg::vec3 origin = info.position;
+    vsg::vec3 dx(info.dimensions.x, 0.0f, 0.0f);
+    vsg::vec3 dy(0.0f, info.dimensions.y,  0.0f);
+
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
-        {info.position,
-         info.position + vsg::vec3(info.dimensions.x, 0.0f, 0.0f),
-         info.position + vsg::vec3(info.dimensions.x, info.dimensions.y, 0.0f),
-         info.position + vsg::vec3(0.0, info.dimensions.y, 0.0f)}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {origin,
+         origin + dx,
+         origin + dx + dy,
+         origin + dy}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(
         {{1.0f, 0.0f, 0.0f},
