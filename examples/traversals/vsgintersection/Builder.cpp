@@ -117,6 +117,18 @@ void Builder::compile(vsg::ref_ptr<vsg::Node> subgraph)
     }
 }
 
+vsg::vec3 Builder::y_texcoord(const GeometryInfo& info) const
+{
+    if (info.image && info.image->getLayout().origin==vsg::Origin::TOP_LEFT)
+    {
+        return {1.0f, -1.0f, 0.0f};
+    }
+    else
+    {
+        return {0.0f, 1.0f, 1.0f};
+    }
+}
+
 vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
 {
     auto& subgraph = _boxes[info];
@@ -137,6 +149,7 @@ vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
     auto dy = info.dy;
     auto dz = info.dz;
     auto origin = info.position - dx * 0.5f - dy * 0.5f - dz * 0.5f;
+    auto [t_origin, t_scale, t_top] = y_texcoord(info).value;
 
     vsg::vec3 v000(origin);
     vsg::vec3 v100(origin + dx);
@@ -177,10 +190,10 @@ vsg::ref_ptr<vsg::Node> Builder::createBox(const GeometryInfo& info)
     }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 #endif
 
-    vsg::vec2 t00(0.0f, 0.0f);
-    vsg::vec2 t01(0.0f, 1.0f);
-    vsg::vec2 t10(1.0f, 0.0f);
-    vsg::vec2 t11(1.0f, 1.0f);
+    vsg::vec2 t00(0.0f, t_origin);
+    vsg::vec2 t01(0.0f, t_top);
+    vsg::vec2 t10(1.0f, t_origin);
+    vsg::vec2 t11(1.0f, t_top);
 
     auto texcoords = vsg::vec2Array::create(
         {t00, t10, t11, t01,
@@ -249,6 +262,7 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
     auto dx = info.dx;
     auto dy = info.dy;
     auto origin = info.position - dx * 0.5f - dy * 0.5f;
+    auto [t_origin, t_scale, t_top] = y_texcoord(info).value;
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
@@ -264,10 +278,10 @@ vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
          {1.0f, 1.0f, 1.0f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto texcoords = vsg::vec2Array::create(
-        {{0.0f, 0.0f},
-         {1.0f, 0.0f},
-         {1.0f, 1.0f},
-         {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        {{0.0f, t_origin},
+         {1.0f, t_origin},
+         {1.0f, t_top},
+         {0.0f, t_top}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto indices = vsg::ushortArray::create(
         {
@@ -304,6 +318,8 @@ vsg::ref_ptr<vsg::Node> Builder::createSphere(const GeometryInfo& info)
 
     std::cout<<"createSphere()"<<std::endl;
 
+    auto [t_origin, t_scale, t_top] = y_texcoord(info).value;
+
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
     scenegraph->add(_createGraphicsPipeline());
@@ -329,17 +345,17 @@ vsg::ref_ptr<vsg::Node> Builder::createSphere(const GeometryInfo& info)
     unsigned int bottom_index = 0;
     vertices->set(bottom_index, origin-dz);
     normals->set(bottom_index, normalize(-dz));
-    texcoords->set(bottom_index, vsg::vec2(0.5f, 0.0f));
+    texcoords->set(bottom_index, vsg::vec2(0.5f, t_origin));
 
     unsigned int top_index = num_columns * num_rows + 1;
     vertices->set(top_index, origin + dz);
     normals->set(top_index, normalize(dz));
-    texcoords->set(top_index, vsg::vec2(0.5f, 1.0f));
+    texcoords->set(top_index, vsg::vec2(0.5f, t_top));
 
     for(unsigned int r = 0; r < num_rows; ++r)
     {
         double beta = ((double(r+1)/double(num_rows+1)) - 0.5) * vsg::PI;
-        float ty = float(r+1)/float(num_rows+2);
+        float ty = t_origin + t_scale * float(r+1)/float(num_rows+2);
 
         vsg::vec3 v = dy * cosf(beta) + dz * sinf(beta);
         vsg::vec3 n = normalize(v);

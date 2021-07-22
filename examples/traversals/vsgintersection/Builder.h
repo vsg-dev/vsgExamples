@@ -61,6 +61,8 @@ private:
     std::map<vsg::vec4, vsg::ref_ptr<vsg::vec4Array2D>> _colorData;
     std::map<vsg::ref_ptr<vsg::Data>, vsg::ref_ptr<vsg::BindDescriptorSets>> _textureDescriptorSets;
 
+    vsg::vec3 y_texcoord(const GeometryInfo& info) const;
+
     vsg::ref_ptr<vsg::BindGraphicsPipeline> _createGraphicsPipeline();
     vsg::ref_ptr<vsg::BindDescriptorSets> _createTexture(const GeometryInfo& info);
 
