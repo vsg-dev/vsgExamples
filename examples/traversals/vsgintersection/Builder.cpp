@@ -316,7 +316,7 @@ vsg::ref_ptr<vsg::Node> Builder::createSphere(const GeometryInfo& info)
         return subgraph;
     }
 
-    std::cout<<"createSphere()"<<std::endl;
+    std::cout<<"new createSphere()"<<std::endl;
 
     auto [t_origin, t_scale, t_top] = y_texcoord(info).value;
 
@@ -330,11 +330,10 @@ vsg::ref_ptr<vsg::Node> Builder::createSphere(const GeometryInfo& info)
     auto dz = info.dz * 0.5f;
     auto origin = info.position;
 
-
-    unsigned int num_columns = 22;
-    unsigned int num_rows = 8;
-    unsigned int num_vertices = 2 + num_columns * num_rows;
-    unsigned int num_indices =  (num_columns-1) * num_rows * 6;
+    unsigned int num_columns = 20;
+    unsigned int num_rows = 10;
+    unsigned int num_vertices = num_columns * num_rows;
+    unsigned int num_indices = (num_columns-1) * (num_rows-1) * 6;
 
     auto vertices = vsg::vec3Array::create(num_vertices);
     auto normals = vsg::vec3Array::create(num_vertices);
@@ -342,25 +341,17 @@ vsg::ref_ptr<vsg::Node> Builder::createSphere(const GeometryInfo& info)
     auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
     auto indices = vsg::ushortArray::create(num_indices);
 
-    unsigned int bottom_index = 0;
-    vertices->set(bottom_index, origin-dz);
-    normals->set(bottom_index, normalize(-dz));
-    texcoords->set(bottom_index, vsg::vec2(0.5f, t_origin));
-
-    unsigned int top_index = num_columns * num_rows + 1;
-    vertices->set(top_index, origin + dz);
-    normals->set(top_index, normalize(dz));
-    texcoords->set(top_index, vsg::vec2(0.5f, t_top));
-
     for(unsigned int r = 0; r < num_rows; ++r)
     {
-        double beta = ((double(r+1)/double(num_rows+1)) - 0.5) * vsg::PI;
-        float ty = t_origin + t_scale * float(r+1)/float(num_rows+2);
+        float beta = ((float(r)/float(num_rows-1)) - 0.5) * vsg::PI;
+        float ty = t_origin + t_scale * float(r)/float(num_rows-1);
+        float cos_beta = cosf(beta);
+        vsg::vec3 dz_sin_beta = dz * sinf(beta);
 
-        vsg::vec3 v = dy * cosf(beta) + dz * sinf(beta);
+        vsg::vec3 v = dy * cos_beta + dz_sin_beta;
         vsg::vec3 n = normalize(v);
 
-        unsigned int left_i = 1 + r * num_columns;
+        unsigned int left_i = r * num_columns;
         vertices->set(left_i, v + origin);
         normals->set(left_i, n);
         texcoords->set(left_i, vsg::vec2(0.0f, ty));
@@ -372,50 +363,32 @@ vsg::ref_ptr<vsg::Node> Builder::createSphere(const GeometryInfo& info)
 
         for(unsigned int c = 1; c < num_columns-1; ++c)
         {
-            unsigned int i = left_i + c;
-            double alpha = (double(c)/double(num_columns-1)) * 2.0 * vsg::PI;
-            v = dx * (sinf(alpha) * cosf(beta)) + dy * (cosf(alpha) * cosf(beta)) + dz * sinf(beta);
+            unsigned int vi = left_i + c;
+            float alpha = (float(c)/float(num_columns-1)) * 2.0 * vsg::PI;
+            v = dx * (-sinf(alpha) * cos_beta) + dy * (cosf(alpha) * cos_beta) + dz_sin_beta;
             n = normalize(v);
-            vertices->set(i, origin + v);
-            normals->set(i, n);
-            texcoords->set(i, vsg::vec2(float(c)/float(num_columns), ty));
+            vertices->set(vi, origin + v);
+            normals->set(vi, n);
+            texcoords->set(vi, vsg::vec2(float(c)/float(num_columns-1), ty));
         }
     }
 
-
-    // first row
     unsigned int i = 0;
-    for(unsigned int c = 0; c < num_columns-1; ++c)
-    {
-        indices->set(i++, bottom_index);
-        indices->set(i++, 1 + c);
-        indices->set(i++, 1 + c + 1);
-    }
-
     for(unsigned int r = 0; r < num_rows-1; ++r)
     {
         for(unsigned int c = 0; c < num_columns-1; ++c)
         {
-            unsigned lower = 1 + num_columns * r + c;
+            unsigned lower = num_columns * r + c;
             unsigned upper = lower + num_columns;
 
             indices->set(i++, lower);
-            indices->set(i++, upper);
             indices->set(i++, lower + 1);
+            indices->set(i++, upper);
 
             indices->set(i++, upper);
+            indices->set(i++, lower + 1);
             indices->set(i++, upper + 1);
-            indices->set(i++, lower + 1);
         }
-    }
-
-    // last row
-    for(unsigned int c = 0; c < num_columns-1; ++c)
-    {
-        unsigned int lower = 1 + (num_rows-1) * num_columns + c;
-        indices->set(i++, lower);
-        indices->set(i++, top_index);
-        indices->set(i++, lower + 1);
     }
 
     // setup geometry
