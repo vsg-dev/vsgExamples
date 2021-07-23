@@ -70,7 +70,7 @@ private:
     GeometryMap _boxes;
     GeometryMap _capsules;
     GeometryMap _cones;
-    GeometryMap _cylinder;
+    GeometryMap _cylinders;
     GeometryMap _quads;
     GeometryMap _spheres;
 };

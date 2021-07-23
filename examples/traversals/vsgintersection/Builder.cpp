@@ -91,10 +91,15 @@ vsg::ref_ptr<vsg::BindGraphicsPipeline> Builder::_createGraphicsPipeline()
         VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},       // tex coord data
     };
 
+
+    auto rasteriszationState = vsg::RasterizationState::create();
+    rasteriszationState->cullMode = VK_CULL_MODE_BACK_BIT;
+    //rasteriszationState->cullMode = VK_CULL_MODE_NONE;
+
     vsg::GraphicsPipelineStates pipelineStates{
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
+        rasteriszationState,
         vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
         vsg::DepthStencilState::create()};
@@ -240,8 +245,163 @@ vsg::ref_ptr<vsg::Node> Builder::createCone(const GeometryInfo& info)
 
 vsg::ref_ptr<vsg::Node> Builder::createCylinder(const GeometryInfo& info)
 {
-    std::cout<<"createCylinder()"<<std::endl;
-    return createBox(info);
+    auto& subgraph = _cylinders[info];
+    if (subgraph)
+    {
+        std::cout<<"reused createCylinder()"<<std::endl;
+        return subgraph;
+    }
+
+    std::cout<<"new createCylinder()"<<std::endl;
+
+    auto [t_origin, t_scale, t_top] = y_texcoord(info).value;
+
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    auto scenegraph = vsg::StateGroup::create();
+    scenegraph->add(_createGraphicsPipeline());
+    scenegraph->add(_createTexture(info));
+
+    auto dx = info.dx * 0.5f;
+    auto dy = info.dy * 0.5f;
+    auto dz = info.dz * 0.5f;
+
+    auto bottom = info.position - dz;
+    auto top = info.position + dz;
+
+    bool withEnds = true;
+
+    unsigned int num_columns = 20;
+    unsigned int num_vertices = num_columns * 2;
+    unsigned int num_indices = (num_columns-1) * 6;
+
+    if (withEnds)
+    {
+        num_vertices += num_columns * 2;
+        num_indices += (num_columns-2) * 6;
+    }
+
+    auto vertices = vsg::vec3Array::create(num_vertices);
+    auto normals = vsg::vec3Array::create(num_vertices);
+    auto texcoords = vsg::vec2Array::create(num_vertices);
+    auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
+    auto indices = vsg::ushortArray::create(num_indices);
+
+
+    vsg::vec3 v = dy;
+    vsg::vec3 n = normalize(dy);
+    vertices->set(0, bottom + v);
+    normals->set(0, n);
+    texcoords->set(0, vsg::vec2(0.0, t_origin));
+    vertices->set(num_columns*2-2, bottom+v);
+    normals->set(num_columns*2-2, n);
+    texcoords->set(num_columns*2-2, vsg::vec2(1.0, t_origin));
+
+    vertices->set(1, top + v);
+    normals->set(1, n);
+    texcoords->set(1, vsg::vec2(0.0, t_top));
+    vertices->set(num_columns*2-1, top+v);
+    normals->set(num_columns*2-1, n);
+    texcoords->set(num_columns*2-1, vsg::vec2(1.0, t_top));
+
+    for(unsigned int c = 1; c < num_columns-1; ++c)
+    {
+        unsigned int vi = c*2;
+        float r = float(c)/float(num_columns-1);
+        float alpha = (r) * 2.0 * vsg::PI;
+        v = dx * (-sinf(alpha)) + dy * (cosf(alpha));
+        n = normalize(v);
+
+        vertices->set(vi, bottom + v);
+        normals->set(vi, n);
+        texcoords->set(vi, vsg::vec2(r, t_origin));
+
+        vertices->set(vi+1, top + v);
+        normals->set(vi+1, n);
+        texcoords->set(vi+1, vsg::vec2(r, t_top));
+    }
+
+    unsigned int i = 0;
+    for(unsigned int c = 0; c < num_columns-1; ++c)
+    {
+        unsigned lower = c*2;
+        unsigned upper = lower + 1;
+
+        indices->set(i++, lower);
+        indices->set(i++, lower + 2);
+        indices->set(i++, upper);
+
+        indices->set(i++, upper);
+        indices->set(i++, lower + 2);
+        indices->set(i++, upper + 2);
+    }
+
+    if (withEnds)
+    {
+        unsigned int bottom_i = num_columns*2;
+        v = dy;
+        vsg::vec3 bottom_n = normalize(-dz);
+        vertices->set(bottom_i, bottom + v);
+        normals->set(bottom_i, n);
+        texcoords->set(bottom_i, vsg::vec2(0.0, t_origin));
+        vertices->set(bottom_i + num_columns - 1 , bottom + v);
+        normals->set(bottom_i + num_columns - 1, n);
+        texcoords->set(bottom_i + num_columns - 1, vsg::vec2(1.0, t_origin));
+
+        unsigned int top_i = bottom_i + num_columns;
+        vsg::vec3 top_n = normalize(dz);
+        vertices->set(top_i, top + v);
+        normals->set(top_i, n);
+        texcoords->set(top_i, vsg::vec2(0.0, t_top));
+        vertices->set(top_i + num_columns - 1, top + v);
+        normals->set(top_i + num_columns - 1, n);
+        texcoords->set(top_i + num_columns - 1, vsg::vec2(0.0, t_top));
+
+        for(unsigned int c = 1; c < num_columns-1; ++c)
+        {
+            float r = float(c)/float(num_columns-1);
+            float alpha = (r) * 2.0 * vsg::PI;
+            v = dx * (-sinf(alpha)) + dy * (cosf(alpha));
+            n = normalize(v);
+
+            unsigned int vi = bottom_i + c;
+            vertices->set(vi, bottom + v);
+            normals->set(vi, bottom_n);
+            texcoords->set(vi, vsg::vec2(r, t_origin));
+
+            vi = top_i + c;
+            vertices->set(vi, top + v);
+            normals->set(vi, top_n);
+            texcoords->set(vi, vsg::vec2(r, t_top));
+        }
+
+        for(unsigned int c = 0; c < num_columns-2; ++c)
+        {
+            indices->set(i++, bottom_i + c);
+            indices->set(i++, bottom_i + num_columns - 1);
+            indices->set(i++, bottom_i + c + 1);
+        }
+
+        for(unsigned int c = 0; c < num_columns-2; ++c)
+        {
+            indices->set(i++, top_i + c);
+            indices->set(i++, top_i + c + 1);
+            indices->set(i++, top_i + num_columns - 1);
+        }
+    }
+
+    // setup geometry
+    auto vid = vsg::VertexIndexDraw::create();
+    vid->arrays = vsg::DataList{vertices, colors, texcoords};
+    vid->indices = indices;
+    vid->indexCount = indices->size();
+    vid->instanceCount = 1;
+
+    scenegraph->addChild(vid);
+
+    compile(scenegraph);
+
+    subgraph = scenegraph;
+    return subgraph;
 }
 
 vsg::ref_ptr<vsg::Node> Builder::createQuad(const GeometryInfo& info)
