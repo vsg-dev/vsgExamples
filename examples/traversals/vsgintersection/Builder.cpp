@@ -39,8 +39,10 @@ vsg::ref_ptr<vsg::BindDescriptorSets> Builder::_createTexture(const GeometryInfo
     auto& bindDescriptorSets = _textureDescriptorSets[textureData];
     if (bindDescriptorSets) return bindDescriptorSets;
 
+    auto sampler = vsg::Sampler::create();
+
     // create texture image and associated DescriptorSets and binding
-    auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     auto descriptorSet = vsg::DescriptorSet::create(_descriptorSetLayout, vsg::Descriptors{texture});
 
     bindDescriptorSets = _textureDescriptorSets[textureData] = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
@@ -239,8 +241,142 @@ vsg::ref_ptr<vsg::Node> Builder::createCapsule(const GeometryInfo& info)
 
 vsg::ref_ptr<vsg::Node> Builder::createCone(const GeometryInfo& info)
 {
-    std::cout<<"createCone()"<<std::endl;
-    return createBox(info);
+    auto& subgraph = _cones[info];
+    if (subgraph)
+    {
+        std::cout<<"reused createCone()"<<std::endl;
+        return subgraph;
+    }
+
+    std::cout<<"new createCone()"<<std::endl;
+
+    auto [t_origin, t_scale, t_top] = y_texcoord(info).value;
+
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    auto scenegraph = vsg::StateGroup::create();
+    scenegraph->add(_createGraphicsPipeline());
+    scenegraph->add(_createTexture(info));
+
+    auto dx = info.dx * 0.5f;
+    auto dy = info.dy * 0.5f;
+    auto dz = info.dz * 0.5f;
+
+    auto bottom = info.position - dz;
+    auto top = info.position + dz;
+
+    bool withEnds = false;
+
+    unsigned int num_columns = 20;
+    unsigned int num_vertices = num_columns * 2;
+    unsigned int num_indices = (num_columns-1) * 3;
+
+    if (withEnds)
+    {
+        num_vertices += num_columns;
+        num_indices += (num_columns-2) * 3;
+    }
+
+    auto vertices = vsg::vec3Array::create(num_vertices);
+    auto normals = vsg::vec3Array::create(num_vertices);
+    auto texcoords = vsg::vec2Array::create(num_vertices);
+    auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
+    auto indices = vsg::ushortArray::create(num_indices);
+
+    vsg::vec3 v = dy;
+    vsg::vec3 n = normalize(dy);
+    vertices->set(0, bottom + v);
+    normals->set(0, n);
+    texcoords->set(0, vsg::vec2(0.0, t_origin));
+    vertices->set(num_columns*2-2, bottom+v);
+    normals->set(num_columns*2-2, n);
+    texcoords->set(num_columns*2-2, vsg::vec2(1.0, t_origin));
+
+    vertices->set(1, top);
+    normals->set(1, n);
+    texcoords->set(1, vsg::vec2(0.0, t_top));
+    vertices->set(num_columns*2-1, top);
+    normals->set(num_columns*2-1, n);
+    texcoords->set(num_columns*2-1, vsg::vec2(1.0, t_top));
+
+    for(unsigned int c = 1; c < num_columns-1; ++c)
+    {
+        unsigned int vi = c*2;
+        float r = float(c)/float(num_columns-1);
+        float alpha = (r) * 2.0 * vsg::PI;
+        v = dx * (-sinf(alpha)) + dy * (cosf(alpha));
+
+        float alpha_neighbour = alpha+0.01;
+        vsg::vec3 v_neighour = dx * (-sinf(alpha_neighbour)) + dy * (cosf(alpha_neighbour));
+        vsg::vec3 delta = v_neighour - v ;
+
+        n = vsg::normalize( vsg::cross(v-top, v_neighour - v) );
+
+        vertices->set(vi, bottom + v);
+        normals->set(vi, n);
+        texcoords->set(vi, vsg::vec2(r, t_origin));
+
+        vertices->set(vi+1, top);
+        normals->set(vi+1, n);
+        texcoords->set(vi+1, vsg::vec2(r, t_top));
+    }
+
+    unsigned int i = 0;
+    for(unsigned int c = 0; c < num_columns-1; ++c)
+    {
+        unsigned lower = c*2;
+        unsigned upper = lower + 1;
+
+        indices->set(i++, lower);
+        indices->set(i++, lower + 2);
+        indices->set(i++, upper);
+    }
+
+    if (withEnds)
+    {
+        unsigned int bottom_i = num_columns*2;
+        v = dy;
+        vsg::vec3 bottom_n = normalize(-dz);
+
+        vertices->set(bottom_i, bottom + v);
+        normals->set(bottom_i, bottom_n);
+        texcoords->set(bottom_i, vsg::vec2(0.0, t_origin));
+        vertices->set(bottom_i + num_columns - 1 , bottom + v);
+        normals->set(bottom_i + num_columns - 1, bottom_n);
+        texcoords->set(bottom_i + num_columns - 1, vsg::vec2(1.0, t_origin));
+
+        for(unsigned int c = 1; c < num_columns-1; ++c)
+        {
+            float r = float(c)/float(num_columns-1);
+            float alpha = (r) * 2.0 * vsg::PI;
+            v = dx * (-sinf(alpha)) + dy * (cosf(alpha));
+
+            unsigned int vi = bottom_i + c;
+            vertices->set(vi, bottom + v);
+            normals->set(vi, bottom_n);
+            texcoords->set(vi, vsg::vec2(r, t_origin));
+        }
+
+        for(unsigned int c = 0; c < num_columns-2; ++c)
+        {
+            indices->set(i++, bottom_i + c);
+            indices->set(i++, bottom_i + num_columns - 1);
+            indices->set(i++, bottom_i + c + 1);
+        }
+    }
+
+    // setup geometry
+    auto vid = vsg::VertexIndexDraw::create();
+    vid->arrays = vsg::DataList{vertices, colors, texcoords};
+    vid->indices = indices;
+    vid->indexCount = indices->size();
+    vid->instanceCount = 1;
+
+    scenegraph->addChild(vid);
+
+    compile(scenegraph);
+
+    subgraph = scenegraph;
+    return subgraph;
 }
 
 vsg::ref_ptr<vsg::Node> Builder::createCylinder(const GeometryInfo& info)
