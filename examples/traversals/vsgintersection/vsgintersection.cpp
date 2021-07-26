@@ -6,12 +6,11 @@
 
 #include <iostream>
 
-#include "Builder.h"
 
 class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
 {
 public:
-    vsg::ref_ptr<Builder> builder;
+    vsg::ref_ptr<vsg::Builder> builder;
     vsg::ref_ptr<vsg::Options> options;
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::Group> scenegraph;
@@ -19,7 +18,7 @@ public:
     double scale = 1.0;
     bool verbose = false;
 
-    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale, vsg::ref_ptr<vsg::Options> in_options) :
+    IntersectionHandler(vsg::ref_ptr<vsg::Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale, vsg::ref_ptr<vsg::Options> in_options) :
         builder(in_builder),
         camera(in_camera),
         scenegraph(in_scenegraph),
@@ -37,7 +36,7 @@ public:
             interesection(*lastPointerEvent);
             if (!lastIntersection) return;
 
-            GeometryInfo info;
+            vsg::GeometryInfo info;
             info.position = vsg::vec3(lastIntersection.worldIntersection);
             info.dx.set(scale, 0.0f, 0.0f);
             info.dy.set(0.0f, scale, 0.0f);
@@ -158,7 +157,7 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsginteresction";
 
-    auto builder = Builder::create();
+    auto builder = vsg::Builder::create();
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -193,7 +192,7 @@ int main(int argc, char** argv)
 
     if (scene->children.empty())
     {
-        GeometryInfo info;
+        vsg::GeometryInfo info;
         info.dx.set(100.0f, 0.0f, 0.0f);
         info.dy.set(0.0f, 100.0f, 0.0f);
         info.dz.set(0.0f, 0.0f, 100.0f);
