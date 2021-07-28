@@ -158,6 +158,7 @@ int main(int argc, char** argv)
     windowTraits->windowTitle = "vsginteresction";
 
     auto builder = vsg::Builder::create();
+    builder->options = options;
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -174,7 +175,6 @@ int main(int argc, char** argv)
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
-
 
     auto scene = vsg::Group::create();
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
