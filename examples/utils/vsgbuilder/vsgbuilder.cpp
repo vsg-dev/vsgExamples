@@ -23,10 +23,23 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+
+    arguments.read("--screen", windowTraits->screenNum);
+    arguments.read("--display", windowTraits->display);
+    auto numFrames = arguments.value(-1, "-f");
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    vsg::Path textureFile = arguments.value(vsg::Path{}, "-t");
+    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
+    if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // defaul
+    if (arguments.read("-t"))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->width = 192, windowTraits->height = 108;
+        windowTraits->decoration = false;
+    }
 
+    vsg::Path textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -104,8 +117,11 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
+    auto startTime = vsg::clock::now();
+    double numFramesCompleted = 0.0;
+
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
@@ -115,8 +131,15 @@ int main(int argc, char** argv)
         viewer->recordAndSubmit();
 
         viewer->present();
+
+        numFramesCompleted += 1.0;
     }
 
-    // clean up done automatically thanks to ref_ptr<>
+    auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
+    if (numFramesCompleted > 0.0)
+    {
+        std::cout<<"Average frame rate = "<<(numFramesCompleted / duration)<<std::endl;
+    }
+
     return 0;
 }
