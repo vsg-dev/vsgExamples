@@ -14,6 +14,7 @@ Example programs that test and illustrate how to use the [VulkanSceneGraph](http
 * [ui](examples/ui/) examples
 * [traversals](examples/traversals/) examples
 * [platform](examples/platform/) examples
+* [utils](examples/utils/) examples
 
 ## Quick Guide to Building the vsgExamples
 
