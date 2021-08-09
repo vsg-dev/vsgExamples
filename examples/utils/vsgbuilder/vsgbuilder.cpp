@@ -14,7 +14,7 @@ int main(int argc, char** argv)
     options->objectCache = vsg::ObjectCache::create();
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsginteresction";
+    windowTraits->windowTitle = "vsgbuilder";
 
     auto builder = vsg::Builder::create();
     builder->options = options;
