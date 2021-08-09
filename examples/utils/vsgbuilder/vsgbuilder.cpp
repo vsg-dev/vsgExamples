@@ -39,6 +39,27 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
+    bool floatColors = !arguments.read("--ubvec4-colors");
+
+    bool box = arguments.read("--box");
+    bool capsule = arguments.read("--capsule");
+    bool cone = arguments.read("--cone");
+    bool cylinder = arguments.read("--cylinder");
+    bool quad = arguments.read("--quad");
+    bool sphere = arguments.read("--sphere");
+
+    if (!(box || sphere || cone || capsule || quad || cylinder))
+    {
+        box = true;
+        capsule  = true;
+        cone = true;
+        cylinder = true;
+        quad = true;
+        sphere = true;
+    }
+
+    auto numVertices = arguments.value<uint32_t>(0, "-n");
+
     vsg::Path textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -50,6 +71,9 @@ int main(int argc, char** argv)
 
     auto scene = vsg::Group::create();
 
+    vsg::dvec3 centre = {0.0, 0.0, 0.0};
+    double radius = 1.0;
+
     {
         vsg::GeometryInfo info;
         info.dx.set(1.0f, 0.0f, 0.0f);
@@ -58,22 +82,86 @@ int main(int argc, char** argv)
 
         if (!textureFile.empty()) info.image = vsg::read_cast<vsg::Data>(textureFile, options);
 
-        scene->addChild(builder->createBox(info));
+        vsg::dbox bound;
 
-        info.position += info.dx * 1.5f;
-        scene->addChild(builder->createSphere(info));
+        if (numVertices>0)
+        {
+            float w = std::pow(float(numVertices), 0.33f) * 2.0f;
+            info.positions = vsg::vec3Array::create(numVertices);
+            for(auto& v : *(info.positions))
+            {
+                v.set(w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
+                      w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
+                      w * (float(std::rand()) / float(RAND_MAX) - 0.5f));
+            }
 
-        info.position += info.dx * 1.5f;
-        scene->addChild(builder->createQuad(info));
+            radius += (0.5 * sqrt(3.0) * w) ;
 
-        info.position += info.dx * 1.5f;
-        scene->addChild(builder->createCylinder(info));
+            if (floatColors)
+            {
+                auto colors = vsg::vec4Array::create(info.positions->size());
+                info.colors = colors;
+                for(auto& c : *(colors))
+                {
+                    c.set(float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), 1.0f);
+                }
+            }
+            else
+            {
+                auto colors = vsg::ubvec4Array::create(info.positions->size());
+                info.colors = colors;
+                for(auto& c : *(colors))
+                {
+                    c.set(uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), 255);
+                }
+            }
 
-        info.position += info.dx * 1.5f;
-        scene->addChild(builder->createCone(info));
+        }
 
-        info.position += info.dx * 1.5f;
-        scene->addChild(builder->createCapsule(info));
+        if (box)
+        {
+            scene->addChild(builder->createBox(info));
+            bound.add(info.position);
+            info.position += info.dx * 1.5f;
+        }
+
+        if (sphere)
+        {
+            scene->addChild(builder->createSphere(info));
+            bound.add(info.position);
+            info.position += info.dx * 1.5f;
+        }
+
+        if (quad)
+        {
+            scene->addChild(builder->createQuad(info));
+            bound.add(info.position);
+            info.position += info.dx * 1.5f;
+        }
+
+        if (cylinder)
+        {
+            scene->addChild(builder->createCylinder(info));
+            bound.add(info.position);
+            info.position += info.dx * 1.5f;
+        }
+
+        if (cone)
+        {
+            scene->addChild(builder->createCone(info));
+            bound.add(info.position);
+            info.position += info.dx * 1.5f;
+        }
+
+        if (capsule)
+        {
+            scene->addChild(builder->createCapsule(info));
+            bound.add(info.position);
+        }
+
+        // update the centre and radius to account for all the shapes added so we can position the camera to see them all.
+        centre = (bound.min + bound.max) * 0.5;
+        radius += vsg::length(bound.max - bound.min) * 0.5;
     }
 
     // create the viewer and assign window(s) to it
@@ -91,10 +179,10 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
     // compute the bounds of the scene graph to help position camera
-    vsg::ComputeBounds computeBounds;
-    scene->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+    //vsg::ComputeBounds computeBounds;
+    //scene->accept(computeBounds);
+    //vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    //double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6 * 10.0;
 
     // set up the camera
     lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
