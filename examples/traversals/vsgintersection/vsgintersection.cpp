@@ -42,8 +42,7 @@ public:
             info.dy.set(0.0f, scale, 0.0f);
             info.dz.set(0.0f, 0.0f, scale);
 
-            info.image = vsg::read_cast<vsg::Data>("textures/earth.vsgb", options);
-            //info.image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
+            // info.image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
 
             if (keyPress.keyBase == 'b')
             {
