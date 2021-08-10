@@ -229,7 +229,7 @@ int main(int argc, char** argv)
     auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
     vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
 
-    vsg::BufferInfo bufferInfo;
+    auto bufferInfo = vsg::BufferInfo::create();
 
     // set up compute shader subgraph
     {
@@ -259,12 +259,12 @@ int main(int argc, char** argv)
         };
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-        bufferInfo.buffer = buffer;
-        bufferInfo.offset = 0;
-        bufferInfo.range = bufferSize;
+        bufferInfo->buffer = buffer;
+        bufferInfo->offset = 0;
+        bufferInfo->range = bufferSize;
 
 
-        auto sourceBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto sourceBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo::create(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         auto writeTexture = vsg::DescriptorImage::create(imageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
         auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout},vsg::PushConstantRanges{});
