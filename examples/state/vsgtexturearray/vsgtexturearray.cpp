@@ -404,7 +404,7 @@ int main(int argc, char** argv)
             uint32_t textureToUpdate = 0; // viewer->getFrameStamp()->frameCount % numTiles;
 
             auto& textureImageData = imageDataList[textureToUpdate];
-            auto textureData = textureImageData.imageView->image->data.cast<vsg::ubvec4Array2D>();
+            auto textureData = textureImageData->imageView->image->data.cast<vsg::ubvec4Array2D>();
 
             if (textureData)
             {
@@ -419,7 +419,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::cout << "textureImageData.imageView->image->data = " << textureImageData.imageView->image->data << ", cast =" << textureImageData.imageView->image->data.cast<vsg::vec4Array2D>() << std::endl;
+                std::cout << "textureImageData.imageView->image->data = " << textureImageData->imageView->image->data << ", cast =" << textureImageData->imageView->image->data.cast<vsg::vec4Array2D>() << std::endl;
             }
         }
 

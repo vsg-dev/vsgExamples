@@ -134,8 +134,7 @@ int main(int argc, char** argv)
 
     auto imageView = vsg::ImageView::create(image, VK_IMAGE_ASPECT_COLOR_BIT);
     auto sampler = vsg::Sampler::create();
-
-    vsg::ImageInfo imageInfo(sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    auto imageInfo = vsg::ImageInfo::create(sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     // create texture image and associated DescriptorSets and binding
     auto texture = vsg::DescriptorImage::create(imageInfo, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -247,7 +246,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // texture has been filled in so it's now safe to get the ImageInfo that holds the handles to the texture's
-    vsg::ImageInfo textureImageInfo;
+    vsg::ref_ptr<vsg::ImageInfo> textureImageInfo;
     if (!texture->imageInfoList.empty()) textureImageInfo = texture->imageInfoList[0]; // contextID=0, and only one imageData
 
     auto startTime = vsg::clock::now();

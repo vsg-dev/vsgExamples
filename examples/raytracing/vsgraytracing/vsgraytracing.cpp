@@ -193,9 +193,9 @@ int main(int argc, char** argv)
         storageImage->flags = 0;
         storageImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        vsg::ImageInfo storageImageInfo{nullptr,
-                                        createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT),
-                                        VK_IMAGE_LAYOUT_GENERAL};
+        auto storageImageInfo = vsg::ImageInfo::create(nullptr,
+                                    createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT),
+                                    VK_IMAGE_LAYOUT_GENERAL);
 
         auto raytracingUniformValues = new RayTracingUniformValue();
         perspective->get_inverse(raytracingUniformValues->value().projInverse);
@@ -252,7 +252,7 @@ int main(int argc, char** argv)
         // set up commandGraph to rendering viewport
         auto commandGraph = vsg::CommandGraph::create(window);
 
-        auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageInfo.imageView, window);
+        auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageInfo->imageView, window);
 
         commandGraph->addChild(scenegraph);
         commandGraph->addChild(copyImageViewToWindow);

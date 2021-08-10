@@ -129,8 +129,7 @@ int main(int argc, char** argv)
 
     auto imageView = vsg::ImageView::create(image, VK_IMAGE_ASPECT_COLOR_BIT);
     auto sampler = vsg::Sampler::create();
-
-    vsg::ImageInfo imageInfo(sampler, imageView, VK_IMAGE_LAYOUT_GENERAL);
+    auto imageInfo = vsg::ImageInfo::create(sampler, imageView, VK_IMAGE_LAYOUT_GENERAL);
 
     // create texture image and associated DescriptorSets and binding
     auto texture = vsg::DescriptorImage::create(imageInfo, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
