@@ -70,8 +70,8 @@ vsg::ref_ptr<vsg::Node> createGeometry()
          2, 3, 0}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto vid = vsg::VertexIndexDraw::create();
-    vid->arrays = vsg::DataList{vertices, colors, texcoords};
-    vid->indices = indices;
+    vid->assignArrays(vsg::DataList{vertices, colors, texcoords});
+    vid->assignIndices(indices);
     vid->indexCount = 6;
     vid->instanceCount = 1;
     return vid;
@@ -129,8 +129,8 @@ vsg::ref_ptr<vsg::Node> createGeometry(uint32_t numColumns, uint32_t numRows)
     }
 
     auto vid = vsg::VertexIndexDraw::create();
-    vid->arrays = vsg::DataList{vertices, colors, texcoords};
-    vid->indices = indices;
+    vid->assignArrays(vsg::DataList{vertices, colors, texcoords});
+    vid->assignIndices(indices);
     vid->indexCount = numIndices;
     vid->instanceCount = 1;
 
