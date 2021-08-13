@@ -43,6 +43,7 @@ int main(int argc, char** argv)
 
     bool floatColors = !arguments.read("--ubvec4-colors");
     bool wireframe = arguments.read("--wireframe");
+    bool lighting = !arguments.read("--flat");
 
     bool box = arguments.read("--box");
     bool capsule = arguments.read("--capsule");
@@ -79,25 +80,31 @@ int main(int argc, char** argv)
     double radius = 1.0;
 
     {
-        vsg::GeometryInfo info;
-        info.dx.set(1.0f, 0.0f, 0.0f);
-        info.dy.set(0.0f, 1.0f, 0.0f);
-        info.dz.set(0.0f, 0.0f, 1.0f);
-        info.wireframe = wireframe;
+        vsg::GeometryInfo geomInfo;
+        geomInfo.dx.set(1.0f, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, 1.0f, 0.0f);
+        geomInfo.dz.set(0.0f, 0.0f, 1.0f);
 
-        //info.transform = vsg::perspective(vsg::radians(60.0f), 2.0f, 1.0f, 10.0f);
-        //info.transform = vsg::inverse(vsg::perspective(vsg::radians(60.0f), 1920.0f/1080.0f, 1.0f, 100.0f)  * vsg::translate(0.0f, 0.0f, -1.0f) * vsg::scale(1.0f, 1.0f, 2.0f));
-        //info.transform = vsg::rotate(0.5, 0.3, 0.3, 0.9) * vsg::scale(2.0, 3.0, 1.0);
+        vsg::StateInfo stateInfo;
 
-        if (!textureFile.empty()) info.image = vsg::read_cast<vsg::Data>(textureFile, options);
+        stateInfo.wireframe = wireframe;
+        stateInfo.lighting = lighting;
+
+        //geomInfo.transform = vsg::perspective(vsg::radians(60.0f), 2.0f, 1.0f, 10.0f);
+        //geomInfo.transform = vsg::inverse(vsg::perspective(vsg::radians(60.0f), 1920.0f/1080.0f, 1.0f, 100.0f)  * vsg::translate(0.0f, 0.0f, -1.0f) * vsg::scale(1.0f, 1.0f, 2.0f));
+        //geomInfo.transform = vsg::rotate(0.5, 0.3, 0.3, 0.9) * vsg::scale(2.0, 3.0, 1.0);
+
+        if (!textureFile.empty()) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
 
         vsg::dbox bound;
 
         if (numVertices>0)
         {
+            stateInfo.instancce_positions_vec3 = true;
+
             float w = std::pow(float(numVertices), 0.33f) * 2.0f;
-            info.positions = vsg::vec3Array::create(numVertices);
-            for(auto& v : *(info.positions))
+            geomInfo.positions = vsg::vec3Array::create(numVertices);
+            for(auto& v : *(geomInfo.positions))
             {
                 v.set(w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
                       w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
@@ -108,8 +115,8 @@ int main(int argc, char** argv)
 
             if (floatColors)
             {
-                auto colors = vsg::vec4Array::create(info.positions->size());
-                info.colors = colors;
+                auto colors = vsg::vec4Array::create(geomInfo.positions->size());
+                geomInfo.colors = colors;
                 for(auto& c : *(colors))
                 {
                     c.set(float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), 1.0f);
@@ -117,8 +124,8 @@ int main(int argc, char** argv)
             }
             else
             {
-                auto colors = vsg::ubvec4Array::create(info.positions->size());
-                info.colors = colors;
+                auto colors = vsg::ubvec4Array::create(geomInfo.positions->size());
+                geomInfo.colors = colors;
                 for(auto& c : *(colors))
                 {
                     c.set(uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), 255);
@@ -129,43 +136,43 @@ int main(int argc, char** argv)
 
         if (box)
         {
-            scene->addChild(builder->createBox(info));
-            bound.add(info.position);
-            info.position += info.dx * 1.5f;
+            scene->addChild(builder->createBox(geomInfo, stateInfo));
+            bound.add(geomInfo.position);
+            geomInfo.position += geomInfo.dx * 1.5f;
         }
 
         if (sphere)
         {
-            scene->addChild(builder->createSphere(info));
-            bound.add(info.position);
-            info.position += info.dx * 1.5f;
+            scene->addChild(builder->createSphere(geomInfo, stateInfo));
+            bound.add(geomInfo.position);
+            geomInfo.position += geomInfo.dx * 1.5f;
         }
 
         if (quad)
         {
-            scene->addChild(builder->createQuad(info));
-            bound.add(info.position);
-            info.position += info.dx * 1.5f;
+            scene->addChild(builder->createQuad(geomInfo, stateInfo));
+            bound.add(geomInfo.position);
+            geomInfo.position += geomInfo.dx * 1.5f;
         }
 
         if (cylinder)
         {
-            scene->addChild(builder->createCylinder(info));
-            bound.add(info.position);
-            info.position += info.dx * 1.5f;
+            scene->addChild(builder->createCylinder(geomInfo, stateInfo));
+            bound.add(geomInfo.position);
+            geomInfo.position += geomInfo.dx * 1.5f;
         }
 
         if (cone)
         {
-            scene->addChild(builder->createCone(info));
-            bound.add(info.position);
-            info.position += info.dx * 1.5f;
+            scene->addChild(builder->createCone(geomInfo, stateInfo));
+            bound.add(geomInfo.position);
+            geomInfo.position += geomInfo.dx * 1.5f;
         }
 
         if (capsule)
         {
-            scene->addChild(builder->createCapsule(info));
-            bound.add(info.position);
+            scene->addChild(builder->createCapsule(geomInfo, stateInfo));
+            bound.add(geomInfo.position);
         }
 
         // update the centre and radius to account for all the shapes added so we can position the camera to see them all.
