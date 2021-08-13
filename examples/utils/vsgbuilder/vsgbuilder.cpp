@@ -39,7 +39,10 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
+    auto outputFilename = arguments.value<std::string>("", "-o");
+
     bool floatColors = !arguments.read("--ubvec4-colors");
+    bool wireframe = arguments.read("--wireframe");
 
     bool box = arguments.read("--box");
     bool capsule = arguments.read("--capsule");
@@ -47,6 +50,7 @@ int main(int argc, char** argv)
     bool cylinder = arguments.read("--cylinder");
     bool quad = arguments.read("--quad");
     bool sphere = arguments.read("--sphere");
+
 
     if (!(box || sphere || cone || capsule || quad || cylinder))
     {
@@ -79,6 +83,11 @@ int main(int argc, char** argv)
         info.dx.set(1.0f, 0.0f, 0.0f);
         info.dy.set(0.0f, 1.0f, 0.0f);
         info.dz.set(0.0f, 0.0f, 1.0f);
+        info.wireframe = wireframe;
+
+        //info.transform = vsg::perspective(vsg::radians(60.0f), 2.0f, 1.0f, 10.0f);
+        //info.transform = vsg::inverse(vsg::perspective(vsg::radians(60.0f), 1920.0f/1080.0f, 1.0f, 100.0f)  * vsg::translate(0.0f, 0.0f, -1.0f) * vsg::scale(1.0f, 1.0f, 2.0f));
+        //info.transform = vsg::rotate(0.5, 0.3, 0.3, 0.9) * vsg::scale(2.0, 3.0, 1.0);
 
         if (!textureFile.empty()) info.image = vsg::read_cast<vsg::Data>(textureFile, options);
 
@@ -164,6 +173,13 @@ int main(int argc, char** argv)
         radius += vsg::length(bound.max - bound.min) * 0.5;
     }
 
+    // write out scene if required
+    if (!outputFilename.empty())
+    {
+        vsg::write(scene, outputFilename, options);
+        return 0;
+    }
+
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -188,7 +204,7 @@ int main(int argc, char** argv)
     lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     double nearFarRatio = 0.001;
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.0);
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
