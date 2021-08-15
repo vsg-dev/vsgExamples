@@ -49,16 +49,18 @@ int main(int argc, char** argv)
     bool capsule = arguments.read("--capsule");
     bool cone = arguments.read("--cone");
     bool cylinder = arguments.read("--cylinder");
+    bool disk = arguments.read("--disk");
     bool quad = arguments.read("--quad");
     bool sphere = arguments.read("--sphere");
 
 
-    if (!(box || sphere || cone || capsule || quad || cylinder))
+    if (!(box || sphere || cone || capsule || quad || cylinder || disk))
     {
         box = true;
         capsule  = true;
         cone = true;
         cylinder = true;
+        disk = true;
         quad = true;
         sphere = true;
     }
@@ -151,6 +153,13 @@ int main(int argc, char** argv)
         if (quad)
         {
             scene->addChild(builder->createQuad(geomInfo, stateInfo));
+            bound.add(geomInfo.position);
+            geomInfo.position += geomInfo.dx * 1.5f;
+        }
+
+        if (disk)
+        {
+            scene->addChild(builder->createDisk(geomInfo, stateInfo));
             bound.add(geomInfo.position);
             geomInfo.position += geomInfo.dx * 1.5f;
         }
