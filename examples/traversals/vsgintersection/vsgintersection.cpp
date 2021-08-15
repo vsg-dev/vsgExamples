@@ -196,10 +196,11 @@ int main(int argc, char** argv)
         info.dy.set(0.0f, 100.0f, 0.0f);
         info.dz.set(0.0f, 0.0f, 100.0f);
 
+        vsg::StateInfo stateInfo;
         vsg::Path textureFile("textures/lz.vsgb");
-        info.image = vsg::read_cast<vsg::Data>(textureFile, options);
+        stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
 
-        scene->addChild(builder->createBox(info));
+        scene->addChild(builder->createBox(info, stateInfo));
     }
 
     // create the viewer and assign window(s) to it
