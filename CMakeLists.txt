@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 
 project(vsgExamples
         VERSION 0.0.0
-        DESCRIPTION "Set of example programs that test and illustrate how to use the Vulkan/VkSceneGraph"
+        DESCRIPTION "Set of example programs that test and illustrate how to use the VulkanSceneGraph"
         LANGUAGES CXX C
 )
 
