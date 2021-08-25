@@ -52,9 +52,10 @@ int main(int argc, char** argv)
     bool disk = arguments.read("--disk");
     bool quad = arguments.read("--quad");
     bool sphere = arguments.read("--sphere");
+    bool heightfield = arguments.read("--hf");
 
 
-    if (!(box || sphere || cone || capsule || quad || cylinder || disk))
+    if (!(box || sphere || cone || capsule || quad || cylinder || disk || heightfield))
     {
         box = true;
         capsule  = true;
@@ -63,11 +64,13 @@ int main(int argc, char** argv)
         disk = true;
         quad = true;
         sphere = true;
+        heightfield = true;
     }
 
     auto numVertices = arguments.value<uint32_t>(0, "-n");
 
     vsg::Path textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
+    vsg::Path displacementFile = arguments.value(vsg::Path{}, "--dm");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -97,6 +100,7 @@ int main(int argc, char** argv)
         //geomInfo.transform = vsg::rotate(0.5, 0.3, 0.3, 0.9) * vsg::scale(2.0, 3.0, 1.0);
 
         if (!textureFile.empty()) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
+        if (!displacementFile.empty()) stateInfo.displacementMap = vsg::read_cast<vsg::Data>(displacementFile, options);
 
         vsg::dbox bound;
 
@@ -181,6 +185,13 @@ int main(int argc, char** argv)
         if (capsule)
         {
             scene->addChild(builder->createCapsule(geomInfo, stateInfo));
+            bound.add(geomInfo.position);
+            geomInfo.position += geomInfo.dx * 1.5f;
+        }
+
+        if (heightfield)
+        {
+            scene->addChild(builder->createHeightField(geomInfo, stateInfo));
             bound.add(geomInfo.position);
         }
 
