@@ -28,11 +28,18 @@ public:
 
                 float intensity = 0.5f - ((r_ratio-r_offset)*(r_ratio-r_offset)) + ((c_ratio-c_offset)*(c_ratio-c_offset));
 
-                ptr->r = intensity * intensity;
-                ptr->g = intensity;
-                ptr->b = intensity;
+                if constexpr (std::is_same_v<value_type, float>)
+                {
+                    (*ptr) = intensity * intensity;
+                }
+                else
+                {
+                    ptr->r = intensity * intensity;
+                    ptr->g = intensity;
+                    ptr->b = intensity;
 
-                if constexpr (std::is_same_v<value_type, vsg::vec4>) ptr->a = 1.0f;
+                    if constexpr (std::is_same_v<value_type, vsg::vec4>) ptr->a = 1.0f;
+                }
 
                 ++ptr;
             }
@@ -40,6 +47,7 @@ public:
     }
 
     // use the vsg::Visitor to safely cast to types handled by the UpdateImage class
+    void apply(vsg::floatArray2D& image) override { update(image); }
     void apply(vsg::vec3Array2D& image) override { update(image); }
     void apply(vsg::vec4Array2D& image) override { update(image); }
 
@@ -70,8 +78,20 @@ int main(int argc, char** argv)
     }
     auto numFrames = arguments.value(-1, "-f");
     auto workgroupSize = arguments.value(32, "-w");
-    bool useRGBA = arguments.read("--rgba");
+
+    enum ArrayType
+    {
+        USE_FLOAT,
+        USE_RGB,
+        USE_RGBA
+    };
+
     bool heightfield = arguments.read("--hf");
+    ArrayType arrayType = heightfield ? USE_FLOAT : USE_RGBA;
+    if (arguments.read("--float")) arrayType = USE_FLOAT;
+    if (arguments.read("--rgb")) arrayType = USE_RGB;
+    if (arguments.read("--rgba")) arrayType = USE_RGBA;
+
     auto image_size = arguments.value<uint32_t>(256, "-s");
 
     vsg::GeometryInfo geomInfo;
@@ -118,20 +138,26 @@ int main(int argc, char** argv)
 
     // setup texture image
     vsg::ref_ptr<vsg::Data> textureData;
-    if (useRGBA)
+    switch(arrayType)
     {
-        // R, RG and RGBA data can be copied to vkImage without any conversion so is efficient, while RGB requires conversion, see below explanation
-        textureData = vsg::vec4Array2D::create(image_size, image_size);
-        textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
-    }
-    else
-    {
-        // note, RGB image data has to be converted to RGBA when copying to a vkImage,
-        // the VSG will do this automatically do the RGB to RGBA conversion for you each time the data is copied
-        // this makes RGB substantially slower than using RGBA data.
-        // one approach, illustrated in the vsgdynamictexture_cs example, for avoiding this conversion overhead is to use a compute shader to map the RGB data to RGBA.
-        textureData = vsg::vec3Array2D::create(image_size, image_size);
-        textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
+        case(USE_FLOAT):
+            // use float image - typically for displacementMap
+            textureData = vsg::floatArray2D::create(image_size, image_size);
+            textureData->getLayout().format = VK_FORMAT_R32_SFLOAT;
+            break;
+        case(USE_RGB):
+            // note, RGB image data has to be converted to RGBA when copying to a vkImage,
+            // the VSG will do this automatically do the RGB to RGBA conversion for you each time the data is copied
+            // this makes RGB substantially slower than using RGBA data.
+            // one approach, illustrated in the vsgdynamictexture_cs example, for avoiding this conversion overhead is to use a compute shader to map the RGB data to RGBA.
+            textureData = vsg::vec3Array2D::create(image_size, image_size);
+            textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
+            break;
+        case(USE_RGBA):
+            // R, RG and RGBA data can be copied to vkImage without any conversion so is efficient, while RGB requires conversion, see below explanation
+            textureData = vsg::vec4Array2D::create(image_size, image_size);
+            textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
+            break;
     }
 
     // initialize the image
