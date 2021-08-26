@@ -51,6 +51,7 @@ int main(int argc, char** argv)
     bool floatColors = !arguments.read("--ubvec4-colors");
     stateInfo.wireframe = arguments.read("--wireframe");
     stateInfo.lighting = !arguments.read("--flat");
+    stateInfo.doubleSided = arguments.read("--two-sided");
 
     arguments.read("--dx", geomInfo.dx);
     arguments.read("--dy", geomInfo.dy);
