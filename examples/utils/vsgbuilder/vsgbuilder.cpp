@@ -24,6 +24,13 @@ int main(int argc, char** argv)
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
+    vsg::GeometryInfo geomInfo;
+    geomInfo.dx.set(1.0f, 0.0f, 0.0f);
+    geomInfo.dy.set(0.0f, 1.0f, 0.0f);
+    geomInfo.dz.set(0.0f, 0.0f, 1.0f);
+
+    vsg::StateInfo stateInfo;
+
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
     auto numFrames = arguments.value(-1, "-f");
@@ -42,8 +49,12 @@ int main(int argc, char** argv)
     auto outputFilename = arguments.value<std::string>("", "-o");
 
     bool floatColors = !arguments.read("--ubvec4-colors");
-    bool wireframe = arguments.read("--wireframe");
-    bool lighting = !arguments.read("--flat");
+    stateInfo.wireframe = arguments.read("--wireframe");
+    stateInfo.lighting = !arguments.read("--flat");
+
+    arguments.read("--dx", geomInfo.dx);
+    arguments.read("--dy", geomInfo.dy);
+    arguments.read("--dz", geomInfo.dz);
 
     bool box = arguments.read("--box");
     bool capsule = arguments.read("--capsule");
@@ -53,7 +64,6 @@ int main(int argc, char** argv)
     bool quad = arguments.read("--quad");
     bool sphere = arguments.read("--sphere");
     bool heightfield = arguments.read("--hf");
-
 
     if (!(box || sphere || cone || capsule || quad || cylinder || disk || heightfield))
     {
@@ -85,19 +95,11 @@ int main(int argc, char** argv)
     double radius = 1.0;
 
     {
-        vsg::GeometryInfo geomInfo;
-        geomInfo.dx.set(1.0f, 0.0f, 0.0f);
-        geomInfo.dy.set(0.0f, 1.0f, 0.0f);
-        geomInfo.dz.set(0.0f, 0.0f, 1.0f);
-
-        vsg::StateInfo stateInfo;
-
-        stateInfo.wireframe = wireframe;
-        stateInfo.lighting = lighting;
+        radius = vsg::length(geomInfo.dx + geomInfo.dy + geomInfo.dz);
 
         //geomInfo.transform = vsg::perspective(vsg::radians(60.0f), 2.0f, 1.0f, 10.0f);
         //geomInfo.transform = vsg::inverse(vsg::perspective(vsg::radians(60.0f), 1920.0f/1080.0f, 1.0f, 100.0f)  * vsg::translate(0.0f, 0.0f, -1.0f) * vsg::scale(1.0f, 1.0f, 2.0f));
-        //geomInfo.transform = vsg::rotate(0.5, 0.3, 0.3, 0.9) * vsg::scale(2.0, 3.0, 1.0);
+        //geomInfo.transform = vsg::rotate(vsg::radians(0.0), 0.0, 0.0, 1.0);
 
         if (!textureFile.empty()) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
         if (!displacementFile.empty()) stateInfo.displacementMap = vsg::read_cast<vsg::Data>(displacementFile, options);
