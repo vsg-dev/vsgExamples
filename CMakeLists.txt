@@ -43,6 +43,14 @@ add_target_clang_format(
         ${CMAKE_SOURCE_DIR}/*/*/*/*.cpp
 )
 add_target_clobber()
+add_target_cppcheck(
+    FILES
+        examples/
+)
+add_target_docs(
+    FILES
+        examples/
+)
 add_target_uninstall()
 
 add_option_maintainer(
@@ -50,6 +58,7 @@ add_option_maintainer(
     RCLEVEL vsgExamples_RELEASE_CANDIDATE
 )
 
+add_feature_summary()
 
 # pure VSG examples
 add_subdirectory(examples/core)
