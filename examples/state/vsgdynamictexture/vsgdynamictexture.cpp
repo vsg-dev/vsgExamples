@@ -58,6 +58,7 @@ int main(int argc, char** argv)
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
     if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
+    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     arguments.read("--window", windowTraits->width, windowTraits->height);
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
@@ -72,6 +73,12 @@ int main(int argc, char** argv)
     bool useRGBA = arguments.read("--rgba");
     bool heightfield = arguments.read("--hf");
     auto image_size = arguments.value<uint32_t>(256, "-s");
+
+    vsg::GeometryInfo geomInfo;
+    vsg::StateInfo stateInfo;
+    stateInfo.wireframe = arguments.read("--wireframe");
+    stateInfo.lighting = !arguments.read("--flat");
+    stateInfo.doubleSided = true;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -135,9 +142,6 @@ int main(int argc, char** argv)
     auto scenegraph = vsg::StateGroup::create();
 
     vsg::Builder builder;
-    vsg::GeometryInfo geomInfo;
-    vsg::StateInfo stateInfo;
-    stateInfo.doubleSided = true;
 
     if (heightfield)
     {
