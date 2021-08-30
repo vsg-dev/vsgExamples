@@ -58,8 +58,6 @@ add_option_maintainer(
     RCLEVEL vsgExamples_RELEASE_CANDIDATE
 )
 
-add_feature_summary()
-
 # pure VSG examples
 add_subdirectory(examples/core)
 add_subdirectory(examples/maths)
@@ -78,3 +76,5 @@ add_subdirectory(examples/raytracing)
 add_subdirectory(examples/introspection)
 add_subdirectory(examples/platform)
 add_subdirectory(examples/utils)
+
+add_feature_summary()
