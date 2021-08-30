@@ -32,28 +32,28 @@ find_package(vsgImGui QUIET)
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
 
-setup_build_vars()
-setup_dir_vars()
+vsg_setup_build_vars()
+vsg_setup_dir_vars()
 
-add_target_clang_format(
+vsg_add_target_clang_format(
     FILES
         ${CMAKE_SOURCE_DIR}/*/*/*.h
         ${CMAKE_SOURCE_DIR}/*/*/*.cpp
         ${CMAKE_SOURCE_DIR}/*/*/*/*.h
         ${CMAKE_SOURCE_DIR}/*/*/*/*.cpp
 )
-add_target_clobber()
-add_target_cppcheck(
+vsg_add_target_clobber()
+vsg_add_target_cppcheck(
     FILES
         examples/
 )
-add_target_docs(
+vsg_add_target_docs(
     FILES
         examples/
 )
-add_target_uninstall()
+vsg_add_target_uninstall()
 
-add_option_maintainer(
+vsg_add_option_maintainer(
     PREFIX vsgExamples
     RCLEVEL vsgExamples_RELEASE_CANDIDATE
 )
@@ -77,4 +77,4 @@ add_subdirectory(examples/introspection)
 add_subdirectory(examples/platform)
 add_subdirectory(examples/utils)
 
-add_feature_summary()
+vsg_add_feature_summary()
