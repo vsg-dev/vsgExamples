@@ -9,7 +9,7 @@
 
 namespace vsg
 {
-    class VSG_DECLSPEC PerViewGraphicsPipelineState : public Inherit<GraphicsPipelineState, PerViewGraphicsPipelineState>
+    class PerViewGraphicsPipelineState : public Inherit<GraphicsPipelineState, PerViewGraphicsPipelineState>
     {
     public:
         PerViewGraphicsPipelineState() {}
