@@ -19,7 +19,7 @@ vsg::ref_ptr<DataBlocks> readDataBlocks(std::istream& fin)
     if (!fin) return {};
 
     unsigned int maxWidth = 1024;
-    unsigned int maxBlockHeight = 1024;
+    unsigned int maxBlockHeight = 8;
 
     std::vector<float> values(maxWidth);
 
@@ -90,7 +90,10 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
         for(auto& block : dataBlocks->blocks)
         {
             auto proxy_vertices = vsg::vec3Array::create(block, 4 * formatLayout.vertex, 4 * block->width(), block->height());
-            for(auto& v : *proxy_vertices) *(itr++) = v;
+            for(auto proxy_itr = proxy_vertices->begin(); proxy_itr != proxy_vertices->end() && itr != vertices->end(); ++proxy_itr, ++itr)
+            {
+                *itr = *proxy_itr;
+            }
         }
 
         std::cout<<"vertices = "<<vertices->size()<<std::endl;
@@ -105,8 +108,11 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
 
         for(auto& block : dataBlocks->blocks)
         {
-            auto proxy_vertices = vsg::vec3Array::create(block, 4 * formatLayout.normal, 4 * block->width(), block->height());
-            for(auto& v : *proxy_vertices) *(itr++) = v;
+            auto proxy_normals = vsg::vec3Array::create(block, 4 * formatLayout.normal, 4 * block->width(), block->height());
+            for(auto proxy_itr = proxy_normals->begin(); proxy_itr != proxy_normals->end() && itr != normals->end(); ++proxy_itr, ++itr)
+            {
+                *itr = *proxy_itr;
+            }
         }
 
         std::cout<<"normals = "<<normals->size()<<std::endl;
@@ -123,9 +129,10 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
         for(auto& block : dataBlocks->blocks)
         {
             auto proxy_colors = vsg::vec3Array::create(block, 4 * formatLayout.rgb, 4 * block->width(), block->height());
-            for(auto& c : *proxy_colors)
+            for(auto proxy_itr = proxy_colors->begin(); proxy_itr != proxy_colors->end() && itr != colors->end(); ++proxy_itr, ++itr)
             {
-                *(itr++) = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b), 255);
+                auto& c = *proxy_itr;
+                *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b), 255);
             }
         }
 
@@ -221,7 +228,7 @@ int main(int argc, char** argv)
     {
         std::string filename = argv[i];
         auto ext = vsg::lowerCaseFileExtension(filename);
-        if (ext != "asc" && ext != "3dc")
+        if (ext == "asc" || ext == "3dc")
         {
             formatLayout.vertex = 0;
             formatLayout.rgb = 3;
