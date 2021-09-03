@@ -132,7 +132,8 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
             for(auto proxy_itr = proxy_colors->begin(); proxy_itr != proxy_colors->end() && itr != colors->end(); ++proxy_itr, ++itr)
             {
                 auto& c = *proxy_itr;
-                *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b),static_cast<uint8_t>(c.a));
+//                *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b), static_cast<uint8_t>(c.a));
+                *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b), 255);
             }
         }
 
@@ -159,6 +160,32 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
     }
 
     return arrays;
+}
+
+vsg::ref_ptr<vsg::Data> createParticleImage(uint32_t dim)
+{
+    auto data = vsg::ubvec4Array2D::create(dim, dim);
+    data->getLayout().format = VK_FORMAT_R8G8B8A8_UNORM;
+    float div = 2.0f / static_cast<float>(dim-1);
+    float distance_at_one = 0.5f;
+    float distance_at_zero = 1.0f;
+
+    vsg::vec2 v;
+    for(uint32_t r = 0; r < dim; ++r)
+    {
+        v.y = static_cast<float>(r) * div - 1.0f;
+        for(uint32_t c = 0; c < dim; ++c)
+        {
+            v.x = static_cast<float>(c) * div - 1.0f;
+            float distance_from_center = vsg::length(v);
+            float intensity = 1.0f - (distance_from_center - distance_at_one) / (distance_at_zero - distance_at_one);
+            if (intensity > 1.0f) intensity = 1.0f;
+            if (intensity < 0.0f) intensity = 0.0f;
+            uint8_t alpha = static_cast<uint8_t>(intensity * 255);
+            data->set(c, r, vsg::ubvec4(255, 255, 255, alpha));
+        }
+    }
+    return data;
 }
 
 
@@ -209,14 +236,21 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings;
-#if 0
-    if (stateInfo.image)
+
+    // enable the point sprite code paths
+    defines.push_back("VSG_POINT_SPRITE");
+
+    vsg::ref_ptr<vsg::Data> textureData;
+    //textureData = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
+    textureData = createParticleImage(64);
+    if (textureData)
     {
+        std::cout<<"textureData = "<<textureData<<std::endl;
+
         // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
         descriptorBindings.push_back(VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
         defines.push_back("VSG_DIFFUSE_MAP");
     }
-#endif
 
     {
         descriptorBindings.push_back(VkDescriptorSetLayoutBinding{10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
@@ -241,15 +275,15 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     };
 
 
-    vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{1, sizeof(vsg::vec3), normalInputRate});
-    vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0});
+    vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{1, sizeof(vsg::vec3), normalInputRate}); // normal data
+    vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}); // normal data
 
     vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{2, 4, colorInputRate}); // color data
-    vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R8G8B8A8_UNORM, 0});                     // color data
+    vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R8G8B8A8_UNORM, 0}); // color data
 
     auto rasterState = vsg::RasterizationState::create();
 
-    bool blending = false;
+    bool blending = true;
     auto colorBlendState = vsg::ColorBlendState::create();
     colorBlendState->attachments = vsg::ColorBlendState::ColorBlendAttachments{
         {blending, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_SUBTRACT, VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}};
@@ -272,21 +306,19 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     // create texture image and associated DescriptorSets and binding
 
     vsg::Descriptors descriptors;
-#if 0
     if (textureData)
     {
-        auto sampler = Sampler::create();
+        auto sampler = vsg::Sampler::create();
         sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
-        auto texture = DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         descriptors.push_back(texture);
     }
-#endif
 
     auto mat = vsg::PhongMaterialValue::create();
-    mat->value().alphaMask = 0.0f;
-    //mat->alphaMaskCutoff = 0.0;
+    mat->value().alphaMask = 1.0f;
+    mat->value().alphaMaskCutoff = 0.99f;
 
     auto material = vsg::DescriptorBuffer::create(mat, 10);
     descriptors.push_back(material);
