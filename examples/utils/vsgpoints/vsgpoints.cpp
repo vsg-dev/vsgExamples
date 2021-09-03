@@ -28,7 +28,6 @@ vsg::ref_ptr<DataBlocks> readDataBlocks(std::istream& fin)
 
     if (numValues == 0) return {};
 
-
     auto dataBlocks = DataBlocks::create();
 
     auto current_block = vsg::floatArray2D::create(numValues, maxBlockHeight);
@@ -68,8 +67,9 @@ vsg::ref_ptr<DataBlocks> readDataBlocks(std::istream& fin)
 struct FormatLayout
 {
     int vertex = 0;
-    int rgb = -1;
     int normal = -1;
+    int rgb = -1;
+    int rgba = -1;
 };
 
 vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayout formatLayout)
@@ -119,7 +119,26 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
     }
 
 
-    if (formatLayout.rgb >= 0)
+    if (formatLayout.rgba >= 0)
+    {
+        auto colors = vsg::ubvec4Array::create(numVertices);
+        arrays.push_back(colors);
+
+        auto itr = colors->begin();
+
+        for(auto& block : dataBlocks->blocks)
+        {
+            auto proxy_colors = vsg::vec4Array::create(block, 4 * formatLayout.rgba, 4 * block->width(), block->height());
+            for(auto proxy_itr = proxy_colors->begin(); proxy_itr != proxy_colors->end() && itr != colors->end(); ++proxy_itr, ++itr)
+            {
+                auto& c = *proxy_itr;
+                *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b),static_cast<uint8_t>(c.a));
+            }
+        }
+
+        std::cout<<"rgba colours = "<<colors->size()<<std::endl;
+    }
+    else  if (formatLayout.rgb >= 0)
     {
         auto colors = vsg::ubvec4Array::create(numVertices);
         arrays.push_back(colors);
@@ -136,11 +155,152 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
             }
         }
 
-        std::cout<<"colours = "<<colors->size()<<std::endl;
+        std::cout<<"rgb colours = "<<colors->size()<<std::endl;
     }
 
     return arrays;
 }
+
+
+vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> options)
+{
+    bool lighting = true;
+    VkVertexInputRate normalInputRate = VK_VERTEX_INPUT_RATE_VERTEX; // VK_VERTEX_INPUT_RATE_INSTANCE
+    VkVertexInputRate colorInputRate = VK_VERTEX_INPUT_RATE_VERTEX; // VK_VERTEX_INPUT_RATE_INSTANCE
+
+    for(auto& path : options->paths)
+    {
+        std::cout<<"path = "<<path<<std::endl;
+    }
+
+    // load shaders
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/pointsprites.vert", options);
+    //if (!vertexShader) vertexShader = assimp_vert(); // fallback to shaders/assimp_vert.cppp
+
+    vsg::ref_ptr<vsg::ShaderStage> fragmentShader;
+    if (lighting)
+    {
+        fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp_phong.frag", options);
+        //if (!fragmentShader) fragmentShader = assimp_phong_frag();
+    }
+    else
+    {
+        fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp_flat_shaded.frag", options);
+        //if (!fragmentShader) fragmentShader = assimp_flat_shaded_frag();
+    }
+
+    if (!vertexShader || !fragmentShader)
+    {
+        std::cout << "Could not create shaders." << std::endl;
+        std::cout << "vertexShader = "<<vertexShader<<std::endl;
+        std::cout << "fragmentShader = "<<fragmentShader<<std::endl;
+
+        return {};
+    }
+
+    auto shaderHints = vsg::ShaderCompileSettings::create();
+    std::vector<std::string>& defines = shaderHints->defines;
+
+    vertexShader->module->hints = shaderHints;
+    vertexShader->module->code = {};
+
+    fragmentShader->module->hints = shaderHints;
+    fragmentShader->module->code = {};
+
+    // set up graphics pipeline
+    vsg::DescriptorSetLayoutBindings descriptorBindings;
+#if 0
+    if (stateInfo.image)
+    {
+        // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        descriptorBindings.push_back(VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+        defines.push_back("VSG_DIFFUSE_MAP");
+    }
+#endif
+
+    {
+        descriptorBindings.push_back(VkDescriptorSetLayoutBinding{10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+    }
+
+    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+    vsg::DescriptorSetLayouts descriptorSetLayouts{descriptorSetLayout};
+
+    vsg::PushConstantRanges pushConstantRanges{
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+    };
+
+    auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
+
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
+        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX},  // vertex data
+    };
+
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
+        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+    };
+
+
+    vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{1, sizeof(vsg::vec3), normalInputRate});
+    vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0});
+
+    vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{2, 4, colorInputRate}); // color data
+    vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R8G8B8A8_UNORM, 0});                     // color data
+
+    auto rasterState = vsg::RasterizationState::create();
+
+    bool blending = false;
+    auto colorBlendState = vsg::ColorBlendState::create();
+    colorBlendState->attachments = vsg::ColorBlendState::ColorBlendAttachments{
+        {blending, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_SUBTRACT, VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}};
+
+    auto inputAssemblyState = vsg::InputAssemblyState::create();
+    inputAssemblyState->topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+
+    vsg::GraphicsPipelineStates pipelineStates{
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
+        inputAssemblyState,
+        rasterState,
+        vsg::MultisampleState::create(),
+        colorBlendState,
+        vsg::DepthStencilState::create()};
+
+    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+
+    auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+
+    // create texture image and associated DescriptorSets and binding
+
+    vsg::Descriptors descriptors;
+#if 0
+    if (textureData)
+    {
+        auto sampler = Sampler::create();
+        sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+        auto texture = DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        descriptors.push_back(texture);
+    }
+#endif
+
+    auto mat = vsg::PhongMaterialValue::create();
+    mat->value().alphaMask = 0.0f;
+    //mat->alphaMaskCutoff = 0.0;
+
+    auto material = vsg::DescriptorBuffer::create(mat, 10);
+    descriptors.push_back(material);
+
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
+    auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
+
+    auto sg = vsg::StateGroup::create();
+    sg->add(bindGraphicsPipeline);
+    sg->add(bindDescriptorSets);
+
+    return sg;
+}
+
 
 vsg::ref_ptr<vsg::Node> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options, FormatLayout formatLayout)
 {
@@ -165,7 +325,14 @@ vsg::ref_ptr<vsg::Node> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::
     commands->addChild(bindVertexBuffers);
     commands->addChild(vsg::Draw::create(dataBlocks->total_rows, 1, 0, 0));
 
-    return commands;
+
+    auto sg = createStateGroup(options);
+
+    if (!sg) return commands;
+
+    sg->addChild(commands);
+
+    return sg;
 }
 
 
@@ -176,7 +343,7 @@ int main(int argc, char** argv)
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->objectCache = vsg::ObjectCache::create();
 
-#ifdef vsgXchange_allls
+#ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
@@ -230,9 +397,17 @@ int main(int argc, char** argv)
         auto ext = vsg::lowerCaseFileExtension(filename);
         if (ext == "asc" || ext == "3dc")
         {
+            // if we have 10 values per line
+#if 1
+            formatLayout.vertex = 0;
+            formatLayout.rgba = 3;
+            formatLayout.normal = 7;
+#else
+            // if we have 9 values per line
             formatLayout.vertex = 0;
             formatLayout.rgb = 3;
             formatLayout.normal = 6;
+#endif
         }
 
         auto model = read(filename, options, formatLayout);
@@ -269,7 +444,10 @@ int main(int argc, char** argv)
     vsg::ComputeBounds computeBounds;
     scene->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6 * 10.0;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6 * 3.0;
+
+    std::cout<<"centre = "<<centre<<std::endl;
+    std::cout<<"radius = "<<radius<<std::endl;
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
