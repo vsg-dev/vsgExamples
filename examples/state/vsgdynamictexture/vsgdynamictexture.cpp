@@ -68,7 +68,6 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
     auto numFrames = arguments.value(-1, "-f");
-    auto workgroupSize = arguments.value(32, "-w");
     bool useRGBA = arguments.read("--rgba");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
