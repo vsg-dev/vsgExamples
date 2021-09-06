@@ -106,7 +106,7 @@ int main(int argc, char** argv)
         std::cout << "Using a RenderGraph per View" << std::endl;
         auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
         auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
-        secondary_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
+        secondary_RenderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.2f, 1.0f}};
 
         auto commandGraph = vsg::CommandGraph::create(window);
         commandGraph->addChild(main_RenderGraph);

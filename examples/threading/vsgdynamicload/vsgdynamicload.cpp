@@ -27,9 +27,9 @@ public:
     vsg::BufferPreferences buildPreferences;
 
     DynamicLoadAndCompile(vsg::ref_ptr<vsg::Window> in_window, vsg::ref_ptr<vsg::ViewportState> in_viewport, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
+        status(in_status),
         window(in_window),
-        viewport(in_viewport),
-        status(in_status)
+        viewport(in_viewport)
     {
         loadThreads = vsg::OperationThreads::create(12, status);
         compileThreads = vsg::OperationThreads::create(1, status);
