@@ -41,9 +41,9 @@ public:
 
     void apply(vsg::StateGroup& sg) override
     {
-        for(auto& sg : sg.stateCommands)
+        for(auto& sc : sg.stateCommands)
         {
-            sg->accept(*this);
+            sc->accept(*this);
         }
     }
 
@@ -211,7 +211,6 @@ int main(int argc, char** argv)
     double eyeSeperation = 0.06;
     double screenDistance = 0.75;
     double screenWidth = 0.55;
-    double screenHorizontalResolution = 1920;
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "Anaglyphic Sterep";
@@ -293,9 +292,6 @@ int main(int argc, char** argv)
     }
 
     viewer->addWindow(window);
-
-    uint32_t width = window->extent2D().width;
-    uint32_t height = window->extent2D().height;
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
