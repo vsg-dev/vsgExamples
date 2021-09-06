@@ -141,6 +141,35 @@ int main(int argc, char** argv)
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
+        if (argc <= 1)
+        {
+            std::cout << "Please specify a 3d model on the command line." << std::endl;
+            return 1;
+        }
+
+        vsg::Path filename = arguments[1];
+        auto model = vsg::read_cast<vsg::Node>(filename, options);
+        if (!model)
+        {
+            std::cout << "Unable to load file " << filename << std::endl;
+            return 1;
+        }
+
+        // load shaders
+        vsg::Path vertexShaderFilename("shaders/clip.vert");
+        vsg::Path fragmentShaderFilename("shaders/clip.frag");
+
+        auto vertexShader = vsg::read_cast<vsg::ShaderStage>(vertexShaderFilename, options);
+        auto fragmentShader = vsg::read_cast<vsg::ShaderStage>(fragmentShaderFilename, options);
+
+        if (!vertexShader || !fragmentShader)
+        {
+            std::cout<<"Could not find shader files "<<vertexShaderFilename<<" and/or "<<fragmentShaderFilename<<std::endl;
+            std::cout<<"Please set VSG_FILE_PATH envrinmental variable to your vsgExamples/data directory."<<std::endl;
+            return 1;
+        }
+
+
         std::cout<<"windowTraits->swapchainPreferences.imageCount = "<<windowTraits->swapchainPreferences.imageCount<<std::endl;
 
 
@@ -177,15 +206,6 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        // load shaders
-        auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/clip.vert", options);
-        auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/clip.frag", options);
-
-        if (!vertexShader || !fragmentShader)
-        {
-            std::cout << "Could not create shaders." << std::endl;
-            return 1;
-        }
 
         auto shaderStages = vsg::ShaderStages{vertexShader, fragmentShader};
 
@@ -229,20 +249,6 @@ int main(int argc, char** argv)
         auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{baseTexture_descriptorSetLayout, clipSettings_descriptorSetLayout}, pushConstantRanges);
         auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
 
-        if (argc <= 1)
-        {
-            std::cout << "Please specify a 3d model on the command line." << std::endl;
-            return 1;
-        }
-
-        vsg::Path filename = arguments[1];
-        auto model = vsg::read_cast<vsg::Node>(filename, options);
-        if (!model)
-        {
-            std::cout << "Unable to load file " << filename << std::endl;
-            return 1;
-        }
-
         // replace the GraphicsPipeline in the loaded scene graph with the one created for clipping.
         auto replaceState = ReplaceState::create(graphicsPipeline);
         model->accept(*replaceState);
@@ -270,7 +276,6 @@ int main(int argc, char** argv)
             // allocate output storage buffer
             VkDeviceSize bufferSize = sizeof(vsg::vec4) * 1;
             auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            auto bufferMemory = buffer->getDeviceMemory(device->deviceID);
 
             bufferInfo.buffer = buffer;
             bufferInfo.offset = 0;
