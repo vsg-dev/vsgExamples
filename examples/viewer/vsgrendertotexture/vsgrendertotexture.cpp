@@ -120,7 +120,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     VkAttachmentReference depthReference = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
     vsg::RenderPass::Subpasses subpassDescription(1);
     subpassDescription[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription[0].colorAttachments.emplace_back(VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+    subpassDescription[0].colorAttachments.emplace_back(colorReference);
     subpassDescription[0].depthStencilAttachments.emplace_back(depthReference);
 
     vsg::RenderPass::Dependencies dependencies(2);

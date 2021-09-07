@@ -71,11 +71,6 @@ int main(int argc, char** argv)
         viewer->addWindow(window);
 
         // load shaders
-
-        const uint32_t shaderIndexRaygen = 0;
-        const uint32_t shaderIndexMiss = 1;
-        const uint32_t shaderIndexClosestHit = 2;
-
 #if 1
         auto raygenShader = vsg::read_cast<vsg::ShaderStage>("shaders/simple_raygen.rgen", options);
         auto missShader = vsg::read_cast<vsg::ShaderStage>("shaders/simple_miss.rmiss", options);
