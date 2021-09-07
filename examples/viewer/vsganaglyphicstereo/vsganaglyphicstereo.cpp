@@ -41,9 +41,9 @@ public:
 
     void apply(vsg::StateGroup& sg) override
     {
-        for(auto& sg : sg.stateCommands)
+        for(auto& sc : sg.stateCommands)
         {
-            sg->accept(*this);
+            sc->accept(*this);
         }
     }
 
@@ -211,7 +211,6 @@ int main(int argc, char** argv)
     double eyeSeperation = 0.06;
     double screenDistance = 0.75;
     double screenWidth = 0.55;
-    double screenHorizontalResolution = 1920;
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "Anaglyphic Sterep";
@@ -294,9 +293,6 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    uint32_t width = window->extent2D().width;
-    uint32_t height = window->extent2D().height;
-
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     vsg_scene->accept(computeBounds);
@@ -345,7 +341,9 @@ int main(int argc, char** argv)
     renderGraph->addChild(left_view);
 
     // clear the depth buffer before view2 gets rendered
-    VkClearAttachment depth_attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, VkClearValue{1.0f, 0.0f}};
+    VkClearValue clearValue{};
+    clearValue.depthStencil = {1.0f, 0};
+    VkClearAttachment depth_attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, clearValue};
     VkClearRect rect{right_camera->getRenderArea(), 0, 1};
     auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{depth_attachment}, vsg::ClearAttachments::Rects{rect});
     renderGraph->addChild(clearAttachments);

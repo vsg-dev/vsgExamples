@@ -77,7 +77,6 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
     auto numFrames = arguments.value(-1, "-f");
-    auto workgroupSize = arguments.value(32, "-w");
 
     enum ArrayType
     {

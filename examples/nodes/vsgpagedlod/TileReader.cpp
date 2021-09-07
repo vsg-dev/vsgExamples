@@ -114,7 +114,6 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
         }
     }
 
-    uint32_t maxLevel = 20;
     uint32_t estimatedNumOfTilesBelow = 0;
     uint32_t maxNumTilesBelow = 40000;
 

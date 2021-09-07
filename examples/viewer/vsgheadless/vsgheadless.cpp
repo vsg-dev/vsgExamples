@@ -239,16 +239,11 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     auto width = extent.width;
     auto height = extent.height;
 
-    auto physicalDevice = device->getPhysicalDevice();
-
-    VkFormat targetImageFormat = sourceImageFormat;
-
     auto memoryRequirements = sourceImage->getMemoryRequirements(device->deviceID);
 
     // 1. create buffer to copy to.
     VkDeviceSize bufferSize = memoryRequirements.size;
     auto destinationBuffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-    auto destinationMemory = destinationBuffer->getDeviceMemory(device->deviceID);
 
     VkImageAspectFlags imageAspectFlags = vsg::computeAspectFlagsForFormat(sourceImageFormat);
 
@@ -288,7 +283,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     // 2.b) copy image to buffer
     {
         VkBufferImageCopy region{};
-        region.bufferOffset;
+        region.bufferOffset = 0;
         region.bufferRowLength = width; // need to figure out actual row length from somewhere...
         region.bufferImageHeight = height;
         region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
