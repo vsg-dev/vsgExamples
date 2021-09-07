@@ -173,7 +173,6 @@ int main(int argc, char** argv)
     arguments.read("--display", windowTraits->display);
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(), "-p");
-    auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
     auto powerWall = arguments.read({"--power-wall", "--pw"});
     auto sharedScene = !arguments.read({"--no-shared"});
@@ -265,8 +264,8 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(master_camera, animationPath, viewer->start_point()));
     }
 
-    int numScreens = screensToUse.size();
-    for (int i = 0; i < screensToUse.size(); ++i)
+    size_t numScreens = screensToUse.size();
+    for (size_t i = 0; i < screensToUse.size(); ++i)
     {
         int screenNum = screensToUse[i];
 
