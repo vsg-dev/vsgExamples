@@ -245,7 +245,7 @@ int main(int argc, char** argv)
             }
             else if (auto data = object.cast<vsg::Data>(); data)
             {
-                if (auto textureGeometry = createTextureQuad(data, mipmapLevelsHint); node)
+                if (auto textureGeometry = createTextureQuad(data, mipmapLevelsHint); textureGeometry)
                 {
                     group->addChild(textureGeometry);
                 }
