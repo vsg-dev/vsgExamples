@@ -26,5 +26,5 @@ void main()
     // copy the vec3 texel from the source array to the final image and expand to vec4 by setting the alpha to 1.0.
     uint index = (column + row * WIDTH)*3;
     vec4 color = vec4(source[index], source[index+1], source[index+2], 1.0);
-    imageStore(destination, ivec2(row, column), color);
+    imageStore(destination, ivec2(column, row), color);
 }
