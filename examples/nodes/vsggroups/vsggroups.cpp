@@ -303,17 +303,17 @@ int main(int argc, char** argv)
         if (!inputFilename.empty())
             std::cout << "read time : " << std::chrono::duration<double>(after_construction - start).count() << std::endl;
         else
-            std::cout << "construcion time : " << std::chrono::duration<double>(after_construction - start).count() << std::endl;
+            std::cout << "construction time : " << std::chrono::duration<double>(after_construction - start).count() << std::endl;
         std::cout << "traversal time : " << std::chrono::duration<double>(after_traversal - after_construction).count() << std::endl;
 
         if (!outputFilename.empty()) std::cout << "write time : " << std::chrono::duration<double>(after_write - after_traversal).count() << std::endl;
-        std::cout << "destrucion time : " << std::chrono::duration<double>(after_destruction - after_write).count() << std::endl;
+        std::cout << "destruction time : " << std::chrono::duration<double>(after_destruction - after_write).count() << std::endl;
 
         std::cout << "total time : " << std::chrono::duration<double>(after_destruction - start).count() << std::endl;
         std::cout << std::endl;
         std::cout << "Nodes constructed per second : " << double(numNodes) / std::chrono::duration<double>(after_construction - start).count() << std::endl;
         std::cout << "Nodes visited per second     : " << double(numNodesVisited) / std::chrono::duration<double>(after_traversal - after_construction).count() << std::endl;
-        std::cout << "Nodes destrctored per second : " << double(numNodes) / std::chrono::duration<double>(after_destruction - after_traversal).count() << std::endl;
+        std::cout << "Nodes destructed per second : " << double(numNodes) / std::chrono::duration<double>(after_destruction - after_traversal).count() << std::endl;
     }
 
     return 0;

@@ -9,7 +9,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO realted options to use when reading and writing files.
+    // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -62,10 +62,10 @@ int main(int argc, char** argv)
         auto instance = window->getOrCreateInstance();
         auto surface = window->getOrCreateSurface();
 
-        // create a vk/vsg::PhysicalDevice, prefer descrete GPU over integrated GPUs when they area available.
+        // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they area available.
         auto physicalDevice = instance->getPhysicalDevice(windowTraits->queueFlags, surface, {VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU});
 
-        std::cout<<"Ceated our own vsg::PhysicalDevice "<<physicalDevice<<std::endl;
+        std::cout<<"Created our own vsg::PhysicalDevice "<<physicalDevice<<std::endl;
 
         window->setPhysicalDevice(physicalDevice);
     }
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}, vsg::QueueSetting{presentFamily, {1.0}}};
         auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, windowTraits->deviceFeatures, instance->getAllocationCallbacks());
 
-        std::cout<<"Ceated our own vsg::Device "<<device<<std::endl;
+        std::cout<<"Created our own vsg::Device "<<device<<std::endl;
 
         window->setDevice(device);
     }

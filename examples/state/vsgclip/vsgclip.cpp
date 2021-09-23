@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO realted options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -165,7 +165,7 @@ int main(int argc, char** argv)
         if (!vertexShader || !fragmentShader)
         {
             std::cout<<"Could not find shader files "<<vertexShaderFilename<<" and/or "<<fragmentShaderFilename<<std::endl;
-            std::cout<<"Please set VSG_FILE_PATH envrinmental variable to your vsgExamples/data directory."<<std::endl;
+            std::cout<<"Please set VSG_FILE_PATH environmental variable to your vsgExamples/data directory."<<std::endl;
             return 1;
         }
 
@@ -223,7 +223,7 @@ int main(int argc, char** argv)
         auto clipSettings_descriptorSetLayout = vsg::DescriptorSetLayout::create(clipSettings_descriptorBindings);
 
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -335,7 +335,7 @@ int main(int argc, char** argv)
         viewer->addEventHandler(interesectionHandler);
         interesectionHandler->world_ClipSetttings = worldClipSettings;
 
-        // add trackbal to control the Camera
+        // add trackball to control the Camera
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
         auto renderGraph = vsg::createRenderGraphForView(window, camera, vsg_scene);
@@ -395,7 +395,7 @@ int main(int argc, char** argv)
 
             if (useStagingBuffer)
             {
-                // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
+                // copy data to staging buffer and issue a copy command to transfer to the GPU texture image
                 copyBufferCmd->copy(eyeClipSettings, bufferInfo);
             }
             else

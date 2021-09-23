@@ -43,7 +43,7 @@ public:
     void apply(vsg::vec3Array2D& image) override { update(image); }
     void apply(vsg::vec4Array2D& image) override { update(image); }
 
-    // provide convinient way to invoke the UpdateImage as a functor
+    // provide convenient way to invoke the UpdateImage as a functor
     void operator() (vsg::Data* image, double v) { value = v; image->accept(*this); }
 };
 
@@ -146,7 +146,7 @@ int main(int argc, char** argv)
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -344,7 +344,7 @@ int main(int argc, char** argv)
         // update texture data
         updateImage(textureData, time);
 
-        // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
+        // copy data to staging buffer and issue a copy command to transfer to the GPU texture image
         copyBufferCmd->copy(textureData, bufferInfo);
 
         viewer->update();

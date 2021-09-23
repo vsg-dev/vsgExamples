@@ -113,11 +113,11 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     destinationImage->bind(deviceMemory, 0);
 
     //
-    // 3) create command buffer and submit to graphcis queue
+    // 3) create command buffer and submit to graphics queue
     //
     auto commands = vsg::Commands::create();
 
-    // 3.a) tranisistion destinationImage to transfer destination initialLayout
+    // 3.a) transition destinationImage to transfer destination initialLayout
     auto transitionDestinationImageToDestinationLayoutBarrier = vsg::ImageMemoryBarrier::create(
         0,                                                             // srcAccessMask
         VK_ACCESS_TRANSFER_WRITE_BIT,                                  // dstAccessMask
@@ -197,7 +197,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
         commands->addChild(copyImage);
     }
 
-    // 3.d) tranisition destinate image from transder destination layout to general laytout to enable mapping to image DeviceMemory
+    // 3.d) transition destinate image from transfer destination layout to general layout to enable mapping to image DeviceMemory
     auto transitionDestinationImageToMemoryReadBarrier = vsg::ImageMemoryBarrier::create(
         VK_ACCESS_TRANSFER_WRITE_BIT,                                  // srcAccessMask
         VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
@@ -209,7 +209,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
         VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1} // subresourceRange
     );
 
-    // 3.e) transition sawp chain image back to present
+    // 3.e) transition swap chain image back to present
     auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
         VK_ACCESS_TRANSFER_READ_BIT,                                   // srcAccessMask
         VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
@@ -247,7 +247,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
 
     VkImageAspectFlags imageAspectFlags = vsg::computeAspectFlagsForFormat(sourceImageFormat);
 
-    // 2.a) tranition depth image for reading
+    // 2.a) transition depth image for reading
     auto commands = vsg::Commands::create();
 
     auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
@@ -300,7 +300,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
         commands->addChild(copyImage);
     }
 
-    // 2.c) transition dpeth image back for rendering
+    // 2.c) transition depth image back for rendering
     auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
         VK_ACCESS_TRANSFER_READ_BIT,                                                                // srcAccessMask
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, // dstAccessMask
@@ -340,7 +340,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(v
     auto colorAttachmet = vsg::defaultColorAttachment(imageFormat);
     auto depthAttachment = vsg::defaultDepthAttachment(depthFormat);
 
-    // by deault storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
+    // by default storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
     vsg::RenderPass::Attachments attachments{colorAttachmet, depthAttachment};
@@ -477,7 +477,7 @@ int main(int argc, char** argv)
 
     renderGraph->addChild(vsg::View::create(camera, vsg_scene));
 
-    // create supoort for copying the color buffer
+    // create support for copying the color buffer
     auto [colorBufferCapture, copiedColorBuffer] = createColorCapture(device, extent, colorImageView->image, imageFormat);
     auto [depthBufferCapture, copiedDepthBuffer] = createDepthCapture(device, extent, depthImageView->image, depthFormat);
 
