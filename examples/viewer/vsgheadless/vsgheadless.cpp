@@ -515,14 +515,14 @@ int main(int argc, char** argv)
     {
         std::cout << "Frame " << viewer->getFrameStamp()->frameCount << std::endl;
 
-        if (resizeCadence && ((numFrames+resizeCadence)%resizeCadence == 0))
+        if (resizeCadence && ((numFrames + resizeCadence) % resizeCadence == 0))
         {
             viewer->deviceWaitIdle();
 
             extent.width /= 2;
             extent.height /= 2;
 
-            std::cout<<"Resized to "<<extent.width<<", "<<extent.height<<std::endl;
+            std::cout << "Resized to " << extent.width << ", " << extent.height << std::endl;
 
             colorImageView = createColorImageView(device, extent, imageFormat);
             depthImageView = createDepthImageView(device, extent, depthFormat);
@@ -537,9 +537,8 @@ int main(int argc, char** argv)
 
             renderGraph->framebuffer = framebuffer;
 
-            auto replace_child = [](vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement)
-            {
-                for(auto& child : group->children)
+            auto replace_child = [](vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement) {
+                for (auto& child : group->children)
                 {
                     if (child == previous) child = replacement;
                 }

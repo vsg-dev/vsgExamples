@@ -6,7 +6,6 @@
 
 #include <iostream>
 
-
 // use a static handle that is initialized once at start up to avoid multi-threaded issues associated with calling std::locale::classic().
 struct DataBlocks : public vsg::Inherit<vsg::Object, DataBlocks>
 {
@@ -24,7 +23,7 @@ vsg::ref_ptr<DataBlocks> readDataBlocks(std::istream& fin)
     std::vector<float> values(maxWidth);
 
     uint32_t numValues = 0;
-    while(fin && (numValues = vsg::read_line(fin, values.data(), maxWidth)) == 0) {}
+    while (fin && (numValues = vsg::read_line(fin, values.data(), maxWidth)) == 0) {}
 
     if (numValues == 0) return {};
 
@@ -37,7 +36,7 @@ vsg::ref_ptr<DataBlocks> readDataBlocks(std::istream& fin)
     unsigned int current_row = 0;
 
     // copy across already read first row
-    for(uint32_t c = 0; c < numValues; ++c)
+    for (uint32_t c = 0; c < numValues; ++c)
     {
         current_block->set(c, current_row, values[c]);
     }
@@ -45,7 +44,7 @@ vsg::ref_ptr<DataBlocks> readDataBlocks(std::istream& fin)
     ++current_row;
     ++(dataBlocks->total_rows);
 
-    while(fin)
+    while (fin)
     {
         if (current_row >= current_block->height())
         {
@@ -74,7 +73,7 @@ struct FormatLayout
 
 vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayout formatLayout)
 {
-    std::cout<<"blocks.size() = "<<dataBlocks->blocks.size()<<", numVertices = "<<dataBlocks->total_rows<<std::endl;
+    std::cout << "blocks.size() = " << dataBlocks->blocks.size() << ", numVertices = " << dataBlocks->total_rows << std::endl;
 
     vsg::DataList arrays;
 
@@ -87,16 +86,16 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
 
         auto itr = vertices->begin();
 
-        for(auto& block : dataBlocks->blocks)
+        for (auto& block : dataBlocks->blocks)
         {
             auto proxy_vertices = vsg::vec3Array::create(block, 4 * formatLayout.vertex, 4 * block->width(), block->height());
-            for(auto proxy_itr = proxy_vertices->begin(); proxy_itr != proxy_vertices->end() && itr != vertices->end(); ++proxy_itr, ++itr)
+            for (auto proxy_itr = proxy_vertices->begin(); proxy_itr != proxy_vertices->end() && itr != vertices->end(); ++proxy_itr, ++itr)
             {
                 *itr = *proxy_itr;
             }
         }
 
-        std::cout<<"vertices = "<<vertices->size()<<std::endl;
+        std::cout << "vertices = " << vertices->size() << std::endl;
     }
 
     if (formatLayout.normal >= 0)
@@ -106,18 +105,17 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
 
         auto itr = normals->begin();
 
-        for(auto& block : dataBlocks->blocks)
+        for (auto& block : dataBlocks->blocks)
         {
             auto proxy_normals = vsg::vec3Array::create(block, 4 * formatLayout.normal, 4 * block->width(), block->height());
-            for(auto proxy_itr = proxy_normals->begin(); proxy_itr != proxy_normals->end() && itr != normals->end(); ++proxy_itr, ++itr)
+            for (auto proxy_itr = proxy_normals->begin(); proxy_itr != proxy_normals->end() && itr != normals->end(); ++proxy_itr, ++itr)
             {
                 *itr = *proxy_itr;
             }
         }
 
-        std::cout<<"normals = "<<normals->size()<<std::endl;
+        std::cout << "normals = " << normals->size() << std::endl;
     }
-
 
     if (formatLayout.rgba >= 0)
     {
@@ -126,37 +124,37 @@ vsg::DataList combineDataBlocks(vsg::ref_ptr<DataBlocks> dataBlocks, FormatLayou
 
         auto itr = colors->begin();
 
-        for(auto& block : dataBlocks->blocks)
+        for (auto& block : dataBlocks->blocks)
         {
             auto proxy_colors = vsg::vec4Array::create(block, 4 * formatLayout.rgba, 4 * block->width(), block->height());
-            for(auto proxy_itr = proxy_colors->begin(); proxy_itr != proxy_colors->end() && itr != colors->end(); ++proxy_itr, ++itr)
+            for (auto proxy_itr = proxy_colors->begin(); proxy_itr != proxy_colors->end() && itr != colors->end(); ++proxy_itr, ++itr)
             {
                 auto& c = *proxy_itr;
-//                *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b), static_cast<uint8_t>(c.a));
+                //                *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b), static_cast<uint8_t>(c.a));
                 *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b), 255);
             }
         }
 
-        std::cout<<"rgba colours = "<<colors->size()<<std::endl;
+        std::cout << "rgba colours = " << colors->size() << std::endl;
     }
-    else  if (formatLayout.rgb >= 0)
+    else if (formatLayout.rgb >= 0)
     {
         auto colors = vsg::ubvec4Array::create(numVertices);
         arrays.push_back(colors);
 
         auto itr = colors->begin();
 
-        for(auto& block : dataBlocks->blocks)
+        for (auto& block : dataBlocks->blocks)
         {
             auto proxy_colors = vsg::vec3Array::create(block, 4 * formatLayout.rgb, 4 * block->width(), block->height());
-            for(auto proxy_itr = proxy_colors->begin(); proxy_itr != proxy_colors->end() && itr != colors->end(); ++proxy_itr, ++itr)
+            for (auto proxy_itr = proxy_colors->begin(); proxy_itr != proxy_colors->end() && itr != colors->end(); ++proxy_itr, ++itr)
             {
                 auto& c = *proxy_itr;
                 *itr = vsg::ubvec4(static_cast<uint8_t>(c.r), static_cast<uint8_t>(c.g), static_cast<uint8_t>(c.b), 255);
             }
         }
 
-        std::cout<<"rgb colours = "<<colors->size()<<std::endl;
+        std::cout << "rgb colours = " << colors->size() << std::endl;
     }
 
     return arrays;
@@ -166,15 +164,15 @@ vsg::ref_ptr<vsg::Data> createParticleImage(uint32_t dim)
 {
     auto data = vsg::ubvec4Array2D::create(dim, dim);
     data->getLayout().format = VK_FORMAT_R8G8B8A8_UNORM;
-    float div = 2.0f / static_cast<float>(dim-1);
+    float div = 2.0f / static_cast<float>(dim - 1);
     float distance_at_one = 0.5f;
     float distance_at_zero = 1.0f;
 
     vsg::vec2 v;
-    for(uint32_t r = 0; r < dim; ++r)
+    for (uint32_t r = 0; r < dim; ++r)
     {
         v.y = static_cast<float>(r) * div - 1.0f;
-        for(uint32_t c = 0; c < dim; ++c)
+        for (uint32_t c = 0; c < dim; ++c)
         {
             v.x = static_cast<float>(c) * div - 1.0f;
             float distance_from_center = vsg::length(v);
@@ -188,16 +186,15 @@ vsg::ref_ptr<vsg::Data> createParticleImage(uint32_t dim)
     return data;
 }
 
-
 vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> options)
 {
     bool lighting = true;
     VkVertexInputRate normalInputRate = VK_VERTEX_INPUT_RATE_VERTEX; // VK_VERTEX_INPUT_RATE_INSTANCE
-    VkVertexInputRate colorInputRate = VK_VERTEX_INPUT_RATE_VERTEX; // VK_VERTEX_INPUT_RATE_INSTANCE
+    VkVertexInputRate colorInputRate = VK_VERTEX_INPUT_RATE_VERTEX;  // VK_VERTEX_INPUT_RATE_INSTANCE
 
-    for(auto& path : options->paths)
+    for (auto& path : options->paths)
     {
-        std::cout<<"path = "<<path<<std::endl;
+        std::cout << "path = " << path << std::endl;
     }
 
     // load shaders
@@ -219,8 +216,8 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     if (!vertexShader || !fragmentShader)
     {
         std::cout << "Could not create shaders." << std::endl;
-        std::cout << "vertexShader = "<<vertexShader<<std::endl;
-        std::cout << "fragmentShader = "<<fragmentShader<<std::endl;
+        std::cout << "vertexShader = " << vertexShader << std::endl;
+        std::cout << "fragmentShader = " << fragmentShader << std::endl;
 
         return {};
     }
@@ -245,7 +242,7 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     textureData = createParticleImage(64);
     if (textureData)
     {
-        std::cout<<"textureData = "<<textureData<<std::endl;
+        std::cout << "textureData = " << textureData << std::endl;
 
         // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
         descriptorBindings.push_back(VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
@@ -267,18 +264,17 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX},  // vertex data
+        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
     };
 
     vsg::VertexInputState::Attributes vertexAttributeDescriptions{
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
     };
 
-
-    vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{1, sizeof(vsg::vec3), normalInputRate}); // normal data
+    vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{1, sizeof(vsg::vec3), normalInputRate});  // normal data
     vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}); // normal data
 
-    vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{2, 4, colorInputRate}); // color data
+    vertexBindingsDescriptions.push_back(VkVertexInputBindingDescription{2, 4, colorInputRate});                 // color data
     vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R8G8B8A8_UNORM, 0}); // color data
 
     auto rasterState = vsg::RasterizationState::create();
@@ -333,19 +329,18 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     return sg;
 }
 
-
 vsg::ref_ptr<vsg::Node> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options, FormatLayout formatLayout)
 {
     vsg::Path filenameToUse = vsg::findFile(filename, options);
     if (filenameToUse.empty()) return {};
 
     std::ifstream fin(filenameToUse.c_str());
-    if (!fin) return { };
+    if (!fin) return {};
 
     fin.imbue(std::locale::classic());
 
     auto dataBlocks = readDataBlocks(fin);
-    if (!dataBlocks || dataBlocks->total_rows==0) return {};
+    if (!dataBlocks || dataBlocks->total_rows == 0) return {};
 
     auto arrays = combineDataBlocks(dataBlocks, formatLayout);
     if (arrays.empty()) return {};
@@ -357,7 +352,6 @@ vsg::ref_ptr<vsg::Node> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::
     commands->addChild(bindVertexBuffers);
     commands->addChild(vsg::Draw::create(dataBlocks->total_rows, 1, 0, 0));
 
-
     auto sg = createStateGroup(options);
 
     if (!sg) return commands;
@@ -366,7 +360,6 @@ vsg::ref_ptr<vsg::Node> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::
 
     return sg;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -423,7 +416,7 @@ int main(int argc, char** argv)
 
     auto scene = vsg::Group::create();
 
-    for(int i=1; i<argc; ++i)
+    for (int i = 1; i < argc; ++i)
     {
         std::string filename = argv[i];
         auto ext = vsg::lowerCaseFileExtension(filename);
@@ -443,13 +436,13 @@ int main(int argc, char** argv)
         }
 
         auto model = read(filename, options, formatLayout);
-        std::cout<<"model = "<<filename<<" "<<model<<std::endl;
+        std::cout << "model = " << filename << " " << model << std::endl;
         if (model) scene->addChild(model);
     }
 
     if (scene->children.empty())
     {
-        std::cout<<"No scene graph created."<<std::endl;
+        std::cout << "No scene graph created." << std::endl;
         return 1;
     }
 
@@ -478,8 +471,8 @@ int main(int argc, char** argv)
     vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6 * 3.0;
 
-    std::cout<<"centre = "<<centre<<std::endl;
-    std::cout<<"radius = "<<radius<<std::endl;
+    std::cout << "centre = " << centre << std::endl;
+    std::cout << "radius = " << radius << std::endl;
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -523,7 +516,7 @@ int main(int argc, char** argv)
     auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
     if (numFramesCompleted > 0.0)
     {
-        std::cout<<"Average frame rate = "<<(numFramesCompleted / duration)<<std::endl;
+        std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
     }
 
     return 0;

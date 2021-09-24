@@ -147,12 +147,10 @@ vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int
     numNodes += 1;
     numBytes += sizeof(vsg::QuadGroup);
 
-    t->children = {{
-        createFixedQuadTree(numLevels, numNodes, numBytes),
-        createFixedQuadTree(numLevels, numNodes, numBytes),
-        createFixedQuadTree(numLevels, numNodes, numBytes),
-        createFixedQuadTree(numLevels, numNodes, numBytes)
-    }};
+    t->children = {{createFixedQuadTree(numLevels, numNodes, numBytes),
+                    createFixedQuadTree(numLevels, numNodes, numBytes),
+                    createFixedQuadTree(numLevels, numNodes, numBytes),
+                    createFixedQuadTree(numLevels, numNodes, numBytes)}};
 
     return t;
 }

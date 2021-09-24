@@ -1,11 +1,9 @@
 #include <iostream>
 #include <vsg/all.h>
 
-
 class UpdateImage : public vsg::Visitor
 {
 public:
-
     double value = 0.0;
 
     template<class A>
@@ -13,10 +11,10 @@ public:
     {
         using value_type = typename A::value_type;
         float r_mult = 1.0f / static_cast<float>(image.height() - 1);
-        float r_offset = 0.5f + sin(value)*0.25f;
+        float r_offset = 0.5f + sin(value) * 0.25f;
 
         float c_mult = 1.0f / static_cast<float>(image.width() - 1);
-        float c_offset = 0.5f + cos(value)*0.25f;
+        float c_offset = 0.5f + cos(value) * 0.25f;
 
         for (size_t r = 0; r < image.height(); ++r)
         {
@@ -26,7 +24,7 @@ public:
             {
                 float c_ratio = static_cast<float>(c) * c_mult;
 
-                float intensity = 0.5f - ((r_ratio-r_offset)*(r_ratio-r_offset)) + ((c_ratio-c_offset)*(c_ratio-c_offset));
+                float intensity = 0.5f - ((r_ratio - r_offset) * (r_ratio - r_offset)) + ((c_ratio - c_offset) * (c_ratio - c_offset));
 
                 if constexpr (std::is_same_v<value_type, float>)
                 {
@@ -52,7 +50,11 @@ public:
     void apply(vsg::vec4Array2D& image) override { update(image); }
 
     // provide convenient way to invoke the UpdateImage as a functor
-    void operator() (vsg::Data* image, double v) { value = v; image->accept(*this); }
+    void operator()(vsg::Data* image, double v)
+    {
+        value = v;
+        image->accept(*this);
+    }
 };
 
 int main(int argc, char** argv)
@@ -134,29 +136,28 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(camera));
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-
     // setup texture image
     vsg::ref_ptr<vsg::Data> textureData;
-    switch(arrayType)
+    switch (arrayType)
     {
-        case(USE_FLOAT):
-            // use float image - typically for displacementMap
-            textureData = vsg::floatArray2D::create(image_size, image_size);
-            textureData->getLayout().format = VK_FORMAT_R32_SFLOAT;
-            break;
-        case(USE_RGB):
-            // note, RGB image data has to be converted to RGBA when copying to a vkImage,
-            // the VSG will do this automatically do the RGB to RGBA conversion for you each time the data is copied
-            // this makes RGB substantially slower than using RGBA data.
-            // one approach, illustrated in the vsgdynamictexture_cs example, for avoiding this conversion overhead is to use a compute shader to map the RGB data to RGBA.
-            textureData = vsg::vec3Array2D::create(image_size, image_size);
-            textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
-            break;
-        case(USE_RGBA):
-            // R, RG and RGBA data can be copied to vkImage without any conversion so is efficient, while RGB requires conversion, see below explanation
-            textureData = vsg::vec4Array2D::create(image_size, image_size);
-            textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
-            break;
+    case (USE_FLOAT):
+        // use float image - typically for displacementMap
+        textureData = vsg::floatArray2D::create(image_size, image_size);
+        textureData->getLayout().format = VK_FORMAT_R32_SFLOAT;
+        break;
+    case (USE_RGB):
+        // note, RGB image data has to be converted to RGBA when copying to a vkImage,
+        // the VSG will do this automatically do the RGB to RGBA conversion for you each time the data is copied
+        // this makes RGB substantially slower than using RGBA data.
+        // one approach, illustrated in the vsgdynamictexture_cs example, for avoiding this conversion overhead is to use a compute shader to map the RGB data to RGBA.
+        textureData = vsg::vec3Array2D::create(image_size, image_size);
+        textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
+        break;
+    case (USE_RGBA):
+        // R, RG and RGBA data can be copied to vkImage without any conversion so is efficient, while RGB requires conversion, see below explanation
+        textureData = vsg::vec4Array2D::create(image_size, image_size);
+        textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        break;
     }
 
     // initialize the image
@@ -181,7 +182,6 @@ int main(int argc, char** argv)
         scenegraph->addChild(builder.createBox(geomInfo, stateInfo));
     }
 
-
     auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
     vsg::ref_ptr<vsg::CopyAndReleaseImage> copyImageCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
 
@@ -203,7 +203,8 @@ int main(int argc, char** argv)
     {
         vsg::ImageInfo& imageInfo;
 
-        FindDescriptorImage(vsg::ImageInfo& im) : imageInfo(im) {}
+        FindDescriptorImage(vsg::ImageInfo& im) :
+            imageInfo(im) {}
 
         void apply(vsg::Object& object) override
         {
@@ -211,7 +212,7 @@ int main(int argc, char** argv)
         }
         void apply(vsg::StateGroup& sg) override
         {
-            for(auto& sc : sg.stateCommands) { sc->accept(*this); }
+            for (auto& sc : sg.stateCommands) { sc->accept(*this); }
             sg.traverse(*this);
         }
         void apply(vsg::DescriptorImage& di) override
@@ -224,7 +225,7 @@ int main(int argc, char** argv)
 
     if (!textureImageInfo.imageView)
     {
-        std::cout<<"Can not locate imageInfo to update."<<std::endl;
+        std::cout << "Can not locate imageInfo to update." << std::endl;
         return 1;
     }
 
@@ -257,7 +258,7 @@ int main(int argc, char** argv)
     auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
     if (numFramesCompleted > 0.0)
     {
-        std::cout<<"Average frame rate = "<<(numFramesCompleted / duration)<<std::endl;
+        std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
     }
 
     // clean up done automatically thanks to ref_ptr<>

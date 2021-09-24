@@ -29,10 +29,10 @@ int main(int argc, char** argv)
 
         auto options = vsg::Options::create();
         options->paths = searchPaths;
-    #ifdef vsgXchange_all
+#ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
-    #endif
+#endif
 
         auto windowTraits = vsg::WindowTraits::create();
         windowTraits->windowTitle = "vsgraytracing";
@@ -58,8 +58,7 @@ int main(int argc, char** argv)
         windowTraits->deviceExtensionNames = {
             VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
             VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-            VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
-        };
+            VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
 
         auto window = vsg::Window::create(windowTraits);
         if (!window)
@@ -126,8 +125,8 @@ int main(int argc, char** argv)
             // set up vertex and index arrays
             auto vertices = vsg::vec3Array::create(
                 {{-1.0f, -1.0f, 0.0f},
-                {1.0f, -1.0f, 0.0f},
-                {0.0f, 1.0f, 0.0f}});
+                 {1.0f, -1.0f, 0.0f},
+                 {0.0f, 1.0f, 0.0f}});
 
             auto indices = vsg::uintArray::create(
                 {0, 1, 2});
@@ -286,5 +285,4 @@ int main(int argc, char** argv)
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;
-
 }

@@ -51,11 +51,10 @@ int main(int argc, char** argv)
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
         arguments.read("--file-cache", options->fileCache);
-        bool osgEarthStyleMouseButtons = arguments.read({"--osgearth","-e"});
+        bool osgEarthStyleMouseButtons = arguments.read({"--osgearth", "-e"});
 
         uint32_t numOperationThreads = 0;
         if (arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
-
 
         if (arguments.read("--osm"))
         {
@@ -252,12 +251,10 @@ int main(int argc, char** argv)
 
         {
             std::scoped_lock<std::mutex> lock(tileReader->statsMutex);
-            std::cout<<"numOperationThreads = "<<numOperationThreads<<std::endl;
-            std::cout<<"numTilesRead = "<<tileReader->numTilesRead<<std::endl;
-            std::cout<<"average TimeReadingTiles = "<<(tileReader->totalTimeReadingTiles / static_cast<double>(tileReader->numTilesRead))<<std::endl;
+            std::cout << "numOperationThreads = " << numOperationThreads << std::endl;
+            std::cout << "numTilesRead = " << tileReader->numTilesRead << std::endl;
+            std::cout << "average TimeReadingTiles = " << (tileReader->totalTimeReadingTiles / static_cast<double>(tileReader->numTilesRead)) << std::endl;
         }
-
-
     }
     catch (const vsg::Exception& ve)
     {

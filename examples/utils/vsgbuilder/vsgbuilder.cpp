@@ -69,7 +69,7 @@ int main(int argc, char** argv)
     if (!(box || sphere || cone || capsule || quad || cylinder || disk || heightfield))
     {
         box = true;
-        capsule  = true;
+        capsule = true;
         cone = true;
         cylinder = true;
         disk = true;
@@ -107,26 +107,26 @@ int main(int argc, char** argv)
 
         vsg::dbox bound;
 
-        if (numVertices>0)
+        if (numVertices > 0)
         {
             stateInfo.instancce_positions_vec3 = true;
 
             float w = std::pow(float(numVertices), 0.33f) * 2.0f;
             geomInfo.positions = vsg::vec3Array::create(numVertices);
-            for(auto& v : *(geomInfo.positions))
+            for (auto& v : *(geomInfo.positions))
             {
                 v.set(w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
                       w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
                       w * (float(std::rand()) / float(RAND_MAX) - 0.5f));
             }
 
-            radius += (0.5 * sqrt(3.0) * w) ;
+            radius += (0.5 * sqrt(3.0) * w);
 
             if (floatColors)
             {
                 auto colors = vsg::vec4Array::create(geomInfo.positions->size());
                 geomInfo.colors = colors;
-                for(auto& c : *(colors))
+                for (auto& c : *(colors))
                 {
                     c.set(float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), 1.0f);
                 }
@@ -135,12 +135,11 @@ int main(int argc, char** argv)
             {
                 auto colors = vsg::ubvec4Array::create(geomInfo.positions->size());
                 geomInfo.colors = colors;
-                for(auto& c : *(colors))
+                for (auto& c : *(colors))
                 {
                     c.set(uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), 255);
                 }
             }
-
         }
 
         if (box)
@@ -272,7 +271,7 @@ int main(int argc, char** argv)
     auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
     if (numFramesCompleted > 0.0)
     {
-        std::cout<<"Average frame rate = "<<(numFramesCompleted / duration)<<std::endl;
+        std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
     }
 
     return 0;

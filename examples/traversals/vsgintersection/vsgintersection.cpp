@@ -67,7 +67,6 @@ public:
             {
                 scenegraph->addChild(builder->createCone(info));
             }
-
         }
     }
 
