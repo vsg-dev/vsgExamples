@@ -137,7 +137,7 @@ int main(int argc, char** argv)
             accelGeometry->verts = vertices;
             accelGeometry->indices = indices;
 
-            // create bottom level acceleration structure using accel geom
+            // create bottom level acceleration structure using acceleration geom
             auto blas = vsg::BottomLevelAccelerationStructure::create(device);
             blas->geometries.push_back(accelGeometry);
 
@@ -206,7 +206,7 @@ int main(int argc, char** argv)
 
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-        // create DescriptorSets and binding to bind our TopLevelAcceleration structure, storage image and camra matrix uniforms
+        // create DescriptorSets and binding to bind our TopLevelAcceleration structure, storage image and camera matrix uniforms
         auto accelDescriptor = vsg::DescriptorAccelerationStructure::create(vsg::AccelerationStructures{tlas}, 0, 0);
 
         auto storageImageDescriptor = vsg::DescriptorImage::create(storageImageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
         auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor});
         auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, raytracingPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
 
-        // state group to bind the pipeline and descriptorset
+        // state group to bind the pipeline and descriptor set
         auto scenegraph = vsg::Commands::create();
         scenegraph->addChild(bindRayTracingPipeline);
         scenegraph->addChild(bindDescriptorSets);

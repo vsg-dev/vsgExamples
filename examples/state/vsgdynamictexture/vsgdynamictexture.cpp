@@ -51,7 +51,7 @@ public:
     void apply(vsg::vec3Array2D& image) override { update(image); }
     void apply(vsg::vec4Array2D& image) override { update(image); }
 
-    // provide convinient way to invoke the UpdateImage as a functor
+    // provide convenient way to invoke the UpdateImage as a functor
     void operator() (vsg::Data* image, double v) { value = v; image->accept(*this); }
 };
 
@@ -242,7 +242,7 @@ int main(int argc, char** argv)
         // update texture data
         updateImage(textureData, time);
 
-        // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
+        // copy data to staging buffer and issue a copy command to transfer to the GPU texture image
         copyImageCmd->copy(textureData, textureImageInfo);
 
         viewer->update();

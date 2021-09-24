@@ -124,7 +124,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::vec3& origin, const vsg::ve
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
     double screenWidth = 0.55;
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "Anaglyphic Sterep";
+    windowTraits->windowTitle = "Anaglyphic Stereo";
     windowTraits->fullscreen = true;
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
@@ -277,7 +277,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // ColorBlendState needs to be overriden per View, so remove existing instances in the scene graph
+    // ColorBlendState needs to be overridden per View, so remove existing instances in the scene graph
     ReplaceColorBlendState removeColorBlendState;
     vsg_scene->accept(removeColorBlendState);
 
@@ -316,7 +316,7 @@ int main(int argc, char** argv)
     }
 
     auto master_camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-    double shear = (eyeSeperation/screenWidth) * 0.8; // quick hack to get convergance roughly conincident with the trackball center.
+    double shear = (eyeSeperation/screenWidth) * 0.8; // quick hack to get convergence roughly coincident with the trackball center.
 
     // create the left eye camera
     auto left_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(-shear, 0.0, 0.0));

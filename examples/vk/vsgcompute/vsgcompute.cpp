@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
-    // get the physical device that suports the required compute queue
+    // get the physical device that supports the required compute queue
     auto instance = vsg::Instance::create(instanceExtensions, validatedNames);
     auto [physicalDevice, computeQueueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_COMPUTE_BIT);
     if (!physicalDevice || computeQueueFamily < 0)

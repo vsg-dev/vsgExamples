@@ -91,7 +91,7 @@ public:
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
-        if (verbose) std::cout << "interesection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
+        if (verbose) std::cout << "intersection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
 
         if (intersector->intersections.empty()) return;
 
@@ -264,7 +264,7 @@ int main(int argc, char** argv)
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from wtihin the IntersectionHandler
+    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from within the IntersectionHandler
     builder->setup(window, camera->viewportState);
 
     // add close handler to respond the close window button and pressing escape

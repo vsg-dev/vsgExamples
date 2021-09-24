@@ -13,7 +13,7 @@ int main(int argc, char** argv)
         vsg::CommandLine arguments(&argc, argv);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgmmeshshader";
+        windowTraits->windowTitle = "vsgmeshshader";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
@@ -113,7 +113,7 @@ int main(int argc, char** argv)
         auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, shaderStages, pipelineStates);
         auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
-        // state group to bind the pipeline and descriptorset
+        // state group to bind the pipeline and descriptor set
         auto scenegraph = vsg::Commands::create();
         scenegraph->addChild(bindGraphicsPipeline);
 
