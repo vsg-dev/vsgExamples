@@ -106,7 +106,7 @@ int main(int argc, char** argv)
         std::cout << "Using a RenderGraph per View" << std::endl;
         auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
         auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
-        secondary_RenderGraph->clearValues[0].color = {0.2f, 0.2f, 0.2f, 1.0f};
+        secondary_RenderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.2f, 1.0f}};
 
         auto commandGraph = vsg::CommandGraph::create(window);
         commandGraph->addChild(main_RenderGraph);
@@ -122,8 +122,15 @@ int main(int argc, char** argv)
         renderGraph->addChild(main_view);
 
         // clear the depth buffer before view2 gets rendered
-        VkClearAttachment color_attachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, VkClearValue{0.2f, 0.2f, 0.2f, 1.0f}};
-        VkClearAttachment depth_attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, VkClearValue{1.0f, 0.0f}};
+
+        VkClearValue colorClearValue{};
+        colorClearValue.color = {{0.2f, 0.2f, 0.2f, 1.0f}};
+        VkClearAttachment color_attachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, colorClearValue};
+
+        VkClearValue depthClearValue{};
+        depthClearValue.depthStencil = {1.0f, 0};
+        VkClearAttachment depth_attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, depthClearValue};
+
         VkClearRect rect{secondary_camera->getRenderArea(), 0, 1};
         auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{color_attachment, depth_attachment}, vsg::ClearAttachments::Rects{rect, rect});
         renderGraph->addChild(clearAttachments);

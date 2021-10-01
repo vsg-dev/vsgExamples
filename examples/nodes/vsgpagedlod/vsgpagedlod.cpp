@@ -48,15 +48,13 @@ int main(int argc, char** argv)
         auto pathFilename = arguments.value(std::string(), "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-        auto mipmapLevelsHint = arguments.value<uint32_t>(0, {"--mipmapLevels", "--mml"});
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
         arguments.read("--file-cache", options->fileCache);
-        bool osgEarthStyleMouseButtons = arguments.read({"--osgearth","-e"});
+        bool osgEarthStyleMouseButtons = arguments.read({"--osgearth", "-e"});
 
         uint32_t numOperationThreads = 0;
         if (arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
-
 
         if (arguments.read("--osm"))
         {
@@ -135,7 +133,7 @@ int main(int argc, char** argv)
                 auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF({poi_latitude, poi_longitude, 0.0});
                 auto ecef_normal = vsg::normalize(ecef);
 
-                vsg::dvec3 centre = ecef;
+                centre = ecef;
                 vsg::dvec3 eye = centre + ecef_normal * height;
                 vsg::dvec3 up = vsg::normalize(vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal)));
 
@@ -253,12 +251,10 @@ int main(int argc, char** argv)
 
         {
             std::scoped_lock<std::mutex> lock(tileReader->statsMutex);
-            std::cout<<"numOperationThreads = "<<numOperationThreads<<std::endl;
-            std::cout<<"numTilesRead = "<<tileReader->numTilesRead<<std::endl;
-            std::cout<<"average TimeReadingTiles = "<<(tileReader->totalTimeReadingTiles / static_cast<double>(tileReader->numTilesRead))<<std::endl;
+            std::cout << "numOperationThreads = " << numOperationThreads << std::endl;
+            std::cout << "numTilesRead = " << tileReader->numTilesRead << std::endl;
+            std::cout << "average TimeReadingTiles = " << (tileReader->totalTimeReadingTiles / static_cast<double>(tileReader->numTilesRead)) << std::endl;
         }
-
-
     }
     catch (const vsg::Exception& ve)
     {

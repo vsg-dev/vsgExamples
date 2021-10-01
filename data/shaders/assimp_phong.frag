@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWOSIDED)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWOSIDED)
 
 #ifdef VSG_DIFFUSE_MAP
 layout(binding = 0) uniform sampler2D diffuseMap;
@@ -38,10 +38,12 @@ layout(binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
-layout(location = 0) in vec3 worldPos;
+layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
 layout(location = 2) in vec4 vertexColor;
+#ifndef VSG_POINT_SPRITE
 layout(location = 3) in vec2 texCoord0;
+#endif
 layout(location = 5) in vec3 viewDir;
 layout(location = 6) in vec3 lightDir;
 
@@ -57,8 +59,8 @@ vec3 getNormal()
 
     //tangentNormal *= vec3(2,2,1);
 
-    vec3 q1 = dFdx(worldPos);
-    vec3 q2 = dFdy(worldPos);
+    vec3 q1 = dFdx(eyePos);
+    vec3 q2 = dFdy(eyePos);
     vec2 st1 = dFdx(texCoord0);
     vec2 st2 = dFdy(texCoord0);
 
@@ -95,6 +97,10 @@ vec3 computeLighting(vec3 ambientColor, vec3 diffuseColor, vec3 specularColor, v
 
 void main()
 {
+#ifdef VSG_POINT_SPRITE
+    vec2 texCoord0 = gl_PointCoord.xy;
+#endif
+
     vec4 ambientColor = vertexColor * material.ambientColor;
     vec4 diffuseColor = vertexColor * material.diffuseColor;
     vec4 specularColor = vertexColor * material.specularColor;

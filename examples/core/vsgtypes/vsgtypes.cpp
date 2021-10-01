@@ -133,7 +133,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << "(vsg::radians(x))=" << (vsg::radians(x)) << std::endl;
 
     auto matrix = vsg::rotate(vsg::radians(90.0), 0.0, 0.0, 1.0);
-    std::cout << "matix = " << matrix << std::endl;
+    std::cout << "matrix = " << matrix << std::endl;
 
     constexpr vsg::dvec3 v = vsg::dvec3(1.0, 0.0, 0.0);
     auto matrix2 = vsg::rotate(vsg::radians(45.0), v);

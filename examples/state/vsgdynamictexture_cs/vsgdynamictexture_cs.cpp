@@ -1,11 +1,9 @@
 #include <iostream>
 #include <vsg/all.h>
 
-
 class UpdateImage : public vsg::Visitor
 {
 public:
-
     double value = 0.0;
 
     template<class A>
@@ -13,10 +11,10 @@ public:
     {
         using value_type = typename A::value_type;
         float r_mult = 1.0f / static_cast<float>(image.height() - 1);
-        float r_offset = 0.5f + sin(value)*0.25f;
+        float r_offset = 0.5f + sin(value) * 0.25f;
 
         float c_mult = 1.0f / static_cast<float>(image.width() - 1);
-        float c_offset = 0.5f + cos(value)*0.25f;
+        float c_offset = 0.5f + cos(value) * 0.25f;
 
         for (size_t r = 0; r < image.height(); ++r)
         {
@@ -26,7 +24,7 @@ public:
             {
                 float c_ratio = static_cast<float>(c) * c_mult;
 
-                float intensity = 0.5f - ((r_ratio-r_offset)*(r_ratio-r_offset)) + ((c_ratio-c_offset)*(c_ratio-c_offset));
+                float intensity = 0.5f - ((r_ratio - r_offset) * (r_ratio - r_offset)) + ((c_ratio - c_offset) * (c_ratio - c_offset));
 
                 ptr->r = intensity * intensity;
                 ptr->g = intensity;
@@ -43,8 +41,12 @@ public:
     void apply(vsg::vec3Array2D& image) override { update(image); }
     void apply(vsg::vec4Array2D& image) override { update(image); }
 
-    // provide convinient way to invoke the UpdateImage as a functor
-    void operator() (vsg::Data* image, double v) { value = v; image->accept(*this); }
+    // provide convenient way to invoke the UpdateImage as a functor
+    void operator()(vsg::Data* image, double v)
+    {
+        value = v;
+        image->accept(*this);
+    }
 };
 
 int main(int argc, char** argv)
@@ -109,11 +111,9 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(camera));
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-
     // setup texture image
     vsg::ref_ptr<vsg::Data> textureData = vsg::vec3Array2D::create(256, 256);
     textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
-
 
     // initialize the image
     UpdateImage updateImage;
@@ -145,7 +145,7 @@ int main(int argc, char** argv)
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -188,31 +188,31 @@ int main(int argc, char** argv)
         // set up vertex and index arrays
         auto vertices = vsg::vec3Array::create(
             {{-0.5f, -0.5f, 0.0f},
-            {0.5f, -0.5f, 0.0f},
-            {0.5f, 0.5f, 0.0f},
-            {-0.5f, 0.5f, 0.0f},
-            {-0.5f, -0.5f, -0.5f},
-            {0.5f, -0.5f, -0.5f},
-            {0.5f, 0.5f, -0.5f},
-            {-0.5f, 0.5f, -0.5f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+             {0.5f, -0.5f, 0.0f},
+             {0.5f, 0.5f, 0.0f},
+             {-0.5f, 0.5f, 0.0f},
+             {-0.5f, -0.5f, -0.5f},
+             {0.5f, -0.5f, -0.5f},
+             {0.5f, 0.5f, -0.5f},
+             {-0.5f, 0.5f, -0.5f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
         auto colors = vsg::vec3Array::create(vertices->size(), vsg::vec3(1.0f, 1.0f, 1.0f));
 
         auto texcoords = vsg::vec2Array::create(
             {{0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f},
-            {0.0f, 1.0f},
-            {0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f},
-            {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+             {1.0f, 0.0f},
+             {1.0f, 1.0f},
+             {0.0f, 1.0f},
+             {0.0f, 0.0f},
+             {1.0f, 0.0f},
+             {1.0f, 1.0f},
+             {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
         auto indices = vsg::ushortArray::create(
             {0, 1, 2,
-            2, 3, 0,
-            4, 5, 6,
-            6, 7, 4}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+             2, 3, 0,
+             4, 5, 6,
+             6, 7, 4}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
         // setup geometry
         auto drawCommands = vsg::Commands::create();
@@ -223,7 +223,6 @@ int main(int argc, char** argv)
         // add drawCommands to transform
         transform->addChild(drawCommands);
     }
-
 
     auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
     vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
@@ -266,12 +265,11 @@ int main(int argc, char** argv)
         auto sourceBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo::create(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         auto writeTexture = vsg::DescriptorImage::create(imageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
-        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout},vsg::PushConstantRanges{});
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
 
         vsg::Descriptors descriptors{
             sourceBuffer,
-            writeTexture
-        };
+            writeTexture};
         auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
 
@@ -344,7 +342,7 @@ int main(int argc, char** argv)
         // update texture data
         updateImage(textureData, time);
 
-        // copy data to staging buffer and isse a copy command to transfer to the GPU texture image
+        // copy data to staging buffer and issue a copy command to transfer to the GPU texture image
         copyBufferCmd->copy(textureData, bufferInfo);
 
         viewer->update();
@@ -359,7 +357,7 @@ int main(int argc, char** argv)
     auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
     if (numFramesCompleted > 0.0)
     {
-        std::cout<<"Average frame rate = "<<(numFramesCompleted / duration)<<std::endl;
+        std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
     }
 
     // clean up done automatically thanks to ref_ptr<>

@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     vsg::VertexInputState::Attributes vertexAttributeDescriptions{
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
         VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0}    // tex coord data
+        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0}     // tex coord data
     };
 
     vsg::GraphicsPipelineStates pipelineStates{

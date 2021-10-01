@@ -43,7 +43,7 @@ vsg::ref_ptr<vsg::Node> createScene(std::string filename)
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -173,7 +173,6 @@ int main(int argc, char** argv)
     arguments.read("--display", windowTraits->display);
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(), "-p");
-    auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
     auto powerWall = arguments.read({"--power-wall", "--pw"});
     auto sharedScene = !arguments.read({"--no-shared"});
@@ -193,7 +192,7 @@ int main(int argc, char** argv)
     if (screensToUse.size() > vsg::Device::maxNumDevices())
     {
         std::cout << "VulkanSceneGraph built with VSG_MAX_DEVICES = " << VSG_MAX_DEVICES << ", "
-                  << "which is unsufficient to handle the number of screens desired.\n"
+                  << "which is insufficient to handle the number of screens desired.\n"
                   << "Please rebuild the VulkanSceneGraph with set VSG_MAX_DEVICES, via CMake, to the required size." << std::endl;
         return 1;
     }
@@ -265,8 +264,8 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(master_camera, animationPath, viewer->start_point()));
     }
 
-    int numScreens = screensToUse.size();
-    for (int i = 0; i < screensToUse.size(); ++i)
+    size_t numScreens = screensToUse.size();
+    for (size_t i = 0; i < screensToUse.size(); ++i)
     {
         int screenNum = screensToUse[i];
 

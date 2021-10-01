@@ -6,7 +6,6 @@
 
 #include <iostream>
 
-
 class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
 {
 public:
@@ -20,11 +19,11 @@ public:
 
     IntersectionHandler(vsg::ref_ptr<vsg::Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale, vsg::ref_ptr<vsg::Options> in_options) :
         builder(in_builder),
+        options(in_options),
         camera(in_camera),
         scenegraph(in_scenegraph),
         ellipsoidModel(in_ellipsoidModel),
-        scale(in_scale),
-        options(in_options)
+        scale(in_scale)
     {
         if (scale > 10.0) scale = 10.0;
     }
@@ -68,7 +67,6 @@ public:
             {
                 scenegraph->addChild(builder->createCone(info));
             }
-
         }
     }
 
@@ -92,7 +90,7 @@ public:
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
-        if (verbose) std::cout << "interesection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
+        if (verbose) std::cout << "intersection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
 
         if (intersector->intersections.empty()) return;
 
@@ -220,9 +218,7 @@ int main(int argc, char** argv)
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     scene->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-
     if (pointOfInterest[2] != std::numeric_limits<double>::max())
     {
         if (ellipsoidModel)
@@ -235,7 +231,7 @@ int main(int argc, char** argv)
             vsg::dvec3 up = vsg::normalize(vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal)));
 
             // set up the camera
-            lookAt = vsg::LookAt::create(eye, centre, up);
+            lookAt = vsg::LookAt::create(eye, ecef, up);
         }
         else
         {
@@ -250,6 +246,7 @@ int main(int argc, char** argv)
     else
     {
         // set up the camera
+        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
         lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
     }
 
@@ -266,7 +263,7 @@ int main(int argc, char** argv)
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from wtihin the IntersectionHandler
+    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from within the IntersectionHandler
     builder->setup(window, camera->viewportState);
 
     // add close handler to respond the close window button and pressing escape
