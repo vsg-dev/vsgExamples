@@ -267,10 +267,10 @@ int main(int argc, char** argv)
     clampToEdge_sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     clampToEdge_sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
-    vsg::SamplerImages baseTextures;
+    vsg::ImageInfoList baseTextures;
     for (auto textureData : textureDataList)
     {
-        baseTextures.emplace_back(vsg::SamplerImage{clampToEdge_sampler, textureData});
+        baseTextures.push_back(vsg::ImageInfo::create(clampToEdge_sampler, textureData));
     }
 
     auto hf_sampler = vsg::Sampler::create();
@@ -282,10 +282,10 @@ int main(int argc, char** argv)
     hf_sampler->maxAnisotropy = 1;
     hf_sampler->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 
-    vsg::SamplerImages hfTextures;
+    vsg::ImageInfoList hfTextures;
     for (auto hfData : heightFieldDataList)
     {
-        hfTextures.emplace_back(vsg::SamplerImage{hf_sampler, hfData});
+        hfTextures.push_back(vsg::ImageInfo::create(hf_sampler, hfData));
     }
 
     auto heightFieldDescriptorImage = vsg::DescriptorImage::create(hfTextures, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
