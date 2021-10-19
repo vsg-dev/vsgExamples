@@ -7,55 +7,13 @@
 #include <vsg/maths/vec3.h>
 #include <vsg/ui/ApplicationEvent.h>
 #include <vsg/ui/KeyEvent.h>
+#include <vsg/utils/AnimationPath.h>
 #include <vsg/viewer/Camera.h>
 
 #include <map>
 
 namespace vsg
 {
-
-    class AnimationPath : public Object
-    {
-    public:
-        AnimationPath();
-
-        void read(std::istream& fin);
-
-#if 0
-        void read(Input& input) override;
-        void write(Output& output) override;
-#endif
-
-        struct ControlPoint
-        {
-            ControlPoint() :
-                position(0.0, 0.0, 0.0),
-                rotation(0.0, 0.0, 0.0, 1.0),
-                scale(1.0, 1.0, 1.0) {}
-
-            ControlPoint(const dvec3& p, const dquat& r) :
-                position(p),
-                rotation(r),
-                scale(1.0, 1.0, 1.0) {}
-
-            ControlPoint(const dvec3& p, const dquat& r, const dvec3& s) :
-                position(p),
-                rotation(r),
-                scale(s) {}
-
-            dvec3 position;
-            dquat rotation;
-            dvec3 scale;
-        };
-
-        double getPeriod() const { return timeControlPointMap.empty() ? 0.0 : (timeControlPointMap.rbegin()->first - timeControlPointMap.begin()->first); }
-
-        bool getMatrix(double time, dmat4& matrix) const;
-
-        using TimeControlPointMap = std::map<double, ControlPoint>;
-        TimeControlPointMap timeControlPointMap;
-    };
-
     class AnimationPathHandler : public Inherit<Visitor, AnimationPathHandler>
     {
     public:

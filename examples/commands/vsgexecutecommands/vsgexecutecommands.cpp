@@ -1,5 +1,3 @@
-#include <vsg/all.h>
-
 /* <editor-fold desc="MIT License">
 
 Copyright(c) 2020 Julien Valentin & Robert Osfield
@@ -11,6 +9,8 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 </editor-fold> */
+
+#include <vsg/all.h>
 
 #include "../../shared/AnimationPath.h"
 
@@ -262,16 +262,12 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::ifstream in(pathFilename);
-        if (!in)
+        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename);
+        if (!animationPath)
         {
-            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
+            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
             return 1;
         }
-
-        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
-        animationPath->read(in);
-
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
