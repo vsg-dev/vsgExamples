@@ -51,10 +51,7 @@ void AnimationPathHandler::apply(FrameEvent& frame)
         _frameCount = 0;
     }
 
-    auto cp = _path->computeLocation(time);
-    auto matrix = translate(cp.position) * mat4_cast(cp.orientation);
-
-    _lookAt->set(matrix);
+    _lookAt->set(_path->computeMatrix(time));
 
     ++_frameCount;
 }
