@@ -26,6 +26,7 @@
 //
 
 #if defined(_WIN32) && !defined(__CYGWIN__)
+#    define NOMINMAX
 #    include <winsock.h>
 #else
 #    include <netinet/in.h>

@@ -55,6 +55,7 @@
 #    include <sys/sockio.h>
 #    include <unistd.h>
 #elif defined(WIN32)
+#    define NOMINMAX
 #    include <stdio.h>
 #    include <winsock.h>
 #elif defined(__hpux)

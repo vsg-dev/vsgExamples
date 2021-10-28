@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #if defined(_WIN32) && !defined(__CYGWIN__)
+#    define NOMINMAX
 #    include <winsock.h>
 #else
 #    include <arpa/inet.h>
@@ -149,7 +150,7 @@ unsigned int Receiver::recieve(void* buffer, const unsigned int buffer_size)
         int err = WSAGetLastError();
         if (err == WSAETIMEDOUT)
         {
-            OSG_INFO << "Receiver::sync() : Connection timed out." << std::endl;
+            std::cout << "Receiver::sync() : Connection timed out." << std::endl;
             return 0;
         }
 

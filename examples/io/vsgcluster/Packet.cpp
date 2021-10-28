@@ -119,7 +119,7 @@ void PacketBroadcaster::broadcast(uint64_t set, vsg::ref_ptr<vsg::Object> object
         Packet& ref = *packet.second;
         ref.header.set = set;
         std::size_t size = sizeof(Packet::Header) + ref.header.packetSize;
-        broadcaster->broadcast(&ref, size);
+        broadcaster->broadcast(&ref, static_cast<unsigned int>(size));
     }
 }
 
