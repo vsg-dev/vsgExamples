@@ -6,19 +6,23 @@
 
 #include <iostream>
 
-#include "Builder.h"
-
 class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
 {
 public:
-    vsg::ref_ptr<Builder> builder;
+    vsg::GeometryInfo geom;
+    vsg::StateInfo state;
+
+    vsg::ref_ptr<vsg::Builder> builder;
+    vsg::ref_ptr<vsg::Options> options;
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::Group> scenegraph;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
-    double scale;
+    double scale = 1.0;
+    bool verbose = false;
 
-    IntersectionHandler(vsg::ref_ptr<Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale) :
+    IntersectionHandler(vsg::ref_ptr<vsg::Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale, vsg::ref_ptr<vsg::Options> in_options) :
         builder(in_builder),
+        options(in_options),
         camera(in_camera),
         scenegraph(in_scenegraph),
         ellipsoidModel(in_ellipsoidModel),
@@ -29,17 +33,39 @@ public:
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
-        if (keyPress.keyBase == 'i' && lastPointerEvent)
+        if (lastPointerEvent)
         {
             interesection(*lastPointerEvent);
+            if (!lastIntersection) return;
 
-            if (lastIntersection)
+            geom.position = vsg::vec3(lastIntersection.worldIntersection);
+            geom.dx.set(scale, 0.0f, 0.0f);
+            geom.dy.set(0.0f, scale, 0.0f);
+            geom.dz.set(0.0f, 0.0f, scale);
+
+            if (keyPress.keyBase == 'b')
             {
-                std::cout << "inserting at = " << lastIntersection.worldIntersection << " ";
-                GeometryInfo info;
-                info.dimensions.set(scale, scale, scale);
-                info.position = vsg::vec3(lastIntersection.worldIntersection) - info.dimensions * 0.5f;
-                scenegraph->addChild(builder->createBox(info));
+                scenegraph->addChild(builder->createBox(geom, state));
+            }
+            else if (keyPress.keyBase == 'q')
+            {
+                scenegraph->addChild(builder->createQuad(geom, state));
+            }
+            else if (keyPress.keyBase == 'c')
+            {
+                scenegraph->addChild(builder->createCylinder(geom, state));
+            }
+            else if (keyPress.keyBase == 'p')
+            {
+                scenegraph->addChild(builder->createCapsule(geom, state));
+            }
+            else if (keyPress.keyBase == 's')
+            {
+                scenegraph->addChild(builder->createSphere(geom, state));
+            }
+            else if (keyPress.keyBase == 'n')
+            {
+                scenegraph->addChild(builder->createCone(geom, state));
             }
         }
     }
@@ -64,47 +90,50 @@ public:
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
-        std::cout << "interesection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
+        if (verbose) std::cout << "intersection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
 
         if (intersector->intersections.empty()) return;
 
         // sort the intersectors front to back
         std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto lhs, auto rhs) { return lhs.ratio < rhs.ratio; });
 
-        std::cout << std::endl;
         for (auto& intersection : intersector->intersections)
         {
-            std::cout << "intersection = " << intersection.worldIntersection << " ";
+            if (verbose) std::cout << "intersection = " << intersection.worldIntersection << " ";
+
             if (ellipsoidModel)
             {
                 std::cout.precision(10);
                 auto location = ellipsoidModel->convertECEFToLatLongAltitude(intersection.worldIntersection);
-                std::cout << " lat = " << location[0] << ", long = " << location[1] << ", height = " << location[2];
+                if (verbose) std::cout << " lat = " << location[0] << ", long = " << location[1] << ", height = " << location[2];
             }
 
             if (lastIntersection)
             {
-                std::cout << ", distance from previous intersection = " << vsg::length(intersection.worldIntersection - lastIntersection.worldIntersection);
+                if (verbose) std::cout << ", distance from previous intersection = " << vsg::length(intersection.worldIntersection - lastIntersection.worldIntersection);
             }
 
-            for (auto& node : intersection.nodePath)
+            if (verbose)
             {
-                std::cout << ", " << node->className();
-            }
+                for (auto& node : intersection.nodePath)
+                {
+                    std::cout << ", " << node->className();
+                }
 
-            std::cout << ", Arrays[ ";
-            for (auto& array : intersection.arrays)
-            {
-                std::cout << array << " ";
-            }
-            std::cout << "] [";
-            for (auto& ir : intersection.indexRatios)
-            {
-                std::cout << "{" << ir.index << ", " << ir.ratio << "} ";
-            }
-            std::cout << "]";
+                std::cout << ", Arrays[ ";
+                for (auto& array : intersection.arrays)
+                {
+                    std::cout << array << " ";
+                }
+                std::cout << "] [";
+                for (auto& ir : intersection.indexRatios)
+                {
+                    std::cout << "{" << ir.index << ", " << ir.ratio << "} ";
+                }
+                std::cout << "]";
 
-            std::cout << std::endl;
+                std::cout << std::endl;
+            }
         }
 
         lastIntersection = intersector->intersections.front();
@@ -119,10 +148,14 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+    options->objectCache = vsg::ObjectCache::create();
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsginteresction";
 
-    auto builder = Builder::create();
+    auto builder = vsg::Builder::create();
+    builder->options = options;
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -132,11 +165,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-
-    if (arguments.read("--draw")) builder->geometryType = Builder::DRAW_COMMANDS;
-    if (arguments.read("--draw-indexed")) builder->geometryType = Builder::DRAW_INDEXED_COMMANDS;
-    if (arguments.read({"--geometry", "--geom"})) builder->geometryType = Builder::GEOMETRY;
-    if (arguments.read("--vid")) builder->geometryType = Builder::VERTEX_INDEX_DRAW;
+    vsg::Path textureFile = arguments.value<std::string>("", "-t");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -144,8 +173,6 @@ int main(int argc, char** argv)
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
-
-    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     auto scene = vsg::Group::create();
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
@@ -161,15 +188,20 @@ int main(int argc, char** argv)
         }
     }
 
-    if (scene->getNumChildren() == 0)
+    vsg::StateInfo stateInfo;
+
+    if (!textureFile.empty())
     {
-        GeometryInfo info;
-        info.dimensions.set(100.f, 100.0f, 100.0f);
+        stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
+    }
 
-        vsg::Path textureFile("textures/lz.vsgb");
-        info.image = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));
-
-        scene->addChild(builder->createBox(info));
+    if (scene->children.empty())
+    {
+        vsg::GeometryInfo info;
+        info.dx.set(100.0f, 0.0f, 0.0f);
+        info.dy.set(0.0f, 100.0f, 0.0f);
+        info.dz.set(0.0f, 0.0f, 100.0f);
+        scene->addChild(builder->createBox(info, stateInfo));
     }
 
     // create the viewer and assign window(s) to it
@@ -189,9 +221,7 @@ int main(int argc, char** argv)
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     scene->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-
     if (pointOfInterest[2] != std::numeric_limits<double>::max())
     {
         if (ellipsoidModel)
@@ -204,7 +234,7 @@ int main(int argc, char** argv)
             vsg::dvec3 up = vsg::normalize(vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal)));
 
             // set up the camera
-            lookAt = vsg::LookAt::create(eye, centre, up);
+            lookAt = vsg::LookAt::create(eye, ecef, up);
         }
         else
         {
@@ -219,6 +249,7 @@ int main(int argc, char** argv)
     else
     {
         // set up the camera
+        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
         lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
     }
 
@@ -235,15 +266,17 @@ int main(int argc, char** argv)
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from wtihin the IntersectionHandler
-    builder->setup(window, camera->getViewportState());
+    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from within the IntersectionHandler
+    builder->setup(window, camera->viewportState);
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene, ellipsoidModel, radius * 0.1));
+    auto intersectionHandler = IntersectionHandler::create(builder, camera, scene, ellipsoidModel, radius * 0.1, options);
+    intersectionHandler->state = stateInfo;
+    viewer->addEventHandler(intersectionHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});

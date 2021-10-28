@@ -1,5 +1,3 @@
-#include <vsg/all.h>
-
 /* <editor-fold desc="MIT License">
 
 Copyright(c) 2020 Julien Valentin & Robert Osfield
@@ -12,7 +10,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
-#include "../../shared/AnimationPath.h"
+#include <vsg/all.h>
 
 #include <iostream>
 
@@ -52,7 +50,7 @@ vsg::ref_ptr<vsg::Node> createScene(std::string filename)
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -262,16 +260,12 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::ifstream in(pathFilename);
-        if (!in)
+        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename);
+        if (!animationPath)
         {
-            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
+            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
             return 1;
         }
-
-        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
-        animationPath->read(in);
-
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 

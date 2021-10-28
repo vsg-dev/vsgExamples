@@ -1,2 +1,1 @@
-add_subdirectory(vsgraytracing)
 add_subdirectory(vsgmeshshader)

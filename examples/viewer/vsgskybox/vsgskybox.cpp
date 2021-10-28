@@ -31,7 +31,7 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -189,7 +189,6 @@ int main(int argc, char** argv)
     arguments.read("--samples", windowTraits->samples);
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value(std::string(), "-p");
-    auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto skyboxFilename = arguments.value(vsg::Path(), "--skybox");
     auto outputFilename = arguments.value(vsg::Path(), "-o");
@@ -236,15 +235,15 @@ int main(int argc, char** argv)
         }
     }
 
-    if (group->getNumChildren() == 0)
+    if (group->children.empty())
     {
         std::cout << "Please specify a 3d model file on the command line." << std::endl;
         return 1;
     }
 
     vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (group->getChildren().size() == 1)
-        vsg_scene = group->getChild(0);
+    if (group->children.size() == 1)
+        vsg_scene = group->children[0];
     else
         vsg_scene = group;
 

@@ -4,7 +4,7 @@ namespace experimental
 {
 
     void SharedPtrNode::accept(SharedPtrVisitor& spv) { spv.apply(*this); }
-    void SharedPtrNode::traverse(SharedPtrVisitor& spv) {}
+    void SharedPtrNode::traverse(SharedPtrVisitor&) {}
 
     void SharedPtrQuadGroup::accept(SharedPtrVisitor& spv) { spv.apply(*this); }
     void SharedPtrQuadGroup::traverse(SharedPtrVisitor& spv)

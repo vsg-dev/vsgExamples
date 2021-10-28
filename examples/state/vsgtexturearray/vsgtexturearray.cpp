@@ -235,7 +235,7 @@ int main(int argc, char** argv)
     auto tileSettingsDescriptorSetLayout = vsg::DescriptorSetLayout::create(tileSettingsDescriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -372,7 +372,7 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
 
     auto copyCmd = vsg::CopyAndReleaseImage::create();
-    commandGraph->getChildren().insert(commandGraph->getChildren().begin(), copyCmd);
+    commandGraph->children.insert(commandGraph->children.begin(), copyCmd);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 

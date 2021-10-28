@@ -9,8 +9,6 @@
 #include <iostream>
 #include <thread>
 
-#include "../../shared/AnimationPath.h"
-
 class ScreenshotHandler : public vsg::Inherit<vsg::Visitor, ScreenshotHandler>
 {
 public:
@@ -138,7 +136,7 @@ public:
         destinationImage->bind(deviceMemory, 0);
 
         //
-        // 3) create command buffer and submit to graphcis queue
+        // 3) create command buffer and submit to graphics queue
         //
         auto commands = vsg::Commands::create();
 
@@ -148,7 +146,7 @@ public:
             commands->addChild(vsg::ResetEvent::create(event, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT));
         }
 
-        // 3.a) tranisistion destinationImage to transfer destination initialLayout
+        // 3.a) transition destinationImage to transfer destination initialLayout
         auto transitionDestinationImageToDestinationLayoutBarrier = vsg::ImageMemoryBarrier::create(
             0,                                                             // srcAccessMask
             VK_ACCESS_TRANSFER_WRITE_BIT,                                  // dstAccessMask
@@ -228,7 +226,7 @@ public:
             commands->addChild(copyImage);
         }
 
-        // 3.d) tranisition destinate image from transder destination layout to general laytout to enable mapping to image DeviceMemory
+        // 3.d) transition destinate image from transfer destination layout to general layout to enable mapping to image DeviceMemory
         auto transitionDestinationImageToMemoryReadBarrier = vsg::ImageMemoryBarrier::create(
             VK_ACCESS_TRANSFER_WRITE_BIT,                                  // srcAccessMask
             VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
@@ -240,7 +238,7 @@ public:
             VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1} // subresourceRange
         );
 
-        // 3.e) transition sawp chain image back to present
+        // 3.e) transition swap chain image back to present
         auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
             VK_ACCESS_TRANSFER_READ_BIT,                                   // srcAccessMask
             VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
@@ -320,9 +318,9 @@ public:
         auto destinationBuffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
         auto destinationMemory = destinationBuffer->getDeviceMemory(device->deviceID);
 
-        VkImageAspectFlags imageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        VkImageAspectFlags imageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT; // | VK_IMAGE_ASPECT_STENCIL_BIT; // need to match imageAspectFlags setting to WindowTraits::depthFormat.
 
-        // 2.a) tranition depth image for reading
+        // 2.a) transition depth image for reading
         auto commands = vsg::Commands::create();
 
         if (event)
@@ -364,7 +362,7 @@ public:
         // 2.b) copy image to buffer
         {
             VkBufferImageCopy region{};
-            region.bufferOffset;
+            region.bufferOffset = 0;
             region.bufferRowLength = width; // need to figure out actual row length from somewhere...
             region.bufferImageHeight = height;
             region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -381,7 +379,7 @@ public:
             commands->addChild(copyImage);
         }
 
-        // 2.c) transition dpeth image back for rendering
+        // 2.c) transition depth image back for rendering
         auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
             VK_ACCESS_TRANSFER_READ_BIT,                                                                // srcAccessMask
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, // dstAccessMask
@@ -460,7 +458,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(v
     auto colorAttachmet = vsg::defaultColorAttachment(imageFormat);
     auto depthAttachment = vsg::defaultDepthAttachment(depthFormat);
 
-    // by deault storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
+    // by default storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
     vsg::RenderPass::Attachments attachments{colorAttachmet, depthAttachment};
@@ -492,7 +490,7 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgscreenshot";
 
-    // enable transfer from the colour and deth buffer images
+    // enable transfer from the colour and depth buffer images
     windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     windowTraits->depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
@@ -521,6 +519,8 @@ int main(int argc, char** argv)
 
     vsg::Path filename;
     if (argc > 1) filename = arguments[1];
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     auto vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
     if (!vsg_scene)
@@ -540,7 +540,7 @@ int main(int argc, char** argv)
 
     auto device = window->getOrCreateDevice();
 
-    // provide a custom RenderPass to ensure we can read from the depth buffer, only required by the 'd' dpeth screenshot code path
+    // provide a custom RenderPass to ensure we can read from the depth buffer, only required by the 'd' depth screenshot code path
     window->setRenderPass(createRenderPassCompatibleWithReadingDepthBuffer(device, window->surfaceFormat().format, window->depthFormat()));
 
     viewer->addWindow(window);
@@ -572,7 +572,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    vsg::ref_ptr<vsg::Event> event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignled state
+    auto event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignalled state
 
     // Add ScreenshotHandler to respond to keyboard and mouse events.
     auto screenshotHandler = ScreenshotHandler::create(event);

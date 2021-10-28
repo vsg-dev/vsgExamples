@@ -63,7 +63,7 @@ int main(int /*argc*/, char** /*argv*/)
 {
     {
         std::cout << std::endl;
-        std::cout << "Before vaf::Allocator for std::vector" << std::endl;
+        std::cout << "Before vsg::Allocator for std::vector" << std::endl;
 
         vsg::ref_ptr<vsg::Allocator> allocator(new vsg::Allocator);
 

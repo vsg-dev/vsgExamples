@@ -22,13 +22,16 @@ int main(int argc, char** argv)
 
     if (arguments.argc() <= 1)
     {
-        std::cout << "Please specify model on cmmmand line." << std::endl;
+        std::cout << "Please specify model on command line." << std::endl;
         return 1;
     }
 
+    auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     vsg::Path filename = arguments[1];
 
-    auto vsg_scene = vsg::read_cast<vsg::Node>(filename);
+    auto vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
     if (!vsg_scene)
     {
         std::cout << "Please specify a 3d model file on the command line." << std::endl;

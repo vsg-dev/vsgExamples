@@ -8,3 +8,5 @@ if (vsgXchange_FOUND)
     target_compile_definitions(vsgtexturearray PRIVATE vsgXchange_FOUND)
     target_link_libraries(vsgtexturearray vsgXchange::vsgXchange)
 endif()
+
+install(TARGETS vsgtexturearray RUNTIME DESTINATION bin)

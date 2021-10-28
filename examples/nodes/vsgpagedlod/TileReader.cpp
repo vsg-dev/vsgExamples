@@ -102,9 +102,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
                     vsg::dsphere bound((bb.min.x + bb.max.x) * 0.5, (bb.min.y + bb.max.y) * 0.5, (bb.min.z + bb.max.z) * 0.5, vsg::length(bb.max - bb.min) * 0.5);
 
                     auto plod = vsg::PagedLOD::create();
-                    plod->setBound(bound);
-                    plod->setChild(0, vsg::PagedLOD::Child{0.25, {}});  // external child visible when it's bound occupies more than 1/4 of the height of the window
-                    plod->setChild(1, vsg::PagedLOD::Child{0.0, tile}); // visible always
+                    plod->bound = bound;
+                    plod->children[0] = vsg::PagedLOD::Child{0.25, {}};  // external child visible when it's bound occupies more than 1/4 of the height of the window
+                    plod->children[1] = vsg::PagedLOD::Child{0.0, tile}; // visible always
                     plod->filename = vsg::make_string(x, " ", y, " 0.tile");
                     plod->options = options;
 
@@ -114,7 +114,6 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
         }
     }
 
-    uint32_t maxLevel = 20;
     uint32_t estimatedNumOfTilesBelow = 0;
     uint32_t maxNumTilesBelow = 40000;
 
@@ -185,9 +184,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
 
     auto pathObjects = vsg::read(tiles, options);
 
-    if (pathObjects.size()==4)
+    if (pathObjects.size() == 4)
     {
-        for(auto& [tilePath, object] : pathObjects)
+        for (auto& [tilePath, object] : pathObjects)
         {
             auto& tileID = pathToTileID[tilePath];
             auto imageTile = object.cast<vsg::Data>();
@@ -205,9 +204,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
                     if (local_lod < maxLevel)
                     {
                         auto plod = vsg::PagedLOD::create();
-                        plod->setBound(bound);
-                        plod->setChild(0, vsg::PagedLOD::Child{lodTransitionScreenHeightRatio, {}}); // external child visible when it's bound occupies more than 1/4 of the height of the window
-                        plod->setChild(1, vsg::PagedLOD::Child{0.0, tile});                          // visible always
+                        plod->bound = bound;
+                        plod->children[0] = vsg::PagedLOD::Child{lodTransitionScreenHeightRatio, {}}; // external child visible when it's bound occupies more than 1/4 of the height of the window
+                        plod->children[1] = vsg::PagedLOD::Child{0.0, tile};                          // visible always
                         plod->filename = vsg::make_string(tileID.local_x, " ", tileID.local_y, " ", local_lod, ".tile");
                         plod->options = options;
 
@@ -218,7 +217,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
                     else
                     {
                         auto cullGroup = vsg::CullGroup::create();
-                        cullGroup->setBound(bound);
+                        cullGroup->bound = bound;
                         cullGroup->addChild(tile);
 
                         group->addChild(cullGroup);
@@ -230,7 +229,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
 
     vsg::time_point end_read = vsg::clock::now();
 
-    double time_to_read_tile =  std::chrono::duration<float, std::chrono::milliseconds::period>(end_read - start_read).count();
+    double time_to_read_tile = std::chrono::duration<float, std::chrono::milliseconds::period>(end_read - start_read).count();
 
     {
         std::scoped_lock<std::mutex> lock(statsMutex);
@@ -238,9 +237,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
         totalTimeReadingTiles += time_to_read_tile;
     }
 
-    if (group->getNumChildren() != 4)
+    if (group->children.size() != 4)
     {
-        std::cout << "Warning: could not load all 4 subtiles, loaded only " << group->getNumChildren() << std::endl;
+        std::cout << "Warning: could not load all 4 subtiles, loaded only " << group->children.size() << std::endl;
 
         return {};
     }

@@ -36,8 +36,8 @@ namespace experimental
     class SharedPtrVisitor
     {
     public:
-        virtual void apply(SharedPtrNode& spn) {}
-        virtual void apply(SharedPtrQuadGroup& spqg) {}
+        virtual void apply(SharedPtrNode&) {}
+        virtual void apply(SharedPtrQuadGroup&) {}
     };
 
     class SharedPtrQuadGroup : public SharedPtrNode

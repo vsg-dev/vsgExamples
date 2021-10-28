@@ -23,8 +23,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <iostream>
 #include <thread>
 
-#include "../../shared/AnimationPath.h"
-
 vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat imageFormat)
 {
     auto colorImage = vsg::Image::create();
@@ -113,11 +111,11 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     destinationImage->bind(deviceMemory, 0);
 
     //
-    // 3) create command buffer and submit to graphcis queue
+    // 3) create command buffer and submit to graphics queue
     //
     auto commands = vsg::Commands::create();
 
-    // 3.a) tranisistion destinationImage to transfer destination initialLayout
+    // 3.a) transition destinationImage to transfer destination initialLayout
     auto transitionDestinationImageToDestinationLayoutBarrier = vsg::ImageMemoryBarrier::create(
         0,                                                             // srcAccessMask
         VK_ACCESS_TRANSFER_WRITE_BIT,                                  // dstAccessMask
@@ -197,7 +195,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
         commands->addChild(copyImage);
     }
 
-    // 3.d) tranisition destinate image from transder destination layout to general laytout to enable mapping to image DeviceMemory
+    // 3.d) transition destinate image from transfer destination layout to general layout to enable mapping to image DeviceMemory
     auto transitionDestinationImageToMemoryReadBarrier = vsg::ImageMemoryBarrier::create(
         VK_ACCESS_TRANSFER_WRITE_BIT,                                  // srcAccessMask
         VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
@@ -209,7 +207,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
         VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1} // subresourceRange
     );
 
-    // 3.e) transition sawp chain image back to present
+    // 3.e) transition swap chain image back to present
     auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
         VK_ACCESS_TRANSFER_READ_BIT,                                   // srcAccessMask
         VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
@@ -239,20 +237,15 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     auto width = extent.width;
     auto height = extent.height;
 
-    auto physicalDevice = device->getPhysicalDevice();
-
-    VkFormat targetImageFormat = sourceImageFormat;
-
     auto memoryRequirements = sourceImage->getMemoryRequirements(device->deviceID);
 
     // 1. create buffer to copy to.
     VkDeviceSize bufferSize = memoryRequirements.size;
     auto destinationBuffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-    auto destinationMemory = destinationBuffer->getDeviceMemory(device->deviceID);
 
     VkImageAspectFlags imageAspectFlags = vsg::computeAspectFlagsForFormat(sourceImageFormat);
 
-    // 2.a) tranition depth image for reading
+    // 2.a) transition depth image for reading
     auto commands = vsg::Commands::create();
 
     auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
@@ -288,7 +281,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     // 2.b) copy image to buffer
     {
         VkBufferImageCopy region{};
-        region.bufferOffset;
+        region.bufferOffset = 0;
         region.bufferRowLength = width; // need to figure out actual row length from somewhere...
         region.bufferImageHeight = height;
         region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -305,7 +298,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
         commands->addChild(copyImage);
     }
 
-    // 2.c) transition dpeth image back for rendering
+    // 2.c) transition depth image back for rendering
     auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
         VK_ACCESS_TRANSFER_READ_BIT,                                                                // srcAccessMask
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, // dstAccessMask
@@ -345,7 +338,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(v
     auto colorAttachmet = vsg::defaultColorAttachment(imageFormat);
     auto depthAttachment = vsg::defaultDepthAttachment(depthFormat);
 
-    // by deault storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
+    // by default storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
     vsg::RenderPass::Attachments attachments{colorAttachmet, depthAttachment};
@@ -373,7 +366,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(v
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
-    VkExtent2D extent{1920, 1020};
+    VkExtent2D extent{2048, 1024};
     VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
     vsg::Path colorFilename("screenshot.vsgb");
@@ -386,6 +379,7 @@ int main(int argc, char** argv)
     auto databasePager = vsg::DatabasePager::create_if(arguments.read("--pager"));
     auto numFrames = arguments.value(100, "-f");
     auto pathFilename = arguments.value(std::string(), "-p");
+    auto resizeCadence = arguments.value(0, "--resize");
     if (arguments.read("--st")) extent = VkExtent2D{192, 108};
     if (arguments.read("--float")) depthFormat = VK_FORMAT_D32_SFLOAT;
 
@@ -398,6 +392,8 @@ int main(int argc, char** argv)
     }
 
     auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 #ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
@@ -424,7 +420,7 @@ int main(int argc, char** argv)
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
-    auto instance = vsg::Instance::create(instanceExtensions, validatedNames, nullptr);
+    auto instance = vsg::Instance::create(instanceExtensions, validatedNames);
     auto [physicalDevice, queueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_GRAPHICS_BIT);
     if (!physicalDevice || queueFamily < 0)
     {
@@ -479,7 +475,7 @@ int main(int argc, char** argv)
 
     renderGraph->addChild(vsg::View::create(camera, vsg_scene));
 
-    // create supoort for copying the color buffer
+    // create support for copying the color buffer
     auto [colorBufferCapture, copiedColorBuffer] = createColorCapture(device, extent, colorImageView->image, imageFormat);
     auto [depthBufferCapture, copiedDepthBuffer] = createDepthCapture(device, extent, depthImageView->image, depthFormat);
 
@@ -493,16 +489,12 @@ int main(int argc, char** argv)
 
     if (!pathFilename.empty())
     {
-        std::ifstream in(pathFilename);
-        if (!in)
+        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
+        if (!animationPath)
         {
-            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
+            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
             return 1;
         }
-
-        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
-        animationPath->read(in);
-
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
@@ -510,10 +502,45 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
+    uint64_t waitTimeout = 1999999999; // 1second in nanoseconds.
+
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames--) > 0)
     {
         std::cout << "Frame " << viewer->getFrameStamp()->frameCount << std::endl;
+
+        if (resizeCadence && ((numFrames + resizeCadence) % resizeCadence == 0))
+        {
+            viewer->deviceWaitIdle();
+
+            extent.width /= 2;
+            extent.height /= 2;
+
+            std::cout << "Resized to " << extent.width << ", " << extent.height << std::endl;
+
+            colorImageView = createColorImageView(device, extent, imageFormat);
+            depthImageView = createDepthImageView(device, extent, depthFormat);
+            renderPass = createRenderPassCompatibleWithReadingDepthBuffer(device, imageFormat, depthFormat);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
+
+            auto previous_colorBufferCapture = colorBufferCapture;
+            auto previous_depthBufferCapture = depthBufferCapture;
+
+            std::tie(colorBufferCapture, copiedColorBuffer) = createColorCapture(device, extent, colorImageView->image, imageFormat);
+            std::tie(depthBufferCapture, copiedDepthBuffer) = createDepthCapture(device, extent, depthImageView->image, depthFormat);
+
+            renderGraph->framebuffer = framebuffer;
+
+            auto replace_child = [](vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement) {
+                for (auto& child : group->children)
+                {
+                    if (child == previous) child = replacement;
+                }
+            };
+
+            replace_child(commandGraph, previous_colorBufferCapture, colorBufferCapture);
+            replace_child(commandGraph, previous_depthBufferCapture, depthBufferCapture);
+        }
 
         // pass any events into EventHandlers assigned to the Viewer, this includes Frame events generated by the viewer each frame
         viewer->handleEvents();
@@ -525,10 +552,7 @@ int main(int argc, char** argv)
         if (copiedColorBuffer || copiedDepthBuffer)
         {
             // wait for completion.
-            for (auto& recordAndSubmitTask : viewer->recordAndSubmitTasks)
-            {
-                recordAndSubmitTask->fence()->wait(std::numeric_limits<uint64_t>::max());
-            }
+            viewer->waitForFences(0, waitTimeout);
 
             if (copiedColorBuffer)
             {

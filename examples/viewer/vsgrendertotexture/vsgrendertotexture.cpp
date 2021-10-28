@@ -120,7 +120,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     VkAttachmentReference depthReference = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
     vsg::RenderPass::Subpasses subpassDescription(1);
     subpassDescription[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription[0].colorAttachments.emplace_back(VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
+    subpassDescription[0].colorAttachments.emplace_back(colorReference);
     subpassDescription[0].depthStencilAttachments.emplace_back(depthReference);
 
     vsg::RenderPass::Dependencies dependencies(2);
@@ -188,7 +188,7 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageInfo& colorImage)
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls autoaatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -323,16 +323,15 @@ int main(int argc, char** argv)
     using VsgNodes = std::vector<vsg::ref_ptr<vsg::Node>>;
     VsgNodes vsgNodes;
 
-    vsg::Path path;
+    auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     // read any vsg files
     for (int i = 1; i < argc; ++i)
     {
         vsg::Path filename = arguments[i];
-
-        path = vsg::filePath(filename);
-
-        auto loaded_scene = vsg::read_cast<vsg::Node>(filename);
+        auto loaded_scene = vsg::read_cast<vsg::Node>(filename, options);
         if (loaded_scene)
         {
             vsgNodes.push_back(loaded_scene);
@@ -446,7 +445,7 @@ int main(int argc, char** argv)
 
         // animate the offscreen scenegraph
         float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->setMatrix(vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f)));
+        transform->matrix = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
         viewer->update();
 

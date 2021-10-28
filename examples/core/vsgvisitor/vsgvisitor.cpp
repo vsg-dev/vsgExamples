@@ -20,7 +20,7 @@ vsg::ref_ptr<vsg::Node> createQuadTree(unsigned int numLevels)
 
     --numLevels;
 
-    t->getChildren().reserve(4);
+    t->children.reserve(4);
 
     t->addChild(createQuadTree(numLevels));
     t->addChild(createQuadTree(numLevels));

@@ -1,5 +1,4 @@
 set(SOURCES
-    ../../shared/AnimationPath.cpp
     vsgheadless.cpp
 )
 
@@ -11,3 +10,5 @@ if (vsgXchange_FOUND)
     target_compile_definitions(vsgheadless PRIVATE vsgXchange_FOUND)
     target_link_libraries(vsgheadless vsgXchange::vsgXchange)
 endif()
+
+install(TARGETS vsgheadless RUNTIME DESTINATION bin)
