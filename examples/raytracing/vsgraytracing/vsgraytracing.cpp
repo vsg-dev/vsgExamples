@@ -187,7 +187,7 @@ int main(int argc, char** argv)
         storageImage->flags = 0;
         storageImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        vsg::ImageInfo storageImageInfo{nullptr,
+        vsg::ImageInfo storageImageInfo{{},
                                         createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT),
                                         VK_IMAGE_LAYOUT_GENERAL};
 
