@@ -1,0 +1,189 @@
+name: CI
+on:
+  push:
+  pull_request:
+env:
+  VulkanSDKVersion: 1.2.162.1
+jobs:
+  linux-build:
+    runs-on: ubuntu-latest
+    env:
+      BuildDocEnabled: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
+      VULKAN_SDK: $GITHUB_WORKSPACE/../$VulkanSDKVersion/x86_64
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: main
+    - name: Cache
+      id: cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ${{env.VULKAN_SDK}}
+        key: VulkanSdk${{env.VulkanSDKVersion}}ExtractedLinux
+    - name: Download & Extract Vulkan SDK
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        wget --no-cookies -O ../vulkansdk-linux-x86_64-${{env.VulkanSDKVersion}}.tar.gz https://sdk.lunarg.com/sdk/download/${{env.VulkanSDKVersion}}/linux/vulkansdk-linux-x86_64-${{env.VulkanSDKVersion}}.tar.gz?u=
+        tar -zxf ../vulkansdk-linux-x86_64-${{env.VulkanSDKVersion}}.tar.gz -C ../
+    - name: VSG Checkout
+      uses: actions/checkout@v2
+      with:
+        repository: vsg-dev/VulkanSceneGraph
+        path: vsg
+    - name: VSG Build and Install
+      run: |
+        cd vsg
+        cmake -D Vulkan_INCLUDE_DIR="${{env.VULKAN_SDK}}/include" \
+          -D Vulkan_LIBRARY="${{env.VULKAN_SDK}}/lib/libvulkan.so" .
+        make -j 2
+        sudo make install
+    - name: vsgExamples Build and Install
+      run: |
+        cd main
+        cmake -D Vulkan_INCLUDE_DIR="${{env.VULKAN_SDK}}/include" \
+          -D Vulkan_LIBRARY="${{env.VULKAN_SDK}}/lib/libvulkan.so" .
+        make -j 2
+        sudo make install
+        
+  windows-build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: main
+    - name: Set env
+      id: env
+      run: echo "::set-output name=VULKAN_SDK::C:\VulkanSDK\${{env.VulkanSDKVersion}}"
+    - name: Cache
+      id: cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ${{steps.env.outputs.VULKAN_SDK}}
+        key: VulkanSdk${{env.VulkanSDKVersion}}WindowsExtracted2
+    - name: Download & Install Vulkan SDK
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/${{env.VulkanSDKVersion}}/windows/VulkanSDK-${{env.VulkanSDKVersion}}-Installer.exe?u= -OutFile ../vulkan-sdk-${{env.VulkanSDKVersion}}.exe
+        $installer = Start-Process -FilePath ../vulkan-sdk-${{env.VulkanSDKVersion}}.exe -Wait -PassThru -ArgumentList @("/S");
+        $installer.WaitForExit();
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+    - name: VSG Checkout
+      uses: actions/checkout@v2
+      with:
+        repository: vsg-dev/VulkanSceneGraph
+        path: vsg
+    - name: VSG CMake Configure MSBuild Build and Install
+      run: |
+        cd vsg
+        cmake . -G "Visual Studio 16 2019" -A x64
+        MSBuild.exe ALL_BUILD.vcxproj -p:Configuration=Release
+        MSBuild.exe INSTALL.vcxproj -p:Configuration=Release
+      env:
+        VULKAN_SDK: ${{steps.env.outputs.VULKAN_SDK}}
+    - name: vsgExamples CMake Configuration MSBuild Build and Install
+      run: |
+        cd main
+        cmake . -G "Visual Studio 16 2019" -A x64 -Dvsg_DIR="C:\Program Files\vsg\lib\cmake\vsg" -Dvsg_glslang_DIR="C:\Program Files\vsg\lib\cmake\vsg_glslang"
+        MSBuild.exe ALL_BUILD.vcxproj -p:Configuration=Release
+        MSBuild.exe INSTALL.vcxproj -p:Configuration=Release
+      env:
+        VULKAN_SDK: ${{steps.env.outputs.VULKAN_SDK}}
+
+  windows-dll-build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: main
+    - name: Set env
+      id: env
+      run: echo "::set-output name=VULKAN_SDK::C:\VulkanSDK\${{env.VulkanSDKVersion}}"
+    - name: Cache
+      id: cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ${{steps.env.outputs.VULKAN_SDK}}
+        key: VulkanSdk${{env.VulkanSDKVersion}}WindowsExtracted2
+    - name: Download & Install Vulkan SDK
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/${{env.VulkanSDKVersion}}/windows/VulkanSDK-${{env.VulkanSDKVersion}}-Installer.exe?u= -OutFile ../vulkan-sdk-${{env.VulkanSDKVersion}}.exe
+        $installer = Start-Process -FilePath ../vulkan-sdk-${{env.VulkanSDKVersion}}.exe -Wait -PassThru -ArgumentList @("/S");
+        $installer.WaitForExit();
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+    - name: VSG Checkout
+      uses: actions/checkout@v2
+      with:
+        repository: vsg-dev/VulkanSceneGraph
+        path: vsg
+    - name: VSG CMake Configure MSBuild Build and Install
+      run: |
+        cd vsg
+        cmake . -G "Visual Studio 16 2019" -A x64 -DBUILD_SHARED_LIBS=ON
+        MSBuild.exe ALL_BUILD.vcxproj -p:Configuration=Release
+        MSBuild.exe INSTALL.vcxproj -p:Configuration=Release
+      env:
+        VULKAN_SDK: ${{steps.env.outputs.VULKAN_SDK}}
+    - name: vsgExamples CMake Configuration MSBuild Build and Install
+      run: |
+        cd main
+        cmake . -G "Visual Studio 16 2019" -A x64 -Dvsg_DIR="C:\Program Files\vsg\lib\cmake\vsg" -Dvsg_glslang_DIR="C:\Program Files\vsg\lib\cmake\vsg_glslang"
+        MSBuild.exe ALL_BUILD.vcxproj -p:Configuration=Release
+        MSBuild.exe INSTALL.vcxproj -p:Configuration=Release
+      env:
+        VULKAN_SDK: ${{steps.env.outputs.VULKAN_SDK}}
+
+  macos-build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: main
+    - name: Set env
+      id: env
+      run: |
+        VULKAN_SDK=$GITHUB_WORKSPACE/../vulkansdk-macos-${{env.VulkanSDKVersion}}/macOS
+        echo ::set-output name=VULKAN_SDK::$VULKAN_SDK
+        echo "VK_LAYER_PATH=$VULKAN_SDK/etc/vulkan/explicit_layer.d" >> $GITHUB_ENV
+        echo "VK_ICD_FILENAMES=$VULKAN_SDK/etc/vulkan/icd.d/MoltenVK_icd.json" >> $GITHUB_ENV
+    - name: Cache
+      id: cache
+      uses: actions/cache@v1.1.2
+      with:
+        path: ${{steps.env.outputs.VULKAN_SDK}}
+        key: VulkanSdk${{env.VulkanSDKVersion}}ExtractedMacos
+    - name: Download & Extract Vulkan SDK
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        wget --no-cookies -O ../vulkansdk-macos-${{env.VulkanSDKVersion}}.dmg https://sdk.lunarg.com/sdk/download/${{env.VulkanSDKVersion}}/mac/vulkansdk-macos-${{env.VulkanSDKVersion}}.dmg?u=
+        hdiutil attach ../vulkansdk-macos-${{env.VulkanSDKVersion}}.dmg
+        cp -r /Volumes/vulkansdk-macos-${{env.VulkanSDKVersion}} $GITHUB_WORKSPACE/..
+        hdiutil detach /Volumes/vulkansdk-macos-${{env.VulkanSDKVersion}}
+    - name: VSG Checkout
+      uses: actions/checkout@v2
+      with:
+        repository: vsg-dev/VulkanSceneGraph
+        path: vsg
+    - name: VSG CMake Configure Build and Install
+      run: |
+        cd vsg
+        export DYLD_LIBRARY_PATH="$VULKAN_SDK/lib:$DYLD_LIBRARY_PATH"
+        export PATH="$VULKAN_SDK:$VULKAN_SDK/bin:$PATH"
+        cmake -D CMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/../vsg-$GITHUB_SHA" .
+        make -j 2
+        make install
+      env:
+        VULKAN_SDK: ${{steps.env.outputs.VULKAN_SDK}}
+    - name: vsgExamples CMake Configure Build and Install
+      run: |
+        cd main
+        export DYLD_LIBRARY_PATH="$VULKAN_SDK/lib:$DYLD_LIBRARY_PATH"
+        export PATH="$VULKAN_SDK:$VULKAN_SDK/bin:$GITHUB_WORKSPACE/../vsg-$GITHUB_SHA:$PATH"
+        cmake .
+        make -j 2
+        make install
+      env:
+        VULKAN_SDK: ${{steps.env.outputs.VULKAN_SDK}}
+        
