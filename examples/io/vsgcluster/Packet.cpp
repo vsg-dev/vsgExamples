@@ -210,21 +210,16 @@ bool PacketReceiver::add(std::unique_ptr<Packet> packet)
 
 vsg::ref_ptr<vsg::Object> PacketReceiver::receive()
 {
-    auto startTime = std::chrono::steady_clock::now();
-
-    auto packet = createPacket();
-    unsigned int size = receiver->recieve(&(*packet), sizeof(Packet));
-    if (size == 0)
+    auto first_packet = createPacket();
+    unsigned int first_size = receiver->recieve(&(*first_packet), sizeof(Packet));
+    if (first_size == 0)
     {
-        packetPool.emplace(std::move(packet));
+        packetPool.emplace(std::move(first_packet));
         return {};
     }
 
-    auto after_initial_read = std::chrono::steady_clock::now();
-
-
-    uint64_t set = packet->header.set;
-    if (add(std::move(packet)))
+    uint64_t set = first_packet->header.set;
+    if (add(std::move(first_packet)))
     {
         return completed(set);
     }

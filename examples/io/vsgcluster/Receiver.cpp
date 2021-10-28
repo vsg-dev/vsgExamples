@@ -38,8 +38,8 @@
 #include <iostream>
 
 Receiver::Receiver(uint16_t port) :
-    _port(port),
-    _initialized(false)
+    _initialized(false),
+    _port(port)
 {
 #if defined(_WIN32) && !defined(__CYGWIN__)
     WORD version = MAKEWORD(1, 1);
@@ -139,10 +139,6 @@ unsigned int Receiver::recieve(void* buffer, const unsigned int buffer_size)
     fd_set fdset;
     FD_ZERO(&fdset);
     FD_SET(_so, &fdset);
-
-    struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
 
 #if defined(_WIN32) && !defined(__CYGWIN__)
 

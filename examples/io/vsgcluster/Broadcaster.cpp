@@ -95,9 +95,9 @@ std::vector<std::string> listNetworkConnections()
 }
 
 Broadcaster::Broadcaster(const std::string& hostname, uint16_t port, const std::string& ifrName) :
-    _port(port),
     _ifr_name(ifrName),
     _initialized(false),
+    _port(port),
     _address(0)
 {
     if (_ifr_name.empty())
