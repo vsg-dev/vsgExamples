@@ -9,6 +9,9 @@
 class IntersectionHandler : public vsg::Inherit<vsg::Visitor, IntersectionHandler>
 {
 public:
+    vsg::GeometryInfo geom;
+    vsg::StateInfo state;
+
     vsg::ref_ptr<vsg::Builder> builder;
     vsg::ref_ptr<vsg::Options> options;
     vsg::ref_ptr<vsg::Camera> camera;
@@ -35,37 +38,34 @@ public:
             interesection(*lastPointerEvent);
             if (!lastIntersection) return;
 
-            vsg::GeometryInfo info;
-            info.position = vsg::vec3(lastIntersection.worldIntersection);
-            info.dx.set(scale, 0.0f, 0.0f);
-            info.dy.set(0.0f, scale, 0.0f);
-            info.dz.set(0.0f, 0.0f, scale);
-
-            // info.image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
+            geom.position = vsg::vec3(lastIntersection.worldIntersection);
+            geom.dx.set(scale, 0.0f, 0.0f);
+            geom.dy.set(0.0f, scale, 0.0f);
+            geom.dz.set(0.0f, 0.0f, scale);
 
             if (keyPress.keyBase == 'b')
             {
-                scenegraph->addChild(builder->createBox(info));
+                scenegraph->addChild(builder->createBox(geom, state));
             }
             else if (keyPress.keyBase == 'q')
             {
-                scenegraph->addChild(builder->createQuad(info));
+                scenegraph->addChild(builder->createQuad(geom, state));
             }
             else if (keyPress.keyBase == 'c')
             {
-                scenegraph->addChild(builder->createCylinder(info));
+                scenegraph->addChild(builder->createCylinder(geom, state));
             }
             else if (keyPress.keyBase == 'p')
             {
-                scenegraph->addChild(builder->createCapsule(info));
+                scenegraph->addChild(builder->createCapsule(geom, state));
             }
             else if (keyPress.keyBase == 's')
             {
-                scenegraph->addChild(builder->createSphere(info));
+                scenegraph->addChild(builder->createSphere(geom, state));
             }
             else if (keyPress.keyBase == 'n')
             {
-                scenegraph->addChild(builder->createCone(info));
+                scenegraph->addChild(builder->createCone(geom, state));
             }
         }
     }
@@ -165,6 +165,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
+    vsg::Path textureFile = arguments.value<std::string>("", "-t");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -187,17 +188,19 @@ int main(int argc, char** argv)
         }
     }
 
+    vsg::StateInfo stateInfo;
+
+    if (!textureFile.empty())
+    {
+        stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
+    }
+
     if (scene->children.empty())
     {
         vsg::GeometryInfo info;
         info.dx.set(100.0f, 0.0f, 0.0f);
         info.dy.set(0.0f, 100.0f, 0.0f);
         info.dz.set(0.0f, 0.0f, 100.0f);
-
-        vsg::StateInfo stateInfo;
-        vsg::Path textureFile("textures/lz.vsgb");
-        stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
-
         scene->addChild(builder->createBox(info, stateInfo));
     }
 
@@ -271,7 +274,9 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    viewer->addEventHandler(IntersectionHandler::create(builder, camera, scene, ellipsoidModel, radius * 0.1, options));
+    auto intersectionHandler = IntersectionHandler::create(builder, camera, scene, ellipsoidModel, radius * 0.1, options);
+    intersectionHandler->state = stateInfo;
+    viewer->addEventHandler(intersectionHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});

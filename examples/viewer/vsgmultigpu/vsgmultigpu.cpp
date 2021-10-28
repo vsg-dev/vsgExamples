@@ -4,8 +4,6 @@
 #include <iostream>
 #include <thread>
 
-#include "../../shared/AnimationPath.h"
-
 vsg::ref_ptr<vsg::Node> createScene(std::string filename)
 {
     if (!filename.empty())
@@ -251,16 +249,12 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::ifstream in(pathFilename);
-        if (!in)
+        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename);
+        if (!animationPath)
         {
-            std::cout << "AnimationPat: Could not open animation path file \"" << pathFilename << "\".\n";
+            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
             return 1;
         }
-
-        vsg::ref_ptr<vsg::AnimationPath> animationPath(new vsg::AnimationPath);
-        animationPath->read(in);
-
         viewer->addEventHandler(vsg::AnimationPathHandler::create(master_camera, animationPath, viewer->start_point()));
     }
 

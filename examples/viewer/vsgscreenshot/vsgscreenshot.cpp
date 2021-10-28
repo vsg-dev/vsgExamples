@@ -9,8 +9,6 @@
 #include <iostream>
 #include <thread>
 
-#include "../../shared/AnimationPath.h"
-
 class ScreenshotHandler : public vsg::Inherit<vsg::Visitor, ScreenshotHandler>
 {
 public:
