@@ -346,7 +346,7 @@ vsg::ref_ptr<vsg::Node> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::
     if (arrays.empty()) return {};
 
     auto bindVertexBuffers = vsg::BindVertexBuffers::create();
-    bindVertexBuffers->arrays = arrays;
+    bindVertexBuffers->assignArrays(arrays);
 
     auto commands = vsg::Commands::create();
     commands->addChild(bindVertexBuffers);
