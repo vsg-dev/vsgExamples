@@ -4,8 +4,6 @@
 #include <iostream>
 #include <thread>
 
-#include "../../shared/AnimationPath.h"
-
 vsg::ref_ptr<vsg::Node> createScene(std::string filename)
 {
     if (!filename.empty())

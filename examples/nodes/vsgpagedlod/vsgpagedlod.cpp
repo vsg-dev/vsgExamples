@@ -7,8 +7,6 @@
 #include <iostream>
 #include <thread>
 
-#include "../../shared/AnimationPath.h"
-
 #include "TileReader.h"
 
 int main(int argc, char** argv)

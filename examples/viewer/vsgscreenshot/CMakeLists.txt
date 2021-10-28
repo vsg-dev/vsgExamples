@@ -1,5 +1,4 @@
 set(SOURCES
-    ../../shared/AnimationPath.cpp
     vsgscreenshot.cpp
 )
 

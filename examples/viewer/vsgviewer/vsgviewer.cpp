@@ -9,8 +9,6 @@
 #include <iostream>
 #include <thread>
 
-#include "../../shared/AnimationPath.h"
-
 vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHints)
 {
     struct ConvertToRGBA : public vsg::Visitor
