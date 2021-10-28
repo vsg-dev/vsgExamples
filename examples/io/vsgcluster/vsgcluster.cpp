@@ -269,7 +269,7 @@ int main(int argc, char** argv)
 
         broadcaster.broadcast(viewer->getFrameStamp()->frameCount, viewerData);
 
-        vsg::write(viewerData, "test.vsgt");
+        // vsg::write(viewerData, "test.vsgt");
     }
 
     // clean up done automatically thanks to ref_ptr<>
