@@ -371,7 +371,9 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
 
-    auto copyCmd = vsg::CopyAndReleaseImage::create();
+
+    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
+    auto copyCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
     commandGraph->children.insert(commandGraph->children.begin(), copyCmd);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
@@ -411,11 +413,7 @@ int main(int argc, char** argv)
                 // update texture data
                 updateBaseTexture(*textureData, time);
 
-                // transfer data to staging buffer
-                auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
-
-                // schedule a copy command to do the staging buffer to the texture image, this copy command is recorded to the appropriate command buffer by viewer->recordAndSubmit().
-                copyCmd->add(stagingBufferData, textureImageData);
+                copyCmd->copy(textureData, textureImageData);
             }
             else
             {
