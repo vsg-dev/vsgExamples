@@ -60,6 +60,19 @@ int main(int argc, char** argv)
             VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
             VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
 
+        // set up features
+        auto features = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+        /*auto& deviceFeatures =*/ features->get();
+
+        auto& deviceAddressFeatures = features->get<VkPhysicalDeviceBufferDeviceAddressFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES>();
+        deviceAddressFeatures.bufferDeviceAddress = 1;
+
+        auto& rayTracingFeatures =  features->get<VkPhysicalDeviceRayTracingPipelineFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR>();
+        rayTracingFeatures.rayTracingPipeline = 1;
+
+        auto& accelerationFeatures = features->get<VkPhysicalDeviceAccelerationStructureFeaturesKHR,VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR>();
+        accelerationFeatures.accelerationStructure = 1;
+
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
@@ -133,8 +146,8 @@ int main(int argc, char** argv)
 
             // create acceleration geometry
             auto accelGeometry = vsg::AccelerationGeometry::create();
-            accelGeometry->verts = vertices;
-            accelGeometry->indices = indices;
+            accelGeometry->assignVertices(vertices);
+            accelGeometry->assignIndices(indices);
 
             // create bottom level acceleration structure using acceleration geom
             auto blas = vsg::BottomLevelAccelerationStructure::create(device);
