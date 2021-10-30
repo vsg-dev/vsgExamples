@@ -70,8 +70,8 @@ vsg::ref_ptr<vsg::Node> createGeometry()
          2, 3, 0}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto vid = vsg::VertexIndexDraw::create();
-    vid->arrays = vsg::DataList{vertices, colors, texcoords};
-    vid->indices = indices;
+    vid->assignArrays(vsg::DataList{vertices, colors, texcoords});
+    vid->assignIndices(indices);
     vid->indexCount = 6;
     vid->instanceCount = 1;
     return vid;
@@ -129,8 +129,8 @@ vsg::ref_ptr<vsg::Node> createGeometry(uint32_t numColumns, uint32_t numRows)
     }
 
     auto vid = vsg::VertexIndexDraw::create();
-    vid->arrays = vsg::DataList{vertices, colors, texcoords};
-    vid->indices = indices;
+    vid->assignArrays(vsg::DataList{vertices, colors, texcoords});
+    vid->assignIndices(indices);
     vid->indexCount = numIndices;
     vid->instanceCount = 1;
 
@@ -270,7 +270,7 @@ int main(int argc, char** argv)
     vsg::ImageInfoList baseTextures;
     for (auto textureData : textureDataList)
     {
-        baseTextures.emplace_back(clampToEdge_sampler, textureData);
+        baseTextures.push_back(vsg::ImageInfo::create(clampToEdge_sampler, textureData));
     }
 
     auto hf_sampler = vsg::Sampler::create();
@@ -285,7 +285,7 @@ int main(int argc, char** argv)
     vsg::ImageInfoList hfTextures;
     for (auto hfData : heightFieldDataList)
     {
-        hfTextures.emplace_back(hf_sampler, hfData);
+        hfTextures.push_back(vsg::ImageInfo::create(hf_sampler, hfData));
     }
 
     auto heightFieldDescriptorImage = vsg::DescriptorImage::create(hfTextures, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -371,7 +371,9 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
 
-    auto copyCmd = vsg::CopyAndReleaseImage::create();
+
+    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
+    auto copyCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
     commandGraph->children.insert(commandGraph->children.begin(), copyCmd);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
@@ -404,22 +406,18 @@ int main(int argc, char** argv)
             uint32_t textureToUpdate = 0; // viewer->getFrameStamp()->frameCount % numTiles;
 
             auto& textureImageData = imageDataList[textureToUpdate];
-            auto textureData = textureImageData.imageView->image->data.cast<vsg::ubvec4Array2D>();
+            auto textureData = textureImageData->imageView->image->data.cast<vsg::ubvec4Array2D>();
 
             if (textureData)
             {
                 // update texture data
                 updateBaseTexture(*textureData, time);
 
-                // transfer data to staging buffer
-                auto stagingBufferData = vsg::copyDataToStagingBuffer(context, textureData);
-
-                // schedule a copy command to do the staging buffer to the texture image, this copy command is recorded to the appropriate command buffer by viewer->recordAndSubmit().
-                copyCmd->add(stagingBufferData, textureImageData);
+                copyCmd->copy(textureData, textureImageData);
             }
             else
             {
-                std::cout << "textureImageData.imageView->image->data = " << textureImageData.imageView->image->data << ", cast =" << textureImageData.imageView->image->data.cast<vsg::vec4Array2D>() << std::endl;
+                std::cout << "textureImageData.imageView->image->data = " << textureImageData->imageView->image->data << ", cast =" << textureImageData->imageView->image->data.cast<vsg::vec4Array2D>() << std::endl;
             }
         }
 

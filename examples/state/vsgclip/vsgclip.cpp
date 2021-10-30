@@ -258,7 +258,7 @@ int main(int argc, char** argv)
 
         vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd;
         vsg::ref_ptr<vsg::DescriptorBuffer> clipSettings_buffer;
-        vsg::BufferInfo bufferInfo;
+        vsg::ref_ptr<vsg::BufferInfo> bufferInfo;
 
         if (useStagingBuffer)
         {
@@ -270,9 +270,9 @@ int main(int argc, char** argv)
             VkDeviceSize bufferSize = sizeof(vsg::vec4) * 1;
             auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-            bufferInfo.buffer = buffer;
-            bufferInfo.offset = 0;
-            bufferInfo.range = bufferSize;
+            bufferInfo->buffer = buffer;
+            bufferInfo->offset = 0;
+            bufferInfo->range = bufferSize;
 
             clipSettings_buffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
         }

@@ -60,6 +60,19 @@ int main(int argc, char** argv)
             VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
             VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
 
+        // set up features
+        auto features = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+        /*auto& deviceFeatures =*/ features->get();
+
+        auto& deviceAddressFeatures = features->get<VkPhysicalDeviceBufferDeviceAddressFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES>();
+        deviceAddressFeatures.bufferDeviceAddress = 1;
+
+        auto& rayTracingFeatures =  features->get<VkPhysicalDeviceRayTracingPipelineFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR>();
+        rayTracingFeatures.rayTracingPipeline = 1;
+
+        auto& accelerationFeatures = features->get<VkPhysicalDeviceAccelerationStructureFeaturesKHR,VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR>();
+        accelerationFeatures.accelerationStructure = 1;
+
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
@@ -133,8 +146,8 @@ int main(int argc, char** argv)
 
             // create acceleration geometry
             auto accelGeometry = vsg::AccelerationGeometry::create();
-            accelGeometry->verts = vertices;
-            accelGeometry->indices = indices;
+            accelGeometry->assignVertices(vertices);
+            accelGeometry->assignIndices(indices);
 
             // create bottom level acceleration structure using acceleration geom
             auto blas = vsg::BottomLevelAccelerationStructure::create(device);
@@ -187,9 +200,7 @@ int main(int argc, char** argv)
         storageImage->flags = 0;
         storageImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        vsg::ImageInfo storageImageInfo{{},
-                                        createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT),
-                                        VK_IMAGE_LAYOUT_GENERAL};
+        auto storageImageInfo = vsg::ImageInfo::create(vsg::ref_ptr<vsg::Sampler>{}, createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT), VK_IMAGE_LAYOUT_GENERAL);
 
         auto raytracingUniformValues = new RayTracingUniformValue();
         perspective->get_inverse(raytracingUniformValues->value().projInverse);
@@ -246,7 +257,7 @@ int main(int argc, char** argv)
         // set up commandGraph to rendering viewport
         auto commandGraph = vsg::CommandGraph::create(window);
 
-        auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageInfo.imageView, window);
+        auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageInfo->imageView, window);
 
         commandGraph->addChild(scenegraph);
         commandGraph->addChild(copyImageViewToWindow);

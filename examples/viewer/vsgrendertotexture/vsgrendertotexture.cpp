@@ -166,7 +166,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Device* device, v
     return rendergraph;
 }
 
-vsg::ref_ptr<vsg::Node> createPlanes(vsg::ImageInfo& colorImage)
+vsg::ref_ptr<vsg::Node> createPlanes(vsg::ref_ptr<vsg::ImageInfo> colorImage)
 {
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -395,8 +395,9 @@ int main(int argc, char** argv)
     // Framebuffer with attachments
     VkExtent2D targetExtent{512, 512};
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
-    vsg::ImageInfo colorImage, depthImage;
-    auto rtt_RenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, targetExtent, colorImage, depthImage);
+    auto colorImage = vsg::ImageInfo::create();
+    auto depthImage = vsg::ImageInfo::create();
+    auto rtt_RenderGraph = createOffscreenRendergraph(window->getOrCreateDevice(), compile.context, targetExtent, *colorImage, *depthImage);
     auto rtt_view = vsg::View::create(offscreenCamera, vsg_scene);
     rtt_RenderGraph->addChild(rtt_view);
 

@@ -198,13 +198,9 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // texture has been filled in so it's now safe to get the ImageInfo that holds the handles to the texture's
-    vsg::ImageInfo textureImageInfo;
-    struct FindDescriptorImage : public vsg::Visitor
+    struct FindTexture : public vsg::Visitor
     {
-        vsg::ImageInfo& imageInfo;
-
-        FindDescriptorImage(vsg::ImageInfo& im) :
-            imageInfo(im) {}
+        vsg::ref_ptr<vsg::ImageInfo> imageInfo;
 
         void apply(vsg::Object& object) override
         {
@@ -220,10 +216,17 @@ int main(int argc, char** argv)
             if (!di.imageInfoList.empty()) imageInfo = di.imageInfoList[0]; // contextID=0, and only one imageData
         }
 
-    } fdi(textureImageInfo);
-    scenegraph->accept(fdi);
+        static vsg::ref_ptr<vsg::ImageInfo> find(vsg::Node* node)
+        {
+            FindTexture fdi;
+            node->accept(fdi);
+            return fdi.imageInfo;
+        }
+    };
 
-    if (!textureImageInfo.imageView)
+    auto textureImageInfo = FindTexture::find(scenegraph);
+
+    if (!textureImageInfo || !textureImageInfo->imageView)
     {
         std::cout << "Can not locate imageInfo to update." << std::endl;
         return 1;
