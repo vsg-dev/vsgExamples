@@ -18,7 +18,7 @@ public:
     vsg::ref_ptr<vsg::Group> scenegraph;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
     double scale = 1.0;
-    bool verbose = false;
+    bool verbose = true;
 
     IntersectionHandler(vsg::ref_ptr<vsg::Builder> in_builder, vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale, vsg::ref_ptr<vsg::Options> in_options) :
         builder(in_builder),
@@ -28,6 +28,7 @@ public:
         ellipsoidModel(in_ellipsoidModel),
         scale(in_scale)
     {
+        builder->verbose = verbose;
         if (scale > 10.0) scale = 10.0;
     }
 
@@ -66,6 +67,10 @@ public:
             else if (keyPress.keyBase == 'n')
             {
                 scenegraph->addChild(builder->createCone(geom, state));
+            }
+            else if (keyPress.keyBase == 'o')
+            {
+                vsg::write(scenegraph, "builder.vsgt");
             }
         }
     }
