@@ -182,7 +182,7 @@ int main(int argc, char** argv)
         scenegraph->addChild(builder.createBox(geomInfo, stateInfo));
     }
 
-    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
+    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", vsg::ref_ptr<vsg::Device>(window->getOrCreateDevice()));
     vsg::ref_ptr<vsg::CopyAndReleaseImage> copyImageCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
 
     // setup command graph to copy the image data each frame then rendering the scene graph

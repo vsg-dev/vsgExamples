@@ -224,7 +224,7 @@ int main(int argc, char** argv)
         transform->addChild(drawCommands);
     }
 
-    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
+    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice());
     vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
 
     auto bufferInfo = vsg::BufferInfo::create();

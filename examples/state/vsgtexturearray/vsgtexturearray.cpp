@@ -372,7 +372,7 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
 
 
-    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice(), vsg::BufferPreferences{});
+    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice());
     auto copyCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
     commandGraph->children.insert(commandGraph->children.begin(), copyCmd);
 

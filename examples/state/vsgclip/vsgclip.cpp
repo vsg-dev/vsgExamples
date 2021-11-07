@@ -263,7 +263,7 @@ int main(int argc, char** argv)
         if (useStagingBuffer)
         {
             std::cout << "Using Staging Buffer DescriptorBuffer" << std::endl;
-            auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", device, vsg::BufferPreferences{});
+            auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", device);
             copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
 
             // allocate output storage buffer

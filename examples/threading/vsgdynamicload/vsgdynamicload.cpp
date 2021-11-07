@@ -24,7 +24,7 @@ public:
     // window related settings used to set up the CompileTraversal
     vsg::ref_ptr<vsg::Window> window;
     vsg::ref_ptr<vsg::ViewportState> viewport;
-    vsg::BufferPreferences buildPreferences;
+    vsg::ResourceRequirements resourceRequirements;
 
     DynamicLoadAndCompile(vsg::ref_ptr<vsg::Window> in_window, vsg::ref_ptr<vsg::ViewportState> in_viewport, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
         status(in_status),
@@ -115,7 +115,7 @@ public:
         }
 
         std::cout << "takeCompileTraversal() creating a new CompileTraversal" << std::endl;
-        auto ct = vsg::CompileTraversal::create(window, viewport, buildPreferences);
+        auto ct = vsg::CompileTraversal::create(window, viewport, resourceRequirements);
 
         return ct;
     }
@@ -174,11 +174,11 @@ void DynamicLoadAndCompile::CompileOperation::run()
 
         auto compileTraversal = dynamicLoadAndCompile->takeCompileTraversal();
 
-        vsg::CollectDescriptorStats collectStats;
-        request->loaded->accept(collectStats);
+        vsg::CollectResourceRequirements collectRequirements;
+        request->loaded->accept(collectRequirements);
 
-        auto maxSets = collectStats.computeNumDescriptorSets();
-        auto descriptorPoolSizes = collectStats.computeDescriptorPoolSizes();
+        auto maxSets = collectRequirements.requirements.computeNumDescriptorSets();
+        auto descriptorPoolSizes = collectRequirements.requirements.computeDescriptorPoolSizes();
 
         // brute force allocation of new DescrptorPool for this subgraph, TODO : need to preallocate large DescritorPoil for multiple loaded subgraphs
         if (descriptorPoolSizes.size() > 0) compileTraversal->context.descriptorPool = vsg::DescriptorPool::create(compileTraversal->context.device, maxSets, descriptorPoolSizes);

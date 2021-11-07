@@ -126,21 +126,9 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
     uint32_t tileMultiplier = std::min(estimatedNumOfTilesBelow, maxNumTilesBelow) + 1;
 
     // set up the ResourceHints required to make sure the VSG preallocates enough Vulkan resources for the paged database
-    vsg::CollectDescriptorStats collectStats;
-    group->accept(collectStats);
-
-    auto resourceHints = vsg::ResourceHints::create();
-
-    resourceHints->maxSlot = collectStats.maxSlot;
-    resourceHints->numDescriptorSets = static_cast<uint32_t>(collectStats.computeNumDescriptorSets() * tileMultiplier);
-    resourceHints->descriptorPoolSizes = collectStats.computeDescriptorPoolSizes();
-
-    for (auto& poolSize : resourceHints->descriptorPoolSizes)
-    {
-        poolSize.descriptorCount = poolSize.descriptorCount * tileMultiplier;
-    }
-
-    group->setObject("ResourceHints", resourceHints);
+    vsg::CollectResourceRequirements collectRequirements;
+    group->accept(collectRequirements);
+    group->setObject("ResourceHints", collectRequirements.createResourceHints(tileMultiplier));
 
     // assign the EllipsoidModel so that the overall geometry of the database can be used as guide for clipping and navigation.
     group->setObject("EllipsoidModel", ellipsoidModel);
