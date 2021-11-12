@@ -258,7 +258,7 @@ int main(int argc, char** argv)
 
         vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd;
         vsg::ref_ptr<vsg::DescriptorBuffer> clipSettings_buffer;
-        vsg::ref_ptr<vsg::BufferInfo> bufferInfo;
+        auto bufferInfo = vsg::BufferInfo::create();
 
         if (useStagingBuffer)
         {
@@ -369,8 +369,7 @@ int main(int argc, char** argv)
                 auto& world_sphere = worldClipSettings->at(i);
                 auto& eye_sphere = eyeClipSettings->at(i);
 
-                vsg::dmat4 viewMatrix;
-                camera->viewMatrix->get(viewMatrix);
+                vsg::dmat4 viewMatrix = camera->viewMatrix->transform();
 
                 vsg::dvec3 world_center(world_sphere.x, world_sphere.y, world_sphere.z);
                 vsg::dvec3 eye_center = viewMatrix * world_center;
