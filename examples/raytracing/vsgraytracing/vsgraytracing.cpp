@@ -203,8 +203,8 @@ int main(int argc, char** argv)
         auto storageImageInfo = vsg::ImageInfo::create(vsg::ref_ptr<vsg::Sampler>{}, createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT), VK_IMAGE_LAYOUT_GENERAL);
 
         auto raytracingUniformValues = new RayTracingUniformValue();
-        perspective->get_inverse(raytracingUniformValues->value().projInverse);
-        lookAt->get_inverse(raytracingUniformValues->value().viewInverse);
+        raytracingUniformValues->value().projInverse = perspective->inverse();
+        raytracingUniformValues->value().viewInverse = lookAt->inverse();
 
         vsg::ref_ptr<RayTracingUniformValue> raytracingUniform(raytracingUniformValues);
 
@@ -275,7 +275,7 @@ int main(int argc, char** argv)
             viewer->handleEvents();
 
             //update camera matrix
-            lookAt->get_inverse(raytracingUniformValues->value().viewInverse);
+            raytracingUniformValues->value().viewInverse = lookAt->inverse();
             raytracingUniformDescriptor->copyDataListToBuffers();
 
             viewer->update();
