@@ -318,7 +318,10 @@ int main(int argc, char** argv)
                 std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
                 return 1;
             }
-            viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
+
+            auto animationPathHandler = vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point());
+            animationPathHandler->printFrameStatsToConsole = true;
+            viewer->addEventHandler(animationPathHandler);
         }
 
         // if required preload specific number of PagedLOD levels.
