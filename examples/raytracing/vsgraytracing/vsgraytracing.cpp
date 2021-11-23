@@ -24,11 +24,11 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // set up search paths to SPIRV shaders and textures
-        vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-
         auto options = vsg::Options::create();
-        options->paths = searchPaths;
+
+        // set up search paths to SPIRV shaders and textures
+        options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
 #ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
@@ -83,15 +83,15 @@ int main(int argc, char** argv)
         viewer->addWindow(window);
 
         // load shaders
-#if 1
+
         auto raygenShader = vsg::read_cast<vsg::ShaderStage>("shaders/simple_raygen.rgen", options);
         auto missShader = vsg::read_cast<vsg::ShaderStage>("shaders/simple_miss.rmiss", options);
         auto closesthitShader = vsg::read_cast<vsg::ShaderStage>("shaders/simple_closesthit.rchit", options);
-#else
-        vsg::ref_ptr<vsg::ShaderStage> raygenShader = vsg::ShaderStage::read(VK_SHADER_STAGE_RAYGEN_BIT_KHR, "main", vsg::findFile("shaders/simple_raygen.spv", searchPaths));
-        vsg::ref_ptr<vsg::ShaderStage> missShader = vsg::ShaderStage::read(VK_SHADER_STAGE_MISS_BIT_KHR, "main", vsg::findFile("shaders/simple_miss.spv", searchPaths));
-        vsg::ref_ptr<vsg::ShaderStage> closesthitShader = vsg::ShaderStage::read(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "main", vsg::findFile("shaders/simple_closesthit.spv", searchPaths));
-#endif
+
+        // fallback to spv shaders if GLSL variants can't be loaded
+        if (!raygenShader) raygenShader = vsg::ShaderStage::read(VK_SHADER_STAGE_RAYGEN_BIT_KHR, "main", "shaders/simple_raygen.spv", options);
+        if (!missShader) missShader = vsg::ShaderStage::read(VK_SHADER_STAGE_MISS_BIT_KHR, "main", "shaders/simple_miss.spv", options);
+        if (!closesthitShader) closesthitShader = vsg::ShaderStage::read(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, "main", "shaders/simple_closesthit.spv", options);
 
         if (!raygenShader || !missShader || !closesthitShader)
         {
