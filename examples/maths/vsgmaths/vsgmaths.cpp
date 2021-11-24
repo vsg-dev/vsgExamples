@@ -81,25 +81,25 @@ int main(int /*argc*/, char** /*argv*/)
         std::cout << "getValue(\"matrix\"" << new_mat << std::endl;
     }
 
-    vsg::mat4 proj = vsg::perspective(vsg::radians(45.0), 2.0, 0.1, 10.0);
+    auto proj = vsg::perspective(vsg::radians(45.0), 2.0, 0.1, 10.0);
     std::cout << "proj = {" << std::endl
               << proj << "}" << std::endl;
 
-    vsg::mat4 view = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
+    auto  view = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
     std::cout << "view = {" << std::endl
               << view << "}" << std::endl;
 
-    vsg::mat4 rot = vsg::rotate(vsg::radians(45.0f), 0.0f, 0.0f, 1.0f);
+    auto  rot = vsg::rotate(vsg::radians(45.0f), 0.0f, 0.0f, 1.0f);
     std::cout << "rot = {" << rot << "}" << std::endl;
 
-    constexpr vsg::mat4 trans = vsg::translate(vsg::vec3(1.0f, 2.0f, 3.0f));
+    constexpr auto  trans = vsg::translate(vsg::vec3(1.0f, 2.0f, 3.0f));
     std::cout << "trans = {" << trans << "}" << std::endl;
 
-    constexpr vsg::mat4 scale = vsg::scale(vsg::vec3(1.0f, 2.0f, 3.0f));
+    constexpr auto  scale = vsg::scale(vsg::vec3(1.0f, 2.0f, 3.0f));
     std::cout << "scale = {" << scale << "}" << std::endl;
 
     // note VSG and OSG multiplication order reversed.
-    vsg::mat4 result = scale * trans * rot;
+    auto  result = scale * trans * rot;
     std::cout << "result = {" << result << "}" << std::endl;
 
     vsg::vec2 v2(1.0, 2.0);
