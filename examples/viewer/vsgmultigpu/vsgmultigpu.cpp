@@ -311,7 +311,7 @@ int main(int argc, char** argv)
             if (cpu_itr != affinity.cpus.end())
             {
                 std::cout << "vsg::setAffinity() " << *cpu_itr << std::endl;
-                vsg::setAffinity(*cpu_itr++);
+                vsg::setAffinity(vsg::Affinity(*cpu_itr++));
             }
 
             for (auto& thread : viewer->threads)
@@ -319,7 +319,7 @@ int main(int argc, char** argv)
                 if (thread.joinable() && cpu_itr != affinity.cpus.end())
                 {
                     std::cout << "vsg::setAffinity(" << thread.get_id() << ") " << *cpu_itr << std::endl;
-                    vsg::setAffinity(thread, *cpu_itr++);
+                    vsg::setAffinity(thread, vsg::Affinity(*cpu_itr++));
                 }
             }
         }
