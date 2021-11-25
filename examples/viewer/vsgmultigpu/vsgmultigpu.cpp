@@ -1,22 +1,24 @@
 #include <vsg/all.h>
 
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
+#endif
+
 #include <chrono>
 #include <iostream>
 #include <thread>
 
-vsg::ref_ptr<vsg::Node> createScene(std::string filename)
+vsg::ref_ptr<vsg::Node> createScene(const std::string& filename, vsg::ref_ptr<vsg::Options> options)
 {
     if (!filename.empty())
     {
-        return vsg::read_cast<vsg::Node>(filename);
+        std::cout<<"createScene("<<filename<<", "<<options<<")"<<std::endl;
+        return vsg::read_cast<vsg::Node>(filename, options);
     }
 
-    // set up search paths to SPIRV shaders and textures
-    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-
     // load shaders
-    vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
-    vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
+    vsg::ref_ptr<vsg::ShaderStage> vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", "shaders/vert_PushConstants.spv", options);
+    vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", "shaders/frag_PushConstants.spv", options);
     if (!vertexShader || !fragmentShader)
     {
         std::cout << "Could not create shaders." << std::endl;
@@ -25,7 +27,7 @@ vsg::ref_ptr<vsg::Node> createScene(std::string filename)
 
     // read texture image
     vsg::Path textureFile("textures/lz.vsgb");
-    auto textureData = vsg::read_cast<vsg::Data>(vsg::findFile(textureFile, searchPaths));
+    auto textureData = vsg::read_cast<vsg::Data>(textureFile, options);
     if (!textureData)
     {
         std::cout << "Could not read texture file : " << textureFile << std::endl;
@@ -147,6 +149,17 @@ int main(int argc, char** argv)
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
+
+    // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+    auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
+
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -207,7 +220,7 @@ int main(int argc, char** argv)
     vsg::Path filename;
     if (argc > 1) filename = arguments[1];
 
-    auto vsg_scene = createScene(filename);
+    auto vsg_scene = createScene(filename, options);
     if (!vsg_scene)
     {
         std::cout << "Unable to load model." << std::endl;
@@ -293,7 +306,7 @@ int main(int argc, char** argv)
             camera = vsg::Camera::create(perspective, relative_view, vsg::ViewportState::create(window->extent2D()));
         }
 
-        auto local_scene = sharedScene ? vsg_scene : createScene(filename);
+        auto local_scene = sharedScene ? vsg_scene : createScene(filename, options);
 
         viewer->assignRecordAndSubmitTaskAndPresentation({vsg::createCommandGraphForView(window, camera, local_scene)});
         viewer->addWindow(window);
