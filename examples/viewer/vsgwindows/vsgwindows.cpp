@@ -41,6 +41,8 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
+    bool seperateDevices = arguments.read({"--no-shared-window", "-n"});
+
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -83,11 +85,19 @@ int main(int argc, char** argv)
     windowTraits2->windowTitle = "second window";
     windowTraits2->debugLayer = windowTraits->debugLayer;
     windowTraits2->apiDumpLayer = windowTraits->apiDumpLayer;
-
+    if (!seperateDevices)
+    {
+        windowTraits2->shareWindow = window1; // share the same vsg::Instance/vsg::Device as window1
+        std::cout<<"Sharing vsg::Instance and vsg::Device between windows."<<std::endl;
+    }
+    else
+    {
+        std::cout<<"Each window to use it's own vsg::Instance and vsg::Device."<<std::endl;
+    }
     auto window2 = vsg::Window::create(windowTraits2);
     if (!window2)
     {
-        std::cout << "Could not create window." << std::endl;
+        std::cout << "Could not create second window." << std::endl;
         return 1;
     }
 
@@ -109,8 +119,14 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     // add event handlers, in the order we wish event to be handled.
-    viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
-    viewer->addEventHandler(vsg::Trackball::create(main_camera));
+
+    auto main_trackball = vsg::Trackball::create(main_camera);
+    main_trackball->addWindow(window1);
+    viewer->addEventHandler(main_trackball);
+
+    auto secondary_trackball = vsg::Trackball::create(secondary_camera);
+    secondary_trackball->addWindow(window2);
+    viewer->addEventHandler(secondary_trackball);
 
     auto main_RenderGraph = vsg::RenderGraph::create(window1, main_view);
     auto secondary_RenderGraph = vsg::RenderGraph::create(window2, secondary_view);
