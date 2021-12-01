@@ -17,18 +17,6 @@
 #include <unordered_map>
 #include <vector>
 
-template<typename F>
-double time(F function)
-{
-    using clock = std::chrono::high_resolution_clock;
-    clock::time_point start = clock::now();
-
-    // do test code
-    function();
-
-    return std::chrono::duration<double>(clock::now() - start).count();
-}
-
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
@@ -51,7 +39,7 @@ int main(int argc, char** argv)
     copy_objects = objects;
     copy_objects.clear();
 
-    std::cout << "Time to copy container " << std::chrono::duration<double>(clock::now() - start).count();
+    std::cout << "Time to copy container with "<<numObjects<<" objects : " << std::chrono::duration<double>(clock::now() - start).count()<<" seconds."<<std::endl;
 
     return 0;
 }
