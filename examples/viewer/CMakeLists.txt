@@ -10,6 +10,7 @@ add_subdirectory(vsgskybox)
 add_subdirectory(vsgviewer)
 add_subdirectory(vsgdeviceselection)
 add_subdirectory(vsganaglyphicstereo)
+add_subdirectory(vsgwindows)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsghelloworld)
