@@ -7,6 +7,7 @@
 #include <vsg/nodes/LOD.h>
 #include <vsg/nodes/QuadGroup.h>
 #include <vsg/utils/CommandLine.h>
+#include <vsg/io/Options.h>
 
 #include <chrono>
 #include <iostream>
