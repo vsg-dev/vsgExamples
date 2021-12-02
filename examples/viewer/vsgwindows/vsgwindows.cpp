@@ -51,6 +51,12 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
+    if (seperateDevices && VSG_MAX_DEVICES<2)
+    {
+        std::cout<<"VulkanSceneGraph built with VSG_MAX_DEVICES = "<<VSG_MAX_DEVICES<<", so using a two windows, with a vsg::Device per vsg::Window is not supported."<<std::endl;
+        return 1;
+    }
+
     vsg::ref_ptr<vsg::Node> scenegraph;
     vsg::ref_ptr<vsg::Node> scenegraph2;
     if (argc > 1)
