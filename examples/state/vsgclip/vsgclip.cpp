@@ -162,7 +162,7 @@ int main(int argc, char** argv)
 
         if (!vertexShader || !fragmentShader)
         {
-            std::cout << "Could not find shader files " << vertexShaderFilename << " and/or " << fragmentShaderFilename << std::endl;
+            std::cout << "Could not read shader files " << vertexShaderFilename << " and/or " << fragmentShaderFilename << std::endl;
             std::cout << "Please set VSG_FILE_PATH environmental variable to your vsgExamples/data directory." << std::endl;
             return 1;
         }
