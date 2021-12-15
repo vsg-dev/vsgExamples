@@ -160,6 +160,8 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
+    options->readOptions(arguments);
+
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
