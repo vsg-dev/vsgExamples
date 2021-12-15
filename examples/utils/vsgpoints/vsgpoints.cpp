@@ -420,7 +420,7 @@ int main(int argc, char** argv)
     {
         std::string filename = argv[i];
         auto ext = vsg::lowerCaseFileExtension(filename);
-        if (ext == "asc" || ext == "3dc")
+        if (ext == ".asc" || ext == ".3dc")
         {
             // if we have 10 values per line
 #if 1

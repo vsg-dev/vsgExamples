@@ -54,8 +54,8 @@ vsg::Path TileReader::getTilePath(const vsg::Path& src, uint32_t x, uint32_t y, 
 
 vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options) const
 {
-    auto extension = vsg::fileExtension(filename);
-    if (extension != "tile") return {};
+    auto extension = vsg::lowerCaseFileExtension(filename);
+    if (extension != ".tile") return {};
 
     std::string tile_info = filename.substr(0, filename.length() - 5);
     if (tile_info == "root")
