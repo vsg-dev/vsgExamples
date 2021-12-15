@@ -253,24 +253,6 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    // add close handler to respond the close window button and pressing escape
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-    if (pathFilename.empty())
-    {
-        viewer->addEventHandler(vsg::Trackball::create(master_camera));
-    }
-    else
-    {
-        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename);
-        if (!animationPath)
-        {
-            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
-            return 1;
-        }
-        viewer->addEventHandler(vsg::AnimationPathHandler::create(master_camera, animationPath, viewer->start_point()));
-    }
-
     size_t numScreens = screensToUse.size();
     for (size_t i = 0; i < screensToUse.size(); ++i)
     {
@@ -340,6 +322,43 @@ int main(int argc, char** argv)
     else if (affinity)
     {
         vsg::setAffinity(affinity);
+    }
+
+
+    // add close handler to respond the close window button and pressing escape
+    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
+    if (pathFilename.empty())
+    {
+        auto trackball = vsg::Trackball::create(master_camera);
+
+        int32_t x = 0;
+        int32_t y = 0;
+        uint32_t width = 0;
+        uint32_t height = 0;
+
+        for(auto& window : viewer->windows())
+        {
+            trackball->addWindow(window, vsg::ivec2(width, 0));
+            width += window->extent2D().width;
+            if (window->extent2D().height > height) height = window->extent2D().height;
+        }
+
+        master_camera->viewportState = vsg::ViewportState::create(x, y, width, height);
+
+        viewer->addEventHandler(trackball);
+    }
+    else
+    {
+        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
+        if (!animationPath)
+        {
+            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
+            return 1;
+        }
+        auto aph = vsg::AnimationPathHandler::create(master_camera, animationPath, viewer->start_point());
+        aph->printFrameStatsToConsole = true;
+        viewer->addEventHandler(aph);
     }
 
     viewer->compile();
