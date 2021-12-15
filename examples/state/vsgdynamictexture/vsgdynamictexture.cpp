@@ -42,6 +42,7 @@ public:
                 ++ptr;
             }
         }
+        image.dirty();
     }
 
     // use the vsg::Visitor to safely cast to types handled by the UpdateImage class

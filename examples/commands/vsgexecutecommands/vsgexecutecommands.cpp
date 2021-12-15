@@ -154,6 +154,17 @@ int main(int argc, char** argv)
     traits->height = 600;
 
     vsg::CommandLine arguments(&argc, argv);
+
+    // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+    auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
+
     traits->debugLayer = arguments.read({"--debug", "-d"});
     traits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, traits->width, traits->height)) { traits->fullscreen = false; }
@@ -260,7 +271,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename);
+        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
         if (!animationPath)
         {
             std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;

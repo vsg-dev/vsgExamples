@@ -70,6 +70,7 @@ public:
         scrollWheel.handled = true;
         scale *= (1.0 + scrollWheel.delta.y * 0.1);
         world_ClipSetttings->at(0).w = scale;
+        world_ClipSetttings->dirty();
     }
 
     void interesection(vsg::PointerEvent& pointerEvent)
@@ -84,6 +85,7 @@ public:
 
         auto& intersection = intersector->intersections.front();
         world_ClipSetttings->at(0) = vsg::vec4(intersection.worldIntersection.x, intersection.worldIntersection.y, intersection.worldIntersection.z, scale);
+        world_ClipSetttings->dirty();
     }
 
 protected:
