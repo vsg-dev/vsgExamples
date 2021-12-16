@@ -255,7 +255,7 @@ int main(int argc, char** argv)
             auto leftQuad = createTextureQuad(origin - offset * 0.5f, horizontal, vertical, leftImage);
             auto rightQuad = createTextureQuad(origin + offset * 0.5f, horizontal, vertical, rightImage);
 
-            auto maskGroup = vsg::MaskGroup::create();
+            auto maskGroup = vsg::Switch::create();
             maskGroup->addChild(leftMask, leftQuad);
             maskGroup->addChild(rightMask, rightQuad);
 
