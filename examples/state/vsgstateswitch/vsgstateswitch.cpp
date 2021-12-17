@@ -29,7 +29,7 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
 }
 
 
-class ReplaceGraphicsPipeline : public vsg::Visitor
+class InsertStateSwitch : public vsg::Visitor
 {
 public:
     std::vector<vsg::Object*> parents;
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
     // repalce the graphics pipelines with the wireframe enabled
     if (replaceGraphicsPipelines)
     {
-        ReplaceGraphicsPipeline rgp;
+        InsertStateSwitch rgp;
         rgp.mask_1 = mask_1;
         rgp.mask_2 = mask_2;
         scenegraph->accept(rgp);
