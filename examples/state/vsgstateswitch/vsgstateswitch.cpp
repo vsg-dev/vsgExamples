@@ -126,7 +126,8 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    vsg::Path filename = arguments[1];
+    vsg::Path filename = "models/lz.vsgt";
+    if (argc>1) filename = arguments[1];
     auto scenegraph = vsg::read_cast<vsg::Node>(filename, options);
     if (!scenegraph)
     {
