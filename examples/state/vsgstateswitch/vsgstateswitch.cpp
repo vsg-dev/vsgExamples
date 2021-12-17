@@ -112,7 +112,7 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
-    bool replaceGraphicsPipelines = !arguments.read("-n"); // no replacement of GraphicsPipeline, so assume loaded scene graph has required vsg::StateSwitch
+    bool insertStateSwitch = !arguments.read("-n"); // no replacement of GraphicsPipeline, so assume loaded scene graph has required vsg::StateSwitch
     bool separateRenderGraph = arguments.read("-s");
     auto outputFilename = arguments.value<std::string>("", "-o");
 
@@ -137,8 +137,10 @@ int main(int argc, char** argv)
     uint32_t mask_1 = 0x1;
     uint32_t mask_2 = 0x2;
 
-    // repalce the graphics pipelines with the wireframe enabled
-    if (replaceGraphicsPipelines)
+    // insert StateSwitch in place of BindGraphicsPipeline,
+    // with each StateSwitch having one child associated with view_1 that is the original Bind/GraphicsPipeline
+    // and a second child associated with view_2 that duplicate the original Bind/GraphicsPipeline to create one with wireframe enabled
+    if (insertStateSwitch)
     {
         InsertStateSwitch rgp;
         rgp.mask_1 = mask_1;
