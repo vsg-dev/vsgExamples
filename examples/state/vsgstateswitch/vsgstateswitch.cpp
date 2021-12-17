@@ -28,6 +28,41 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
     return vsg::Camera::create(perspective, lookAt, viewportstate);
 }
 
+namespace vsg
+{
+    class StateSwitch : public vsg::Inherit<vsg::StateCommand, StateSwitch>
+    {
+    public:
+
+        void compile(Context& context) override
+        {
+            std::cout<<"StateSwitch::compile()"<<std::endl;
+            for(auto& sc : stateCommands) sc.second->compile(context);
+        }
+
+        void record(CommandBuffer& commandBuffer) const override
+        {
+            std::cout<<"StateSwitch::record() "<<commandBuffer.viewID<<std::endl;
+            for(auto& view_sc : stateCommands)
+            {
+                if (view_sc.first == commandBuffer.viewID)
+                {
+                    view_sc.second->record(commandBuffer);
+                    std::cout<<"    matched "<<std::endl;
+                }
+                else
+                {
+                    std::cout<<"    not matched "<<std::endl;
+                }
+            }
+        }
+
+        using ViewStateCommand = std::pair<uint32_t, vsg::ref_ptr<vsg::StateCommand>>;
+        std::vector<ViewStateCommand> stateCommands;
+    };
+};
+
+
 class ReplaceGraphicsPipeline : public vsg::Visitor
 {
     std::vector<vsg::Object*> parents;
@@ -45,27 +80,25 @@ class ReplaceGraphicsPipeline : public vsg::Visitor
         traverse(object);
     }
 
-    void apply(vsg::RasterizationState& rasterizationState)
+    vsg::ref_ptr<vsg::GraphicsPipeline> createAlternate(vsg::GraphicsPipeline& pipeline)
     {
-        std::cout<<"Found Rasterization "<<&rasterizationState<<std::endl;
-        rasterizationState.polygonMode = VK_POLYGON_MODE_LINE; // VK_POLYGON_MODE_FILL
-    }
+        auto alternatve_pipeline = vsg::GraphicsPipeline::create();
 
-    void apply(vsg::GraphicsPipeline& pipeline)
-    {
-        if (visited.count(&pipeline)>0) return;
+        *alternatve_pipeline = pipeline;
 
-        visited.insert(&pipeline);
-
-#if 0
-        std::cout<<"Found GraphicsPipeline "<<&pipeline;
-        for(auto& object : parents) std::cout<<" "<<object<<":"<<object->className();
-        std::cout<<std::endl;
-#endif
-        for(auto& pipelineState : pipeline.pipelineStates)
+        for(auto& pipelineState : alternatve_pipeline->pipelineStates)
         {
-            pipelineState->accept(*this);
+            if (auto rasterizationState = pipelineState.cast<vsg::RasterizationState>())
+            {
+                auto alternate_rasterizationState = vsg::RasterizationState::create();
+
+                *alternate_rasterizationState = *rasterizationState;
+
+                alternate_rasterizationState->polygonMode = VK_POLYGON_MODE_LINE;
+                pipelineState = alternate_rasterizationState;
+            }
         }
+        return alternatve_pipeline;
     }
 
     void apply(vsg::BindGraphicsPipeline& bgp) override
@@ -75,9 +108,27 @@ class ReplaceGraphicsPipeline : public vsg::Visitor
 
     void apply(vsg::StateGroup& sg) override
     {
+        if (visited.count(&sg)>0) return;
+        visited.insert(&sg);
+
         for(auto& sc : sg.stateCommands)
         {
-            sc->accept(*this);
+            if (visited.count(sc.get())==0)
+            {
+                visited.insert(sc.get());
+                if (auto bgp = sc->cast<vsg::BindGraphicsPipeline>())
+                {
+                    auto stateSwitch = vsg::StateSwitch::create();
+                    stateSwitch->slot = bgp->slot;
+                    stateSwitch->stateCommands.push_back({0,sc});
+
+                    auto alternate_gp = createAlternate(*(bgp->pipeline));
+                    auto alternate_bgp = vsg::BindGraphicsPipeline::create(alternate_gp);
+
+                    stateSwitch->stateCommands.push_back({1,alternate_bgp});
+                    sc = stateSwitch;
+                }
+            }
         }
 
         traverse(sg);
