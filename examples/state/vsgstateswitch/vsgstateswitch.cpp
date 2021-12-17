@@ -28,44 +28,6 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
     return vsg::Camera::create(perspective, lookAt, viewportstate);
 }
 
-namespace vsg
-{
-    class StateSwitch : public Inherit<StateCommand, StateSwitch>
-    {
-    public:
-
-        template<class N, class V>
-        static void t_traverse(N& sc, V& visitor)
-        {
-            for (auto& child : sc.stateCommands) child.second->accept(visitor);
-        }
-
-        void traverse(Visitor& visitor) override { t_traverse(*this, visitor); }
-        void traverse(ConstVisitor& visitor) const override { t_traverse(*this, visitor); }
-
-        void compile(Context& context) override
-        {
-            for(auto& sc : stateCommands) sc.second->compile(context);
-        }
-
-        void record(CommandBuffer& commandBuffer) const override
-        {
-            for(auto& view_sc : stateCommands)
-            {
-                if ((commandBuffer.traversalMask & (commandBuffer.overrideMask | view_sc.first)) != 0)
-                {
-                    view_sc.second->record(commandBuffer);
-                }
-            }
-        }
-
-        using ViewStateCommand = std::pair<uint32_t, ref_ptr<StateCommand>>;
-        std::vector<ViewStateCommand> stateCommands;
-    };
-    VSG_type_name(vsg::StateSwitch);
-
-};
-
 
 class ReplaceGraphicsPipeline : public vsg::Visitor
 {
@@ -124,12 +86,12 @@ public:
                 {
                     stateSwitch = vsg::StateSwitch::create();
                     stateSwitch->slot = bgp->slot;
-                    stateSwitch->stateCommands.push_back({mask_1,sc});
+                    stateSwitch->add(mask_1, sc);
 
                     auto alternate_gp = createAlternate(*(bgp->pipeline));
                     auto alternate_bgp = vsg::BindGraphicsPipeline::create(alternate_gp);
 
-                    stateSwitch->stateCommands.push_back({mask_2,alternate_bgp});
+                    stateSwitch->add(mask_2, alternate_bgp);
                 }
                 sc = stateSwitch;
             }
@@ -150,7 +112,9 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
+    bool replaceGraphicsPipelines = !arguments.read("-n"); // no replacement of GraphicsPipeline, so assume loaded scene graph has required vsg::StateSwitch
     bool separateRenderGraph = arguments.read("-s");
+    auto outputFilename = arguments.value<std::string>("", "-o");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -174,10 +138,19 @@ int main(int argc, char** argv)
     uint32_t mask_2 = 0x2;
 
     // repalce the graphics pipelines with the wireframe enabled
-    ReplaceGraphicsPipeline rgp;
-    rgp.mask_1 = mask_1;
-    rgp.mask_2 = mask_2;
-    scenegraph->accept(rgp);
+    if (replaceGraphicsPipelines)
+    {
+        ReplaceGraphicsPipeline rgp;
+        rgp.mask_1 = mask_1;
+        rgp.mask_2 = mask_2;
+        scenegraph->accept(rgp);
+    }
+
+    if (!outputFilename.empty())
+    {
+        vsg::write(scenegraph, outputFilename, options);
+        return 0;
+    }
 
 
     // create the viewer and assign window(s) to it
