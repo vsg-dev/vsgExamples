@@ -34,6 +34,15 @@ namespace vsg
     {
     public:
 
+        template<class N, class V>
+        static void t_traverse(N& sc, V& visitor)
+        {
+            for (auto& child : sc.stateCommands) child.second->accept(visitor);
+        }
+
+        void traverse(Visitor& visitor) override { t_traverse(*this, visitor); }
+        void traverse(ConstVisitor& visitor) const override { t_traverse(*this, visitor); }
+
         void compile(Context& context) override
         {
             for(auto& sc : stateCommands) sc.second->compile(context);
