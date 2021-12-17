@@ -52,7 +52,7 @@ namespace vsg
         {
             for(auto& view_sc : stateCommands)
             {
-                if (view_sc.first == commandBuffer.viewID)
+                if ((commandBuffer.traversalMask & (commandBuffer.overrideMask | view_sc.first)) != 0)
                 {
                     view_sc.second->record(commandBuffer);
                 }
@@ -69,9 +69,12 @@ namespace vsg
 
 class ReplaceGraphicsPipeline : public vsg::Visitor
 {
+public:
     std::vector<vsg::Object*> parents;
     std::set<vsg::Object*> visited;
     std::map<vsg::BindGraphicsPipeline*, vsg::ref_ptr<vsg::StateSwitch>> pipelineMap;
+    uint32_t mask_1 = 0x1;
+    uint32_t mask_2 = 0x2;
 
     void traverse(vsg::Object& object)
     {
@@ -121,12 +124,12 @@ class ReplaceGraphicsPipeline : public vsg::Visitor
                 {
                     stateSwitch = vsg::StateSwitch::create();
                     stateSwitch->slot = bgp->slot;
-                    stateSwitch->stateCommands.push_back({0,sc});
+                    stateSwitch->stateCommands.push_back({mask_1,sc});
 
                     auto alternate_gp = createAlternate(*(bgp->pipeline));
                     auto alternate_bgp = vsg::BindGraphicsPipeline::create(alternate_gp);
 
-                    stateSwitch->stateCommands.push_back({1,alternate_bgp});
+                    stateSwitch->stateCommands.push_back({mask_2,alternate_bgp});
                 }
                 sc = stateSwitch;
             }
@@ -172,6 +175,8 @@ int main(int argc, char** argv)
 
     // repalce the graphics pipelines with the wireframe enabled
     ReplaceGraphicsPipeline rgp;
+    rgp.mask_1 = mask_1;
+    rgp.mask_2 = mask_2;
     scenegraph->accept(rgp);
 
 
