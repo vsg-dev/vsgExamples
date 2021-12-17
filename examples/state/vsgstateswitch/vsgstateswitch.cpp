@@ -30,36 +30,31 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
 
 namespace vsg
 {
-    class StateSwitch : public vsg::Inherit<vsg::StateCommand, StateSwitch>
+    class StateSwitch : public Inherit<StateCommand, StateSwitch>
     {
     public:
 
         void compile(Context& context) override
         {
-            std::cout<<"StateSwitch::compile()"<<std::endl;
             for(auto& sc : stateCommands) sc.second->compile(context);
         }
 
         void record(CommandBuffer& commandBuffer) const override
         {
-            std::cout<<"StateSwitch::record() "<<commandBuffer.viewID<<std::endl;
             for(auto& view_sc : stateCommands)
             {
                 if (view_sc.first == commandBuffer.viewID)
                 {
                     view_sc.second->record(commandBuffer);
-                    std::cout<<"    matched "<<std::endl;
-                }
-                else
-                {
-                    std::cout<<"    not matched "<<std::endl;
                 }
             }
         }
 
-        using ViewStateCommand = std::pair<uint32_t, vsg::ref_ptr<vsg::StateCommand>>;
+        using ViewStateCommand = std::pair<uint32_t, ref_ptr<StateCommand>>;
         std::vector<ViewStateCommand> stateCommands;
     };
+    VSG_type_name(vsg::StateSwitch);
+
 };
 
 
@@ -67,6 +62,7 @@ class ReplaceGraphicsPipeline : public vsg::Visitor
 {
     std::vector<vsg::Object*> parents;
     std::set<vsg::Object*> visited;
+    std::map<vsg::BindGraphicsPipeline*, vsg::ref_ptr<vsg::StateSwitch>> pipelineMap;
 
     void traverse(vsg::Object& object)
     {
@@ -101,11 +97,6 @@ class ReplaceGraphicsPipeline : public vsg::Visitor
         return alternatve_pipeline;
     }
 
-    void apply(vsg::BindGraphicsPipeline& bgp) override
-    {
-        apply(*bgp.pipeline);
-    }
-
     void apply(vsg::StateGroup& sg) override
     {
         if (visited.count(&sg)>0) return;
@@ -113,12 +104,13 @@ class ReplaceGraphicsPipeline : public vsg::Visitor
 
         for(auto& sc : sg.stateCommands)
         {
-            if (visited.count(sc.get())==0)
+            if (auto bgp = sc->cast<vsg::BindGraphicsPipeline>())
             {
-                visited.insert(sc.get());
-                if (auto bgp = sc->cast<vsg::BindGraphicsPipeline>())
+                auto& stateSwitch = pipelineMap[bgp];
+
+                if (!stateSwitch)
                 {
-                    auto stateSwitch = vsg::StateSwitch::create();
+                    stateSwitch = vsg::StateSwitch::create();
                     stateSwitch->slot = bgp->slot;
                     stateSwitch->stateCommands.push_back({0,sc});
 
@@ -126,8 +118,8 @@ class ReplaceGraphicsPipeline : public vsg::Visitor
                     auto alternate_bgp = vsg::BindGraphicsPipeline::create(alternate_gp);
 
                     stateSwitch->stateCommands.push_back({1,alternate_bgp});
-                    sc = stateSwitch;
                 }
+                sc = stateSwitch;
             }
         }
 
