@@ -28,6 +28,68 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
     return vsg::Camera::create(perspective, lookAt, viewportstate);
 }
 
+class CameraSelector : public vsg::Inherit<vsg::Visitor, CameraSelector>
+{
+public:
+
+    using Cameras = decltype(vsg::FindCameras::cameras);
+
+    CameraSelector(vsg::ref_ptr<vsg::Camera> in_camera, const Cameras& in_cameras) :
+        main_camera(in_camera),
+        cameras(in_cameras)
+    {
+        auto lookAt = main_camera->viewMatrix.cast<vsg::LookAt>();
+        if (lookAt) original_viewMatrix = vsg::LookAt::create(*lookAt);
+    }
+
+    vsg::ref_ptr<vsg::Camera> main_camera;
+    vsg::ref_ptr<vsg::LookAt> original_viewMatrix;
+    Cameras cameras;
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (keyPress.keyBase == '0')
+        {
+            if (original_viewMatrix)
+            {
+                auto lookAt = main_camera->viewMatrix.cast<vsg::LookAt>();
+                if (lookAt)
+                {
+                    *(lookAt) = *original_viewMatrix;
+                }
+            }
+        }
+        else if ((keyPress.keyBase >= '1') && (keyPress.keyBase <= '9'))
+        {
+            uint16_t keyForCamera{'1'};
+            for(auto& [nodePath, camera] : cameras)
+            {
+                if (keyForCamera == keyPress.keyBase)
+                {
+                    auto begin = nodePath.begin();
+                    auto end = nodePath.end();
+                    if (begin != end) --end;
+
+                    // auto matrix = vsg::computeTransform(nodePath);
+                    auto matrix = vsg::visit<vsg::ComputeTransform>(begin, end).matrix;
+
+                    std::cout<<"Matched: "<<camera->name<<" "<<matrix<<std::endl;
+
+                    auto selected_lookAt = camera->viewMatrix.cast<vsg::LookAt>();
+                    auto main_lookAt = main_camera->viewMatrix.cast<vsg::LookAt>();
+                    if (main_lookAt)
+                    {
+                        *main_lookAt = *selected_lookAt;
+                        main_lookAt->transform(matrix);
+                    }
+                    break;
+                }
+                ++keyForCamera;
+            }
+        }
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -59,6 +121,15 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    vsg::FindCameras findCameras;
+    scenegraph->accept(findCameras);
+    for(auto& [nodePath, camera] : findCameras.cameras)
+    {
+        std::cout<<"\ncamera = "<<camera<<", "<<camera->name<<" :";
+        for(auto& node : nodePath) std::cout<<" "<<node;
+        std::cout<<std::endl;
+    }
+
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
     auto window = vsg::Window::create(windowTraits);
@@ -87,6 +158,8 @@ int main(int argc, char** argv)
     // add event handlers, in the order we wish event to be handled.
     viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
     viewer->addEventHandler(vsg::Trackball::create(main_camera));
+
+    viewer->addEventHandler(CameraSelector::create(main_camera, findCameras.cameras));
 
     if (separateRenderGraph)
     {
