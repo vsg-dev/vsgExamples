@@ -286,7 +286,7 @@ int main(int argc, char** argv)
             double fovY = 30.0;
             double fovX = atan(tan(vsg::radians(fovY) * 0.5) * aspectRatio) * 2.0;
             double angle = fovX * (double(i) - double(numScreens - 1) / 2.0);
-            auto relative_view = vsg::RelativeView::create(lookAt, vsg::rotate(angle, 0.0, 1.0, 0.0));
+            auto relative_view = vsg::RelativeViewMatrix::create(lookAt, vsg::rotate(angle, 0.0, 1.0, 0.0));
             camera = vsg::Camera::create(perspective, relative_view, vsg::ViewportState::create(window->extent2D()));
         }
 
