@@ -7,27 +7,6 @@
 #    include <vsgXchange/all.h>
 #endif
 
-vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x, int32_t y, uint32_t width, uint32_t height)
-{
-    // compute the bounds of the scene graph to help position camera
-    vsg::ComputeBounds computeBounds;
-    scenegraph->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-    double nearFarRatio = 0.001;
-
-    // set up the camera
-    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
-                                      centre, vsg::dvec3(0.0, 0.0, 1.0));
-
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
-                                                nearFarRatio * radius, radius * 4.5);
-
-    auto viewportstate = vsg::ViewportState::create(x, y, width, height);
-
-    return vsg::Camera::create(perspective, lookAt, viewportstate);
-}
-
 class CameraSelector : public vsg::Inherit<vsg::Visitor, CameraSelector>
 {
 public:
@@ -119,7 +98,60 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // compute the bounds of the scene graph to help position camera
+    auto bounds = vsg::visit<vsg::ComputeBounds>(scenegraph).bounds;
+    vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+    double radius = vsg::length(bounds.max - bounds.min) * 0.5;
+    double nearFarRatio = 0.001;
+
     auto scene_cameras = vsg::visit<vsg::FindCameras>(scenegraph).cameras;
+
+    if (scene_cameras.empty())
+    {
+        // no camera are present in the scene graph so add them
+        auto root = vsg::Group::create();
+        root->addChild(scenegraph);
+
+        auto perspective = vsg::Perspective::create(90.0, 1.0, nearFarRatio * radius, radius * 4.0);
+
+        // left
+        {
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(radius * 2.0, 0.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+            auto camera = vsg::Camera::create(perspective, lookAt);
+            camera->name = "Left";
+            root->addChild(camera);
+        }
+
+        // right
+        {
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(-radius * 2.0, 0.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+            auto camera = vsg::Camera::create(perspective, lookAt);
+            camera->name = "Right";
+            root->addChild(camera);
+        }
+
+        // front
+        {
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 2.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+            auto camera = vsg::Camera::create(perspective, lookAt);
+            camera->name = "Front";
+            root->addChild(camera);
+        }
+
+        // top
+        {
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, 0.0, radius * 2.0), centre, vsg::dvec3(0.0, 1.0, 0.0));
+            auto camera = vsg::Camera::create(perspective, lookAt);
+            camera->name = "Top";
+            root->addChild(camera);
+        }
+
+        scenegraph = root;
+
+        // refresh the scene_cameras list.
+        scene_cameras = vsg::visit<vsg::FindCameras>(scenegraph).cameras;
+    }
+
     for(auto& [nodePath, camera] : scene_cameras)
     {
         std::cout<<"\ncamera = "<<camera<<", "<<camera->name<<" :";
@@ -138,36 +170,67 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    uint32_t width = window->extent2D().width;
-    uint32_t height = window->extent2D().height;
-
-    // create the vsg::RenderGraph and associated vsg::View
-    auto main_camera = createCameraForScene(scenegraph, 0, 0, width, height);
-    auto main_view = vsg::View::create(main_camera, scenegraph);
-
-    // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
-    auto secondary_camera = createCameraForScene(scenegraph, (width * 3) / 4, 0, width / 4, height / 4);
-    auto secondary_view = vsg::View::create(secondary_camera, scenegraph);
-
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    // add event handlers, in the order we wish event to be handled.
-    viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
-    viewer->addEventHandler(vsg::Trackball::create(main_camera));
+    uint32_t width = window->extent2D().width;
+    uint32_t height = window->extent2D().height;
 
-    viewer->addEventHandler(CameraSelector::create(main_camera, scene_cameras));
-
-
-    auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
-    auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
-    secondary_RenderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.2f, 1.0f}};
-
+    // CommandGraph to hold the different RenderGraph used to render each view
     auto commandGraph = vsg::CommandGraph::create(window);
-    commandGraph->addChild(main_RenderGraph);
-    commandGraph->addChild(secondary_RenderGraph);
+
+    // set up main interactive view
+    {
+        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
+                                        centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+        auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
+                                                    nearFarRatio * radius, radius * 4.5);
+
+        auto viewportState = vsg::ViewportState::create(0, 0, width, height);
+
+        // create the vsg::RenderGraph and associated vsg::View
+        auto main_camera = vsg::Camera::create(perspective, lookAt, viewportState);
+        auto main_view = vsg::View::create(main_camera, scenegraph);
+        auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
+
+        commandGraph->addChild(main_RenderGraph);
+
+        viewer->addEventHandler(vsg::Trackball::create(main_camera));
+        viewer->addEventHandler(CameraSelector::create(main_camera, scene_cameras));
+    }
+
+    // set up secondary views, one per camera found in the scene graph
+    uint32_t margin = 10;
+    uint32_t division = scene_cameras.size();
+    if (division<3) division = 3;
+
+    uint32_t secondary_width = width / division;
+    uint32_t secondary_height = ((height - margin) / division) - margin;
+
+    uint32_t x = width - secondary_width - margin;
+    uint32_t y = margin;
+
+    for(auto& [nodePath, camera] : scene_cameras)
+    {
+        // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
+        auto projectionMatrix = camera->projectionMatrix;
+        auto viewMatrix = vsg::TrackingViewMatrix::create(nodePath);
+        auto viewportState = vsg::ViewportState::create(x, y, secondary_width, secondary_height);
+
+        auto secondary_camera = vsg::Camera::create(projectionMatrix, viewMatrix, viewportState);
+
+        auto secondary_view = vsg::View::create(secondary_camera, scenegraph);
+        auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
+        secondary_RenderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.2f, 1.0f}};
+        commandGraph->addChild(secondary_RenderGraph);
+
+        y += secondary_height + margin;
+    }
+
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
 
     viewer->compile();
 
