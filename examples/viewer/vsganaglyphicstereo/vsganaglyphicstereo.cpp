@@ -318,12 +318,12 @@ int main(int argc, char** argv)
 
     // create the left eye camera
     auto left_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(-shear, 0.0, 0.0));
-    auto left_relative_view = vsg::RelativeView::create(lookAt, vsg::translate(-0.5 * eyeSeperation, 0.0, 0.0));
+    auto left_relative_view = vsg::RelativeViewMatrix::create(lookAt, vsg::translate(-0.5 * eyeSeperation, 0.0, 0.0));
     auto left_camera = vsg::Camera::create(left_relative_perspective, left_relative_view, vsg::ViewportState::create(window->extent2D()));
 
     // create the left eye camera
     auto right_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(shear, 0.0, 0.0));
-    auto right_relative_view = vsg::RelativeView::create(lookAt, vsg::translate(0.5 * eyeSeperation, 0.0, 0.0));
+    auto right_relative_view = vsg::RelativeViewMatrix::create(lookAt, vsg::translate(0.5 * eyeSeperation, 0.0, 0.0));
     auto right_camera = vsg::Camera::create(right_relative_perspective, right_relative_view, vsg::ViewportState::create(window->extent2D()));
 
     // add close handler to respond the close window button and pressing escape
