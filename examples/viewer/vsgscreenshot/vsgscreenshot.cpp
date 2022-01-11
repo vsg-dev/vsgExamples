@@ -431,7 +431,7 @@ public:
             size_t num_unset_depth = 0;
             for (auto& value : *imageData)
             {
-                if (value == 1.0f)
+                if (value == 0.0f)
                     ++num_unset_depth;
                 else
                     ++num_set_depth;

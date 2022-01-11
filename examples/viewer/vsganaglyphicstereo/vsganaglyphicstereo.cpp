@@ -340,7 +340,7 @@ int main(int argc, char** argv)
 
     // clear the depth buffer before view2 gets rendered
     VkClearValue clearValue{};
-    clearValue.depthStencil = {1.0f, 0};
+    clearValue.depthStencil = {0.0f, 0};
     VkClearAttachment depth_attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, clearValue};
     VkClearRect rect{right_camera->getRenderArea(), 0, 1};
     auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{depth_attachment}, vsg::ClearAttachments::Rects{rect});
