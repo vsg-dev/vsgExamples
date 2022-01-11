@@ -317,13 +317,13 @@ int main(int argc, char** argv)
     double shear = (eyeSeperation / screenWidth) * 0.8; // quick hack to get convergence roughly coincident with the trackball center.
 
     // create the left eye camera
-    auto left_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(-shear, 0.0, 0.0));
-    auto left_relative_view = vsg::RelativeViewMatrix::create(lookAt, vsg::translate(-0.5 * eyeSeperation, 0.0, 0.0));
+    auto left_relative_perspective = vsg::RelativeProjection::create(vsg::translate(-shear, 0.0, 0.0), perspective);
+    auto left_relative_view = vsg::RelativeViewMatrix::create(vsg::translate(-0.5 * eyeSeperation, 0.0, 0.0), lookAt);
     auto left_camera = vsg::Camera::create(left_relative_perspective, left_relative_view, vsg::ViewportState::create(window->extent2D()));
 
     // create the left eye camera
-    auto right_relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(shear, 0.0, 0.0));
-    auto right_relative_view = vsg::RelativeViewMatrix::create(lookAt, vsg::translate(0.5 * eyeSeperation, 0.0, 0.0));
+    auto right_relative_perspective = vsg::RelativeProjection::create(vsg::translate(shear, 0.0, 0.0), perspective);
+    auto right_relative_view = vsg::RelativeViewMatrix::create(vsg::translate(0.5 * eyeSeperation, 0.0, 0.0), lookAt);
     auto right_camera = vsg::Camera::create(right_relative_perspective, right_relative_view, vsg::ViewportState::create(window->extent2D()));
 
     // add close handler to respond the close window button and pressing escape
