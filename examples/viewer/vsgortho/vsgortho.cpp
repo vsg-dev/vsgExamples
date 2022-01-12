@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgviewer";
+    windowTraits->windowTitle = "vsgorth - Orthographics Projection Matrix";
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);

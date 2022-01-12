@@ -5765,7 +5765,7 @@ void main()
             NumUserObjects 0
             depthTestEnable 1
             depthWriteEnable 1
-            depthCompareOp 1
+            depthCompareOp 4
             depthBoundsTestEnable 0
             stencilTestEnable 0
           }

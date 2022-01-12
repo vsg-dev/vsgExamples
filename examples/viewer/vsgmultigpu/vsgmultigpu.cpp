@@ -277,7 +277,7 @@ int main(int argc, char** argv)
         if (powerWall)
         {
             // assume a power wall layout
-            auto relative_perspective = vsg::RelativeProjection::create(perspective, vsg::translate(double(numScreens - 1) - 2.0 * double(i), 0.0, 0.0));
+            auto relative_perspective = vsg::RelativeProjection::create(vsg::translate(double(numScreens - 1) - 2.0 * double(i), 0.0, 0.0), perspective);
             camera = vsg::Camera::create(relative_perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
         }
         else
@@ -286,7 +286,7 @@ int main(int argc, char** argv)
             double fovY = 30.0;
             double fovX = atan(tan(vsg::radians(fovY) * 0.5) * aspectRatio) * 2.0;
             double angle = fovX * (double(i) - double(numScreens - 1) / 2.0);
-            auto relative_view = vsg::RelativeViewMatrix::create(lookAt, vsg::rotate(angle, 0.0, 1.0, 0.0));
+            auto relative_view = vsg::RelativeViewMatrix::create(vsg::rotate(angle, 0.0, 1.0, 0.0), lookAt);
             camera = vsg::Camera::create(perspective, relative_view, vsg::ViewportState::create(window->extent2D()));
         }
 

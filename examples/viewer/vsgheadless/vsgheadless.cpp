@@ -471,7 +471,7 @@ int main(int argc, char** argv)
     renderGraph->renderArea.extent = extent;
     renderGraph->clearValues.resize(2);
     renderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.4f, 1.0f}};
-    renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
+    renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{0.0f, 0};
 
     renderGraph->addChild(vsg::View::create(camera, vsg_scene));
 

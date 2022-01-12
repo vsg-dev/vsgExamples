@@ -163,7 +163,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
 
     rendergraph->clearValues.resize(2);
     rendergraph->clearValues[0].color = {{0.4f, 0.2f, 0.4f, 1.0f}};
-    rendergraph->clearValues[1].depthStencil = VkClearDepthStencilValue{1.0f, 0};
+    rendergraph->clearValues[1].depthStencil = VkClearDepthStencilValue{0.0f, 0};
 
     return rendergraph;
 }
