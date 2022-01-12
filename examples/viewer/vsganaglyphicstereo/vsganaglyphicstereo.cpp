@@ -237,8 +237,8 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    uint32_t leftMask = 0x1;
-    uint32_t rightMask = 0x2;
+    vsg::Mask leftMask = 0x1;
+    vsg::Mask rightMask = 0x2;
 
     vsg::ref_ptr<vsg::Node> vsg_scene;
     if (!leftImageFilename.empty() && !rightImageFilename.empty())

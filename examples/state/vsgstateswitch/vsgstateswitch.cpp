@@ -35,8 +35,8 @@ public:
     std::vector<vsg::Object*> parents;
     std::set<vsg::Object*> visited;
     std::map<vsg::BindGraphicsPipeline*, vsg::ref_ptr<vsg::StateSwitch>> pipelineMap;
-    uint32_t mask_1 = 0x1;
-    uint32_t mask_2 = 0x2;
+    vsg::Mask mask_1 = 0x1;
+    vsg::Mask mask_2 = 0x2;
 
     void traverse(vsg::Object& object)
     {
@@ -135,8 +135,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    uint32_t mask_1 = 0x1;
-    uint32_t mask_2 = 0x2;
+    vsg::Mask mask_1 = 0x1;
+    vsg::Mask mask_2 = 0x2;
 
     // insert StateSwitch in place of BindGraphicsPipeline,
     // with each StateSwitch having one child associated with view_1 that is the original Bind/GraphicsPipeline
