@@ -290,6 +290,7 @@ int main(int argc, char** argv)
     auto viewer = vsg::Viewer::create();
 
     auto traits = vsg::WindowTraits::create();
+    traits->windowTitle = "vsgsubpass - RenderPass setup + Subpass handling";
     traits->width = width;
     traits->height = height;
     //traits->shareWindow = shareWindow;
