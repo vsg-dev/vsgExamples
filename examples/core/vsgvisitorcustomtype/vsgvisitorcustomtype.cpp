@@ -63,12 +63,12 @@ class VisitCustomTypes : public CustomVisitorBase
 {
     public:
 
-        virtual void apply(CustomGroupNode& node)
+        void apply(CustomGroupNode& node) override
         {
             std::cout << "apply(CustomGroupNode& node)" << std::endl;
         }
 
-        virtual void apply(CustomLODNode& node)
+        void apply(CustomLODNode& node) override
         {
             std::cout << "apply(CustomLODNode& node)" << std::endl;
         }
