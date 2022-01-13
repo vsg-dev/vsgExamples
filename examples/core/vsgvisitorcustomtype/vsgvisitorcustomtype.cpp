@@ -9,7 +9,7 @@
 class CustomGroupNode;
 class CustomLODNode;
 
-class CustomVisitorBase : public vsg::Visitor
+class CustomVisitorBase : public vsg::Inherit<vsg::Visitor, CustomVisitorBase>
 {
 public:
 
@@ -23,7 +23,7 @@ class CustomGroupNode : public vsg::Inherit<vsg::Group, CustomGroupNode>
 
         void accept(vsg::Visitor& visitor) override
         {
-            if (auto v = dynamic_cast<CustomVisitorBase*>(&visitor); v != nullptr)
+            if (auto v = visitor.cast<CustomVisitorBase>(); v != nullptr)
             {
                 v->apply(*this);
             }
@@ -44,7 +44,7 @@ class CustomLODNode : public vsg::Inherit<vsg::Group, CustomLODNode>
 
         void accept(vsg::Visitor& visitor) override
         {
-            if (auto v = dynamic_cast<CustomVisitorBase*>(&visitor); v != nullptr)
+            if (auto v = visitor.cast<CustomVisitorBase>(); v != nullptr)
             {
                 v->apply(*this);
             }
