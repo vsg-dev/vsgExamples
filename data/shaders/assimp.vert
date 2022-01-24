@@ -73,7 +73,7 @@ void main()
 
     gl_Position = (pc.projection * pc.modelView) * vertex;
 
-    eyePos = vec4(pc.modelView * vertex).xyz;
+    eyePos = (pc.modelView * vertex).xyz;
 
     vec4 lpos = /*vsg_LightSource.position*/ vec4(0.0, 0.0, 1.0, 0.0);
 

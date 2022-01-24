@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
+vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg::ref_ptr<vsg::DescriptorSetLayout> viewDescriptorSetLayout)
 {
     auto builder = vsg::Builder::create();
     builder->options = options;
@@ -15,6 +15,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
 
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
+    stateInfo.viewDescriptorSetLayout = viewDescriptorSetLayout;
 
     scene->addChild(builder->createBox(geomInfo, stateInfo));
     geomInfo.position += geomInfo.dx * 1.5f;
@@ -28,16 +29,17 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
     scene->addChild(builder->createCapsule(geomInfo, stateInfo));
     geomInfo.position += geomInfo.dx * 1.5f;
 
+
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+    double diameter = vsg::length(bounds.max - bounds.min);
     geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-    geomInfo.dx.set(bounds.max.x - bounds.min.x, 0.0, 0.0);
-    geomInfo.dy.set(0.0, bounds.max.y - bounds.min.y, 0.0);
+    geomInfo.dx.set(diameter, 0.0, 0.0);
+    geomInfo.dy.set(0.0, diameter, 0.0);
 
     scene->addChild(builder->createQuad(geomInfo, stateInfo));
 
     return scene;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -78,6 +80,10 @@ int main(int argc, char** argv)
     auto outputFilename = arguments.value<std::string>("", "-o");
 
 
+    auto view = vsg::View::create();
+    auto viewDependentState = view->viewDependentState;
+    auto viewDescriptorSetLayout = viewDependentState->descriptorSetLayout;
+
     auto scene = vsg::Group::create();
 
     if (argc>1)
@@ -94,29 +100,29 @@ int main(int argc, char** argv)
     }
     else
     {
-        auto model = createTestScene(options);
+        auto model = createTestScene(options, viewDescriptorSetLayout);
         scene->addChild(model);
     }
 
 
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
-
+#if 1
     // ambient light
     {
         auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
         ambientLight->intensity = 0.05;
-        scene->addChild(ambientLight);
+        //scene->addChild(ambientLight);
     }
 
     // directional light
     {
         auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
-        directionalLight->color.set(1.0, 0.5, 0.5);
-        directionalLight->intensity = 0.25;
+        directionalLight->color.set(1.0, 1.0, 1.0);
+        directionalLight->intensity = 0.1;
         directionalLight->direction.set(0.0, 0.0, -1.0);
         scene->addChild(directionalLight);
     }
@@ -125,34 +131,36 @@ int main(int argc, char** argv)
     {
         auto pointLight = vsg::PointLight::create();
         pointLight->name = "point";
-        pointLight->color.set(0.2, 1.0, 1.0);
+        pointLight->color.set(0.0, 0.0, 1.0);
         pointLight->intensity = 0.5;
-        pointLight->position.set(bounds.min.x, bounds.min.y, bounds.max.z);
+        pointLight->position.set((bounds.max.x+bounds.min.x)*0.5, (bounds.max.y+bounds.min.y)*0.5, (bounds.max.z*0.75+bounds.min.z*0.25));
 
         // enable culling of the point light by decorating with a CullGroup
         auto cullGroup = vsg::CullGroup::create();
         cullGroup->bound.center = pointLight->position;
-        cullGroup->bound.radius = vsg::length(bounds.max-bounds.min)*0.1;
+        cullGroup->bound.radius = vsg::length(bounds.max-bounds.min)*0.5;
 
         cullGroup->addChild(pointLight);
 
         scene->addChild(cullGroup);
     }
-
+#endif
 
     // spot light
     {
         auto spotLight = vsg::SpotLight::create();
         spotLight->name = "spot";
-        spotLight->color.set(0.0, 1.0, 0.0);
-        spotLight->intensity = 0.5;
-        spotLight->position = bounds.max;
-        spotLight->direction = (bounds.min - bounds.max)*0.5 - spotLight->position;
+        spotLight->color.set(1.0, 1.0, 1.0);
+        spotLight->intensity = 2.0;
+        spotLight->position.set(bounds.min.x, (bounds.max.y+bounds.min.y)*0.5, bounds.max.z+1.0);
+        spotLight->direction.set(1.0, 1.0, -1.0);
+        spotLight->innerAngle = vsg::radians(30.0);
+        spotLight->outerAngle = vsg::radians(45.0);
 
         // enable culling of the spot light by decorating with a CullGroup
         auto cullGroup = vsg::CullGroup::create();
         cullGroup->bound.center = spotLight->position;
-        cullGroup->bound.radius = vsg::length(bounds.max-bounds.min)*0.1;
+        cullGroup->bound.radius = vsg::length(bounds.max-bounds.min)*0.5;
 
         cullGroup->addChild(spotLight);
 
@@ -191,6 +199,10 @@ int main(int argc, char** argv)
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
+    // add the camera and scene graph to View
+    view->camera = camera;
+    view->addChild(scene);
+
     // set up the compilation support in builder to allow us to interactively create and compile subgraphs from within the IntersectionHandler
     // builder->setup(window, camera->viewportState);
 
@@ -199,7 +211,12 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
+    auto renderGraph = vsg::RenderGraph::create(window);
+    renderGraph->addChild(view);
+
+    auto commandGraph = vsg::CommandGraph::create(window);
+    commandGraph->addChild(renderGraph);
+
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();

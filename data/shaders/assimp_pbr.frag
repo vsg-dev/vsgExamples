@@ -32,11 +32,6 @@ layout(binding = 4) uniform sampler2D emissiveMap;
 layout(binding = 5) uniform sampler2D specularMap;
 #endif
 
-layout(push_constant) uniform PushConstants {
-    mat4 projection;
-    mat4 modelView;
-} pc;
-
 layout(binding = 10) uniform PbrData
 {
     vec4 baseColorFactor;
