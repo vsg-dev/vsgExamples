@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg::ref_ptr<vsg::DescriptorSetLayout> viewDescriptorSetLayout)
+vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
 {
     auto builder = vsg::Builder::create();
     builder->options = options;
@@ -15,7 +15,6 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
 
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
-    stateInfo.viewDescriptorSetLayout = viewDescriptorSetLayout;
 
     scene->addChild(builder->createBox(geomInfo, stateInfo));
     geomInfo.position += geomInfo.dx * 1.5f;
@@ -70,21 +69,47 @@ int main(int argc, char** argv)
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
     if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
-    if (arguments.read("-t"))
+    if (arguments.read({"-t", "--test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->fullscreen = true;
+    }
+    if (arguments.read("--st"))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         windowTraits->width = 192, windowTraits->height = 108;
         windowTraits->decoration = false;
     }
 
+    bool useStagingBuffer = false;
+    size_t frameToWait = useStagingBuffer ? 2 : 1;
+    arguments.read({"--frames-to-wait", "--f2w"}, frameToWait);
+    auto waitTimeout = arguments.value<uint64_t>(50000000, {"--timeout", "--to"});
+
     auto outputFilename = arguments.value<std::string>("", "-o");
 
+    bool add_amient = false;
+    bool add_directional = false;
+    bool add_point = false;
+    bool add_spotlight = false;
+    bool add_headlight = arguments.read("--head-light");
+    if (arguments.read("--add-lights"))
+    {
+        add_amient = true;
+        add_directional = true;
+        add_point = true;
+        add_spotlight = true;
+    }
 
-    auto view = vsg::View::create();
-    auto viewDependentState = view->viewDependentState;
-    auto viewDescriptorSetLayout = viewDependentState->descriptorSetLayout;
+    if (arguments.read({"--no-lights", "-n"}))
+    {
+        add_amient = false;
+        add_directional = false;
+        add_point = false;
+        add_spotlight = false;
+    }
 
-    auto scene = vsg::Group::create();
+    vsg::ref_ptr<vsg::Node> scene;
 
     if (argc>1)
     {
@@ -96,75 +121,105 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        scene->addChild(model);
+        scene = model;
     }
     else
     {
-        auto model = createTestScene(options, viewDescriptorSetLayout);
-        scene->addChild(model);
+        scene = createTestScene(options);
     }
-
 
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
-#if 1
-    // ambient light
+
+    if (add_amient || add_directional || add_point || add_spotlight || add_headlight)
     {
-        auto ambientLight = vsg::AmbientLight::create();
-        ambientLight->name = "ambient";
-        ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.05;
-        //scene->addChild(ambientLight);
-    }
+        auto span = vsg::length(bounds.max - bounds.min);
+        auto group = vsg::Group::create();
+        group->addChild(scene);
 
-    // directional light
-    {
-        auto directionalLight = vsg::DirectionalLight::create();
-        directionalLight->name = "directional";
-        directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.1;
-        directionalLight->direction.set(0.0, 0.0, -1.0);
-        scene->addChild(directionalLight);
-    }
+        // ambient light
+        if (add_amient)
+        {
+            auto ambientLight = vsg::AmbientLight::create();
+            ambientLight->name = "ambient";
+            ambientLight->color.set(1.0, 1.0, 1.0);
+            ambientLight->intensity = 0.01;
+            group->addChild(ambientLight);
+        }
 
-    // point light
-    {
-        auto pointLight = vsg::PointLight::create();
-        pointLight->name = "point";
-        pointLight->color.set(0.0, 0.0, 1.0);
-        pointLight->intensity = 0.5;
-        pointLight->position.set((bounds.max.x+bounds.min.x)*0.5, (bounds.max.y+bounds.min.y)*0.5, (bounds.max.z*0.75+bounds.min.z*0.25));
+        // directional light
+        if (add_directional)
+        {
+            auto directionalLight = vsg::DirectionalLight::create();
+            directionalLight->name = "directional";
+            directionalLight->color.set(1.0, 1.0, 1.0);
+            directionalLight->intensity = 0.15;
+            directionalLight->direction.set(0.0, 0.0, -1.0);
+            group->addChild(directionalLight);
+        }
 
-        // enable culling of the point light by decorating with a CullGroup
-        auto cullGroup = vsg::CullGroup::create();
-        cullGroup->bound.center = pointLight->position;
-        cullGroup->bound.radius = vsg::length(bounds.max-bounds.min)*0.5;
+        // point light
+        if (add_point)
+        {
+            auto pointLight = vsg::PointLight::create();
+            pointLight->name = "point";
+            pointLight->color.set(1.0, 1.0, 0.0);
+            pointLight->intensity = span*0.25;
+            pointLight->position.set((bounds.max.x+bounds.min.x)*0.5, (bounds.max.y+bounds.min.y)*0.5, bounds.max.z + span*0.3);
 
-        cullGroup->addChild(pointLight);
+            // enable culling of the point light by decorating with a CullGroup
+            auto cullGroup = vsg::CullGroup::create();
+            cullGroup->bound.center = pointLight->position;
+            cullGroup->bound.radius = span;
 
-        scene->addChild(cullGroup);
-    }
-#endif
+            cullGroup->addChild(pointLight);
 
-    // spot light
-    {
-        auto spotLight = vsg::SpotLight::create();
-        spotLight->name = "spot";
-        spotLight->color.set(1.0, 1.0, 1.0);
-        spotLight->intensity = 2.0;
-        spotLight->position.set(bounds.min.x, (bounds.max.y+bounds.min.y)*0.5, bounds.max.z+1.0);
-        spotLight->direction.set(1.0, 1.0, -1.0);
-        spotLight->innerAngle = vsg::radians(30.0);
-        spotLight->outerAngle = vsg::radians(45.0);
+            group->addChild(cullGroup);
+        }
 
-        // enable culling of the spot light by decorating with a CullGroup
-        auto cullGroup = vsg::CullGroup::create();
-        cullGroup->bound.center = spotLight->position;
-        cullGroup->bound.radius = vsg::length(bounds.max-bounds.min)*0.5;
+        // spot light
+        if (add_spotlight)
+        {
+            auto spotLight = vsg::SpotLight::create();
+            spotLight->name = "spot";
+            spotLight->color.set(0.0, 1.0, 1.0);
+            spotLight->intensity = span*0.5;
+            spotLight->position.set(bounds.max.x + span*0.1, bounds.min.y - span*0.1, bounds.max.z + span*0.3);
+            spotLight->direction = (bounds.min+bounds.max)*0.5 - spotLight->position;
+            spotLight->innerAngle = vsg::radians(10.0);
+            spotLight->outerAngle = vsg::radians(13.0);
 
-        cullGroup->addChild(spotLight);
+            // enable culling of the spot light by decorating with a CullGroup
+            auto cullGroup = vsg::CullGroup::create();
+            cullGroup->bound.center = spotLight->position;
+            cullGroup->bound.radius = span;
 
-        scene->addChild(cullGroup);
+            cullGroup->addChild(spotLight);
+
+            group->addChild(cullGroup);
+        }
+
+        if (add_headlight)
+        {
+            auto ambientLight = vsg::AmbientLight::create();
+            ambientLight->name = "ambient";
+            ambientLight->color.set(1.0, 1.0, 1.0);
+            ambientLight->intensity = 0.1;
+
+            auto directionalLight = vsg::DirectionalLight::create();
+            directionalLight->name = "head light";
+            directionalLight->color.set(1.0, 1.0, 1.0);
+            directionalLight->intensity = 0.9;
+            directionalLight->direction.set(0.0, 0.0, -1.0);
+
+            auto absoluteTransform = vsg::AbsoluteTransform::create();
+            absoluteTransform->addChild(ambientLight);
+            absoluteTransform->addChild(directionalLight);
+
+            group->addChild(absoluteTransform);
+        }
+
+        scene = group;
     }
 
     // write out scene if required
@@ -173,6 +228,7 @@ int main(int argc, char** argv)
         vsg::write(scene, outputFilename, options);
         return 0;
     }
+
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -200,6 +256,7 @@ int main(int argc, char** argv)
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
     // add the camera and scene graph to View
+    auto view = vsg::View::create();
     view->camera = camera;
     view->addChild(scene);
 
@@ -231,6 +288,11 @@ int main(int argc, char** argv)
         viewer->handleEvents();
 
         viewer->update();
+
+        if (frameToWait > 0 && waitTimeout > 0)
+        {
+            viewer->waitForFences(frameToWait, waitTimeout);
+        }
 
         viewer->recordAndSubmit();
 
