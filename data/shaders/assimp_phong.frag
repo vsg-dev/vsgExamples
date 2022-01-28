@@ -33,7 +33,6 @@ layout(set = 0, binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
-
 #ifdef VSG_VIEW_LIGHT_DATA
 layout(set = 1, binding = 0) uniform LightData
 {
@@ -225,7 +224,7 @@ void main()
         }
     }
 
-    outColor.rgb = (color * ambientOcclusion);// + emissiveColor.rgb;
+    outColor.rgb = (color * ambientOcclusion) + emissiveColor.rgb;
 #else
     vec3 nd = getNormal();
     vec3 ld = normalize(lightDir);
