@@ -140,7 +140,7 @@ int main(int argc, char** argv)
             directionalLight->name = "directional";
             directionalLight->color.set(1.0, 1.0, 1.0);
             directionalLight->intensity = 0.15;
-            directionalLight->direction.set(0.0, 0.0, -1.0);
+            directionalLight->direction.set(0.0, -1.0, -1.0);
             group->addChild(directionalLight);
         }
 
@@ -150,8 +150,8 @@ int main(int argc, char** argv)
             auto pointLight = vsg::PointLight::create();
             pointLight->name = "point";
             pointLight->color.set(1.0, 1.0, 0.0);
-            pointLight->intensity = span*0.25;
-            pointLight->position.set((bounds.max.x+bounds.min.x)*0.5, (bounds.max.y+bounds.min.y)*0.5, bounds.max.z + span*0.3);
+            pointLight->intensity = span*0.5;
+            pointLight->position.set(bounds.min.x, bounds.min.y, bounds.max.z + span*0.3);
 
             // enable culling of the point light by decorating with a CullGroup
             auto cullGroup = vsg::CullGroup::create();
@@ -172,8 +172,8 @@ int main(int argc, char** argv)
             spotLight->intensity = span*0.5;
             spotLight->position.set(bounds.max.x + span*0.1, bounds.min.y - span*0.1, bounds.max.z + span*0.3);
             spotLight->direction = (bounds.min+bounds.max)*0.5 - spotLight->position;
-            spotLight->innerAngle = vsg::radians(10.0);
-            spotLight->outerAngle = vsg::radians(13.0);
+            spotLight->innerAngle = vsg::radians(8.0);
+            spotLight->outerAngle = vsg::radians(9.0);
 
             // enable culling of the spot light by decorating with a CullGroup
             auto cullGroup = vsg::CullGroup::create();
