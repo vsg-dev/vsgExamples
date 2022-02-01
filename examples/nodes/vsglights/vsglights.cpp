@@ -67,8 +67,6 @@ int main(int argc, char** argv)
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
-    if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
     if (arguments.read({"-t", "--test"}))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -81,27 +79,16 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
-    bool useStagingBuffer = false;
-    size_t frameToWait = useStagingBuffer ? 2 : 1;
-    arguments.read({"--frames-to-wait", "--f2w"}, frameToWait);
-    auto waitTimeout = arguments.value<uint64_t>(50000000, {"--timeout", "--to"});
+    // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
 
     auto outputFilename = arguments.value<std::string>("", "-o");
 
-    bool add_amient = false;
-    bool add_directional = false;
-    bool add_point = false;
-    bool add_spotlight = false;
-    bool add_headlight = arguments.read("--head-light");
-    if (arguments.read("--add-lights"))
-    {
-        add_amient = true;
-        add_directional = true;
-        add_point = true;
-        add_spotlight = true;
-    }
-
-    if (arguments.read({"--no-lights", "-n"}))
+    bool add_amient = true;
+    bool add_directional = true;
+    bool add_point = true;
+    bool add_spotlight = true;
+    bool add_headlight = arguments.read("--headlight");
+    if (add_headlight || arguments.read({"--no-lights", "-n"}))
     {
         add_amient = false;
         add_directional = false;
@@ -110,7 +97,6 @@ int main(int argc, char** argv)
     }
 
     vsg::ref_ptr<vsg::Node> scene;
-
     if (argc>1)
     {
         vsg::Path filename = argv[1];
@@ -260,20 +246,12 @@ int main(int argc, char** argv)
     view->camera = camera;
     view->addChild(scene);
 
-    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from within the IntersectionHandler
-    // builder->setup(window, camera->viewportState);
-
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    auto renderGraph = vsg::RenderGraph::create(window);
-    renderGraph->addChild(view);
-
-    auto commandGraph = vsg::CommandGraph::create(window);
-    commandGraph->addChild(renderGraph);
-
+    auto renderGraph = vsg::RenderGraph::create(window, view);
+    auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
@@ -286,16 +264,8 @@ int main(int argc, char** argv)
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
-
         viewer->update();
-
-        if (frameToWait > 0 && waitTimeout > 0)
-        {
-            viewer->waitForFences(frameToWait, waitTimeout);
-        }
-
         viewer->recordAndSubmit();
-
         viewer->present();
 
         numFramesCompleted += 1.0;
