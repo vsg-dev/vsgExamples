@@ -22,7 +22,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass(vsg::Device* device)
     // VkAttachmentDescriptiom
     // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkAttachmentDescription.html
 
-    VkAttachmentDescription colorAttachment = {};
+    vsg::AttachmentDescription colorAttachment = {};
     colorAttachment.format = imageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -32,7 +32,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass(vsg::Device* device)
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    VkAttachmentDescription depthAttachment = {};
+    vsg::AttachmentDescription depthAttachment = {};
     depthAttachment.format = depthFormat;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -47,11 +47,11 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass(vsg::Device* device)
     // VkSubpassDescription
     // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSubpassDescription.html
 
-    VkAttachmentReference colorAttachmentRef = {};
+    vsg::AttachmentReference colorAttachmentRef = {};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkAttachmentReference depthAttachmentRef = {};
+    vsg::AttachmentReference depthAttachmentRef = {};
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -69,7 +69,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass(vsg::Device* device)
     // VkSubpassDependency
     // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkSubpassDependency.html
 
-    VkSubpassDependency classic_dependency = {};
+    vsg::SubpassDependency classic_dependency = {};
     classic_dependency.srcSubpass = 0;
     classic_dependency.dstSubpass = 1;
     classic_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
