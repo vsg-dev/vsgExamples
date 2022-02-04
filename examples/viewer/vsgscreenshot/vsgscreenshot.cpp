@@ -483,6 +483,122 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(v
     return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
 }
 
+vsg::ref_ptr<vsg::RenderPass> createMultisampleRenderPassCompatibleWithReadingDepthBuffer(vsg::Device* device, VkFormat imageFormat, VkFormat depthFormat, VkSampleCountFlagBits samples)
+{
+    if (samples == VK_SAMPLE_COUNT_1_BIT)
+    {
+        return createRenderPassCompatibleWithReadingDepthBuffer(device, imageFormat, depthFormat);
+    }
+
+    std::cout<<"createMultisampleRenderPassCompatibleWithReadingDepthBuffer()"<<std::endl;
+
+#define DEPTH_RESOLVE 0
+
+    // First attachment is multisampled target.
+    vsg::AttachmentDescription colorAttachment = {};
+    colorAttachment.format = imageFormat;
+    colorAttachment.samples = samples;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    // Second attachment is the resolved image which will be presented.
+    vsg::AttachmentDescription resolveColorAttachment = {};
+    resolveColorAttachment.format = imageFormat;
+    resolveColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    resolveColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolveColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    resolveColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolveColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    resolveColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    resolveColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    // Multisampled depth attachment. It won't be resolved.
+    vsg::AttachmentDescription depthAttachment = {};
+    depthAttachment.format = depthFormat;
+    depthAttachment.samples = samples;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    // resolved depth so it can be copied
+    vsg::AttachmentDescription resolveDepthAttachment = {};
+    resolveDepthAttachment.format = depthFormat;
+    resolveDepthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    resolveDepthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    resolveDepthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    resolveDepthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolveDepthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    resolveDepthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    resolveDepthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+#if DEPTH_RESOLVE
+    vsg::RenderPass::Attachments attachments{colorAttachment, resolveColorAttachment, depthAttachment, resolveDepthAttachment};
+#else
+    vsg::RenderPass::Attachments attachments{colorAttachment, resolveColorAttachment, depthAttachment};
+#endif
+
+    vsg::AttachmentReference colorAttachmentRef = {};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    vsg::AttachmentReference resolveColorAttachmentRef = {};
+    resolveColorAttachmentRef.attachment = 1;
+    resolveColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    vsg::AttachmentReference depthAttachmentRef = {};
+    depthAttachmentRef.attachment = 2;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    vsg::AttachmentReference resolveDepthAttachmentRef = {};
+    resolveDepthAttachmentRef.attachment = 3;
+    resolveDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    vsg::SubpassDescription subpass;
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachments.emplace_back(colorAttachmentRef);
+    subpass.resolveAttachments.emplace_back(resolveColorAttachmentRef);
+    subpass.depthStencilAttachments.emplace_back(depthAttachmentRef);
+
+#if DEPTH_RESOLVE
+    subpass.depthResolveMode = VK_RESOLVE_MODE_NONE;
+    subpass.stencilResolveMode = VK_RESOLVE_MODE_NONE;
+    subpass.depthStencilResolveAttachments.emplace_back(resolveDepthAttachmentRef);
+#endif
+    vsg::RenderPass::Subpasses subpasses{subpass};
+
+    vsg::SubpassDependency dependency = {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependency.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    vsg::SubpassDependency dependency2 = {};
+    dependency2.srcSubpass = 0;
+    dependency2.dstSubpass = VK_SUBPASS_EXTERNAL;
+    dependency2.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency2.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency2.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependency2.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependency2.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    vsg::RenderPass::Dependencies dependencies{dependency, dependency2};
+
+    return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
+}
+
+// http://www.mamoniem.com/trick-vulkan-api-with-the-vulkan-api-mirages-multisampled-depth/
+// https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/vkCmdResolveImage.html
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -509,6 +625,17 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read("--float")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
     auto numFrames = arguments.value(-1, "-f");
+
+    uint32_t vk_major = 1, vk_minor = 0;
+    if (std::string vk_version; arguments.read("--vulkan", vk_version))
+    {
+        char c;
+        std::stringstream vk_version_str(vk_version);
+        vk_version_str >> vk_major >> c >> vk_minor;
+        std::cout<<"vk_major = "<<vk_major<<std::endl;
+        std::cout<<"vk_minor = "<<vk_minor<<std::endl;
+    }
+    windowTraits->vulkanVersion = VK_MAKE_API_VERSION(0, vk_major, vk_minor, 0);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -538,12 +665,28 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    windowTraits->deviceExtensionNames = {
+        VK_KHR_MULTIVIEW_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE2_EXTENSION_NAME,
+        VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+        VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME};
+
     auto device = window->getOrCreateDevice();
 
     // provide a custom RenderPass to ensure we can read from the depth buffer, only required by the 'd' depth screenshot code path
-    window->setRenderPass(createRenderPassCompatibleWithReadingDepthBuffer(device, window->surfaceFormat().format, window->depthFormat()));
+    auto renderPass = createMultisampleRenderPassCompatibleWithReadingDepthBuffer(device, window->surfaceFormat().format, window->depthFormat(), window->framebufferSamples());
+    window->setRenderPass(renderPass);
 
     viewer->addWindow(window);
+
+    // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkPhysicalDeviceDepthStencilResolveProperties.html
+    auto depthStencilResolve_properites = window->getOrCreatePhysicalDevice()->getProperties<VkPhysicalDeviceDepthStencilResolveProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES>();
+    std::cout << "depthStencilResolve_properites.supportedDepthResolveModes = " << depthStencilResolve_properites.supportedDepthResolveModes << std::endl;
+    std::cout << "depthStencilResolve_properites.supportedStencilResolveModes = " << depthStencilResolve_properites.supportedStencilResolveModes << std::endl;
+    std::cout << "depthStencilResolve_properites.independentResolveNone = " << depthStencilResolve_properites.independentResolveNone << std::endl;
+    std::cout << "depthStencilResolve_properites.independentResolve = " << depthStencilResolve_properites.independentResolve << std::endl;
+
+
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
