@@ -492,7 +492,6 @@ int main(int argc, char** argv)
         std::cout<<"vk_minor = "<<vk_minor<<std::endl;
     }
     windowTraits->vulkanVersion = VK_MAKE_API_VERSION(0, vk_major, vk_minor, 0);
-    windowTraits->requiresDepthRead = true;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
