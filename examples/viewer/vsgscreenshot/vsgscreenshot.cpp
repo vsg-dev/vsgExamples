@@ -473,6 +473,7 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
     arguments.read("--samples", windowTraits->samples);
+    if (arguments.read("--msaa")) windowTraits->samples = VK_SAMPLE_COUNT_8_BIT;
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
@@ -481,6 +482,9 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read("--float")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
     auto numFrames = arguments.value(-1, "-f");
+
+    // if we are multisampling then to enable copying of the depth buffer we have to enable a depth buffer resolve extensions in vsg::RenderPass that requires a minim vulkan version of 1.2
+    if (windowTraits->samples != VK_SAMPLE_COUNT_1_BIT) windowTraits->vulkanVersion = VK_API_VERSION_1_2;
 
     uint32_t vk_major = 1, vk_minor = 0;
     if (std::string vk_version; arguments.read("--vulkan", vk_version))
@@ -491,7 +495,6 @@ int main(int argc, char** argv)
         std::cout<<"vk_major = "<<vk_major<<std::endl;
         std::cout<<"vk_minor = "<<vk_minor<<std::endl;
     }
-    windowTraits->vulkanVersion = VK_MAKE_API_VERSION(0, vk_major, vk_minor, 0);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
