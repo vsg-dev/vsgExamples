@@ -23,7 +23,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <iostream>
 #include <thread>
 
-vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat imageFormat)
+vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat imageFormat, VkSampleCountFlagBits samples)
 {
     auto colorImage = vsg::Image::create();
     colorImage->imageType = VK_IMAGE_TYPE_2D;
@@ -31,7 +31,7 @@ vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> devi
     colorImage->extent = VkExtent3D{extent.width, extent.height, 1};
     colorImage->mipLevels = 1;
     colorImage->arrayLayers = 1;
-    colorImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    colorImage->samples = samples;
     colorImage->tiling = VK_IMAGE_TILING_OPTIMAL;
     colorImage->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     colorImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -41,14 +41,14 @@ vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> devi
     return vsg::createImageView(device, colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat depthFormat)
+vsg::ref_ptr<vsg::ImageView> createDepthImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat depthFormat, VkSampleCountFlagBits samples)
 {
     auto depthImage = vsg::Image::create();
     depthImage->imageType = VK_IMAGE_TYPE_2D;
     depthImage->extent = VkExtent3D{extent.width, extent.height, 1};
     depthImage->mipLevels = 1;
     depthImage->arrayLayers = 1;
-    depthImage->samples = VK_SAMPLE_COUNT_1_BIT;
+    depthImage->samples = samples;
     depthImage->format = depthFormat;
     depthImage->tiling = VK_IMAGE_TILING_OPTIMAL;
     depthImage->usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -333,36 +333,6 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
     return {commands, destinationBuffer};
 }
 
-vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(vsg::Device* device, VkFormat imageFormat, VkFormat depthFormat)
-{
-    auto colorAttachmet = vsg::defaultColorAttachment(imageFormat);
-    auto depthAttachment = vsg::defaultDepthAttachment(depthFormat);
-
-    // by default storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-    vsg::RenderPass::Attachments attachments{colorAttachmet, depthAttachment};
-
-    vsg::SubpassDescription subpass = {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachments.emplace_back(vsg::AttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
-    subpass.depthStencilAttachments.emplace_back(vsg::AttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
-
-    vsg::RenderPass::Subpasses subpasses{subpass};
-
-    vsg::SubpassDependency dependency = {};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    vsg::RenderPass::Dependencies dependencies{dependency};
-
-    return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
-}
-
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -390,6 +360,13 @@ int main(int argc, char** argv)
         std::cout << "Please specify model to load on command line" << std::endl;
         return 1;
     }
+
+    VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+    if (arguments.read("--msaa")) samples = VK_SAMPLE_COUNT_8_BIT;
+
+    // if we are multisampling then to enable copying of the depth buffer we have to enable a depth buffer resolve extensions in vsg::RenderPass that requires a minim vulkan version of 1.2
+    uint32_t vulkanVersion = VK_API_VERSION_1_0;
+    if (samples != VK_SAMPLE_COUNT_1_BIT) vulkanVersion = VK_API_VERSION_1_2;
 
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -420,7 +397,7 @@ int main(int argc, char** argv)
 
     vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
 
-    auto instance = vsg::Instance::create(instanceExtensions, validatedNames);
+    auto instance = vsg::Instance::create(instanceExtensions, validatedNames, vulkanVersion);
     auto [physicalDevice, queueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_GRAPHICS_BIT);
     if (!physicalDevice || queueFamily < 0)
     {
@@ -444,7 +421,7 @@ int main(int argc, char** argv)
     double nearFarRatio = 0.01;
 
     // set up the camera
-    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 1.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
@@ -459,19 +436,30 @@ int main(int argc, char** argv)
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 
     // set up the Rendergraph to manage the rendering
-    auto colorImageView = createColorImageView(device, extent, imageFormat);
-    auto depthImageView = createDepthImageView(device, extent, depthFormat);
-    auto renderPass = createRenderPassCompatibleWithReadingDepthBuffer(device, imageFormat, depthFormat);
-    auto framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
+    auto colorImageView = createColorImageView(device, extent, imageFormat, VK_SAMPLE_COUNT_1_BIT);
+    auto depthImageView = createDepthImageView(device, extent, depthFormat, VK_SAMPLE_COUNT_1_BIT);
+    vsg::ref_ptr<vsg::Framebuffer> framebuffer;
+
+    if (samples == VK_SAMPLE_COUNT_1_BIT)
+    {
+        auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
+        framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView} , extent.width, extent.height, 1);
+    }
+    else
+    {
+        auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
+        auto msaa_depthImageView = createDepthImageView(device, extent, depthFormat, samples);
+
+        auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
+        framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView} , extent.width, extent.height, 1);
+    }
 
     auto renderGraph = vsg::RenderGraph::create();
 
     renderGraph->framebuffer = framebuffer;
     renderGraph->renderArea.offset = {0, 0};
     renderGraph->renderArea.extent = extent;
-    renderGraph->clearValues.resize(2);
-    renderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.4f, 1.0f}};
-    renderGraph->clearValues[1].depthStencil = VkClearDepthStencilValue{0.0f, 0};
+    renderGraph->setClearValues({{0.2f, 0.2f, 0.4f, 1.0f}});
 
     renderGraph->addChild(vsg::View::create(camera, vsg_scene));
 
@@ -509,6 +497,7 @@ int main(int argc, char** argv)
     {
         std::cout << "Frame " << viewer->getFrameStamp()->frameCount << std::endl;
 
+#if 0
         if (resizeCadence && ((numFrames + resizeCadence) % resizeCadence == 0))
         {
             viewer->deviceWaitIdle();
@@ -518,9 +507,9 @@ int main(int argc, char** argv)
 
             std::cout << "Resized to " << extent.width << ", " << extent.height << std::endl;
 
-            colorImageView = createColorImageView(device, extent, imageFormat);
-            depthImageView = createDepthImageView(device, extent, depthFormat);
-            renderPass = createRenderPassCompatibleWithReadingDepthBuffer(device, imageFormat, depthFormat);
+            colorImageView = createColorImageView(device, extent, imageFormat, samples);
+            depthImageView = createDepthImageView(device, extent, depthFormat, samples);
+            auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
             framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
 
             auto previous_colorBufferCapture = colorBufferCapture;
@@ -541,6 +530,7 @@ int main(int argc, char** argv)
             replace_child(commandGraph, previous_colorBufferCapture, colorBufferCapture);
             replace_child(commandGraph, previous_depthBufferCapture, depthBufferCapture);
         }
+#endif
 
         // pass any events into EventHandlers assigned to the Viewer, this includes Frame events generated by the viewer each frame
         viewer->handleEvents();
