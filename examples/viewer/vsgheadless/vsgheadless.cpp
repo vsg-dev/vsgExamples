@@ -418,7 +418,7 @@ int main(int argc, char** argv)
     vsg_scene->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-    double nearFarRatio = 0.01;
+    double nearFarRatio = 0.001;
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 1.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -495,9 +495,7 @@ int main(int argc, char** argv)
     while (viewer->advanceToNextFrame() && (numFrames--) > 0)
     {
         std::cout << "Frame " << viewer->getFrameStamp()->frameCount << std::endl;
-
-
-        if (resizeCadence && ((numFrames + resizeCadence) % resizeCadence == 0))
+        if (resizeCadence && (viewer->getFrameStamp()->frameCount>0) && ((viewer->getFrameStamp()->frameCount) % resizeCadence == 0))
         {
             viewer->deviceWaitIdle();
 
@@ -529,8 +527,10 @@ int main(int argc, char** argv)
             }
 
             renderGraph->framebuffer = framebuffer;
-            renderGraph->renderArea.offset = {0, 0};
-            renderGraph->renderArea.extent = extent;
+
+            // create new copy subgraphs
+            std::tie(colorBufferCapture, copiedColorBuffer) = createColorCapture(device, extent, colorImageView->image, imageFormat);
+            std::tie(depthBufferCapture, copiedDepthBuffer) = createDepthCapture(device, extent, depthImageView->image, depthFormat);
 
             auto replace_child = [](vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement) {
                 for (auto& child : group->children)
