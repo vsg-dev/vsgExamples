@@ -16,9 +16,13 @@ public:
     bool do_depth_capture = false;
     vsg::ref_ptr<vsg::Event> event;
     bool eventDebugTest = false;
+    vsg::Path colorFilename;
+    vsg::Path depthFilename;
 
-    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event) :
-        event(in_event)
+    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event, const vsg::Path& in_colorFilename, const vsg::Path& in_depthFilename):
+        event(in_event),
+        colorFilename(in_colorFilename),
+        depthFilename(in_depthFilename)
     {
     }
 
@@ -279,8 +283,8 @@ public:
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
         auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
-        vsg::Path outputFilename("screenshot.vsgt");
-        vsg::write(imageData, outputFilename);
+        vsg::write(imageData, colorFilename);
+        std::cout<<"Written color buffer to "<<colorFilename<<std::endl;
     }
 
     void screenshot_depth(vsg::ref_ptr<vsg::Window> window)
@@ -440,48 +444,20 @@ public:
             std::cout << "num_unset_depth = " << num_unset_depth << std::endl;
             std::cout << "num_set_depth = " << num_set_depth << std::endl;
 
-            vsg::Path outputFilename("depth.vsgt");
-            vsg::write(imageData, outputFilename);
+            vsg::write(imageData, depthFilename);
+            std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
         }
         else
         {
             auto imageData = vsg::MappedData<vsg::uintArray2D>::create(destinationMemory, 0, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
-            vsg::Path outputFilename("depth.vsgt");
-            vsg::write(imageData, outputFilename);
+            vsg::write(imageData, depthFilename);
+            std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
         }
     }
 };
 
-vsg::ref_ptr<vsg::RenderPass> createRenderPassCompatibleWithReadingDepthBuffer(vsg::Device* device, VkFormat imageFormat, VkFormat depthFormat)
-{
-    auto colorAttachmet = vsg::defaultColorAttachment(imageFormat);
-    auto depthAttachment = vsg::defaultDepthAttachment(depthFormat);
-
-    // by default storeOp is VK_ATTACHMENT_STORE_OP_DONT_CARE but we do care, so bake sure we store the depth value
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-    vsg::RenderPass::Attachments attachments{colorAttachmet, depthAttachment};
-
-    vsg::SubpassDescription subpass = {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachments.emplace_back(VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL});
-    subpass.depthStencilAttachments.emplace_back(VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL});
-
-    vsg::RenderPass::Subpasses subpasses{subpass};
-
-    VkSubpassDependency dependency = {};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    vsg::RenderPass::Dependencies dependencies{dependency};
-
-    return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
-}
+// http://www.mamoniem.com/trick-vulkan-api-with-the-vulkan-api-mirages-multisampled-depth/
 
 int main(int argc, char** argv)
 {
@@ -501,6 +477,9 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
     arguments.read("--samples", windowTraits->samples);
+    auto colorFilename = arguments.value<vsg::Path>("screenshot.vsgt", {"--color-file", "--cf"});
+    auto depthFilename = arguments.value<vsg::Path>("depth.vsgt", {"--depth-file", "--df"});
+    if (arguments.read("--msaa")) windowTraits->samples = VK_SAMPLE_COUNT_8_BIT;
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
     if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
@@ -509,6 +488,19 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read("--float")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
     auto numFrames = arguments.value(-1, "-f");
+
+    // if we are multisampling then to enable copying of the depth buffer we have to enable a depth buffer resolve extensions in vsg::RenderPass that requires a minim vulkan version of 1.2
+    if (windowTraits->samples != VK_SAMPLE_COUNT_1_BIT) windowTraits->vulkanVersion = VK_API_VERSION_1_2;
+
+    uint32_t vk_major = 1, vk_minor = 0;
+    if (std::string vk_version; arguments.read("--vulkan", vk_version))
+    {
+        char c;
+        std::stringstream vk_version_str(vk_version);
+        vk_version_str >> vk_major >> c >> vk_minor;
+        std::cout<<"vk_major = "<<vk_major<<std::endl;
+        std::cout<<"vk_minor = "<<vk_minor<<std::endl;
+    }
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -538,19 +530,31 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    windowTraits->deviceExtensionNames = {
+        VK_KHR_MULTIVIEW_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE2_EXTENSION_NAME,
+        VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME,
+        VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME};
+
     auto device = window->getOrCreateDevice();
 
-    // provide a custom RenderPass to ensure we can read from the depth buffer, only required by the 'd' depth screenshot code path
-    window->setRenderPass(createRenderPassCompatibleWithReadingDepthBuffer(device, window->surfaceFormat().format, window->depthFormat()));
-
     viewer->addWindow(window);
+
+    // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkPhysicalDeviceDepthStencilResolveProperties.html
+    auto depthStencilResolve_properites = window->getOrCreatePhysicalDevice()->getProperties<VkPhysicalDeviceDepthStencilResolveProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES>();
+    std::cout << "depthStencilResolve_properites.supportedDepthResolveModes = " << depthStencilResolve_properites.supportedDepthResolveModes << std::endl;
+    std::cout << "depthStencilResolve_properites.supportedStencilResolveModes = " << depthStencilResolve_properites.supportedStencilResolveModes << std::endl;
+    std::cout << "depthStencilResolve_properites.independentResolveNone = " << depthStencilResolve_properites.independentResolveNone << std::endl;
+    std::cout << "depthStencilResolve_properites.independentResolve = " << depthStencilResolve_properites.independentResolve << std::endl;
+
+
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     vsg_scene->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-    double nearFarRatio = 0.1;
+    double nearFarRatio = 0.01;
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -575,7 +579,7 @@ int main(int argc, char** argv)
     auto event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignalled state
 
     // Add ScreenshotHandler to respond to keyboard and mouse events.
-    auto screenshotHandler = ScreenshotHandler::create(event);
+    auto screenshotHandler = ScreenshotHandler::create(event, colorFilename, depthFilename);
     viewer->addEventHandler(screenshotHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
