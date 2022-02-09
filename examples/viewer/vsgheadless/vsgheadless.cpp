@@ -339,8 +339,6 @@ int main(int argc, char** argv)
     VkExtent2D extent{2048, 1024};
     VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
-    vsg::Path colorFilename("screenshot.vsgb");
-    vsg::Path depthFilename("depth.vsgb");
 
     vsg::CommandLine arguments(&argc, argv);
     arguments.read({"--extent", "-w"}, extent.width, extent.height);
@@ -348,7 +346,9 @@ int main(int argc, char** argv)
     auto apiDumpLayer = arguments.read({"--api", "-a"});
     auto databasePager = vsg::DatabasePager::create_if(arguments.read("--pager"));
     auto numFrames = arguments.value(100, "-f");
-    auto pathFilename = arguments.value(std::string(), "-p");
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
+    auto colorFilename = arguments.value<vsg::Path>("screenshot.vsgb", {"--color-file", "--cf"});
+    auto depthFilename = arguments.value<vsg::Path>("depth.vsgb", {"--depth-file", "--df"});
     auto resizeCadence = arguments.value(0, "--resize");
     if (arguments.read("--st")) extent = VkExtent2D{192, 108};
     if (arguments.read("--float")) depthFormat = VK_FORMAT_D32_SFLOAT;

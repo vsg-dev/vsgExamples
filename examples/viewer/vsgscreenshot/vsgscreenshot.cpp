@@ -16,9 +16,13 @@ public:
     bool do_depth_capture = false;
     vsg::ref_ptr<vsg::Event> event;
     bool eventDebugTest = false;
+    vsg::Path colorFilename;
+    vsg::Path depthFilename;
 
-    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event) :
-        event(in_event)
+    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event, const vsg::Path& in_colorFilename, const vsg::Path& in_depthFilename):
+        event(in_event),
+        colorFilename(in_colorFilename),
+        depthFilename(in_depthFilename)
     {
     }
 
@@ -279,8 +283,8 @@ public:
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
         auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
-        vsg::Path outputFilename("screenshot.vsgt");
-        vsg::write(imageData, outputFilename);
+        vsg::write(imageData, colorFilename);
+        std::cout<<"Written color buffer to "<<colorFilename<<std::endl;
     }
 
     void screenshot_depth(vsg::ref_ptr<vsg::Window> window)
@@ -440,15 +444,15 @@ public:
             std::cout << "num_unset_depth = " << num_unset_depth << std::endl;
             std::cout << "num_set_depth = " << num_set_depth << std::endl;
 
-            vsg::Path outputFilename("depth.vsgt");
-            vsg::write(imageData, outputFilename);
+            vsg::write(imageData, depthFilename);
+            std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
         }
         else
         {
             auto imageData = vsg::MappedData<vsg::uintArray2D>::create(destinationMemory, 0, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
-            vsg::Path outputFilename("depth.vsgt");
-            vsg::write(imageData, outputFilename);
+            vsg::write(imageData, depthFilename);
+            std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
         }
     }
 };
@@ -473,6 +477,8 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
     arguments.read("--samples", windowTraits->samples);
+    auto colorFilename = arguments.value<vsg::Path>("screenshot.vsgt", {"--color-file", "--cf"});
+    auto depthFilename = arguments.value<vsg::Path>("depth.vsgt", {"--depth-file", "--df"});
     if (arguments.read("--msaa")) windowTraits->samples = VK_SAMPLE_COUNT_8_BIT;
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -548,7 +554,7 @@ int main(int argc, char** argv)
     vsg_scene->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-    double nearFarRatio = 0.1;
+    double nearFarRatio = 0.01;
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -573,7 +579,7 @@ int main(int argc, char** argv)
     auto event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignalled state
 
     // Add ScreenshotHandler to respond to keyboard and mouse events.
-    auto screenshotHandler = ScreenshotHandler::create(event);
+    auto screenshotHandler = ScreenshotHandler::create(event, colorFilename, depthFilename);
     viewer->addEventHandler(screenshotHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
