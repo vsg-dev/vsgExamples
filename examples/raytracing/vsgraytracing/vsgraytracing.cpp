@@ -200,7 +200,7 @@ int main(int argc, char** argv)
         storageImage->flags = 0;
         storageImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        auto storageImageInfo = vsg::ImageInfo::create(vsg::ref_ptr<vsg::Sampler>{}, createImageView(compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT), VK_IMAGE_LAYOUT_GENERAL);
+        auto storageImageInfo = vsg::ImageInfo::create(vsg::ref_ptr<vsg::Sampler>{}, createImageView(*compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT), VK_IMAGE_LAYOUT_GENERAL);
 
         auto raytracingUniformValues = new RayTracingUniformValue();
         raytracingUniformValues->value().projInverse = perspective->inverse();

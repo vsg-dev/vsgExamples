@@ -399,7 +399,7 @@ int main(int argc, char** argv)
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
     auto colorImage = vsg::ImageInfo::create();
     auto depthImage = vsg::ImageInfo::create();
-    auto rtt_RenderGraph = createOffscreenRendergraph(compile.context, targetExtent, *colorImage, *depthImage);
+    auto rtt_RenderGraph = createOffscreenRendergraph(*compile.context, targetExtent, *colorImage, *depthImage);
     auto rtt_view = vsg::View::create(offscreenCamera, vsg_scene);
     rtt_RenderGraph->addChild(rtt_view);
 

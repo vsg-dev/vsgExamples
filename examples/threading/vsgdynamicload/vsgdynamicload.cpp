@@ -181,15 +181,15 @@ void DynamicLoadAndCompile::CompileOperation::run()
         auto descriptorPoolSizes = collectRequirements.requirements.computeDescriptorPoolSizes();
 
         // brute force allocation of new DescrptorPool for this subgraph, TODO : need to preallocate large DescritorPoil for multiple loaded subgraphs
-        if (descriptorPoolSizes.size() > 0) compileTraversal->context.descriptorPool = vsg::DescriptorPool::create(compileTraversal->context.device, maxSets, descriptorPoolSizes);
+        if (descriptorPoolSizes.size() > 0) compileTraversal->context->descriptorPool = vsg::DescriptorPool::create(compileTraversal->context->device, maxSets, descriptorPoolSizes);
 
         request->loaded->accept(*compileTraversal);
 
         std::cout << "Finished compile traversal " << request->filename << std::endl;
 
-        compileTraversal->context.record(); // records and submits to queue
+        compileTraversal->context->record(); // records and submits to queue
 
-        compileTraversal->context.waitForCompletion();
+        compileTraversal->context->waitForCompletion();
 
         std::cout << "Finished waiting for compile " << request->filename << std::endl;
 
