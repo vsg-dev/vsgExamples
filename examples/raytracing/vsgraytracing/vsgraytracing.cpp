@@ -182,7 +182,8 @@ int main(int argc, char** argv)
         }
 
         // for convenience create a compile context for creating our storage image
-        vsg::CompileTraversal compile(window);
+        auto compile = vsg::CompileTraversal::create(window);
+        auto context = compile->contexts.front();
 
         // create storage image to render into
         auto storageImage = vsg::Image::create();
@@ -200,7 +201,7 @@ int main(int argc, char** argv)
         storageImage->flags = 0;
         storageImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        auto storageImageInfo = vsg::ImageInfo::create(vsg::ref_ptr<vsg::Sampler>{}, createImageView(*compile.context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT), VK_IMAGE_LAYOUT_GENERAL);
+        auto storageImageInfo = vsg::ImageInfo::create(vsg::ref_ptr<vsg::Sampler>{}, createImageView(*context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT), VK_IMAGE_LAYOUT_GENERAL);
 
         auto raytracingUniformValues = new RayTracingUniformValue();
         raytracingUniformValues->value().projInverse = perspective->inverse();

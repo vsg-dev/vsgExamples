@@ -392,14 +392,15 @@ int main(int argc, char** argv)
     // storage image
     // XXX How to put ImageInfo in the scene graph and compile it
     // during a compile traversal? Should RenderGraph support compile()?
-    vsg::CompileTraversal compile(window);
+    auto compile = vsg::CompileTraversal::create(window);
+    auto context = compile->contexts.front();
 
     // Framebuffer with attachments
     VkExtent2D targetExtent{512, 512};
     auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
     auto colorImage = vsg::ImageInfo::create();
     auto depthImage = vsg::ImageInfo::create();
-    auto rtt_RenderGraph = createOffscreenRendergraph(*compile.context, targetExtent, *colorImage, *depthImage);
+    auto rtt_RenderGraph = createOffscreenRendergraph(*context, targetExtent, *colorImage, *depthImage);
     auto rtt_view = vsg::View::create(offscreenCamera, vsg_scene);
     rtt_RenderGraph->addChild(rtt_view);
 
