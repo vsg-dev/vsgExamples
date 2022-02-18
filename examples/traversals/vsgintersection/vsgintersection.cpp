@@ -271,8 +271,8 @@ int main(int argc, char** argv)
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-    // set up the compilation support in builder to allow us to interactively create and compile subgraphs from within the IntersectionHandler
-    builder->setup(window, camera->viewportState);
+    auto commandGraph = createCommandGraphForView(window, camera, scene);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
@@ -283,8 +283,9 @@ int main(int argc, char** argv)
     intersectionHandler->state = stateInfo;
     viewer->addEventHandler(intersectionHandler);
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+    // assign a CompileTraversal to the Builder that will compile for all the views assigned to the viewer,
+    // must be done after Viewer.assignRecordAndSubmitTasksAndPresentations();
+    builder->assignCompileTraversal(vsg::CompileTraversal::create(viewer));
 
     viewer->compile();
 

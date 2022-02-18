@@ -83,11 +83,12 @@ int main(int argc, char** argv)
     commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
 
     // compile the Vulkan objects
-    vsg::CompileTraversal compileTraversal(device);
-    compileTraversal.context.commandPool = vsg::CommandPool::create(device, computeQueueFamily);
-    compileTraversal.context.descriptorPool = vsg::DescriptorPool::create(device, 1, vsg::DescriptorPoolSizes{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
+    auto compileTraversal = vsg::CompileTraversal::create(device);
+    auto context = compileTraversal->contexts.front();
+    context->commandPool = vsg::CommandPool::create(device, computeQueueFamily);
+    context->descriptorPool = vsg::DescriptorPool::create(device, 1, vsg::DescriptorPoolSizes{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
 
-    commandGraph->accept(compileTraversal);
+    commandGraph->accept(*compileTraversal);
 
     // setup fence
     auto fence = vsg::Fence::create(device);
@@ -95,7 +96,7 @@ int main(int argc, char** argv)
     auto startTime = std::chrono::steady_clock::now();
 
     // submit commands
-    vsg::submitCommandsToQueue(device, compileTraversal.context.commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer) {
+    vsg::submitCommandsToQueue(device, context->commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer) {
         commandGraph->record(commandBuffer);
     });
 
