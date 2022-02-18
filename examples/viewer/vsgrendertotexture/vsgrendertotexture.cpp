@@ -388,12 +388,7 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    // for convenience create a compile context for creating our
-    // storage image
-    // XXX How to put ImageInfo in the scene graph and compile it
-    // during a compile traversal? Should RenderGraph support compile()?
-    auto compile = vsg::CompileTraversal::create(window);
-    auto context = compile->contexts.front();
+    auto context = vsg::Context::create(window->getOrCreateDevice());
 
     // Framebuffer with attachments
     VkExtent2D targetExtent{512, 512};

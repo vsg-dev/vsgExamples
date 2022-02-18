@@ -182,8 +182,7 @@ int main(int argc, char** argv)
         }
 
         // for convenience create a compile context for creating our storage image
-        auto compile = vsg::CompileTraversal::create(window);
-        auto context = compile->contexts.front();
+        auto context = vsg::Context::create(window->getOrCreateDevice());
 
         // create storage image to render into
         auto storageImage = vsg::Image::create();
