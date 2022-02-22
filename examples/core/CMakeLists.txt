@@ -1,3 +1,4 @@
+add_subdirectory(vsgallocator)
 add_subdirectory(vsgarrays)
 add_subdirectory(vsgmemory)
 add_subdirectory(vsgpointer)
