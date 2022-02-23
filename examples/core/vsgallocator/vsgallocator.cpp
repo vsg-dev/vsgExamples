@@ -9,6 +9,12 @@
 #include <iostream>
 #include <thread>
 
+#if 0
+#define DEBUG if (true) std::cout
+#else
+#define DEBUG if (false) std::cout
+#endif
+
 vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHints)
 {
     struct ConvertToRGBA : public vsg::Visitor
@@ -65,7 +71,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
     vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
-        std::cout << "Could not create shaders." << std::endl;
+        DEBUG << "Could not create shaders." << std::endl;
         return {};
     }
 
@@ -177,13 +183,13 @@ class CustomAllocator : public vsg::Allocator
             {
                 memory = static_cast<uint8_t*>(std::malloc(blockSize));
 
-                std::cout<<"MemoryBlock("<<blockSize<<") allocatoed memory"<<std::endl;
+                DEBUG<<"MemoryBlock("<<blockSize<<") allocatoed memory"<<std::endl;
             }
 
             virtual ~MemoryBlock()
             {
-                std::cout<<"MemoryBlock::~MemoryBlock("<<memorySlots.totalMemorySize()<<") freed memory"<<std::endl;
-                memorySlots.report();
+                DEBUG<<"MemoryBlock::~MemoryBlock("<<memorySlots.totalMemorySize()<<") freed memory"<<std::endl;
+                // memorySlots.report();
                 std::free(memory);
             }
 
@@ -214,13 +220,16 @@ class CustomAllocator : public vsg::Allocator
 
         struct MemoryBlocks
         {
+            std::string name;
             VkDeviceSize blockSize = 0;
             std::list<std::unique_ptr<MemoryBlock>> memoryBlocks;
 
-            MemoryBlocks(VkDeviceSize in_blockSize) : blockSize(in_blockSize) {}
+            MemoryBlocks(const std::string& in_name, VkDeviceSize in_blockSize) :
+                name(in_name),
+                blockSize(in_blockSize) {}
             virtual ~MemoryBlocks()
             {
-                std::cout<<"MemoryBlocks::~MemoryBlocks() "<<memoryBlocks.size()<<std::endl;
+                DEBUG<<"MemoryBlocks::~MemoryBlocks() name = "<<name<<", "<<memoryBlocks.size()<<std::endl;
             }
 
             void* allocate(std::size_t size)
@@ -248,44 +257,68 @@ class CustomAllocator : public vsg::Allocator
                     if (block->deallocate(ptr)) return true;
                 }
 
-                std::cout<<"MemoryBlocks:deallocate() : couldn't locate point to deallocato "<<ptr<<std::endl;
+                DEBUG<<"MemoryBlocks:deallocate() : couldn't locate point to deallocato "<<ptr<<std::endl;
                 return false;
             }
         };
 
-        std::unique_ptr<MemoryBlocks> memoryBlocks;
-        std::mutex mutex;
+        std::vector<std::unique_ptr<MemoryBlocks>> allocatorMemoryBlocks;
+        mutable std::mutex mutex;
 
         CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
             vsg::Allocator(std::move(in_nestedAllocator))
         {
-            std::cout<<"CustomAllocator()"<<this<<std::endl;
+            DEBUG<<"CustomAllocator()"<<this<<std::endl;
 
-            memoryBlocks.reset(new MemoryBlocks(size_t(1024 * 1024 * 1024)));
+            allocatorMemoryBlocks.resize(vsg::ALLOCATOR_LAST);
+
+            allocatorMemoryBlocks[vsg::ALLOCATOR_OBJECTS].reset(new MemoryBlocks("ALLOCATOR_OBJECTS", size_t(1024 * 1024 * 16)));
+            allocatorMemoryBlocks[vsg::ALLOCATOR_DATA].reset(new MemoryBlocks("ALLOCATOR_DATA", size_t(1024 * 1024 * 16)));
+            allocatorMemoryBlocks[vsg::ALLOCATOR_NODES].reset(new MemoryBlocks("ALLOCATOR_NODES", size_t(1024 * 1024 * 16)));
         }
 
         ~CustomAllocator()
         {
-            std::cout<<"~CustomAllocator() "<<this<<std::endl;
+            DEBUG<<"~CustomAllocator() "<<this<<std::endl;
+        }
+
+        void report() const
+        {
+            DEBUG<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
+            std::scoped_lock<std::mutex> lock(mutex);
+            for(const auto& memoryBlocks : allocatorMemoryBlocks)
+            {
+                if (memoryBlocks)
+                {
+                    DEBUG<<"    "<<memoryBlocks->name;
+                    for(const auto& memoryBlock : memoryBlocks->memoryBlocks)
+                    {
+                        const auto& memorySlots = memoryBlock->memorySlots;
+                        DEBUG<<", ["<<memorySlots.totalReservedSize()<<", "<<memorySlots.maximumAvailableSpace()<<"]";
+                    }
+                    DEBUG<<std::endl;
+                }
+            }
         }
 
         void* allocate(std::size_t size, vsg::AllocatorType allocatorType = vsg::ALLOCATOR_OBJECTS) override
         {
             std::scoped_lock<std::mutex> lock(mutex);
 
+            auto& memoryBlocks = allocatorMemoryBlocks[allocatorType];
             if (memoryBlocks)
             {
                 auto mem_ptr = memoryBlocks->allocate(size);
                 if (mem_ptr)
                 {
-                    std::cout<<"Allocated from MemoryBlock mem_ptr = "<<mem_ptr<<", size = "<<size<<", allocatorType = "<<int(allocatorType)<<std::endl;
+                    DEBUG<<"Allocated from MemoryBlock mem_ptr = "<<mem_ptr<<", size = "<<size<<", allocatorType = "<<int(allocatorType)<<std::endl;
                     return mem_ptr;
                 }
             }
 
 
             void* ptr = Allocator::allocate(size, allocatorType);
-            std::cout<<"CustomAllocator::allocate("<<size<<", "<<int(allocatorType)<<") ptr = "<<ptr<<std::endl;
+            DEBUG<<"CustomAllocator::allocate("<<size<<", "<<int(allocatorType)<<") ptr = "<<ptr<<std::endl;
             return ptr;
         }
 
@@ -293,12 +326,15 @@ class CustomAllocator : public vsg::Allocator
         {
             std::scoped_lock<std::mutex> lock(mutex);
 
-            if (memoryBlocks)
+            for(auto& memoryBlocks : allocatorMemoryBlocks)
             {
-                if (memoryBlocks->deallocate(ptr))
+                if (memoryBlocks)
                 {
-                    std::cout<<"Deallocated from MemoryBlock "<<ptr<<std::endl;
-                    return true;
+                    if (memoryBlocks->deallocate(ptr))
+                    {
+                        DEBUG<<"Deallocated from MemoryBlock "<<ptr<<std::endl;
+                        return true;
+                    }
                 }
             }
 
@@ -312,6 +348,8 @@ int main(int argc, char** argv)
 {
 
     vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
+
+    CustomAllocator* allocator = dynamic_cast<CustomAllocator*>(vsg::Allocator::instance().get());
 
     try
     {
@@ -370,7 +408,7 @@ int main(int argc, char** argv)
 
         if (argc <= 1)
         {
-            std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
+            DEBUG << "Please specify a 3d model or image file on the command line." << std::endl;
             return 1;
         }
 
@@ -398,11 +436,11 @@ int main(int argc, char** argv)
             }
             else if (object)
             {
-                std::cout << "Unable to view object of type " << object->className() << std::endl;
+                DEBUG << "Unable to view object of type " << object->className() << std::endl;
             }
             else
             {
-                std::cout << "Unable to load file " << filename << std::endl;
+                DEBUG << "Unable to load file " << filename << std::endl;
             }
         }
 
@@ -422,7 +460,7 @@ int main(int argc, char** argv)
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            DEBUG << "Could not create windows." << std::endl;
             return 1;
         }
 
@@ -463,7 +501,7 @@ int main(int argc, char** argv)
             auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
             if (!animationPath)
             {
-                std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
+                DEBUG<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
                 return 1;
             }
 
@@ -482,7 +520,7 @@ int main(int argc, char** argv)
             vsg_scene->accept(loadPagedLOD);
 
             auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
-            std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
+            DEBUG << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
@@ -501,6 +539,8 @@ int main(int argc, char** argv)
             viewer->recordAndSubmit();
 
             viewer->present();
+
+            if (allocator) allocator->report();
         }
     }
     catch (const vsg::Exception& ve)
