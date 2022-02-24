@@ -9,11 +9,12 @@
 #include <iostream>
 #include <thread>
 
-#if 0
+#if 1
 #define DEBUG if (true) std::cout
 #else
 #define DEBUG if (false) std::cout
 #endif
+
 
 vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHints)
 {
@@ -175,173 +176,37 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
 
 class CustomAllocator : public vsg::Allocator
 {
-    public:
+public:
 
-        struct MemoryBlock
-        {
-            MemoryBlock(VkDeviceSize blockSize) : memorySlots(blockSize)
-            {
-                memory = static_cast<uint8_t*>(std::malloc(blockSize));
+    CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
+        vsg::Allocator(std::move(in_nestedAllocator))
+    {
+        DEBUG<<"CustomAllocator()"<<this<<std::endl;
+    }
 
-                DEBUG<<"MemoryBlock("<<blockSize<<") allocatoed memory"<<std::endl;
-            }
+    ~CustomAllocator()
+    {
+        DEBUG<<"~CustomAllocator() "<<this<<std::endl;
+    }
 
-            virtual ~MemoryBlock()
-            {
-                DEBUG<<"MemoryBlock::~MemoryBlock("<<memorySlots.totalMemorySize()<<") freed memory"<<std::endl;
-                // memorySlots.report();
-                std::free(memory);
-            }
+    void report() const
+    {
+        DEBUG<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
+        vsg::Allocator::report();
+    }
 
-            void* allocate(std::size_t size)
-            {
-                auto [allocated, offset] = memorySlots.reserve(size, 4);
-                if (allocated) return memory + offset;
-                else return nullptr;
-            }
+    void* allocate(std::size_t size, vsg::AllocatorType allocatorType = vsg::ALLOCATOR_OBJECTS) override
+    {
+        void* ptr = Allocator::allocate(size, allocatorType);
+        DEBUG<<"CustomAllocator::allocate("<<size<<", "<<int(allocatorType)<<") ptr = "<<ptr<<std::endl;
+        return ptr;
+    }
 
-            bool deallocate(void* ptr)
-            {
-                if (ptr >= memory)
-                {
-                    VkDeviceSize offset = static_cast<uint8_t*>(ptr) - memory;
-                    if (offset < memorySlots.totalMemorySize())
-                    {
-                        memorySlots.release(offset, 0);
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            uint8_t* memory = nullptr;
-            vsg::MemorySlots memorySlots;
-        };
-
-        struct MemoryBlocks
-        {
-            std::string name;
-            VkDeviceSize blockSize = 0;
-            std::list<std::unique_ptr<MemoryBlock>> memoryBlocks;
-
-            MemoryBlocks(const std::string& in_name, VkDeviceSize in_blockSize) :
-                name(in_name),
-                blockSize(in_blockSize) {}
-            virtual ~MemoryBlocks()
-            {
-                DEBUG<<"MemoryBlocks::~MemoryBlocks() name = "<<name<<", "<<memoryBlocks.size()<<std::endl;
-            }
-
-            void* allocate(std::size_t size)
-            {
-                for(auto& block : memoryBlocks)
-                {
-                    auto ptr = block->allocate(size);
-                    if (ptr) return ptr;
-                }
-
-                VkDeviceSize new_blockSize = std::max(size, blockSize);
-
-                std::unique_ptr<MemoryBlock> block(new MemoryBlock(new_blockSize));
-                auto ptr = block->allocate(size);
-
-                memoryBlocks.push_back(std::move(block));
-
-                return ptr;
-            }
-
-            bool deallocate(void* ptr)
-            {
-                for(auto& block : memoryBlocks)
-                {
-                    if (block->deallocate(ptr)) return true;
-                }
-
-                DEBUG<<"MemoryBlocks:deallocate() : couldn't locate point to deallocato "<<ptr<<std::endl;
-                return false;
-            }
-        };
-
-        std::vector<std::unique_ptr<MemoryBlocks>> allocatorMemoryBlocks;
-        mutable std::mutex mutex;
-
-        CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
-            vsg::Allocator(std::move(in_nestedAllocator))
-        {
-            DEBUG<<"CustomAllocator()"<<this<<std::endl;
-
-            allocatorMemoryBlocks.resize(vsg::ALLOCATOR_LAST);
-
-            allocatorMemoryBlocks[vsg::ALLOCATOR_OBJECTS].reset(new MemoryBlocks("ALLOCATOR_OBJECTS", size_t(1024 * 1024 * 16)));
-            allocatorMemoryBlocks[vsg::ALLOCATOR_DATA].reset(new MemoryBlocks("ALLOCATOR_DATA", size_t(1024 * 1024 * 16)));
-            allocatorMemoryBlocks[vsg::ALLOCATOR_NODES].reset(new MemoryBlocks("ALLOCATOR_NODES", size_t(1024 * 1024 * 16)));
-        }
-
-        ~CustomAllocator()
-        {
-            DEBUG<<"~CustomAllocator() "<<this<<std::endl;
-        }
-
-        void report() const
-        {
-            DEBUG<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
-            std::scoped_lock<std::mutex> lock(mutex);
-            for(const auto& memoryBlocks : allocatorMemoryBlocks)
-            {
-                if (memoryBlocks)
-                {
-                    DEBUG<<"    "<<memoryBlocks->name;
-                    for(const auto& memoryBlock : memoryBlocks->memoryBlocks)
-                    {
-                        const auto& memorySlots = memoryBlock->memorySlots;
-                        DEBUG<<", ["<<memorySlots.totalReservedSize()<<", "<<memorySlots.maximumAvailableSpace()<<"]";
-                    }
-                    DEBUG<<std::endl;
-                }
-            }
-        }
-
-        void* allocate(std::size_t size, vsg::AllocatorType allocatorType = vsg::ALLOCATOR_OBJECTS) override
-        {
-            std::scoped_lock<std::mutex> lock(mutex);
-
-            auto& memoryBlocks = allocatorMemoryBlocks[allocatorType];
-            if (memoryBlocks)
-            {
-                auto mem_ptr = memoryBlocks->allocate(size);
-                if (mem_ptr)
-                {
-                    DEBUG<<"Allocated from MemoryBlock mem_ptr = "<<mem_ptr<<", size = "<<size<<", allocatorType = "<<int(allocatorType)<<std::endl;
-                    return mem_ptr;
-                }
-            }
-
-
-            void* ptr = Allocator::allocate(size, allocatorType);
-            DEBUG<<"CustomAllocator::allocate("<<size<<", "<<int(allocatorType)<<") ptr = "<<ptr<<std::endl;
-            return ptr;
-        }
-
-        bool deallocate(void* ptr) override
-        {
-            std::scoped_lock<std::mutex> lock(mutex);
-
-            for(auto& memoryBlocks : allocatorMemoryBlocks)
-            {
-                if (memoryBlocks)
-                {
-                    if (memoryBlocks->deallocate(ptr))
-                    {
-                        DEBUG<<"Deallocated from MemoryBlock "<<ptr<<std::endl;
-                        return true;
-                    }
-                }
-            }
-
-            if (nestedAllocator) return nestedAllocator->deallocate(ptr);
-
-            return false;
-        }
+    bool deallocate(void* ptr) override
+    {
+        DEBUG<<"CustomAllocator::dealocate("<<ptr<<")"<<std::endl;
+        return Allocator::deallocate(ptr);
+    }
 };
 
 int main(int argc, char** argv)
