@@ -189,7 +189,7 @@ public:
         DEBUG<<"~CustomAllocator() "<<this<<std::endl;
     }
 
-    void report(std::ostream& out) const
+    void report(std::ostream& out) const override
     {
         DEBUG<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
         vsg::Allocator::report(out);
@@ -212,8 +212,7 @@ public:
 int main(int argc, char** argv)
 {
     vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
-
-    CustomAllocator* allocator = dynamic_cast<CustomAllocator*>(vsg::Allocator::instance().get());
+    vsg::Allocator::instance()->setMemoryTracking(vsg::MEMORY_TRACKING_REPORT_ACTIONS | vsg::MEMORY_TRACKING_CHECK_ACTIONS);
 
     try
     {
@@ -404,7 +403,7 @@ int main(int argc, char** argv)
 
             viewer->present();
 
-            if (allocator) allocator->report(std::cout);
+            vsg::Allocator::instance()->report(std::cout);
         }
     }
     catch (const vsg::Exception& ve)
