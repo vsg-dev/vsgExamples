@@ -189,10 +189,10 @@ public:
         DEBUG<<"~CustomAllocator() "<<this<<std::endl;
     }
 
-    void report() const
+    void report(std::ostream& out) const
     {
         DEBUG<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
-        vsg::Allocator::report();
+        vsg::Allocator::report(out);
     }
 
     void* allocate(std::size_t size, vsg::AllocatorType allocatorType = vsg::ALLOCATOR_OBJECTS) override
@@ -202,16 +202,15 @@ public:
         return ptr;
     }
 
-    bool deallocate(void* ptr) override
+    bool deallocate(void* ptr, std::size_t size) override
     {
         DEBUG<<"CustomAllocator::dealocate("<<ptr<<")"<<std::endl;
-        return Allocator::deallocate(ptr);
+        return Allocator::deallocate(ptr, size);
     }
 };
 
 int main(int argc, char** argv)
 {
-
     vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
 
     CustomAllocator* allocator = dynamic_cast<CustomAllocator*>(vsg::Allocator::instance().get());
@@ -405,7 +404,7 @@ int main(int argc, char** argv)
 
             viewer->present();
 
-            if (allocator) allocator->report();
+            if (allocator) allocator->report(std::cout);
         }
     }
     catch (const vsg::Exception& ve)
