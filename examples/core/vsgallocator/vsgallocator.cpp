@@ -9,13 +9,6 @@
 #include <iostream>
 #include <thread>
 
-#if 1
-#define DEBUG if (true) std::cout
-#else
-#define DEBUG if (false) std::cout
-#endif
-
-
 vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, uint32_t mipmapLevelsHints)
 {
     struct ConvertToRGBA : public vsg::Visitor
@@ -72,7 +65,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
     vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
-        DEBUG << "Could not create shaders." << std::endl;
+        std::cout << "Could not create shaders." << std::endl;
         return {};
     }
 
@@ -181,30 +174,42 @@ public:
     CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
         vsg::Allocator(std::move(in_nestedAllocator))
     {
-        DEBUG<<"CustomAllocator()"<<this<<std::endl;
+        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
+        {
+            std::cout<<"CustomAllocator()"<<this<<std::endl;
+        }
     }
 
     ~CustomAllocator()
     {
-        DEBUG<<"~CustomAllocator() "<<this<<std::endl;
+        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
+        {
+            std::cout<<"~CustomAllocator() "<<this<<std::endl;
+        }
     }
 
     void report(std::ostream& out) const override
     {
-        DEBUG<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
+        std::cout<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
         vsg::Allocator::report(out);
     }
 
     void* allocate(std::size_t size, vsg::AllocatorType allocatorType = vsg::ALLOCATOR_OBJECTS) override
     {
         void* ptr = Allocator::allocate(size, allocatorType);
-        DEBUG<<"CustomAllocator::allocate("<<size<<", "<<int(allocatorType)<<") ptr = "<<ptr<<std::endl;
+        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
+        {
+            std::cout<<"CustomAllocator::allocate("<<size<<", "<<int(allocatorType)<<") ptr = "<<ptr<<std::endl;
+        }
         return ptr;
     }
 
     bool deallocate(void* ptr, std::size_t size) override
     {
-        DEBUG<<"CustomAllocator::dealocate("<<ptr<<")"<<std::endl;
+        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
+        {
+            std::cout<<"CustomAllocator::dealocate("<<ptr<<")"<<std::endl;
+        }
         return Allocator::deallocate(ptr, size);
     }
 };
@@ -235,6 +240,7 @@ int main(int argc, char** argv)
         windowTraits->windowTitle = "vsgviewer";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        if (int mt = 0; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
         if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
         if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -260,6 +266,7 @@ int main(int argc, char** argv)
         arguments.read("--screen", windowTraits->screenNum);
         arguments.read("--display", windowTraits->display);
         arguments.read("--samples", windowTraits->samples);
+        bool reportAtEndOfAllFrames = arguments.read("--report");
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
@@ -271,7 +278,7 @@ int main(int argc, char** argv)
 
         if (argc <= 1)
         {
-            DEBUG << "Please specify a 3d model or image file on the command line." << std::endl;
+            std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
             return 1;
         }
 
@@ -299,11 +306,11 @@ int main(int argc, char** argv)
             }
             else if (object)
             {
-                DEBUG << "Unable to view object of type " << object->className() << std::endl;
+                std::cout << "Unable to view object of type " << object->className() << std::endl;
             }
             else
             {
-                DEBUG << "Unable to load file " << filename << std::endl;
+                std::cout << "Unable to load file " << filename << std::endl;
             }
         }
 
@@ -323,7 +330,7 @@ int main(int argc, char** argv)
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
-            DEBUG << "Could not create windows." << std::endl;
+            std::cout << "Could not create windows." << std::endl;
             return 1;
         }
 
@@ -364,7 +371,7 @@ int main(int argc, char** argv)
             auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
             if (!animationPath)
             {
-                DEBUG<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
+                std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
                 return 1;
             }
 
@@ -383,7 +390,7 @@ int main(int argc, char** argv)
             vsg_scene->accept(loadPagedLOD);
 
             auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
-            DEBUG << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
+            std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
@@ -403,8 +410,15 @@ int main(int argc, char** argv)
 
             viewer->present();
 
-            vsg::Allocator::instance()->report(std::cout);
+            if (reportAtEndOfAllFrames)
+            {
+                vsg::Allocator::instance()->report(std::cout);
+            }
         }
+
+        std::cout<<"\nBefore exit of Viewer scoped: available = "<<vsg::Allocator::instance()->totalAvailableSize()
+                 <<", reserved = "<<vsg::Allocator::instance()->totalReservedSize()
+                 <<", total "<<vsg::Allocator::instance()->totalMemorySize()<<std::endl;
     }
     catch (const vsg::Exception& ve)
     {
@@ -413,6 +427,20 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // clean up done automatically thanks to ref_ptr<>
+    std::cout<<"\nAfter exit of Viewer scoped: available = "<<vsg::Allocator::instance()->totalAvailableSize()
+             <<", reserved = "<<vsg::Allocator::instance()->totalReservedSize()
+             <<", total "<<vsg::Allocator::instance()->totalMemorySize()<<std::endl;
+
+    // Optional call to delete any empty memory blocks, this won't normally be reqired in a VSG application, but if your memory usage goes an duwn and down regularly and you want to free up memory
+    // for use elsewhere then you can call vsg::Allocator::instance()->deleteEmptyMemoryBlocks() after you delete scene graph nodes, data and objects to make sure any memory blocks that may now be empty can be
+    // released back to the OS. If you don't call deleteEmptyMemoryBlocks() the vsg::Allocator destructor will do all the clean up you on exit from the application.
+    auto memoryDeleted = vsg::Allocator::instance()->deleteEmptyMemoryBlocks();
+    std::cout<<"\nMemory deleted by vsg::Allocator::instance()->deleteEmptyMemoryBlocks() "<<memoryDeleted<<std::endl;
+
+    std::cout<<"\nAfter delete of empty memory blocks: available = "<<vsg::Allocator::instance()->totalAvailableSize()
+             <<", reserved = "<<vsg::Allocator::instance()->totalReservedSize()
+             <<", total "<<vsg::Allocator::instance()->totalMemorySize()<<std::endl;
+
+             // clean up done automatically thanks to ref_ptr<>
     return 0;
 }
