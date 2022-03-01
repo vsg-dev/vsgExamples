@@ -219,10 +219,20 @@ int main(int argc, char** argv)
     vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
     vsg::Allocator::instance()->setMemoryTracking(vsg::MEMORY_TRACKING_REPORT_ACTIONS | vsg::MEMORY_TRACKING_CHECK_ACTIONS);
 
+    double loadDuration = 0.0;
+    double frameRate = 0.0;
+    vsg::time_point endOfViewerScope;
+
     try
     {
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
+
+        // Allocaotor related command line settings
+        if (int mt = 0; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
+        if (size_t objectsBlockSize = 0; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_OBJECTS, objectsBlockSize);
+        if (size_t nodesBlockSize = 0; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_NODES, nodesBlockSize);
+        if (size_t dataBlockSize = 0; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_DATA, dataBlockSize);
 
         // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
@@ -240,7 +250,8 @@ int main(int argc, char** argv)
         windowTraits->windowTitle = "vsgviewer";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-        if (int mt = 0; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
+
+
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
         if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
         if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -281,6 +292,9 @@ int main(int argc, char** argv)
             std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
             return 1;
         }
+
+        // record time point just before loading the scene graph
+        auto startOfLoad = vsg::clock::now();
 
         auto group = vsg::Group::create();
 
@@ -324,6 +338,9 @@ int main(int argc, char** argv)
             vsg_scene = group->children[0];
         else
             vsg_scene = group;
+
+        // record the total time taken loading the scene graph
+        loadDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - startOfLoad).count();
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -398,6 +415,8 @@ int main(int argc, char** argv)
 
         viewer->compile();
 
+        auto startOfFrameLopp = vsg::clock::now();
+
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
@@ -416,9 +435,17 @@ int main(int argc, char** argv)
             }
         }
 
-        std::cout<<"\nBefore exit of Viewer scoped: available = "<<vsg::Allocator::instance()->totalAvailableSize()
-                 <<", reserved = "<<vsg::Allocator::instance()->totalReservedSize()
-                 <<", total "<<vsg::Allocator::instance()->totalMemorySize()<<std::endl;
+        if (viewer->getFrameStamp()->frameCount > 0)
+        {
+            auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startOfFrameLopp).count();
+            frameRate = (double(viewer->getFrameStamp()->frameCount) / duration);
+        }
+
+        std::cout<<"\nBefore end of Viewer scoped."<<std::endl;
+        vsg::Allocator::instance()->report(std::cout);
+
+        // record the end of viewer scope
+        endOfViewerScope = vsg::clock::now();
     }
     catch (const vsg::Exception& ve)
     {
@@ -427,20 +454,24 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    std::cout<<"\nAfter exit of Viewer scoped: available = "<<vsg::Allocator::instance()->totalAvailableSize()
-             <<", reserved = "<<vsg::Allocator::instance()->totalReservedSize()
-             <<", total "<<vsg::Allocator::instance()->totalMemorySize()<<std::endl;
+    double releaseDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - endOfViewerScope).count();
+
+    std::cout<<"\nAfter end of Viewer scoped."<<std::endl;
+    vsg::Allocator::instance()->report(std::cout);
 
     // Optional call to delete any empty memory blocks, this won't normally be reqired in a VSG application, but if your memory usage goes an duwn and down regularly and you want to free up memory
     // for use elsewhere then you can call vsg::Allocator::instance()->deleteEmptyMemoryBlocks() after you delete scene graph nodes, data and objects to make sure any memory blocks that may now be empty can be
     // released back to the OS. If you don't call deleteEmptyMemoryBlocks() the vsg::Allocator destructor will do all the clean up you on exit from the application.
+    auto beforeDelete = vsg::clock::now();
     auto memoryDeleted = vsg::Allocator::instance()->deleteEmptyMemoryBlocks();
-    std::cout<<"\nMemory deleted by vsg::Allocator::instance()->deleteEmptyMemoryBlocks() "<<memoryDeleted<<std::endl;
+    double deleteDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - beforeDelete).count();
 
-    std::cout<<"\nAfter delete of empty memory blocks: available = "<<vsg::Allocator::instance()->totalAvailableSize()
-             <<", reserved = "<<vsg::Allocator::instance()->totalReservedSize()
-             <<", total "<<vsg::Allocator::instance()->totalMemorySize()<<std::endl;
+    std::cout<<"\nAfter delete of empty memory blocks, where "<<memoryDeleted<<" was freed."<<std::endl;
+    vsg::Allocator::instance()->report(std::cout);
 
-             // clean up done automatically thanks to ref_ptr<>
+    std::cout << "\nload duration = " << loadDuration << "ms"<<std::endl;
+    std::cout << "release duration  = " << releaseDuration << "ms"<<std::endl;
+    std::cout << "delete duration  = " << deleteDuration << "ms"<<std::endl;
+    std::cout << "Average frame rate = " << frameRate << "fps"<<std::endl;
     return 0;
 }
