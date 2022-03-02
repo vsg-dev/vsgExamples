@@ -36,12 +36,12 @@ public:
         vsg::Allocator::report(out);
     }
 
-    void* allocate(std::size_t size, vsg::AllocatorType allocatorType = vsg::ALLOCATOR_OBJECTS) override
+    void* allocate(std::size_t size, vsg::AllocatorAffinity allocatorAffinity = vsg::ALLOCATOR_AFFINITY_OBJECTS) override
     {
-        void* ptr = Allocator::allocate(size, allocatorType);
+        void* ptr = Allocator::allocate(size, allocatorAffinity);
         if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
         {
-            std::cout<<"CustomAllocator::allocate("<<size<<", "<<int(allocatorType)<<") ptr = "<<ptr<<std::endl;
+            std::cout<<"CustomAllocator::allocate("<<size<<", "<<allocatorAffinity<<") ptr = "<<ptr<<std::endl;
         }
         return ptr;
     }
@@ -61,21 +61,23 @@ int main(int argc, char** argv)
     vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
     vsg::Allocator::instance()->setMemoryTracking(vsg::MEMORY_TRACKING_REPORT_ACTIONS | vsg::MEMORY_TRACKING_CHECK_ACTIONS);
 
+    // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    // Allocaotor related command line settings
+    if (int mt; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
+    if (int type; arguments.read("--allocator", type)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(type);
+    if (int  type; arguments.read("--blocks", type)) vsg::Allocator::instance()->memoryBlocksAllocatorType = vsg::AllocatorType(type);
+    if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize);
+    if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize);
+    if (size_t dataBlockSize; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_DATA, dataBlockSize);
+
     double loadDuration = 0.0;
     double frameRate = 0.0;
     vsg::time_point endOfViewerScope;
 
     try
     {
-        // set up defaults and read command line arguments to override them
-        vsg::CommandLine arguments(&argc, argv);
-
-        // Allocaotor related command line settings
-        if (int mt = 0; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
-        if (size_t objectsBlockSize = 0; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_OBJECTS, objectsBlockSize);
-        if (size_t nodesBlockSize = 0; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_NODES, nodesBlockSize);
-        if (size_t dataBlockSize = 0; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_DATA, dataBlockSize);
-
         // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
