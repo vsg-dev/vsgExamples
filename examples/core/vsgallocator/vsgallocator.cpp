@@ -128,6 +128,8 @@ int main(int argc, char** argv)
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        bool useViewer = !arguments.read("--no-viewer");
+
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         if (argc <= 1)
@@ -169,103 +171,107 @@ int main(int argc, char** argv)
         // record the total time taken loading the scene graph
         loadDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - startOfLoad).count();
 
-        // create the viewer and assign window(s) to it
-        auto viewer = vsg::Viewer::create();
-        auto window = vsg::Window::create(windowTraits);
-        if (!window)
+
+        if (useViewer)
         {
-            std::cout << "Could not create windows." << std::endl;
-            return 1;
-        }
-
-        viewer->addWindow(window);
-
-        // compute the bounds of the scene graph to help position camera
-        vsg::ComputeBounds computeBounds;
-        vsg_scene->accept(computeBounds);
-        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-        double nearFarRatio = 0.001;
-
-        // set up the camera
-        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-
-        vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
-        if (ellipsoidModel)
-        {
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
-        }
-        else
-        {
-            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
-        }
-
-        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-
-        // add close handler to respond the close window button and pressing escape
-        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-        if (pathFilename.empty())
-        {
-            viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
-        }
-        else
-        {
-            auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
-            if (!animationPath)
+            // create the viewer and assign window(s) to it
+            auto viewer = vsg::Viewer::create();
+            auto window = vsg::Window::create(windowTraits);
+            if (!window)
             {
-                std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
+                std::cout << "Could not create windows." << std::endl;
                 return 1;
             }
 
-            auto animationPathHandler = vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point());
-            animationPathHandler->printFrameStatsToConsole = true;
-            viewer->addEventHandler(animationPathHandler);
-        }
+            viewer->addWindow(window);
 
-        // if required preload specific number of PagedLOD levels.
-        if (loadLevels > 0)
-        {
-            vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
+            // compute the bounds of the scene graph to help position camera
+            vsg::ComputeBounds computeBounds;
+            vsg_scene->accept(computeBounds);
+            vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+            double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+            double nearFarRatio = 0.001;
 
-            auto startTime = std::chrono::steady_clock::now();
+            // set up the camera
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
-            vsg_scene->accept(loadPagedLOD);
-
-            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
-            std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
-        }
-
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-
-        viewer->compile();
-
-        auto startOfFrameLopp = vsg::clock::now();
-
-        // rendering main loop
-        while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
-        {
-            // pass any events into EventHandlers assigned to the Viewer
-            viewer->handleEvents();
-
-            viewer->update();
-
-            viewer->recordAndSubmit();
-
-            viewer->present();
-
-            if (reportAtEndOfAllFrames)
+            vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+            vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+            if (ellipsoidModel)
             {
-                vsg::Allocator::instance()->report(std::cout);
+                perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
             }
-        }
+            else
+            {
+                perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            }
 
-        if (viewer->getFrameStamp()->frameCount > 0)
-        {
-            auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startOfFrameLopp).count();
-            frameRate = (double(viewer->getFrameStamp()->frameCount) / duration);
+            auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+
+            // add close handler to respond the close window button and pressing escape
+            viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
+            if (pathFilename.empty())
+            {
+                viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
+            }
+            else
+            {
+                auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
+                if (!animationPath)
+                {
+                    std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
+                    return 1;
+                }
+
+                auto animationPathHandler = vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point());
+                animationPathHandler->printFrameStatsToConsole = true;
+                viewer->addEventHandler(animationPathHandler);
+            }
+
+            // if required preload specific number of PagedLOD levels.
+            if (loadLevels > 0)
+            {
+                vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
+
+                auto startTime = std::chrono::steady_clock::now();
+
+                vsg_scene->accept(loadPagedLOD);
+
+                auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
+                std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
+            }
+
+            auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+            viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+            viewer->compile();
+
+            auto startOfFrameLopp = vsg::clock::now();
+
+            // rendering main loop
+            while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
+            {
+                // pass any events into EventHandlers assigned to the Viewer
+                viewer->handleEvents();
+
+                viewer->update();
+
+                viewer->recordAndSubmit();
+
+                viewer->present();
+
+                if (reportAtEndOfAllFrames)
+                {
+                    vsg::Allocator::instance()->report(std::cout);
+                }
+            }
+
+            if (viewer->getFrameStamp()->frameCount > 0)
+            {
+                auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startOfFrameLopp).count();
+                frameRate = (double(viewer->getFrameStamp()->frameCount) / duration);
+            }
         }
 
         std::cout<<"\nBefore end of Viewer scoped."<<std::endl;
