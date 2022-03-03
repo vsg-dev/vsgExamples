@@ -58,13 +58,11 @@ public:
 
 int main(int argc, char** argv)
 {
-    vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
-    vsg::Allocator::instance()->setMemoryTracking(vsg::MEMORY_TRACKING_REPORT_ACTIONS | vsg::MEMORY_TRACKING_CHECK_ACTIONS);
-
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
     // Allocaotor related command line settings
+    if (arguments.read("--custom")) vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
     if (int mt; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
     if (int type; arguments.read("--allocator", type)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(type);
     if (int  type; arguments.read("--blocks", type)) vsg::Allocator::instance()->memoryBlocksAllocatorType = vsg::AllocatorType(type);
