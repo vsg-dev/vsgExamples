@@ -1,126 +1,322 @@
 #include <vsg/all.h>
 
-#include <chrono>
-#include <iostream>
-#include <vector>
-
-template<typename T>
-struct allocator_adapter
-{
-    using value_type = T;
-
-    allocator_adapter() noexcept
-    {
-        std::cout << "allocator_adapter::allocator_adapter()" << std::endl;
-    }
-
-    template<class U>
-    allocator_adapter(const allocator_adapter<U>& rhs) noexcept :
-        _allocator(rhs._allocator)
-    {
-        std::cout << "allocator_adapter::allocator_adapter(const allocator_adapter<U>& ) _allocator=" << _allocator.get() << std::endl;
-    }
-
-    explicit allocator_adapter(vsg::Allocator* allocator) noexcept :
-        _allocator(allocator)
-    {
-        std::cout << "allocator_adapter::allocator_adapter(vsg::Allocator*) _allocator=" << _allocator.get() << std::endl;
-    }
-
-    value_type* allocate(std::size_t n)
-    {
-        std::cout << "allocator_adapter::allocate(" << n << ") _allocator=" << _allocator.get() << std::endl;
-        const std::size_t size = n * sizeof(value_type);
-        return static_cast<value_type*>(_allocator ? _allocator->allocate(size) : (::operator new(size)));
-    }
-
-    void deallocate(value_type* ptr, std::size_t n)
-    {
-        std::cout << "allocator_adapter::deallocate(" << n << ") _allocator=" << _allocator.get() << std::endl;
-        const std::size_t size = n * sizeof(value_type);
-        if (_allocator)
-            _allocator->deallocate(ptr, size);
-        else
-            ::operator delete(ptr);
-    }
-
-    vsg::ref_ptr<vsg::Allocator> _allocator;
-};
-
-template<class T, class U>
-bool operator==(const allocator_adapter<T>& lhs, const allocator_adapter<U>& rhs) noexcept
-{
-    return lhs._allocator == rhs._allocator;
-}
-
-template<class T, class U>
-bool operator!=(const allocator_adapter<T>& lhs, const allocator_adapter<U>& rhs) noexcept
-{
-    return lhs._allocator != rhs._allocator;
-}
-
-int main(int /*argc*/, char** /*argv*/)
-{
-    {
-        std::cout << std::endl;
-        std::cout << "Before vsg::Allocator for std::vector" << std::endl;
-
-        vsg::ref_ptr<vsg::Allocator> allocator(new vsg::Allocator);
-
-        using allocator_vec3 = allocator_adapter<vsg::vec3>;
-        using std_vector = std::vector<vsg::vec3>;
-        using my_vector = std::vector<vsg::vec3, allocator_vec3>;
-        std::cout << "\n";
-        std::cout << "sizeof(std_vector) " << sizeof(std_vector) << std::endl;
-        std::cout << "sizeof(my_vector) " << sizeof(my_vector) << std::endl;
-        {
-            std::vector<vsg::vec3> vertices(4);
-            std::vector<vsg::vec3, allocator_vec3> my_vertices(16, allocator_vec3(allocator));
-            std::vector<vsg::vec3, allocator_vec3> my_vertices2(36, allocator_vec3(allocator));
-            std::cout << "sizeof(my_vertices2) " << sizeof(my_vertices2) << std::endl;
-        }
-        std::cout << std::endl;
-        allocator_adapter<vsg::vec3> local_allocator(new vsg::Allocator);
-        std::vector<vsg::vec3, decltype(local_allocator)> my_vertices3(72, local_allocator);
-        std::cout << "before resize" << std::endl;
-        my_vertices3.resize(4);
-        std::cout << std::endl;
-        std::cout << "before shrink_to_fit" << std::endl;
-        my_vertices3.shrink_to_fit();
-        std::cout << "after shrink_to_fit" << std::endl;
-
-        std::cout << "before copy" << std::endl;
-        auto copy_vertices = my_vertices3;
-        std::cout << "after copy" << std::endl;
-    }
-
-    {
-        std::cout << std::endl;
-        std::cout << "Before vsg::Object::create() for nodes" << std::endl;
-        {
-            vsg::ref_ptr<vsg::Allocator> allocator(new vsg::Allocator);
-
-#if 1
-            auto group = vsg::Group::create(allocator, 4);
-            auto quadgroup = vsg::QuadGroup::create(allocator);
-#else
-            auto group = allocator->create<vsg::Group>(4);
-            auto quadgroup = allocator->create<vsg::QuadGroup>();
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
 #endif
 
-            group->setValue("ginger", 2.0);
-            group->setValue("nutmeg", 3.0f);
+#include <algorithm>
+#include <chrono>
+#include <iostream>
+#include <thread>
 
-            std::cout << "Before allocator = nullptr;\n"
-                      << std::endl;
+class CustomAllocator : public vsg::Allocator
+{
+public:
 
-            allocator = nullptr;
-
-            std::cout << "Before end of block\n"
-                      << std::endl;
+    CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
+        vsg::Allocator(std::move(in_nestedAllocator))
+    {
+        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
+        {
+            std::cout<<"CustomAllocator()"<<this<<std::endl;
         }
-        std::cout << "After create\n"
-                  << std::endl;
     }
+
+    ~CustomAllocator()
+    {
+        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
+        {
+            std::cout<<"~CustomAllocator() "<<this<<std::endl;
+        }
+    }
+
+    void report(std::ostream& out) const override
+    {
+        std::cout<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
+        vsg::Allocator::report(out);
+    }
+
+    void* allocate(std::size_t size, vsg::AllocatorAffinity allocatorAffinity = vsg::ALLOCATOR_AFFINITY_OBJECTS) override
+    {
+        void* ptr = Allocator::allocate(size, allocatorAffinity);
+        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
+        {
+            std::cout<<"CustomAllocator::allocate("<<size<<", "<<allocatorAffinity<<") ptr = "<<ptr<<std::endl;
+        }
+        return ptr;
+    }
+
+    bool deallocate(void* ptr, std::size_t size) override
+    {
+        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
+        {
+            std::cout<<"CustomAllocator::dealocate("<<ptr<<")"<<std::endl;
+        }
+        return Allocator::deallocate(ptr, size);
+    }
+};
+
+int main(int argc, char** argv)
+{
+    // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    // Allocaotor related command line settings
+    if (arguments.read("--custom")) vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
+    if (int mt; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
+    if (int type; arguments.read("--allocator", type)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(type);
+    if (int  type; arguments.read("--blocks", type)) vsg::Allocator::instance()->memoryBlocksAllocatorType = vsg::AllocatorType(type);
+    if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize);
+    if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize);
+    if (size_t dataBlockSize; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_DATA, dataBlockSize);
+
+    double loadDuration = 0.0;
+    double frameRate = 0.0;
+    vsg::time_point endOfViewerScope;
+
+    try
+    {
+        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+        auto options = vsg::Options::create();
+        options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+        options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+#ifdef vsgXchange_all
+        // add vsgXchange's support for reading and writing 3rd party file formats
+        options->add(vsgXchange::all::create());
+#endif
+
+        arguments.read(options);
+
+        auto windowTraits = vsg::WindowTraits::create();
+        windowTraits->windowTitle = "vsgallocator";
+        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+
+
+        if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
+        if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
+        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+        if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+        if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+        if (arguments.read({"-t", "--test"}))
+        {
+            windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            windowTraits->fullscreen = true;
+        }
+        if (arguments.read({"--st", "--small-test"}))
+        {
+            windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            windowTraits->width = 192, windowTraits->height = 108;
+            windowTraits->decoration = false;
+        }
+        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
+        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+        if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
+        if (arguments.read("--or")) windowTraits->overrideRedirect = true;
+        if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
+        arguments.read("--screen", windowTraits->screenNum);
+        arguments.read("--display", windowTraits->display);
+        arguments.read("--samples", windowTraits->samples);
+        bool reportAtEndOfAllFrames = arguments.read("--report");
+        auto numFrames = arguments.value(-1, "-f");
+        auto pathFilename = arguments.value(std::string(), "-p");
+        auto loadLevels = arguments.value(0, "--load-levels");
+        auto horizonMountainHeight = arguments.value(0.0, "--hmh");
+        auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
+        if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
+
+        bool useViewer = !arguments.read("--no-viewer");
+
+
+        if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
+        if (argc <= 1)
+        {
+            std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
+            return 1;
+        }
+
+        // record time point just before loading the scene graph
+        auto startOfLoad = vsg::clock::now();
+
+        auto group = vsg::Group::create();
+
+        // read any vsg files
+        for (int i = 1; i < argc; ++i)
+        {
+            vsg::Path filename = arguments[i];
+            if (auto node = vsg::read_cast<vsg::Node>(filename, options); node)
+            {
+                group->addChild(node);
+            }
+            else
+            {
+                std::cout << "Unable to load file " << filename << std::endl;
+            }
+        }
+
+        if (group->children.empty())
+        {
+            return 1;
+        }
+
+        vsg::ref_ptr<vsg::Node> vsg_scene;
+        if (group->children.size() == 1)
+            vsg_scene = group->children[0];
+        else
+            vsg_scene = group;
+
+        // record the total time taken loading the scene graph
+        loadDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - startOfLoad).count();
+
+
+        if (useViewer)
+        {
+            // create the viewer and assign window(s) to it
+            auto viewer = vsg::Viewer::create();
+            auto window = vsg::Window::create(windowTraits);
+            if (!window)
+            {
+                std::cout << "Could not create windows." << std::endl;
+                return 1;
+            }
+
+            viewer->addWindow(window);
+
+            // compute the bounds of the scene graph to help position camera
+            vsg::ComputeBounds computeBounds;
+            vsg_scene->accept(computeBounds);
+            vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+            double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+            double nearFarRatio = 0.001;
+
+            // set up the camera
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+            vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+            vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+            if (ellipsoidModel)
+            {
+                perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+            }
+            else
+            {
+                perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            }
+
+            auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+
+            // add close handler to respond the close window button and pressing escape
+            viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
+            if (pathFilename.empty())
+            {
+                viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
+            }
+            else
+            {
+                auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
+                if (!animationPath)
+                {
+                    std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
+                    return 1;
+                }
+
+                auto animationPathHandler = vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point());
+                animationPathHandler->printFrameStatsToConsole = true;
+                viewer->addEventHandler(animationPathHandler);
+            }
+
+            // if required preload specific number of PagedLOD levels.
+            if (loadLevels > 0)
+            {
+                vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
+
+                auto startTime = std::chrono::steady_clock::now();
+
+                vsg_scene->accept(loadPagedLOD);
+
+                auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
+                std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
+            }
+
+            auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+            viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+            viewer->compile();
+
+            if (maxPagedLOD > 0)
+            {
+                // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
+                for(auto& task : viewer->recordAndSubmitTasks)
+                {
+                    if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
+                }
+            }
+
+            auto startOfFrameLopp = vsg::clock::now();
+
+            // rendering main loop
+            while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
+            {
+                // pass any events into EventHandlers assigned to the Viewer
+                viewer->handleEvents();
+
+                viewer->update();
+
+                viewer->recordAndSubmit();
+
+                viewer->present();
+
+                if (reportAtEndOfAllFrames)
+                {
+                    vsg::Allocator::instance()->report(std::cout);
+                }
+            }
+
+            if (viewer->getFrameStamp()->frameCount > 0)
+            {
+                auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startOfFrameLopp).count();
+                frameRate = (double(viewer->getFrameStamp()->frameCount) / duration);
+            }
+        }
+
+        std::cout<<"\nBefore end of Viewer scoped."<<std::endl;
+        vsg::Allocator::instance()->report(std::cout);
+
+        // record the end of viewer scope
+        endOfViewerScope = vsg::clock::now();
+    }
+    catch (const vsg::Exception& ve)
+    {
+        for (int i = 0; i < argc; ++i) std::cerr << argv[i] << " ";
+        std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
+        return 1;
+    }
+
+    // to make sure everything cleans up for stats purposes we'll unref the ObjectFactory, it's perfectly safe to not have this step in your applications
+    vsg::ObjectFactory::instance() = {};
+
+    double releaseDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - endOfViewerScope).count();
+
+    std::cout<<"\nAfter end of Viewer scoped."<<std::endl;
+    vsg::Allocator::instance()->report(std::cout);
+
+    // Optional call to delete any empty memory blocks, this won't normally be reqired in a VSG application, but if your memory usage goes an duwn and down regularly and you want to free up memory
+    // for use elsewhere then you can call vsg::Allocator::instance()->deleteEmptyMemoryBlocks() after you delete scene graph nodes, data and objects to make sure any memory blocks that may now be empty can be
+    // released back to the OS. If you don't call deleteEmptyMemoryBlocks() the vsg::Allocator destructor will do all the clean up you on exit from the application.
+    auto beforeDelete = vsg::clock::now();
+    auto memoryDeleted = vsg::Allocator::instance()->deleteEmptyMemoryBlocks();
+    double deleteDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - beforeDelete).count();
+
+    std::cout<<"\nAfter delete of empty memory blocks, where "<<memoryDeleted<<" was freed."<<std::endl;
+    vsg::Allocator::instance()->report(std::cout);
+
+    std::cout << "\nload duration = " << loadDuration << "ms"<<std::endl;
+    std::cout << "release duration  = " << releaseDuration << "ms"<<std::endl;
+    std::cout << "delete duration  = " << deleteDuration << "ms"<<std::endl;
+    std::cout << "Average frame rate = " << frameRate << "fps"<<std::endl;
     return 0;
 }
