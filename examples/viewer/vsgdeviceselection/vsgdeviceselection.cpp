@@ -18,7 +18,7 @@ namespace vsg
     #if defined(VK_MAKE_API_VERSION)
         return VK_MAKE_API_VERSION(vk_major, vk_minor, 0, 0);
     #elif defined(VK_MAKE_VERSION)
-        return VK_MAKE_VERSION(vk_major, vk_minor, 0, 0);
+        return VK_MAKE_VERSION(vk_major, vk_minor, 0);
     #else
         return VK_API_VERSION_1_0;
     #endif
