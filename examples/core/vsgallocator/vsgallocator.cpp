@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 
 #ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
-        options->add(vsgXchange::all::create());
+//        options->add(vsgXchange::all::create());
 #endif
 
         arguments.read(options);
@@ -284,6 +284,9 @@ int main(int argc, char** argv)
         std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
         return 1;
     }
+
+    // to make sure everything cleans up for stats purposes we'll unref the ObjectFactory, it's perfectly safe to not have this step in your applications
+    vsg::ObjectFactory::instance() = {};
 
     double releaseDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - endOfViewerScope).count();
 
