@@ -17,7 +17,7 @@ namespace vsg
         std::cout<<"vk_minor = "<<vk_minor<<std::endl;
     #if defined(VK_MAKE_API_VERSION)
         return VK_MAKE_API_VERSION(vk_major, vk_minor, 0, 0);
-    #elif defied(VK_MAKE_VERSION)
+    #elif defined(VK_MAKE_VERSION)
         return VK_MAKE_VERSION(vk_major, vk_minor, 0, 0);
     #else
         return VK_API_VERSION_1_0;
