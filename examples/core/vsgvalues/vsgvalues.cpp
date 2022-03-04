@@ -2,6 +2,7 @@
 #include <vsg/core/Object.h>
 #include <vsg/core/Value.h>
 #include <vsg/core/Visitor.h>
+#include <vsg/core/ConstVisitor.h>
 
 #include <algorithm>
 #include <iostream>
