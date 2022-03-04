@@ -83,13 +83,13 @@ int main(int argc, char** argv)
 
 #ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
-//        options->add(vsgXchange::all::create());
+        options->add(vsgXchange::all::create());
 #endif
 
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgviewer";
+        windowTraits->windowTitle = "vsgallocator";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
