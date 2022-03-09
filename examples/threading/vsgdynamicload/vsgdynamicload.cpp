@@ -22,14 +22,12 @@ public:
     std::list<vsg::ref_ptr<vsg::CompileTraversal>> compileTraversals;
 
     // window related settings used to set up the CompileTraversal
-    vsg::ref_ptr<vsg::Window> window;
-    vsg::ref_ptr<vsg::ViewportState> viewport;
+    vsg::ref_ptr<vsg::Viewer> viewer;
     vsg::ResourceRequirements resourceRequirements;
 
-    DynamicLoadAndCompile(vsg::ref_ptr<vsg::Window> in_window, vsg::ref_ptr<vsg::ViewportState> in_viewport, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
+    DynamicLoadAndCompile(vsg::ref_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
         status(in_status),
-        window(in_window),
-        viewport(in_viewport)
+        viewer(in_viewer)
     {
         loadThreads = vsg::OperationThreads::create(12, status);
         compileThreads = vsg::OperationThreads::create(1, status);
@@ -115,7 +113,7 @@ public:
         }
 
         std::cout << "takeCompileTraversal() creating a new CompileTraversal" << std::endl;
-        auto ct = vsg::CompileTraversal::create(window, viewport, resourceRequirements);
+        auto ct = vsg::CompileTraversal::create(viewer, resourceRequirements);
 
         return ct;
     }
@@ -299,7 +297,7 @@ int main(int argc, char** argv)
 
         // create the DynamicLoadAndCompile object that manages loading, compile and merging of new objects.
         // Pass in window and viewportState to help initialize CompilTraversals
-        auto dynamicLoadAndCompile = DynamicLoadAndCompile::create(window, viewportState, viewer->status);
+        auto dynamicLoadAndCompile = DynamicLoadAndCompile::create(viewer, viewer->status);
 
         // build the scene graph attachments points to place all of the loaded models at.
         for (int i = 1; i < argc; ++i)
