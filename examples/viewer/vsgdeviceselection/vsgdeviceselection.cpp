@@ -45,10 +45,20 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
 
+    if (vkEnumerateInstanceVersion(&windowTraits->vulkanVersion) == VK_SUCCESS)
+    {
+        std::cout<<"vkEnumerateInstanceVersion() "<<windowTraits->vulkanVersion<<std::endl;
+    }
+
     if (std::string versionStr; arguments.read("--vulkan", versionStr))
     {
         windowTraits->vulkanVersion = vsg::makeVulkanApiVersion(versionStr);
     }
+
+#ifdef VK_API_VERSION_MAJOR
+    auto version = windowTraits->vulkanVersion;
+    std::cout<<"VK_API_VERSION = "<<VK_API_VERSION_MAJOR(version) <<"."<<VK_API_VERSION_MINOR(version)<<"."<<VK_API_VERSION_PATCH(version)<<"."<<VK_API_VERSION_VARIANT(version)<<std::endl;
+#endif
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
