@@ -63,7 +63,6 @@ struct SceneStatstics : public vsg::Inherit<vsg::ConstVisitor, SceneStatstics>
 
     void report(std::ostream& out)
     {
-        out<<"\nStats: "<<std::endl;
         for(auto& [str, count] : objectCounts) out<<"  "<<str<<" "<<count<<std::endl;
     }
 
