@@ -56,6 +56,36 @@ public:
     }
 };
 
+
+struct SceneStatstics : public vsg::Inherit<vsg::ConstVisitor, SceneStatstics>
+{
+    std::map<const char*, size_t> objectCounts;
+
+    void report(std::ostream& out)
+    {
+        out<<"\nStats: "<<std::endl;
+        for(auto& [str, count] : objectCounts) out<<"  "<<str<<" "<<count<<std::endl;
+    }
+
+    void apply(const vsg::Node& node) override
+    {
+        ++objectCounts[node.className()];
+        node.traverse(*this);
+    }
+
+    void apply(const vsg::StateGroup& stateGroup) override
+    {
+        ++objectCounts[stateGroup.className()];
+
+        for(auto& sc : stateGroup.stateCommands)
+        {
+            sc->accept(*this);
+        }
+
+        stateGroup.traverse(*this);
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -127,6 +157,10 @@ int main(int argc, char** argv)
         auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        size_t stats = 0;
+        if (arguments.read("--stats")) stats = 1;
+        if (arguments.read("--num-stats", stats)) {}
+
         bool useViewer = !arguments.read("--no-viewer");
 
         vsg::Affinity affinity;
@@ -179,6 +213,25 @@ int main(int argc, char** argv)
 
         // record the total time taken loading the scene graph
         loadDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - startOfLoad).count();
+
+
+        if (stats > 0)
+        {
+            auto startOfStats = vsg::clock::now();
+
+            auto sceneStatistics = SceneStatstics::create();
+
+            for(size_t i=0; i<stats; ++i)
+            {
+                sceneStatistics->objectCounts.clear();
+                vsg_scene->accept(*sceneStatistics);
+            }
+
+            auto statsDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - startOfStats).count();
+
+            std::cout<<"Stats collection took "<<statsDuration<<"ms"<<" for "<<stats<<" traversals."<<std::endl;
+            sceneStatistics->report(std::cout);
+        }
 
 
         if (useViewer)
