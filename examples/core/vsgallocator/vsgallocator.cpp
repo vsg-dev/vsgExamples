@@ -129,8 +129,17 @@ int main(int argc, char** argv)
 
         bool useViewer = !arguments.read("--no-viewer");
 
+        vsg::Affinity affinity;
+        uint32_t cpu = 0;
+        while (arguments.read({"--cpu", "-c"}, cpu))
+        {
+            affinity.cpus.insert(cpu);
+        }
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
+        // if required set the affinity of the main thread.
+        if (affinity) vsg::setAffinity(affinity);
 
         if (argc <= 1)
         {
