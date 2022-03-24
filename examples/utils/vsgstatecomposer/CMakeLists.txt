@@ -1,5 +1,6 @@
 set(SOURCES
     vsgstatecomposer.cpp
+    ShaderSet.cpp
 )
 
 add_executable(vsgstatecomposer ${SOURCES})

@@ -5,6 +5,8 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#include "ShaderSet.h"
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -27,12 +29,10 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    // set up search paths to SPIRV shaders and textures
-    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-
     // load shaders
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp.vert", options);
-    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp_flat_shaded.frag", options);
+    //auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp_flat_shaded.frag", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp_phong.frag", options);
     if (!vertexShader || !fragmentShader)
     {
         std::cout << "Could not create shaders." << std::endl;
@@ -52,10 +52,6 @@ int main(int argc, char** argv)
     // set up shader hints
     auto shaderHints = vsg::ShaderCompileSettings::create();
     std::vector<std::string>& defines = shaderHints->defines;
-    vertexShader->module->hints = shaderHints;
-    fragmentShader->module->hints = shaderHints;
-
-
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings;
@@ -96,12 +92,15 @@ int main(int argc, char** argv)
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
-        vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
         vsg::DepthStencilState::create()};
 
+
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
-    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+
+    auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, shaderSet->getShaderStages(shaderHints), pipelineStates);
+
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
     // create texture image and associated DescriptorSets and binding
@@ -113,8 +112,9 @@ int main(int argc, char** argv)
 
     auto material = vsg::DescriptorBuffer::create(mat, 10);
 
+    vsg::Descriptors descriptors{texture, material};
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture, material});
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
