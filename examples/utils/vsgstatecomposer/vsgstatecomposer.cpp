@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 
     // set up shader hints
     auto shaderHints = vsg::ShaderCompileSettings::create();
-    std::vector<std::string>& defines = shaderHints->defines;
+    auto& defines = shaderHints->defines;
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings;
@@ -159,18 +159,6 @@ int main(int argc, char** argv)
          {1.0f, 1.0f},
          {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-#if 0
-    auto colors = vsg::vec4Array::create(
-        {{1.0f, 0.0f, 0.0f, 1.0f},
-         {0.0f, 1.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-         {1.0f, 0.0f, 0.0f, 1.0f},
-         {0.0f, 1.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-        }); // VK_FORMAT_R32G32B32A32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-#else
     auto colors = vsg::vec4Array::create(
         {{1.0f, 1.0f, 1.0f, 1.0f},
          {1.0f, 1.0f, 1.0f, 1.0f},
@@ -181,7 +169,6 @@ int main(int argc, char** argv)
          {1.0f, 1.0f, 1.0f, 1.0f},
          {1.0f, 1.0f, 1.0f, 1.0f},
         }); // VK_FORMAT_R32G32B32A32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-#endif
 
     auto indices = vsg::ushortArray::create(
         {0, 1, 2,
