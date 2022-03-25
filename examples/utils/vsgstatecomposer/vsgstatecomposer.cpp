@@ -97,6 +97,7 @@ int main(int argc, char** argv)
         if (!materialBinding.define.empty()) defines.push_back(materialBinding.define);
 
 #if 0
+        // use the default maerialBinding.data
         auto material = vsg::DescriptorBuffer::create(materialBinding.data, materialBinding.binding);
         descriptors.push_back(material);
 #else
@@ -116,25 +117,43 @@ int main(int argc, char** argv)
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
     };
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // normal data
-        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX},  // tex coord data
-        VkVertexInputBindingDescription{3, sizeof(vsg::vec4), VK_VERTEX_INPUT_RATE_VERTEX} // colour data
-    };
+    vsg::VertexInputState::Bindings vertexBindingDescriptions;
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions;
+    uint32_t attributeBinding = 0;
+    if (auto& vertexBinding = shaderSet->getAttributeBinding("vsg_Vertex"))
+    {
+        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, vertexBinding.data->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX}); // should use actual Array stride
+        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{vertexBinding.location, attributeBinding, vertexBinding.format, 0}); // 0 shhould be the offset for interlaved arrays
+        ++attributeBinding;
+    }
 
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // normal data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},     // tex coord data
-        VkVertexInputAttributeDescription{3, 3, VK_FORMAT_R32G32B32A32_SFLOAT, 0}     // colour data
-    };
+    if (auto& normalBinding = shaderSet->getAttributeBinding("vsg_Normal"))
+    {
+        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, normalBinding.data->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX}); // should use actual Array stride
+        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{normalBinding.location, attributeBinding, normalBinding.format, 0}); // 0 shhould be the offset for interlaved arrays
+        ++attributeBinding;
+    }
+
+    if (auto& texCoordBinding = shaderSet->getAttributeBinding("vsg_TexCoord0"))
+    {
+        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, texCoordBinding.data->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX}); // should use actual Array stride
+        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{texCoordBinding.location, attributeBinding, texCoordBinding.format, 0}); // 0 shhould be the offset for interlaved arrays
+        ++attributeBinding;
+    }
+
+    if (auto& colorBinding = shaderSet->getAttributeBinding("vsg_Color"))
+    {
+        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, colorBinding.data->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX}); // should use actual Array stride
+        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{colorBinding.location, attributeBinding, colorBinding.format, 0}); // 0 shhould be the offset for interlaved arrays
+        ++attributeBinding;
+    }
 
     vsg::GraphicsPipelineStates pipelineStates{
-        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
+        vsg::VertexInputState::create(vertexBindingDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
         vsg::ColorBlendState::create(),
+        vsg::MultisampleState::create(),
         vsg::DepthStencilState::create()};
 
 

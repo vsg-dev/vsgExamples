@@ -24,7 +24,7 @@ namespace vsg
         std::string name;
         std::string define;
         uint32_t location = 0;
-        VkFormat foramt = VK_FORMAT_UNDEFINED;
+        VkFormat format = VK_FORMAT_UNDEFINED;
         ref_ptr<Data> data;
 
         explicit operator bool() const noexcept { return !name.empty(); }
