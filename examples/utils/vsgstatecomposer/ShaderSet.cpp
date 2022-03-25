@@ -40,6 +40,11 @@ void ShaderSet::addUniformBinding(std::string name, std::string define, uint32_t
     uniformBindings.push_back(UniformBinding{name, define, set, binding, descriptorType, descriptorCount, stageFlags, data});
 }
 
+void ShaderSet::addPushConstantRange(std::string name, std::string define, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size)
+{
+    pushConstantRanges.push_back(vsg::PushConstantRange{name, define, VkPushConstantRange{stageFlags, offset, size}});
+}
+
 const AttributeBinding& ShaderSet::getAttributeBinding(const std::string& name) const
 {
     for(auto& binding : attributeBindings)

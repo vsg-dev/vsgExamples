@@ -44,6 +44,13 @@ namespace vsg
         explicit operator bool() const noexcept { return !name.empty(); }
     };
 
+    struct PushConstantRange
+    {
+        std::string name;
+        std::string define;
+        VkPushConstantRange range;
+    };
+
     class /*VSG_DECLSPEC*/ ShaderSet : public Inherit<Object, ShaderSet>
     {
     public:
@@ -56,12 +63,14 @@ namespace vsg
 
         std::vector<AttributeBinding> attributeBindings;
         std::vector<UniformBinding> uniformBindings;
+        std::vector<PushConstantRange> pushConstantRanges;
 
         /// varients of the rootShaderModule compiled for differen combinations of ShaderCompileSettings
         std::map<ref_ptr<ShaderCompileSettings>, ShaderStages, DerefenceLess> varients;
 
         void addAttributeBinding(std::string name, std::string define, uint32_t location, VkFormat format, ref_ptr<Data> data);
         void addUniformBinding(std::string name, std::string define, uint32_t set, uint32_t binding, VkDescriptorType descriptorType, uint32_t descriptorCount, VkShaderStageFlags stageFlags, ref_ptr<Data> data);
+        void addPushConstantRange(std::string name, std::string define, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size);
 
         const AttributeBinding& getAttributeBinding(const std::string& name) const;
         const UniformBinding& getUniformBinding(const std::string& name) const;
