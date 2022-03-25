@@ -19,6 +19,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsg
 {
 
+    struct AttributeBinding
+    {
+        std::string name;
+        std::string define;
+        uint32_t location = 0;
+        VkFormat foramt = VK_FORMAT_UNDEFINED;
+    };
+
+    struct UniformBinding
+    {
+        std::string name;
+        std::string define;
+        uint32_t set = 0;
+        uint32_t              binding = 0;
+        VkDescriptorType      descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        uint32_t              descriptorCount = 0;
+        VkShaderStageFlags    stageFlags = 0;
+    };
+
     class /*VSG_DECLSPEC*/ ShaderSet : public Inherit<Object, ShaderSet>
     {
     public:
@@ -28,6 +47,9 @@ namespace vsg
 
         /// base ShaderStages that other varients as based on.
         ShaderStages stages;
+
+        std::vector<AttributeBinding> attributeBindings;
+        std::vector<UniformBinding> uniformBindings;
 
         /// varients of the rootShaderModule compiled for differen combinations of ShaderCompileSettings
         std::map<ref_ptr<ShaderCompileSettings>, ShaderStages, DerefenceLess> varients;
