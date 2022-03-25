@@ -27,6 +27,8 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
+    auto textureFile = arguments.value<vsg::Path>("", "-t");
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // load shaders
@@ -56,34 +58,48 @@ int main(int argc, char** argv)
     shaderSet->addUniformBinding("lightData", "VSG_VIEW_LIGHT_DATA", 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
 
 
-    // read texture image
-    vsg::Path textureFile("textures/lz.vsgb");
-    auto textureData = vsg::read_cast<vsg::Data>(textureFile, options);
-    if (!textureData)
-    {
-        std::cout << "Could not read texture file : " << textureFile << std::endl;
-        return 1;
-    }
-
-
     // set up shader hints
     auto shaderHints = vsg::ShaderCompileSettings::create();
     auto& defines = shaderHints->defines;
 
+    //defines.push_back("VSG_VIEW_LIGHT_DATA");
+
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings;
+    vsg::Descriptors descriptors;
 
-    // enable texturing
+    // read texture image
+    if (!textureFile.empty())
     {
-        descriptorBindings.push_back(VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
-        defines.push_back("VSG_DIFFUSE_MAP");
+        auto textureData = vsg::read_cast<vsg::Data>(textureFile, options);
+        if (!textureData)
+        {
+            std::cout << "Could not read texture file : " << textureFile << std::endl;
+            return 1;
+        }
+
+        // enable texturing
+        {
+            descriptorBindings.push_back(VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+            defines.push_back("VSG_DIFFUSE_MAP");
+
+            // create texture image and associated DescriptorSets and binding
+            auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            descriptors.push_back(texture);
+        }
     }
 
     // set up pass of material
     {
         descriptorBindings.push_back(VkDescriptorSetLayoutBinding{10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
-    }
 
+        // create texture image and associated DescriptorSets and binding
+        auto mat = vsg::PhongMaterialValue::create();
+        mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f);
+
+        auto material = vsg::DescriptorBuffer::create(mat, 10);
+        descriptors.push_back(material);
+    }
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
@@ -119,16 +135,7 @@ int main(int argc, char** argv)
 
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
-    // create texture image and associated DescriptorSets and binding
-    auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-    // create texture image and associated DescriptorSets and binding
-    auto mat = vsg::PhongMaterialValue::create();
-    mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f);
-
-    auto material = vsg::DescriptorBuffer::create(mat, 10);
-
-    vsg::Descriptors descriptors{texture, material};
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
