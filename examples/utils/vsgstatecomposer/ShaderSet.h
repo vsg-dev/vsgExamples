@@ -26,6 +26,8 @@ namespace vsg
         uint32_t location = 0;
         VkFormat foramt = VK_FORMAT_UNDEFINED;
         ref_ptr<Data> data;
+
+        explicit operator bool() const noexcept { return !name.empty(); }
     };
 
     struct UniformBinding
@@ -38,6 +40,8 @@ namespace vsg
         uint32_t descriptorCount = 0;
         VkShaderStageFlags stageFlags = 0;
         ref_ptr<Data> data;
+
+        explicit operator bool() const noexcept { return !name.empty(); }
     };
 
     class /*VSG_DECLSPEC*/ ShaderSet : public Inherit<Object, ShaderSet>
@@ -66,6 +70,24 @@ namespace vsg
             uniformBindings.push_back(UniformBinding{name, define, set, binding, descriptorType, descriptorCount, stageFlags, data});
         }
 
+        const AttributeBinding& getAttributeBinding(const std::string& name) const
+        {
+            for(auto& binding : attributeBindings)
+            {
+                if (binding.name == name) return binding;
+            }
+            return _nullAttributeBinding;
+        }
+
+        const UniformBinding& getUniformBinding(const std::string& name) const
+        {
+            for(auto& binding : uniformBindings)
+            {
+                if (binding.name == name) return binding;
+            }
+            return _nullUniformBinding;
+        }
+
         /// get the ShaderStages varient that uses specified ShaderCompileSettings.
         ShaderStages getShaderStages(ref_ptr<ShaderCompileSettings> scs = {});
 
@@ -74,5 +96,8 @@ namespace vsg
 
     protected:
         virtual ~ShaderSet();
+
+        const AttributeBinding _nullAttributeBinding;
+        const UniformBinding _nullUniformBinding;
     };
 }

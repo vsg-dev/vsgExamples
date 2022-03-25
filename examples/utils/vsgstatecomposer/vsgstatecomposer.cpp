@@ -79,26 +79,35 @@ int main(int argc, char** argv)
         }
 
         // enable texturing
+        if (auto& textureBinding = shaderSet->getUniformBinding("diffuseMap"))
         {
-            descriptorBindings.push_back(VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
-            defines.push_back("VSG_DIFFUSE_MAP");
+            descriptorBindings.push_back(VkDescriptorSetLayoutBinding{textureBinding.binding, textureBinding.descriptorType, textureBinding.descriptorCount, textureBinding.stageFlags, nullptr});
+            if (!textureBinding.define.empty()) defines.push_back(textureBinding.define);
 
             // create texture image and associated DescriptorSets and binding
-            auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+            auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, textureBinding.binding, 0, textureBinding.descriptorType);
             descriptors.push_back(texture);
         }
     }
 
     // set up pass of material
+    if (auto& materialBinding = shaderSet->getUniformBinding("material"))
     {
-        descriptorBindings.push_back(VkDescriptorSetLayoutBinding{10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+        descriptorBindings.push_back(VkDescriptorSetLayoutBinding{materialBinding.binding, materialBinding.descriptorType, materialBinding.descriptorCount, materialBinding.stageFlags, nullptr});
+        if (!materialBinding.define.empty()) defines.push_back(materialBinding.define);
 
+#if 0
+        auto material = vsg::DescriptorBuffer::create(materialBinding.data, materialBinding.binding);
+        descriptors.push_back(material);
+#else
         // create texture image and associated DescriptorSets and binding
         auto mat = vsg::PhongMaterialValue::create();
+        mat->value().diffuse.set(1.0f, 1.0f, 0.0f, 1.0f);
         mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f);
 
-        auto material = vsg::DescriptorBuffer::create(mat, 10);
+        auto material = vsg::DescriptorBuffer::create(mat, materialBinding.binding);
         descriptors.push_back(material);
+#endif
     }
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
