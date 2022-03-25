@@ -30,6 +30,35 @@ ShaderSet::~ShaderSet()
 {
 }
 
+void ShaderSet::addAttributeBinding(std::string name, std::string define, uint32_t location, VkFormat format, ref_ptr<Data> data)
+{
+    attributeBindings.push_back(AttributeBinding{name, define, location, format, data});
+}
+
+void ShaderSet::addUniformBinding(std::string name, std::string define, uint32_t set, uint32_t binding, VkDescriptorType descriptorType, uint32_t descriptorCount, VkShaderStageFlags stageFlags, ref_ptr<Data> data)
+{
+    uniformBindings.push_back(UniformBinding{name, define, set, binding, descriptorType, descriptorCount, stageFlags, data});
+}
+
+const AttributeBinding& ShaderSet::getAttributeBinding(const std::string& name) const
+{
+    for(auto& binding : attributeBindings)
+    {
+        if (binding.name == name) return binding;
+    }
+    return _nullAttributeBinding;
+}
+
+const UniformBinding& ShaderSet::getUniformBinding(const std::string& name) const
+{
+    for(auto& binding : uniformBindings)
+    {
+        if (binding.name == name) return binding;
+    }
+    return _nullUniformBinding;
+}
+
+
 ShaderStages ShaderSet::getShaderStages(ref_ptr<ShaderCompileSettings> scs)
 {
     if (auto itr = varients.find(scs); itr != varients.end())

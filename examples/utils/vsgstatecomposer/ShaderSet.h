@@ -60,33 +60,11 @@ namespace vsg
         /// varients of the rootShaderModule compiled for differen combinations of ShaderCompileSettings
         std::map<ref_ptr<ShaderCompileSettings>, ShaderStages, DerefenceLess> varients;
 
-        void addAttributeBinding(std::string name, std::string define, uint32_t location, VkFormat format, ref_ptr<Data> data)
-        {
-            attributeBindings.push_back(AttributeBinding{name, define, location, format, data});
-        }
+        void addAttributeBinding(std::string name, std::string define, uint32_t location, VkFormat format, ref_ptr<Data> data);
+        void addUniformBinding(std::string name, std::string define, uint32_t set, uint32_t binding, VkDescriptorType descriptorType, uint32_t descriptorCount, VkShaderStageFlags stageFlags, ref_ptr<Data> data);
 
-        void addUniformBinding(std::string name, std::string define, uint32_t set, uint32_t binding, VkDescriptorType descriptorType, uint32_t descriptorCount, VkShaderStageFlags stageFlags, ref_ptr<Data> data)
-        {
-            uniformBindings.push_back(UniformBinding{name, define, set, binding, descriptorType, descriptorCount, stageFlags, data});
-        }
-
-        const AttributeBinding& getAttributeBinding(const std::string& name) const
-        {
-            for(auto& binding : attributeBindings)
-            {
-                if (binding.name == name) return binding;
-            }
-            return _nullAttributeBinding;
-        }
-
-        const UniformBinding& getUniformBinding(const std::string& name) const
-        {
-            for(auto& binding : uniformBindings)
-            {
-                if (binding.name == name) return binding;
-            }
-            return _nullUniformBinding;
-        }
+        const AttributeBinding& getAttributeBinding(const std::string& name) const;
+        const UniformBinding& getUniformBinding(const std::string& name) const;
 
         /// get the ShaderStages varient that uses specified ShaderCompileSettings.
         ShaderStages getShaderStages(ref_ptr<ShaderCompileSettings> scs = {});
