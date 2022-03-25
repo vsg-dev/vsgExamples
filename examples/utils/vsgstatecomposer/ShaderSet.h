@@ -58,15 +58,15 @@ namespace vsg
         ShaderSet();
         ShaderSet(const ShaderStages& in_stages);
 
-        /// base ShaderStages that other varients as based on.
+        /// base ShaderStages that other variants as based on.
         ShaderStages stages;
 
         std::vector<AttributeBinding> attributeBindings;
         std::vector<UniformBinding> uniformBindings;
         std::vector<PushConstantRange> pushConstantRanges;
 
-        /// varients of the rootShaderModule compiled for differen combinations of ShaderCompileSettings
-        std::map<ref_ptr<ShaderCompileSettings>, ShaderStages, DerefenceLess> varients;
+        /// variants of the rootShaderModule compiled for differen combinations of ShaderCompileSettings
+        std::map<ref_ptr<ShaderCompileSettings>, ShaderStages, DerefenceLess> variants;
 
         void addAttributeBinding(std::string name, std::string define, uint32_t location, VkFormat format, ref_ptr<Data> data);
         void addUniformBinding(std::string name, std::string define, uint32_t set, uint32_t binding, VkDescriptorType descriptorType, uint32_t descriptorCount, VkShaderStageFlags stageFlags, ref_ptr<Data> data);
@@ -87,4 +87,5 @@ namespace vsg
         const AttributeBinding _nullAttributeBinding;
         const UniformBinding _nullUniformBinding;
     };
+    VSG_type_name(vsg::ShaderSet);
 }

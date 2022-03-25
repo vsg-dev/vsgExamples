@@ -7,6 +7,8 @@
 
 #include "ShaderSet.h"
 
+static vsg::RegisterWithObjectFactoryProxy<vsg::ShaderSet> s_Register_ShaderSet;
+
 vsg::ref_ptr<vsg::ShaderSet> createPhongShaderSet(vsg::ref_ptr<vsg::Options> options)
 {
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp.vert", options);
@@ -60,15 +62,28 @@ int main(int argc, char** argv)
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
     auto textureFile = arguments.value<vsg::Path>("", "-t");
+    auto shaderSetFile = arguments.value<vsg::Path>("", "-s");
+    auto outputFile = arguments.value<vsg::Path>("", "-o");
+    auto outputShaderSetFile = arguments.value<vsg::Path>("", "--os");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    auto shaderSet = createPhongShaderSet(options);
+    vsg::ref_ptr<vsg::ShaderSet> shaderSet;
+    if (!shaderSetFile.empty())
+    {
+        shaderSet = vsg::read_cast<vsg::ShaderSet>(shaderSetFile, options);
+        std::cout<<"Read ShaderSet file "<<shaderSet<<std::endl;
+    }
+
+    // no ShaderSet loaded so fallback to create function.
+    if (!shaderSet) shaderSet = createPhongShaderSet(options);
+
     if (!shaderSet)
     {
         std::cout << "Could not create shaders." << std::endl;
         return 1;
     }
+
 
     // set up shader hints
     auto shaderHints = vsg::ShaderCompileSettings::create();
@@ -253,6 +268,7 @@ int main(int argc, char** argv)
     // add drawCommands to transform
     transform->addChild(drawCommands);
 
+
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -276,6 +292,18 @@ int main(int argc, char** argv)
 
     // compile the Vulkan objects
     viewer->compile();
+
+    if (!outputShaderSetFile.empty())
+    {
+        vsg::write(shaderSet, outputShaderSetFile, options);
+        return 0;
+    }
+
+    if (!outputFile.empty())
+    {
+        vsg::write(scenegraph, outputFile, options);
+        return 0;
+    }
 
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});

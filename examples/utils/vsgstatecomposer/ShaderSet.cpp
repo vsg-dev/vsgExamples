@@ -13,8 +13,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "ShaderSet.h"
 
 #include <vsg/io/Options.h>
-#include <vsg/io/read.h>
-#include <vsg/io/write.h>
+#include <vsg/io/Input.h>
+#include <vsg/io/Output.h>
 
 using namespace vsg;
 
@@ -66,12 +66,12 @@ const UniformBinding& ShaderSet::getUniformBinding(const std::string& name) cons
 
 ShaderStages ShaderSet::getShaderStages(ref_ptr<ShaderCompileSettings> scs)
 {
-    if (auto itr = varients.find(scs); itr != varients.end())
+    if (auto itr = variants.find(scs); itr != variants.end())
     {
         return itr->second;
     }
 
-    auto& new_stages = varients[scs];
+    auto& new_stages = variants[scs];
     for(auto& stage : stages)
     {
         if (vsg::compare_pointer(stage->module->hints, scs) == 0)
@@ -95,8 +95,45 @@ ShaderStages ShaderSet::getShaderStages(ref_ptr<ShaderCompileSettings> scs)
 
 void ShaderSet::read(Input& input)
 {
+    Object::read(input);
+
+    input.readObjects("stages", stages);
+
+    auto num_attributeBindings = input.readValue<uint32_t>("attributeBindings");
+    auto num_uniformBindings = input.readValue<uint32_t>("uniformBindings");
+    auto num_pushConstantRanges = input.readValue<uint32_t>("pushConstantRanges");
+    auto num_variants = input.readValue<uint32_t>("variants");
+
+    variants.clear();
+    for (uint32_t i = 0; i < num_variants; ++i)
+    {
+        auto hints = input.readObject<ShaderCompileSettings>("hints");
+        input.readObjects("stages", variants[hints]);
+    }
+
+#if 0
+    std::vector<AttributeBinding> attributeBindings;
+    std::vector<UniformBinding> uniformBindings;
+    std::vector<PushConstantRange> pushConstantRanges;
+
+    /// variants of the rootShaderModule compiled for differen combinations of ShaderCompileSettings
+    std::map<ref_ptr<ShaderCompileSettings>, ShaderStages, DerefenceLess> variants;
+#endif
 }
 
 void ShaderSet::write(Output& output) const
 {
+    Object::write(output);
+
+    output.writeObjects("stages", stages);
+
+    output.writeValue<uint32_t>("attributeBindings", attributeBindings.size());
+    output.writeValue<uint32_t>("uniformBindings", uniformBindings.size());
+    output.writeValue<uint32_t>("pushConstantRanges", pushConstantRanges.size());
+    output.writeValue<uint32_t>("variants", variants.size());
+    for(auto& [hints, variant_stages] : variants)
+    {
+        output.writeObject("hints", hints);
+        output.writeObjects("stages", variant_stages);
+    }
 }
