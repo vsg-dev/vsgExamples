@@ -25,6 +25,7 @@ namespace vsg
         std::string define;
         uint32_t location = 0;
         VkFormat foramt = VK_FORMAT_UNDEFINED;
+        ref_ptr<Data> data;
     };
 
     struct UniformBinding
@@ -32,10 +33,11 @@ namespace vsg
         std::string name;
         std::string define;
         uint32_t set = 0;
-        uint32_t              binding = 0;
-        VkDescriptorType      descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        uint32_t              descriptorCount = 0;
-        VkShaderStageFlags    stageFlags = 0;
+        uint32_t binding = 0;
+        VkDescriptorType descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        uint32_t descriptorCount = 0;
+        VkShaderStageFlags stageFlags = 0;
+        ref_ptr<Data> data;
     };
 
     class /*VSG_DECLSPEC*/ ShaderSet : public Inherit<Object, ShaderSet>
@@ -53,6 +55,16 @@ namespace vsg
 
         /// varients of the rootShaderModule compiled for differen combinations of ShaderCompileSettings
         std::map<ref_ptr<ShaderCompileSettings>, ShaderStages, DerefenceLess> varients;
+
+        void addAttributeBinding(std::string name, std::string define, uint32_t location, VkFormat format, ref_ptr<Data> data)
+        {
+            attributeBindings.push_back(AttributeBinding{name, define, location, format, data});
+        }
+
+        void addUniformBinding(std::string name, std::string define, uint32_t set, uint32_t binding, VkDescriptorType descriptorType, uint32_t descriptorCount, VkShaderStageFlags stageFlags, ref_ptr<Data> data)
+        {
+            uniformBindings.push_back(UniformBinding{name, define, set, binding, descriptorType, descriptorCount, stageFlags, data});
+        }
 
         /// get the ShaderStages varient that uses specified ShaderCompileSettings.
         ShaderStages getShaderStages(ref_ptr<ShaderCompileSettings> scs = {});
