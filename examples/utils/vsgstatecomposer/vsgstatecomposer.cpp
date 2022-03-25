@@ -113,40 +113,101 @@ int main(int argc, char** argv)
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
-    };
+    // set up vertex and index arrays
+    auto vertices = vsg::vec3Array::create(
+        {{-0.5f, -0.5f, 0.0f},
+         {0.5f, -0.5f, 0.0f},
+         {0.5f, 0.5f, 0.0f},
+         {-0.5f, 0.5f, 0.0f},
+         {-0.5f, -0.5f, -0.5f},
+         {0.5f, -0.5f, -0.5f},
+         {0.5f, 0.5f, -0.5f},
+         {-0.5f, 0.5f, -0.5f}});
+
+    auto normals = vsg::vec3Array::create(
+        {{0.0f, 0.0f, 1.0f},
+         {0.0f, 0.0f, 1.0f},
+         {0.0f, 0.0f, 1.0f},
+         {0.0f, 0.0f, 1.0f},
+         {0.0f, 0.0f, 1.0f},
+         {0.0f, 0.0f, 1.0f},
+         {0.0f, 0.0f, 1.0f},
+         {0.0f, 0.0f, 1.0f}});
+
+    auto texcoords = vsg::vec2Array::create(
+        {{0.0f, 0.0f},
+         {1.0f, 0.0f},
+         {1.0f, 1.0f},
+         {0.0f, 1.0f},
+         {0.0f, 0.0f},
+         {1.0f, 0.0f},
+         {1.0f, 1.0f},
+         {0.0f, 1.0f}});
+
+    auto colors = vsg::vec4Array::create(
+        {{1.0f, 1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f, 1.0f},
+        });
+
+    auto indices = vsg::ushortArray::create(
+        {0, 1, 2,
+         2, 3, 0,
+         4, 5, 6,
+         6, 7, 4});
 
     vsg::VertexInputState::Bindings vertexBindingDescriptions;
     vsg::VertexInputState::Attributes vertexAttributeDescriptions;
-    uint32_t attributeBinding = 0;
+    uint32_t baseAttributeBinding = 0;
+    uint32_t attributeBinding = baseAttributeBinding;
+    vsg::DataList vertexArrays;
     if (auto& vertexBinding = shaderSet->getAttributeBinding("vsg_Vertex"))
     {
-        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, vertexBinding.data->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX}); // should use actual Array stride
-        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{vertexBinding.location, attributeBinding, vertexBinding.format, 0}); // 0 shhould be the offset for interlaved arrays
+        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, vertices->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX});
+        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{vertexBinding.location, attributeBinding, vertexBinding.format, 0});
+        vertexArrays.push_back(vertices);
         ++attributeBinding;
     }
 
     if (auto& normalBinding = shaderSet->getAttributeBinding("vsg_Normal"))
     {
-        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, normalBinding.data->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX}); // should use actual Array stride
-        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{normalBinding.location, attributeBinding, normalBinding.format, 0}); // 0 shhould be the offset for interlaved arrays
+        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, normals->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX});
+        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{normalBinding.location, attributeBinding, normalBinding.format, 0});
+        vertexArrays.push_back(normals);
         ++attributeBinding;
     }
 
     if (auto& texCoordBinding = shaderSet->getAttributeBinding("vsg_TexCoord0"))
     {
-        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, texCoordBinding.data->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX}); // should use actual Array stride
-        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{texCoordBinding.location, attributeBinding, texCoordBinding.format, 0}); // 0 shhould be the offset for interlaved arrays
+        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, texcoords->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX});
+        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{texCoordBinding.location, attributeBinding, texCoordBinding.format, 0});
+        vertexArrays.push_back(texcoords);
         ++attributeBinding;
     }
 
     if (auto& colorBinding = shaderSet->getAttributeBinding("vsg_Color"))
     {
-        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, colorBinding.data->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX}); // should use actual Array stride
-        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{colorBinding.location, attributeBinding, colorBinding.format, 0}); // 0 shhould be the offset for interlaved arrays
+        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, colors->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX});
+        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{colorBinding.location, attributeBinding, colorBinding.format, 0});
+        vertexArrays.push_back(colors);
         ++attributeBinding;
     }
+
+    // setup geometry
+    auto drawCommands = vsg::Commands::create();
+    drawCommands->addChild(vsg::BindVertexBuffers::create(baseAttributeBinding, vertexArrays));
+    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
+
+
+    vsg::PushConstantRanges pushConstantRanges{
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+    };
 
     vsg::GraphicsPipelineStates pipelineStates{
         vsg::VertexInputState::create(vertexBindingDescriptions, vertexAttributeDescriptions),
@@ -155,7 +216,6 @@ int main(int argc, char** argv)
         vsg::ColorBlendState::create(),
         vsg::MultisampleState::create(),
         vsg::DepthStencilState::create()};
-
 
     auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
 
@@ -179,59 +239,6 @@ int main(int argc, char** argv)
     // add transform to root of the scene graph
     scenegraph->addChild(transform);
 
-    // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create(
-        {{-0.5f, -0.5f, 0.0f},
-         {0.5f, -0.5f, 0.0f},
-         {0.5f, 0.5f, 0.0f},
-         {-0.5f, 0.5f, 0.0f},
-         {-0.5f, -0.5f, -0.5f},
-         {0.5f, -0.5f, -0.5f},
-         {0.5f, 0.5f, -0.5f},
-         {-0.5f, 0.5f, -0.5f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto normals = vsg::vec3Array::create(
-        {{0.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f},
-         {0.0f, 0.0f, 1.0f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto texcoords = vsg::vec2Array::create(
-        {{0.0f, 0.0f},
-         {1.0f, 0.0f},
-         {1.0f, 1.0f},
-         {0.0f, 1.0f},
-         {0.0f, 0.0f},
-         {1.0f, 0.0f},
-         {1.0f, 1.0f},
-         {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto colors = vsg::vec4Array::create(
-        {{1.0f, 1.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-         {1.0f, 1.0f, 1.0f, 1.0f},
-        }); // VK_FORMAT_R32G32B32A32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto indices = vsg::ushortArray::create(
-        {0, 1, 2,
-         2, 3, 0,
-         4, 5, 6,
-         6, 7, 4}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    // setup geometry
-    auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, normals, texcoords, colors}));
-    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
 
     // add drawCommands to transform
     transform->addChild(drawCommands);
