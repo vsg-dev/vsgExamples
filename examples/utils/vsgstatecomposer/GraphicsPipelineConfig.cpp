@@ -15,18 +15,20 @@ GraphicsPipelineConfig::GraphicsPipelineConfig(ref_ptr<ShaderSet> in_shaderSet) 
     shaderHints = vsg::ShaderCompileSettings::create();
 }
 
-const AttributeBinding& GraphicsPipelineConfig::getAttributeBinding(const std::string& name, ref_ptr<Data> array, VkVertexInputRate vertexInputRate)
+bool GraphicsPipelineConfig::assignArray(DataList& arrays, const std::string& name, VkVertexInputRate vertexInputRate, ref_ptr<Data> array)
 {
     auto& attributeBinding = shaderSet->getAttributeBinding(name);
     if (attributeBinding)
     {
         if (!attributeBinding.define.empty()) shaderHints->defines.push_back(attributeBinding.define);
 
-        vertexInputState->vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{attributeBinding.location, attributeBindingIndex, attributeBinding.format, 0});
-        vertexInputState->vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBindingIndex, array->getLayout().stride, vertexInputRate});
-        ++attributeBindingIndex;
+        uint32_t bindingIndex = baseAttributeBinding + static_cast<uint32_t>(arrays.size());
+        vertexInputState->vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{attributeBinding.location, bindingIndex, attributeBinding.format, 0});
+        vertexInputState->vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{bindingIndex, array->getLayout().stride, vertexInputRate});
+        arrays.push_back(array);
+        return true;
     }
-    return attributeBinding;
+    return false;
 }
 
 const UniformBinding& GraphicsPipelineConfig::getUniformBinding(const std::string& name)

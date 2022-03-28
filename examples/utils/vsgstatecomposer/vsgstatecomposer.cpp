@@ -175,35 +175,19 @@ int main(int argc, char** argv)
          4, 5, 6,
          6, 7, 4});
 
-    uint32_t baseAttributeBinding = graphicsPipelineConfig->attributeBindingIndex;
     vsg::DataList vertexArrays;
-    if (/*auto& vertexBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_Vertex", vertices, VK_VERTEX_INPUT_RATE_VERTEX))
-    {
-        vertexArrays.push_back(vertices);
-    }
-
-    if (/*auto& normalBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_Normal", normals, VK_VERTEX_INPUT_RATE_VERTEX))
-    {
-        vertexArrays.push_back(normals);
-    }
-
-    if (/*auto& texCoordBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_TexCoord0", texcoords, VK_VERTEX_INPUT_RATE_VERTEX))
-    {
-        vertexArrays.push_back(texcoords);
-    }
-
-    if (/*auto& colorBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_Color", colors, VK_VERTEX_INPUT_RATE_VERTEX))
-    {
-        vertexArrays.push_back(colors);
-    }
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, vertices);
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_TexCoord0", VK_VERTEX_INPUT_RATE_VERTEX, texcoords);
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colors);
 
     // setup geometry
     auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(baseAttributeBinding, vertexArrays));
+    drawCommands->addChild(vsg::BindVertexBuffers::create(graphicsPipelineConfig->baseAttributeBinding, vertexArrays));
     drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
     drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
 
-    // set up the DescruiptiorSetLayout, PipelineLayout and GraphicsPipeline
+    // set up the DescriptorSetLayout, PipelineLayout and GraphicsPipeline
     graphicsPipelineConfig->init();
 
     auto descriptorSet = vsg::DescriptorSet::create(graphicsPipelineConfig->descriptorSetLayout, descriptors);

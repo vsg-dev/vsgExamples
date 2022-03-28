@@ -27,13 +27,14 @@ namespace vsg
             ref_ptr<MultisampleState> multisampleState;
             ref_ptr<DepthStencilState> depthStencilState;
             uint32_t subpass = 0;
-            uint32_t attributeBindingIndex = 0;
+            uint32_t baseAttributeBinding = 0;
 
             ref_ptr<ShaderCompileSettings> shaderHints;
             vsg::DescriptorSetLayoutBindings descriptorBindings;
             ref_ptr<ShaderSet> shaderSet;
 
-            const AttributeBinding& getAttributeBinding(const std::string& name, ref_ptr<Data> array, VkVertexInputRate vertexInputRate);
+            bool assignArray(DataList& arrays, const std::string& name, VkVertexInputRate vertexInputRate, ref_ptr<Data> array);
+
             const UniformBinding& getUniformBinding(const std::string& name);
 
             // setup GraphicsPipeline
