@@ -5,11 +5,6 @@
 #    include <vsgXchange/all.h>
 #endif
 
-#include "ShaderSet.h"
-#include "GraphicsPipelineConfig.h"
-
-static vsg::RegisterWithObjectFactoryProxy<vsg::ShaderSet> s_Register_ShaderSet;
-
 vsg::ref_ptr<vsg::ShaderSet> createPhongShaderSet(vsg::ref_ptr<vsg::Options> options)
 {
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp.vert", options);
