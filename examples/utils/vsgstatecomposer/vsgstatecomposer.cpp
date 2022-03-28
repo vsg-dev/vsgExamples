@@ -6,6 +6,7 @@
 #endif
 
 #include "ShaderSet.h"
+#include "GraphicsPipelineConfig.h"
 
 static vsg::RegisterWithObjectFactoryProxy<vsg::ShaderSet> s_Register_ShaderSet;
 
@@ -84,15 +85,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
-
-    // set up shader hints
-    auto shaderHints = vsg::ShaderCompileSettings::create();
-    auto& defines = shaderHints->defines;
-
-    //defines.push_back("VSG_VIEW_LIGHT_DATA");
+    auto graphicsPipelineConfig = vsg::GraphicsPipelineConfig::create(shaderSet);
 
     // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings;
     vsg::Descriptors descriptors;
 
     // read texture image
@@ -106,11 +101,8 @@ int main(int argc, char** argv)
         }
 
         // enable texturing
-        if (auto& textureBinding = shaderSet->getUniformBinding("diffuseMap"))
+        if (auto& textureBinding = graphicsPipelineConfig->getUniformBinding("diffuseMap"))
         {
-            descriptorBindings.push_back(VkDescriptorSetLayoutBinding{textureBinding.binding, textureBinding.descriptorType, textureBinding.descriptorCount, textureBinding.stageFlags, nullptr});
-            if (!textureBinding.define.empty()) defines.push_back(textureBinding.define);
-
             // create texture image and associated DescriptorSets and binding
             auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, textureBinding.binding, 0, textureBinding.descriptorType);
             descriptors.push_back(texture);
@@ -118,11 +110,8 @@ int main(int argc, char** argv)
     }
 
     // set up pass of material
-    if (auto& materialBinding = shaderSet->getUniformBinding("material"))
+    if (auto& materialBinding = graphicsPipelineConfig->getUniformBinding("material"))
     {
-        descriptorBindings.push_back(VkDescriptorSetLayoutBinding{materialBinding.binding, materialBinding.descriptorType, materialBinding.descriptorCount, materialBinding.stageFlags, nullptr});
-        if (!materialBinding.define.empty()) defines.push_back(materialBinding.define);
-
 #if 0
         // use the default maerialBinding.data
         auto material = vsg::DescriptorBuffer::create(materialBinding.data, materialBinding.binding);
@@ -137,8 +126,6 @@ int main(int argc, char** argv)
         descriptors.push_back(material);
 #endif
     }
-
-    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(
@@ -190,39 +177,26 @@ int main(int argc, char** argv)
 
     vsg::VertexInputState::Bindings vertexBindingDescriptions;
     vsg::VertexInputState::Attributes vertexAttributeDescriptions;
-    uint32_t baseAttributeBinding = 0;
-    uint32_t attributeBinding = baseAttributeBinding;
+    uint32_t baseAttributeBinding = graphicsPipelineConfig->attributeBindingIndex;
     vsg::DataList vertexArrays;
-    if (auto& vertexBinding = shaderSet->getAttributeBinding("vsg_Vertex"))
+    if (/*auto& vertexBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_Vertex", vertices, VK_VERTEX_INPUT_RATE_VERTEX))
     {
-        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, vertices->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX});
-        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{vertexBinding.location, attributeBinding, vertexBinding.format, 0});
         vertexArrays.push_back(vertices);
-        ++attributeBinding;
     }
 
-    if (auto& normalBinding = shaderSet->getAttributeBinding("vsg_Normal"))
+    if (/*auto& normalBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_Normal", normals, VK_VERTEX_INPUT_RATE_VERTEX))
     {
-        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, normals->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX});
-        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{normalBinding.location, attributeBinding, normalBinding.format, 0});
         vertexArrays.push_back(normals);
-        ++attributeBinding;
     }
 
-    if (auto& texCoordBinding = shaderSet->getAttributeBinding("vsg_TexCoord0"))
+    if (/*auto& texCoordBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_TexCoord0", texcoords, VK_VERTEX_INPUT_RATE_VERTEX))
     {
-        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, texcoords->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX});
-        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{texCoordBinding.location, attributeBinding, texCoordBinding.format, 0});
         vertexArrays.push_back(texcoords);
-        ++attributeBinding;
     }
 
-    if (auto& colorBinding = shaderSet->getAttributeBinding("vsg_Color"))
+    if (/*auto& colorBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_Color", colors, VK_VERTEX_INPUT_RATE_VERTEX))
     {
-        vertexBindingDescriptions.push_back(VkVertexInputBindingDescription{attributeBinding, colors->getLayout().stride, VK_VERTEX_INPUT_RATE_VERTEX});
-        vertexAttributeDescriptions.push_back(VkVertexInputAttributeDescription{colorBinding.location, attributeBinding, colorBinding.format, 0});
         vertexArrays.push_back(colors);
-        ++attributeBinding;
     }
 
     // setup geometry
@@ -231,27 +205,12 @@ int main(int argc, char** argv)
     drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
     drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
 
-    // setup graphics pipeline
-    vsg::PushConstantRanges pushConstantRanges;
-    for(auto& pcb : shaderSet->pushConstantRanges)
-    {
-        if (pcb.define.empty()) pushConstantRanges.push_back(pcb.range);
-    }
+    graphicsPipelineConfig->init();
 
-    vsg::GraphicsPipelineStates pipelineStates{
-        vsg::VertexInputState::create(vertexBindingDescriptions, vertexAttributeDescriptions),
-        vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
-        vsg::ColorBlendState::create(),
-        vsg::MultisampleState::create(),
-        vsg::DepthStencilState::create()};
+    auto bindGraphicsPipeline = graphicsPipelineConfig->bindGraphicsPipeline;
 
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
-    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, shaderSet->getShaderStages(shaderHints), pipelineStates);
-    auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
-
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
-    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
+    auto descriptorSet = vsg::DescriptorSet::create(graphicsPipelineConfig->descriptorSetLayout, descriptors);
+    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineConfig->layout, 0, descriptorSet);
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
@@ -259,7 +218,7 @@ int main(int argc, char** argv)
     scenegraph->add(bindDescriptorSet);
 
     // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
+    auto transform = vsg::MatrixTransform::create();
 
     // add transform to root of the scene graph
     scenegraph->addChild(transform);
