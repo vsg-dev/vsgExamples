@@ -175,8 +175,6 @@ int main(int argc, char** argv)
          4, 5, 6,
          6, 7, 4});
 
-    vsg::VertexInputState::Bindings vertexBindingDescriptions;
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions;
     uint32_t baseAttributeBinding = graphicsPipelineConfig->attributeBindingIndex;
     vsg::DataList vertexArrays;
     if (/*auto& vertexBinding = */graphicsPipelineConfig->getAttributeBinding("vsg_Vertex", vertices, VK_VERTEX_INPUT_RATE_VERTEX))
@@ -205,16 +203,15 @@ int main(int argc, char** argv)
     drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
     drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
 
+    // set up the DescruiptiorSetLayout, PipelineLayout and GraphicsPipeline
     graphicsPipelineConfig->init();
-
-    auto bindGraphicsPipeline = graphicsPipelineConfig->bindGraphicsPipeline;
 
     auto descriptorSet = vsg::DescriptorSet::create(graphicsPipelineConfig->descriptorSetLayout, descriptors);
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineConfig->layout, 0, descriptorSet);
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(bindGraphicsPipeline);
+    scenegraph->add(graphicsPipelineConfig->bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSet);
 
     // set up model transformation node
