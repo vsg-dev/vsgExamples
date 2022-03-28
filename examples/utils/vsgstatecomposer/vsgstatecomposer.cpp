@@ -101,31 +101,15 @@ int main(int argc, char** argv)
         }
 
         // enable texturing
-        if (auto& textureBinding = graphicsPipelineConfig->getUniformBinding("diffuseMap"))
-        {
-            // create texture image and associated DescriptorSets and binding
-            auto texture = vsg::DescriptorImage::create(vsg::Sampler::create(), textureData, textureBinding.binding, 0, textureBinding.descriptorType);
-            descriptors.push_back(texture);
-        }
+        graphicsPipelineConfig->assignTexture(descriptors, "diffuseMap", textureData);
     }
 
     // set up pass of material
-    if (auto& materialBinding = graphicsPipelineConfig->getUniformBinding("material"))
-    {
-#if 0
-        // use the default maerialBinding.data
-        auto material = vsg::DescriptorBuffer::create(materialBinding.data, materialBinding.binding);
-        descriptors.push_back(material);
-#else
-        // create texture image and associated DescriptorSets and binding
-        auto mat = vsg::PhongMaterialValue::create();
-        mat->value().diffuse.set(1.0f, 1.0f, 0.0f, 1.0f);
-        mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f);
+    auto mat = vsg::PhongMaterialValue::create();
+    mat->value().diffuse.set(1.0f, 1.0f, 0.0f, 1.0f);
+    mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f);
 
-        auto material = vsg::DescriptorBuffer::create(mat, materialBinding.binding);
-        descriptors.push_back(material);
-#endif
-    }
+    graphicsPipelineConfig->assignUniform(descriptors, "material", mat);
 
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create(

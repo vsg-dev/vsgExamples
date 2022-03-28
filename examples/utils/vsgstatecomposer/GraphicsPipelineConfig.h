@@ -7,6 +7,8 @@
 #include <vsg/state/DepthStencilState.h>
 #include <vsg/state/RasterizationState.h>
 #include <vsg/state/DescriptorSetLayout.h>
+#include <vsg/state/DescriptorImage.h>
+#include <vsg/state/DescriptorBuffer.h>
 
 #include "ShaderSet.h"
 
@@ -34,8 +36,8 @@ namespace vsg
             ref_ptr<ShaderSet> shaderSet;
 
             bool assignArray(DataList& arrays, const std::string& name, VkVertexInputRate vertexInputRate, ref_ptr<Data> array);
-
-            const UniformBinding& getUniformBinding(const std::string& name);
+            bool assignTexture(Descriptors& descriptors, const std::string& name, ref_ptr<Data> textureData = {}, ref_ptr<Sampler> sampler = {});
+            bool assignUniform(Descriptors& descriptors, const std::string& name, ref_ptr<Data> data = {});
 
             // setup GraphicsPipeline
             ref_ptr<DescriptorSetLayout> descriptorSetLayout;
