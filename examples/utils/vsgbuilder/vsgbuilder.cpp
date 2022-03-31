@@ -46,6 +46,8 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
+    if (arguments.read("--shared")) options->sharedObjects = vsg::SharedObjects::create();
+
     auto outputFilename = arguments.value<std::string>("", "-o");
 
     bool floatColors = !arguments.read("--ubvec4-colors");
@@ -109,7 +111,7 @@ int main(int argc, char** argv)
 
         if (numVertices > 0)
         {
-            stateInfo.instancce_positions_vec3 = true;
+            stateInfo.instance_positions_vec3 = true;
 
             float w = std::pow(float(numVertices), 0.33f) * 2.0f;
             geomInfo.positions = vsg::vec3Array::create(numVertices);
