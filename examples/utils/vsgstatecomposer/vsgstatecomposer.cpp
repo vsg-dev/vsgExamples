@@ -151,7 +151,7 @@ int main(int argc, char** argv)
             graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colors);
 
             if (sharedObjects) sharedObjects->share(vertexArrays);
-            if (sharedObjects) indices = sharedObjects->share(indices);
+            if (sharedObjects) sharedObjects->share(indices);
 
             // setup geometry
             auto drawCommands = vsg::Commands::create();
@@ -162,18 +162,18 @@ int main(int argc, char** argv)
             if (sharedObjects)
             {
                 sharedObjects->share(drawCommands->children);
-                drawCommands = sharedObjects->share(drawCommands);
+                sharedObjects->share(drawCommands);
             }
 
             // share the pipeline config and initilaize if it's unique
-            if (sharedObjects) graphicsPipelineConfig = sharedObjects->share(graphicsPipelineConfig, [](auto gpc) { gpc->init(); });
+            if (sharedObjects) sharedObjects->share(graphicsPipelineConfig, [](auto gpc) { gpc->init(); });
             else graphicsPipelineConfig->init();
 
             auto descriptorSet = vsg::DescriptorSet::create(graphicsPipelineConfig->descriptorSetLayout, descriptors);
-            if (sharedObjects) descriptorSet = sharedObjects->share(descriptorSet);
+            if (sharedObjects) sharedObjects->share(descriptorSet);
 
             auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineConfig->layout, 0, descriptorSet);
-            if (sharedObjects) bindDescriptorSet = sharedObjects->share(bindDescriptorSet);
+            if (sharedObjects) sharedObjects->share(bindDescriptorSet);
 
             // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
             auto stateGroup = vsg::StateGroup::create();
@@ -207,14 +207,14 @@ int main(int argc, char** argv)
             stateGroup->addChild(drawCommands);
             if (sharedObjects)
             {
-                stateGroup = sharedObjects->share(stateGroup);
+                sharedObjects->share(stateGroup);
             }
 
             transform->addChild(stateGroup);
 
             if (sharedObjects)
             {
-                transform = sharedObjects->share(transform);
+                sharedObjects->share(transform);
             }
 
             scenegraph->addChild(transform);
