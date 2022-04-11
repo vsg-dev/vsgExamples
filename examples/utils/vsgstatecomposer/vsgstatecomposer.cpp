@@ -26,8 +26,17 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
+    vsg::ref_ptr<vsg::ShaderSet> shaderSet;
+    if (arguments.read("--pbr")) shaderSet = vsg::createPhysicsBasedRenderingShaderSet(options);
+    if (arguments.read("--phong")) shaderSet = vsg::createPhongShaderSet(options);
+    if (arguments.read("--flat")) shaderSet = vsg::createFlatShadedShaderSet(options);
+    if (vsg::Path shaderSetFile; arguments.read("-s", shaderSetFile))
+    {
+        shaderSet = vsg::read_cast<vsg::ShaderSet>(shaderSetFile, options);
+        std::cout<<"Read ShaderSet file "<<shaderSet<<std::endl;
+    }
+
     auto textureFile = arguments.value<vsg::Path>("", "-t");
-    auto shaderSetFile = arguments.value<vsg::Path>("", "-s");
     auto outputFile = arguments.value<vsg::Path>("", "-o");
     auto outputShaderSetFile = arguments.value<vsg::Path>("", "--os");
     auto share = arguments.read("--share");
@@ -35,12 +44,6 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    vsg::ref_ptr<vsg::ShaderSet> shaderSet;
-    if (!shaderSetFile.empty())
-    {
-        shaderSet = vsg::read_cast<vsg::ShaderSet>(shaderSetFile, options);
-        std::cout<<"Read ShaderSet file "<<shaderSet<<std::endl;
-    }
 
     // no ShaderSet loaded so fallback to create function.
     if (!shaderSet) shaderSet = vsg::createPhongShaderSet(options);
@@ -88,8 +91,8 @@ int main(int argc, char** argv)
 
             // set up pass of material
             auto mat = vsg::PhongMaterialValue::create();
-            mat->value().diffuse.set(1.0f, 1.0f, 0.0f, 1.0f);
-            mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f);
+            mat->value().diffuse.set(1.0f, 1.0f, 1.0f, 1.0f);
+            mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f); // red specular highlight
 
             graphicsPipelineConfig->assignUniform(descriptors, "material", mat);
 
@@ -126,16 +129,7 @@ int main(int argc, char** argv)
                 {1.0f, 1.0f},
                 {0.0f, 1.0f}});
 
-            auto colors = vsg::vec4Array::create(
-                {{1.0f, 1.0f, 1.0f, 1.0f},
-                {1.0f, 1.0f, 1.0f, 1.0f},
-                {1.0f, 1.0f, 1.0f, 1.0f},
-                {1.0f, 1.0f, 1.0f, 1.0f},
-                {1.0f, 1.0f, 1.0f, 1.0f},
-                {1.0f, 1.0f, 1.0f, 1.0f},
-                {1.0f, 1.0f, 1.0f, 1.0f},
-                {1.0f, 1.0f, 1.0f, 1.0f},
-                });
+            auto colors = vsg::vec4Value::create(vsg::vec4{1.0f, 1.0f, 1.0f, 1.0f});
 
             auto indices = vsg::ushortArray::create(
                 {0, 1, 2,
@@ -148,7 +142,7 @@ int main(int argc, char** argv)
             graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, vertices);
             graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
             graphicsPipelineConfig->assignArray(vertexArrays, "vsg_TexCoord0", VK_VERTEX_INPUT_RATE_VERTEX, texcoords);
-            graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colors);
+            graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, colors);
 
             if (sharedObjects) sharedObjects->share(vertexArrays);
             if (sharedObjects) sharedObjects->share(indices);
