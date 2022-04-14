@@ -81,9 +81,9 @@ public:
         if (intersector->intersections.empty()) return;
 
         // sort the intersectors front to back
-        std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto lhs, auto rhs) { return lhs.ratio < rhs.ratio; });
+        std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto lhs, auto rhs) { return lhs->ratio < rhs->ratio; });
 
-        auto& intersection = intersector->intersections.front();
+        auto& intersection = *intersector->intersections.front();
         world_ClipSetttings->at(0) = vsg::vec4(intersection.worldIntersection.x, intersection.worldIntersection.y, intersection.worldIntersection.z, scale);
         world_ClipSetttings->dirty();
     }
