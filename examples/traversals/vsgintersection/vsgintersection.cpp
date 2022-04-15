@@ -104,7 +104,7 @@ public:
 
         for (auto& intersection : intersector->intersections)
         {
-            if (verbose) std::cout << "intersection = " << intersection->worldIntersection << " ";
+            if (verbose) std::cout << "intersection = world(" << intersection->worldIntersection << "), instanceIndex " <<intersection->instanceIndex;
 
             if (ellipsoidModel)
             {
