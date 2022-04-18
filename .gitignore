@@ -78,3 +78,5 @@ local.properties
 #ImGUi
 *.ini
 
+#MacOS
+.DS_Store
