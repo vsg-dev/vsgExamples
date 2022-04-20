@@ -113,7 +113,7 @@ int main(int argc, char** argv)
         {
             stateInfo.instance_positions_vec3 = true;
 
-            float w = std::pow(float(numVertices), 0.33f) * 2.0f;
+            float w = std::pow(float(numVertices), 0.33f) * 2.0f * vsg::length(geomInfo.dx);
             geomInfo.positions = vsg::vec3Array::create(numVertices);
             for (auto& v : *(geomInfo.positions))
             {
