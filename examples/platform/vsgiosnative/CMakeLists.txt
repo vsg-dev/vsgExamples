@@ -31,7 +31,6 @@ include(CMakeParseArguments)
 #    TEAM_ID "AAAAAAAA"
 #    PROVISIONING_PROFILE_SPECIFIER "profile-name"
 #    COPYRIGHT "My Cool Copyright"
-#    QML_DIR "${IOS_ROOT}/qml"
 #    ASSET_DIR "path/to/Assets.xcassets"
 #    MAIN_STORYBOARD "/path/to/Main.storyboard"
 #        LAUNCHSCREEN_STORYBOARD "path/to/LaunchScreen.storyboard"
@@ -76,7 +75,6 @@ function(add_ios_app TARGET)
         TEAM_ID
         PROVISIONING_PROFILE_SPECIFIER
         COPYRIGHT
-        QML_DIR
         ASSET_DIR
         LAUNCHSCREEN_STORYBOARD
         MAIN_STORYBOARD
@@ -112,7 +110,6 @@ function(add_ios_app TARGET)
         set(IOS_PROVISIONING_PROFILE_SPECIFIER ${ARGIOS_PROVISIONING_PROFILE_SPECIFIER})
     endif()
     set(IOS_COPYRIGHT ${ARGIOS_COPYRIGHT})
-    set(IOS_QML_DIR ${ARGIOS_QML_DIR})
     set(IOS_ASSET_DIR ${ARGIOS_ASSET_DIR})
     set(IOS_LAUNCHSCREEN_STORYBOARD ${ARGIOS_LAUNCHSCREEN_STORYBOARD})
     set(IOS_MAIN_STORYBOARD ${ARGIOS_MAIN_STORYBOARD})
@@ -206,14 +203,6 @@ function(add_ios_app TARGET)
         endif() # IOS_VERBOSE
     endif() # NOT IOS_CUSTOM_PLIST
 
-    # Default for qml dir set to qt sdk root
-    if(NOT IOS_QML_DIR)
-        set(IOS_QML_DIR "${IOS_ROOT}/qml")
-        if(IOS_VERBOSE)
-            message(STATUS "QML_DIR not specified, default to ${IOS_QML_DIR}")
-        endif() # IOS_VERBOSE
-    endif() # NOT IOS_QML_DIR
-
     if(NOT IOS_CATALOG_APPICON)
         set(IOS_CATALOG_APPICON "AppIcon")
         if(IOS_VERBOSE)
@@ -237,7 +226,6 @@ function(add_ios_app TARGET)
             message(STATUS "PROVISIONING_PROFILE_SPECIFIER      : ${IOS_PROVISIONING_PROFILE_SPECIFIER}")
         endif()
         message(STATUS "COPYRIGHT                           : ${IOS_COPYRIGHT}")
-        message(STATUS "QML_DIR                             : ${IOS_QML_DIR}")
         message(STATUS "ASSET_DIR                           : ${IOS_ASSET_DIR}")
         message(STATUS "CATALOG_APPICON                     : ${IOS_CATALOG_APPICON}")
         message(STATUS "CATALOG_LAUNCHIMAGE                 : ${IOS_CATALOG_LAUNCHIMAGE}")
@@ -258,7 +246,7 @@ function(add_ios_app TARGET)
         message(STATUS "UPLOAD_SYMBOL                       : ${IOS_UPLOAD_SYMBOL}")
         message(STATUS "DISTRIBUTION_METHOD                 : ${IOS_DISTRIBUTION_METHOD}")
         message(STATUS "RESOURCE_FILES                      : ${IOS_RESOURCE_FILES}")
-        message(STATUS "------ QtIosCMake END Configuration ------")
+        message(STATUS "------ IosCMake END Configuration ------")
     endif() # IOS_VERBOSE
 
     # Bundle executable.
@@ -267,7 +255,7 @@ function(add_ios_app TARGET)
     endif() # IOS_VERBOSE
     set_target_properties(${IOS_TARGET} PROPERTIES MACOSX_BUNDLE ON)
 
-    # Qt Mess
+    # Remove Mess
     function(ios_clean_paths)
         foreach(_path_group ${ARGN})
             foreach(_path ${${_path_group}})
@@ -302,8 +290,6 @@ function(add_ios_app TARGET)
         string(REGEX MATCH ".*${_DEBUG_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}$" _IS_DEBUG_LIB ${_LIB})
         string(REGEX MATCH ".*_iphonesimulator${_DEBUG_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}$" _IS_DEBUG_SIM_LIB ${_LIB})
         string(REGEX MATCH ".*_iphonesimulator${CMAKE_STATIC_LIBRARY_SUFFIX}$" _IS_SIM_LIB ${_LIB})
-        string(REGEX MATCH ".*Qt5Bootstrap.*" _IS_BOOTSTRAP ${_LIB})
-        string(REGEX MATCH ".*Qt5QmlDevTools.*" _IS_DEVTOOLS ${_LIB})
 
         if(NOT _IS_BOOTSTRAP AND NOT _IS_DEVTOOLS AND NOT _IS_DEBUG_SIM_LIB AND NOT _IS_SIM_LIB)
             if(_IS_DEBUG_LIB OR NOT _DEBUG_SUFFIX)
@@ -311,24 +297,6 @@ function(add_ios_app TARGET)
             endif()
             if(NOT _IS_DEBUG_LIB OR NOT _DEBUG_SUFFIX)
                 set(EXTRA_LIBS ${EXTRA_LIBS} optimized "${_LIB}")
-            endif()
-        endif()
-    endforeach()
-
-    set(_QML_BASE_DIR "${IOS_QML_DIR}")
-    ios_clean_paths(_QML_BASE_DIR)
-    file(GLOB_RECURSE _QML_PLUGINS "${_QML_BASE_DIR}/*${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    foreach(_QML_PLUGIN ${_QML_PLUGINS})
-        string(REGEX MATCH ".*${_DEBUG_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}$" _IS_DEBUG_LIB ${_QML_PLUGIN})
-        string(REGEX MATCH ".*_iphonesimulator${_DEBUG_SUFFIX}${CMAKE_STATIC_LIBRARY_SUFFIX}$" _IS_DEBUG_SIM_LIB ${_QML_PLUGIN})
-        string(REGEX MATCH ".*_iphonesimulator${CMAKE_STATIC_LIBRARY_SUFFIX}$" _IS_SIM_LIB ${_QML_PLUGIN})
-
-        if(NOT _IS_DEBUG_SIM_LIB AND NOT _IS_SIM_LIB)
-            if(_IS_DEBUG_LIB OR NOT _DEBUG_SUFFIX)
-                set(EXTRA_LIBS ${EXTRA_LIBS} debug "${_QML_PLUGIN}")
-            endif()
-            if(NOT _IS_DEBUG_LIB OR NOT _DEBUG_SUFFIX)
-                set(EXTRA_LIBS ${EXTRA_LIBS} optimized "${_QML_PLUGIN}")
             endif()
         endif()
     endforeach()
@@ -626,10 +594,11 @@ set(LIBRARIES
             PRIVATE ${COREGRAPHICS_LIBRARY}
             PRIVATE ${Vulkan_LIBRARY}
     )
-    
+
+
 target_link_libraries(${TARGET}
     PUBLIC
-        vsg
+        vsg::vsg
         ${LIBRARIES}
 )
 
@@ -644,7 +613,6 @@ target_link_libraries(${TARGET}
             TEAM_ID "AFNNR55AVS"
             # PROVISIONING_PROFILE_SPECIFIER "my-profile"
             COPYRIGHT "My Cool Copyright"
-            # QML_DIR "${IOS_ROOT}/qml"
             # ASSET_DIR "path/to/Assets.xcassets"
             # MAIN_STORYBOARD "Main.storyboard"
             # LAUNCHSCREEN_STORYBOARD "path/to/LaunchScreen.storyboard"
