@@ -184,10 +184,8 @@ int main(int argc, char** argv)
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
-    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-
     auto options = vsg::Options::create();
-    options->paths = searchPaths;
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 #ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
@@ -200,6 +198,8 @@ int main(int argc, char** argv)
         std::cout << "Failing to read font : " << font_filename << std::endl;
         return 1;
     }
+
+    font->options = options;
 
     // set up model transformation node
     auto scenegraph = vsg::Group::create();
