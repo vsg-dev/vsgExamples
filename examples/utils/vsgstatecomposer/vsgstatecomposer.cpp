@@ -42,11 +42,20 @@ int main(int argc, char** argv)
     auto share = arguments.read("--share");
     auto numInstances = arguments.value<size_t>(1, "-n");
 
+    if (!shaderSet) shaderSet = vsg::createPhongShaderSet(options);
+
+    if (arguments.read("--wireframe"))
+    {
+        auto rasterizationState = vsg::RasterizationState::create();
+        rasterizationState->polygonMode = VK_POLYGON_MODE_LINE;
+        shaderSet->defaultGraphicsPipelineStates.push_back(rasterizationState);
+    }
+
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
 
     // no ShaderSet loaded so fallback to create function.
-    if (!shaderSet) shaderSet = vsg::createPhongShaderSet(options);
     //if (!shaderSet) shaderSet = vsg::createFlatShadedShaderSet(options);
 
     if (!shaderSet)
