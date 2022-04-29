@@ -104,7 +104,7 @@ public:
 
         for (auto& intersection : intersector->intersections)
         {
-            if (verbose) std::cout << "intersection = " << intersection->worldIntersection << " ";
+            if (verbose) std::cout << "intersection = world(" << intersection->worldIntersection << "), instanceIndex " <<intersection->instanceIndex;
 
             if (ellipsoidModel)
             {
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-    options->objectCache = vsg::ObjectCache::create();
+    options->sharedObjects = vsg::SharedObjects::create();
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsginteresction";

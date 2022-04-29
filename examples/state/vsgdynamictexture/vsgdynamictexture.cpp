@@ -1,4 +1,4 @@
-#include <iostream>
+    #include <iostream>
 #include <vsg/all.h>
 
 class UpdateImage : public vsg::Visitor
@@ -100,7 +100,7 @@ int main(int argc, char** argv)
     vsg::StateInfo stateInfo;
     stateInfo.wireframe = arguments.read("--wireframe");
     stateInfo.lighting = !arguments.read("--flat");
-    stateInfo.doubleSided = true;
+    stateInfo.two_sided = true;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
