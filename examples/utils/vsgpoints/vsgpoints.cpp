@@ -334,7 +334,7 @@ vsg::ref_ptr<vsg::Node> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::
     vsg::Path filenameToUse = vsg::findFile(filename, options);
     if (filenameToUse.empty()) return {};
 
-    std::ifstream fin(filenameToUse.c_str());
+    std::ifstream fin(filenameToUse);
     if (!fin) return {};
 
     fin.imbue(std::locale::classic());
