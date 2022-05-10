@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>com.iconiqlabs.vsgiosnative</key>
+        <string></string>
+     </dict>
+
+    <key>signingCertificate</key>
+    <string>7139E00C7117F491459E9590A790AAFACAD36EA3</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>teamID</key>
+    <string>AFNNR55AVS</string>
+    <key>uploadSymbols</key><true/>
+    
+</dict>
+</plist>
