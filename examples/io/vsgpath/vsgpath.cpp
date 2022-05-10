@@ -72,11 +72,11 @@ int main(int argc, char** argv)
 
         if (path_from_string == path_from_wstring)
         {
-            std::cout<<"Success: both path_from_string and path_and_string are identical."<<std::endl;
+            std::cout<<"Success: both path_from_string and path_and_wstring are identical."<<std::endl;
         }
         else
         {
-            std::cout<<"Problem: path_from_string and path_and_string are different."<<std::endl;
+            std::cout<<"Problem: path_from_string and path_and_wstring are different."<<std::endl;
         }
 
     }
