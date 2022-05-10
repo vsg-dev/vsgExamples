@@ -35,25 +35,54 @@ int main(int argc, char** argv)
         std::cout<<"    vsg::removeExtension(\""<<path<<"\") = "<<vsg::removeExtension(path)<<std::endl;
         std::cout<<"    vsg::trailingRelativePath(\""<<path<<"\") = "<<vsg::trailingRelativePath(path)<<std::endl;
 
-        auto combined = vsg::concatPaths( vsg::filePath(path), vsg::simpleFilename(path) + vsg::fileExtension(path));
+        auto combined = vsg::filePath(path) / vsg::simpleFilename(path) + vsg::fileExtension(path);
         std::cout<<"    combined = \""<<combined<<"\""<<std::endl;
 
         std::cout<<std::endl;
     }
 
-    if (true)
+
+    // appending with path separator
+    {
+        std::cout<<"\nvsg::Path::append(), /= and / operators"<<std::endl;
+
+        vsg::Path path("first");
+        path.append("second");
+        std::cout<<"    path = "<<path<<std::endl;
+
+        path = "third/";
+        path /= "fourth"; // same as append
+        std::cout<<"    path = "<<path<<std::endl;
+        std::cout<<"    path = "<<(path / "fifth")<<std::endl;
+        std::cout<<"    path = "<<(path / "fifth" / "sixth")<<std::endl;
+    }
+
+    // concat paths
+    {
+        std::cout<<"\nvsg::Path::concat(), += and + operators"<<std::endl;
+
+        vsg::Path path("first");
+        path.concat("second");
+        std::cout<<"    path = "<<path<<std::endl;
+
+        path = "third";
+        path += "fourth"; // same as concat
+        std::cout<<"    path = "<<path<<std::endl;
+        std::cout<<"    path = "<<(path + "fifth")<<std::endl;
+        std::cout<<"    path = "<<(path + "fifth" + "sixth")<<std::endl;
+    }
+
     {
         //
         // test going between wstring and utf8 encoded string
         //
-
         std::wstring wide_string;
         for(wchar_t c = 0; c<100000; ++c)
         {
             wide_string.push_back(c);
         }
 
-        std::cout<<"wide_string.size() = "<<wide_string.size()<<std::endl;
+        std::cout<<"\nwide_string.size() = "<<wide_string.size()<<std::endl;
 
         std::string utf8;
         vsg::convert_utf(wide_string, utf8);
