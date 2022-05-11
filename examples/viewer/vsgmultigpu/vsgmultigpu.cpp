@@ -8,9 +8,9 @@
 #include <iostream>
 #include <thread>
 
-vsg::ref_ptr<vsg::Node> createScene(const std::string& filename, vsg::ref_ptr<vsg::Options> options)
+vsg::ref_ptr<vsg::Node> createScene(const vsg::Path& filename, vsg::ref_ptr<vsg::Options> options)
 {
-    if (!filename.empty())
+    if (filename)
     {
         std::cout<<"createScene("<<filename<<", "<<options<<")"<<std::endl;
         return vsg::read_cast<vsg::Node>(filename, options);

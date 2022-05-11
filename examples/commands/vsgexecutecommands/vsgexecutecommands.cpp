@@ -14,7 +14,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <iostream>
 
-vsg::ref_ptr<vsg::Node> createScene(std::string filename)
+vsg::ref_ptr<vsg::Node> createScene(const vsg::Path& filename)
 {
     if (!filename.empty())
     {
