@@ -15,11 +15,14 @@ using namespace vsg;
 //------------------------------------------------------------------------
 @interface vsgiOSAppDelegate : UIResponder <UIApplicationDelegate>
 @property (strong, nonatomic) vsg_iOS_Window *window;
+@property CADisplayLink* displayLink;
+@property vsg::ref_ptr<vsg::Viewer> vsgViewer;
 @end
 
 
 
 @implementation vsgiOSAppDelegate
+
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     
@@ -33,8 +36,6 @@ using namespace vsg;
     traits->width = bounds.size.width;
     traits->height = bounds.size.height;
     self.window = [[vsg_iOS_Window alloc] initWithTraits: traits andVsgViewer: vsgViewer];
-    
-    self.window.rootViewController.displayLink;
     self.window.makeKeyAndVisible;
 
 
@@ -109,10 +110,28 @@ using namespace vsg;
     vsgViewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     vsgViewer->compile();
-
+    self.vsgViewer = vsgViewer;
+  
+    // now setup the render loop
+    _displayLink = [CADisplayLink displayLinkWithTarget: self selector: @selector(renderLoop)];
+    uint32_t fps = 60;
+    [_displayLink setPreferredFramesPerSecond: fps];
+    [_displayLink addToRunLoop: NSRunLoop.currentRunLoop forMode: NSDefaultRunLoopMode];
 
     return YES;
 }
+
+-(void) renderLoop {
+   if (self.vsgViewer->advanceToNextFrame())
+   {
+       self.vsgViewer->compile();
+       self.vsgViewer->handleEvents();
+       self.vsgViewer->update();
+       self.vsgViewer->recordAndSubmit();
+       self.vsgViewer->present();
+   }
+}
+
 
 - (void)applicationWillResignActive:(UIApplication *)application {
     // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
@@ -135,6 +154,7 @@ using namespace vsg;
 - (void)applicationWillTerminate:(UIApplication *)application {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
+
 
 @end
 
