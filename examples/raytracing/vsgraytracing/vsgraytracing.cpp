@@ -132,7 +132,7 @@ int main(int argc, char** argv)
         }
 
         vsg::ref_ptr<vsg::TopLevelAccelerationStructure> tlas;
-        if (filename.empty())
+        if (!filename)
         {
             // acceleration structures
             // set up vertex and index arrays

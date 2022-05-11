@@ -474,7 +474,7 @@ int main(int argc, char** argv)
     // create the viewer
     auto viewer = vsg::Viewer::create();
 
-    if (!pathFilename.empty())
+    if (pathFilename)
     {
         auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
         if (!animationPath)

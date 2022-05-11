@@ -195,7 +195,7 @@ int main(int argc, char** argv)
 
     vsg::StateInfo stateInfo;
 
-    if (!textureFile.empty())
+    if (textureFile)
     {
         stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
     }
