@@ -77,7 +77,7 @@ int main(int argc, char** argv)
         // test going between wstring and utf8 encoded string
         //
         std::wstring wide_string;
-        for(wchar_t c = 0; c<100000; ++c)
+        for(wchar_t c = 0; c<32768; ++c)
         {
             wide_string.push_back(c);
         }
