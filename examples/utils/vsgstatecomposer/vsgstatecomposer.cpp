@@ -85,7 +85,7 @@ int main(int argc, char** argv)
             vsg::Descriptors descriptors;
 
             // read texture image
-            if (!textureFile.empty())
+            if (textureFile)
             {
                 auto textureData = vsg::read_cast<vsg::Data>(textureFile, options);
                 if (!textureData)
@@ -260,13 +260,13 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
-    if (!outputShaderSetFile.empty())
+    if (outputShaderSetFile)
     {
         vsg::write(shaderSet, outputShaderSetFile, options);
         return 0;
     }
 
-    if (!outputFile.empty())
+    if (outputFile)
     {
         vsg::write(scenegraph, outputFile, options);
         return 0;

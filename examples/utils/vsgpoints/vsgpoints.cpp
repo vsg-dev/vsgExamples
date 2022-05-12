@@ -332,7 +332,7 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
 vsg::ref_ptr<vsg::Node> read(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options, FormatLayout formatLayout)
 {
     vsg::Path filenameToUse = vsg::findFile(filename, options);
-    if (filenameToUse.empty()) return {};
+    if (!filenameToUse) return {};
 
     std::ifstream fin(filenameToUse);
     if (!fin) return {};

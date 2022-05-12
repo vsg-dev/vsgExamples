@@ -292,7 +292,7 @@ int main(int argc, char** argv)
         vsg_scene->add(bindDescriptorSet);
         vsg_scene->addChild(model);
 
-        if (!outputFilename.empty())
+        if (outputFilename)
         {
             vsg::write(vsg_scene, outputFilename);
             return 1;

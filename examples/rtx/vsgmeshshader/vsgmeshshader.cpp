@@ -138,7 +138,7 @@ int main(int argc, char** argv)
             scenegraph->addChild(vsg::DrawMeshTasksIndirectCount::create(data, count, 1, 8));
         }
 
-        if (!outputFilename.empty())
+        if (outputFilename)
         {
             vsg::write(scenegraph, outputFilename);
             return 1;

@@ -241,7 +241,7 @@ int main(int argc, char** argv)
     vsg::Mask rightMask = 0x2;
 
     vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (!leftImageFilename.empty() && !rightImageFilename.empty())
+    if (leftImageFilename && rightImageFilename)
     {
         auto leftImage = vsg::read_cast<vsg::Data>(leftImageFilename, options);
         auto rightImage = vsg::read_cast<vsg::Data>(rightImageFilename, options);

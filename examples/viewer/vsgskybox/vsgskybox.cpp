@@ -197,7 +197,7 @@ int main(int argc, char** argv)
 
     auto group = vsg::Group::create();
 
-    if (!skyboxFilename.empty())
+    if (skyboxFilename)
     {
         if (auto node = createSkybox(skyboxFilename, options); node)
         {
@@ -247,7 +247,7 @@ int main(int argc, char** argv)
     else
         vsg_scene = group;
 
-    if (!outputFilename.empty())
+    if (outputFilename)
     {
         vsg::write(vsg_scene, outputFilename);
         return 0;

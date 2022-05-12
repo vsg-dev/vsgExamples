@@ -65,7 +65,7 @@ int main(int argc, char** argv)
             tileReader->imageLayer = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
         }
 
-        if (arguments.read("--rm") || tileReader->imageLayer.empty())
+        if (arguments.read("--rm") || !tileReader->imageLayer)
         {
             // setup ready map settings
             tileReader->noX = 2;
