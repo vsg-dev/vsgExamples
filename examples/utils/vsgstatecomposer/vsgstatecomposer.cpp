@@ -75,6 +75,7 @@ int main(int argc, char** argv)
     size_t numColumns = std::max(size_t(1), static_cast<size_t>(sqrt(static_cast<double>(numInstances))));
     size_t numRows = std::max(size_t(1), numInstances / numColumns);
 
+
     for(size_t r=0; (r < numRows) && (scenegraph->children.size() < numInstances); ++r)
     {
         for(size_t c=0; (c < numColumns) && (scenegraph->children.size() < numInstances); ++c)
@@ -168,6 +169,14 @@ int main(int argc, char** argv)
                 sharedObjects->share(drawCommands);
             }
 
+            // register the ViewDescriptorSetLayout.
+            vsg::ref_ptr<vsg::ViewDescriptorSetLayout> vdsl;
+            if (sharedObjects)
+                vdsl = sharedObjects->shared_default<vsg::ViewDescriptorSetLayout>();
+            else
+                vdsl = vsg::ViewDescriptorSetLayout::create();
+            graphicsPipelineConfig->additionalDescrptorSetLayout = vdsl;
+
             // share the pipeline config and initilaize if it's unique
             if (sharedObjects) sharedObjects->share(graphicsPipelineConfig, [](auto gpc) { gpc->init(); });
             else graphicsPipelineConfig->init();
@@ -178,10 +187,14 @@ int main(int argc, char** argv)
             auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineConfig->layout, 0, descriptorSet);
             if (sharedObjects) sharedObjects->share(bindDescriptorSet);
 
+            auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineConfig->layout, 1);
+            if (sharedObjects) sharedObjects->share(bindViewDescriptorSets);
+
             // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
             auto stateGroup = vsg::StateGroup::create();
             stateGroup->add(graphicsPipelineConfig->bindGraphicsPipeline);
             stateGroup->add(bindDescriptorSet);
+            stateGroup->add(bindViewDescriptorSets);
 
             // set up model transformation node
             auto transform = vsg::MatrixTransform::create(vsg::translate(position + delta_row * static_cast<double>(r) + delta_column * static_cast<double>(c)));
