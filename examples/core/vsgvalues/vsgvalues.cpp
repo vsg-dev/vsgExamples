@@ -28,14 +28,16 @@ void for_each_user_object(P object, F functor)
 
 namespace engine
 {
+    // provide a custom struct for storing data, such as for passing to the GPU as a uniform value
     struct property
     {
         float speed = 0.0f;
     };
 
+    // declare a Value object for the property struct
     using propertyValue = vsg::Value<property>;
 }
-
+// provide a vsg::type_name<> for our custom propertyValue class using EVSG_type_name() macro, note must be done in global scope.
 EVSG_type_name(engine::propertyValue)
 
 int main(int /*argc*/, char** /*argv*/)
@@ -108,10 +110,19 @@ int main(int /*argc*/, char** /*argv*/)
         });
     }
 
-    auto my_property = engine::propertyValue::create();
-    my_property->value().speed = 10.0f;
+    // create a propertyValue object wrapper around a engine::property struct.
+    auto my_property = engine::propertyValue::create(engine::property{10.0});
+    std::cout<<"\nmy_property = "<<my_property<<", className = "<<my_property->className()<<std::endl;
+    std::cout<<"    after constructor my_property->value->speed = "<<my_property->value().speed<<std::endl;
 
-    std::cout<<"\nmy_property = "<<my_property<<", className = "<<my_property->className()<<", my_property->value->speed = "<<my_property->value().speed<<std::endl;
+    // we can modify the value struct by getting the value from the value obejct and mofifying it:
+    my_property->value().speed += 2.0f;
+    std::cout<<"    after increment my_property->value->speed = "<<my_property->value().speed<<std::endl;
+
+    // or get a referenece to underlying engine::property value held by the my_property object
+    auto& prop = my_property->value();
+    prop.speed *= 2.0f; // modifying a member of the struct
+    std::cout<<"    after multiplication my_property->value->speed = "<<prop.speed<<std::endl;
 
     return 0;
 }
