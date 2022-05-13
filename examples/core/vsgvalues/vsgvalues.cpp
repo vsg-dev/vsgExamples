@@ -3,6 +3,7 @@
 #include <vsg/core/Value.h>
 #include <vsg/core/Visitor.h>
 #include <vsg/core/ConstVisitor.h>
+#include <vsg/io/stream.h>
 
 #include <algorithm>
 #include <iostream>
@@ -24,6 +25,18 @@ void for_each_user_object(P object, F functor)
         }
     }
 }
+
+namespace engine
+{
+    struct property
+    {
+        float speed = 0.0f;
+    };
+
+    using propertyValue = vsg::Value<property>;
+}
+
+EVSG_type_name(engine::propertyValue)
 
 int main(int /*argc*/, char** /*argv*/)
 {
@@ -94,6 +107,11 @@ int main(int /*argc*/, char** /*argv*/)
             key_value.second->accept(visitValues);
         });
     }
+
+    auto my_property = engine::propertyValue::create();
+    my_property->value().speed = 10.0f;
+
+    std::cout<<"\nmy_property = "<<my_property<<", className = "<<my_property->className()<<", my_property->value->speed = "<<my_property->value().speed<<std::endl;
 
     return 0;
 }
