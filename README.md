@@ -9,7 +9,6 @@ Example programs that test and illustrate how to use the [VulkanSceneGraph](http
 * [rtx](examples/rtx/) examples
 * [state](examples/state/) examples
 * [commands](examples/commands/) examples
-* [introspection](examples/introspection/) examples
 * [io](examples/io/) examples
 * [ui](examples/ui/) examples
 * [traversals](examples/traversals/) examples
