@@ -73,7 +73,6 @@ add_subdirectory(examples/vk)
 add_subdirectory(examples/text)
 add_subdirectory(examples/rtx)
 add_subdirectory(examples/raytracing)
-add_subdirectory(examples/introspection)
 add_subdirectory(examples/platform)
 add_subdirectory(examples/utils)
 
