@@ -175,6 +175,7 @@ void DynamicLoadAndCompile::CompileOperation::run()
         vsg::CollectResourceRequirements collectRequirements;
         request->loaded->accept(collectRequirements);
 
+#if 0
         auto maxSets = collectRequirements.requirements.computeNumDescriptorSets();
         auto descriptorPoolSizes = collectRequirements.requirements.computeDescriptorPoolSizes();
 
@@ -183,6 +184,7 @@ void DynamicLoadAndCompile::CompileOperation::run()
         {
             if (descriptorPoolSizes.size() > 0) context->descriptorPool = vsg::DescriptorPool::create(context->device, maxSets, descriptorPoolSizes);
         }
+#endif
 
         request->loaded->accept(*compileTraversal);
 

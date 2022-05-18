@@ -86,7 +86,7 @@ int main(int argc, char** argv)
     auto compileTraversal = vsg::CompileTraversal::create(device);
     auto context = compileTraversal->contexts.front();
     context->commandPool = vsg::CommandPool::create(device, computeQueueFamily);
-    context->descriptorPool = vsg::DescriptorPool::create(device, 1, vsg::DescriptorPoolSizes{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
+    // context->descriptorPool = vsg::DescriptorPool::create(device, 1, vsg::DescriptorPoolSizes{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
 
     commandGraph->accept(*compileTraversal);
 
