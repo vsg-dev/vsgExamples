@@ -175,16 +175,10 @@ void DynamicLoadAndCompile::CompileOperation::run()
         vsg::CollectResourceRequirements collectRequirements;
         request->loaded->accept(collectRequirements);
 
-#if 0
-        auto maxSets = collectRequirements.requirements.computeNumDescriptorSets();
-        auto descriptorPoolSizes = collectRequirements.requirements.computeDescriptorPoolSizes();
-
-        // brute force allocation of new DescrptorPool for this subgraph, TODO : need to preallocate large DescritorPoil for multiple loaded subgraphs
         for(auto& context : compileTraversal->contexts)
         {
-            if (descriptorPoolSizes.size() > 0) context->descriptorPool = vsg::DescriptorPool::create(context->device, maxSets, descriptorPoolSizes);
+            context->reserve(collectRequirements.requirements);
         }
-#endif
 
         request->loaded->accept(*compileTraversal);
 
