@@ -175,13 +175,9 @@ void DynamicLoadAndCompile::CompileOperation::run()
         vsg::CollectResourceRequirements collectRequirements;
         request->loaded->accept(collectRequirements);
 
-        auto maxSets = collectRequirements.requirements.computeNumDescriptorSets();
-        auto descriptorPoolSizes = collectRequirements.requirements.computeDescriptorPoolSizes();
-
-        // brute force allocation of new DescrptorPool for this subgraph, TODO : need to preallocate large DescritorPoil for multiple loaded subgraphs
         for(auto& context : compileTraversal->contexts)
         {
-            if (descriptorPoolSizes.size() > 0) context->descriptorPool = vsg::DescriptorPool::create(context->device, maxSets, descriptorPoolSizes);
+            context->reserve(collectRequirements.requirements);
         }
 
         request->loaded->accept(*compileTraversal);
@@ -249,12 +245,6 @@ int main(int argc, char** argv)
         // create a Group to contain all the nodes
         auto vsg_scene = vsg::Group::create();
 
-        // Assign any ResourceHints so that the Compile traversal can allocate sufficient DescriptorPool resources for the needs of loading all possible models.
-        if (resourceHints)
-        {
-            vsg_scene->setObject("ResourceHints", resourceHints);
-        }
-
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
         {
@@ -310,6 +300,17 @@ int main(int argc, char** argv)
 
             dynamicLoadAndCompile->loadRequest(argv[i], transform, options);
         }
+
+        if (!resourceHints)
+        {
+            // To help reduce the number of vsg::DescriptorPool that need to be allocated we'll provided a minimim requirements via ResourceHints.
+            resourceHints = vsg::ResourceHints::create();
+            resourceHints->numDescriptorSets = 256;
+            resourceHints->descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256});
+        }
+
+        // configure the viewers rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
+        viewer->compile(resourceHints);
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))

@@ -115,7 +115,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
     }
 
     uint32_t estimatedNumOfTilesBelow = 0;
-    uint32_t maxNumTilesBelow = 40000;
+    uint32_t maxNumTilesBelow = 1024;
 
     uint32_t level = 0;
     for (uint32_t i = level; i < maxLevel; ++i)
