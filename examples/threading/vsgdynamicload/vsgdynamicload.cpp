@@ -309,7 +309,7 @@ int main(int argc, char** argv)
             resourceHints->descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256});
         }
 
-        // configure the viewers rendering backend, initalize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
+        // configure the viewers rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
         viewer->compile(resourceHints);
 
         // rendering main loop
