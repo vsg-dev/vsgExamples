@@ -303,7 +303,7 @@ int main(int argc, char** argv)
 
         if (!resourceHints)
         {
-            // To help reduce the number of vsg::DescriptorPool that need to be allocated we'll provided a minimim requirements via ResourceHints.
+            // To help reduce the number of vsg::DescriptorPool that need to be allocated we'll provide a minimum requirement via ResourceHints.
             resourceHints = vsg::ResourceHints::create();
             resourceHints->numDescriptorSets = 256;
             resourceHints->descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256});
