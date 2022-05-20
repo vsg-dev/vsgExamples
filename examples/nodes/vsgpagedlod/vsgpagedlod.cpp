@@ -44,6 +44,7 @@ int main(int argc, char** argv)
         auto outputFilename = arguments.value(std::string(), "-o");
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
+        auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
         auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
@@ -218,8 +219,22 @@ int main(int argc, char** argv)
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-
+#if 0
+        auto resourceHints = vsg::ResourceHints::create();
+        resourceHints->numDescriptorSets = 1024;
+        resourceHints->descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, resourceHints->numDescriptorSets});
+        viewer->compile(resourceHints);
+#else
         viewer->compile();
+#endif
+        if (maxPagedLOD > 0)
+        {
+            // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
+            for(auto& task : viewer->recordAndSubmitTasks)
+            {
+                if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
+            }
+        }
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))

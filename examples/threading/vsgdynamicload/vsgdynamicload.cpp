@@ -307,6 +307,17 @@ int main(int argc, char** argv)
             dynamicLoadAndCompile->loadRequest(argv[i], transform, options);
         }
 
+
+        if (!resourceHints)
+        {
+            resourceHints = vsg::ResourceHints::create();
+            resourceHints->numDescriptorSets = 256;
+            resourceHints->descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256});
+        }
+        std::cout<<"resourceHints = "<<resourceHints<<std::endl;
+
+        viewer->compile(resourceHints);
+
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
