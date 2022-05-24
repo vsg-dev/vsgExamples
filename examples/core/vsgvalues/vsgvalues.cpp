@@ -9,23 +9,6 @@
 #include <iostream>
 #include <typeinfo>
 
-// helper function to simplify iteration through any user objects/values assigned to an object.
-template<typename P, typename F>
-void for_each_user_object(P object, F functor)
-{
-    if (object->getAuxiliary())
-    {
-        using ObjectMap = vsg::Auxiliary::ObjectMap;
-        ObjectMap& objectMap = object->getAuxiliary()->getObjectMap();
-        for (ObjectMap::iterator itr = objectMap.begin();
-             itr != objectMap.end();
-             ++itr)
-        {
-            functor(*itr);
-        }
-    }
-}
-
 namespace engine
 {
     // provide a custom struct for storing data, such as for passing to the GPU as a uniform value
@@ -88,26 +71,21 @@ int main(int /*argc*/, char** /*argv*/)
 
         VisitValues visitValues;
 
+        auto& userObjects = object->getAuxiliary()->userObjects;
+
         std::cout << "Object has Auxiliary so check it's ObjectMap for our values. " << object->getAuxiliary() << std::endl;
-        for (vsg::Auxiliary::ObjectMap::iterator itr = object->getAuxiliary()->getObjectMap().begin();
-             itr != object->getAuxiliary()->getObjectMap().end();
-             ++itr)
+        for (auto& [key, user_object] : userObjects)
         {
-            std::cout << "   key[" << itr->first << "] ";
-            itr->second->accept(visitValues);
+            std::cout << "   key[" << key << "] ";
+            user_object->accept(visitValues);
         }
 
-        std::cout << "Use for_each " << std::endl;
-        std::for_each(object->getAuxiliary()->getObjectMap().begin(), object->getAuxiliary()->getObjectMap().end(), [&visitValues](vsg::Auxiliary::ObjectMap::value_type& key_value) {
+        std::cout << "\nUse for_each " << std::endl;
+        std::for_each(userObjects.begin(), userObjects.end(), [&visitValues](vsg::Auxiliary::ObjectMap::value_type& key_value) {
             std::cout << "   key[" << key_value.first << "] ";
             key_value.second->accept(visitValues);
         });
 
-        std::cout << "for_each_user_object " << std::endl;
-        for_each_user_object(object, [&visitValues](vsg::Auxiliary::ObjectMap::value_type& key_value) {
-            std::cout << "   key[" << key_value.first << "] ";
-            key_value.second->accept(visitValues);
-        });
     }
 
     // create a propertyValue object wrapper around a engine::property struct.
