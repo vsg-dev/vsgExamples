@@ -18,11 +18,13 @@ public:
     bool eventDebugTest = false;
     vsg::Path colorFilename;
     vsg::Path depthFilename;
+    vsg::ref_ptr<vsg::Options> options;
 
-    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event, const vsg::Path& in_colorFilename, const vsg::Path& in_depthFilename):
+    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event, const vsg::Path& in_colorFilename, const vsg::Path& in_depthFilename, vsg::ref_ptr<vsg::Options> in_options = {}):
         event(in_event),
         colorFilename(in_colorFilename),
-        depthFilename(in_depthFilename)
+        depthFilename(in_depthFilename),
+        options(in_options)
     {
     }
 
@@ -283,8 +285,14 @@ public:
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
         auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
-        vsg::write(imageData, colorFilename);
-        std::cout<<"Written color buffer to "<<colorFilename<<std::endl;
+        if (vsg::write(imageData, colorFilename, options))
+        {
+            std::cout<<"Written color buffer to "<<colorFilename<<std::endl;
+        }
+        else
+        {
+            std::cout<<"Failed to written color buffer to "<<colorFilename<<std::endl;
+        }
     }
 
     void screenshot_depth(vsg::ref_ptr<vsg::Window> window)
@@ -444,7 +452,7 @@ public:
             std::cout << "num_unset_depth = " << num_unset_depth << std::endl;
             std::cout << "num_set_depth = " << num_set_depth << std::endl;
 
-            vsg::write(imageData, depthFilename);
+            vsg::write(imageData, depthFilename, options);
             std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
         }
         else
@@ -579,7 +587,7 @@ int main(int argc, char** argv)
     auto event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignalled state
 
     // Add ScreenshotHandler to respond to keyboard and mouse events.
-    auto screenshotHandler = ScreenshotHandler::create(event, colorFilename, depthFilename);
+    auto screenshotHandler = ScreenshotHandler::create(event, colorFilename, depthFilename, options);
     viewer->addEventHandler(screenshotHandler);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
