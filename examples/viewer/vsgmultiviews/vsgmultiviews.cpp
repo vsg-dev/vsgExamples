@@ -116,7 +116,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout << "Using a single RenderGraph, with both Views separated by a ClearAttachemnts" << std::endl;
+        std::cout << "Using a single RenderGraph, with both Views separated by a ClearAttachments" << std::endl;
         auto renderGraph = vsg::RenderGraph::create(window);
 
         renderGraph->addChild(main_view);
