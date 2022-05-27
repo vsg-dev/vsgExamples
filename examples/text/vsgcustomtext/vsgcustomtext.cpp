@@ -7,10 +7,19 @@
 
 struct BillboardUniform
 {
+    BillboardUniform() {}
+    BillboardUniform(float s) : scale(s) {}
+
     float scale = 2.0f;
 };
 
 using BillboardUniformValue = vsg::Value<BillboardUniform>;
+
+class CustomLayout : public vsg::Inherit<vsg::StandardLayout, CustomLayout>
+{
+public:
+    vsg::ref_ptr<BillboardUniformValue> billboard;
+};
 
 vsg::ref_ptr<vsg::ShaderSet> createMyTextShaderSet(const vsg::Path& vertesShaderFilename,  const vsg::Path& fragmentShaderFilename, vsg::ref_ptr<const vsg::Options> options)
 {
@@ -48,6 +57,7 @@ vsg::ref_ptr<vsg::ShaderSet> createMyTextShaderSet(const vsg::Path& vertesShader
     return shaderSet;
 }
 
+
 class CustomTechnique : public vsg::Inherit<vsg::CpuLayoutTechnique, CustomTechnique>
 {
 public:
@@ -63,6 +73,7 @@ void CustomTechnique::setup(vsg::Text* text, uint32_t minimumAllocation)
 
     vsg::TextQuads quads;
     layout->layout(text->text, *(text->font), quads);
+
 
     vsg::vec4 color = quads.front().colors[0];
     vsg::vec4 outlineColor = quads.front().outlineColors[0];
@@ -228,7 +239,12 @@ void CustomTechnique::setup(vsg::Text* text, uint32_t minimumAllocation)
         config->assignTexture(descriptors, "textureAtlas", text->font->atlas, sampler);
 
         // custom part - assigning our billboardUnfirom
-        config->assignUniform(descriptors, "billboardUniform", BillboardUniformValue::create());
+        auto customLayout = layout.cast<CustomLayout>();
+        if (customLayout && customLayout->billboard)
+        {
+            std::cout<<"Assigning billboard"<<std::endl;
+            config->assignUniform(descriptors, "billboardUniform", customLayout->billboard);
+        }
 
         if (sharedObjects) sharedObjects->share(descriptors);
 
@@ -267,26 +283,6 @@ void CustomTechnique::setup(vsg::Text* text, uint32_t minimumAllocation)
         if (sharedObjects) sharedObjects->share(bindDescriptorSet);
 
         scenegraph->add(bindDescriptorSet);
-
-#if 0
-        auto scaleUniform = vsg::CustomUniformValue::create(2.0);
-        auto scaleDescriptor = vsg::DescriptorBuffer(scaleUniform, 0);
-
-        Descriptors descriptors{scaleDescriptor};
-        if (sharedObjects) sharedObjects->share(descriptors);
-
-        auto config = vsg::GraphicsPipelineConfig::create(shaderSet);
-
-        auto descriptorBindings = vsg::DescriptorSetLayout::create();
-        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(config->descriptorBindings);
-        if (sharedObjects) sharedObjects->share(descriptorSetLayout);
-
-        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
-
-        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, 0, descriptorSet);
-        if (sharedObjects) sharedObjects->share(bindDescriptorSet);
-#endif
-
 
 
         bindVertexBuffers = vsg::BindVertexBuffers::create(0, arrays);
@@ -369,13 +365,16 @@ int main(int argc, char** argv)
     {
         font->options->shaderSets["text"] = createMyTextShaderSet(vertesShaderFilename, fragmentShaderFilename, options);
 
-        auto layout = vsg::StandardLayout::create();
+        auto layout = CustomLayout::create();
         layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
         layout->position = vsg::vec3(0.0, -2.0, 0.0);
         layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
         layout->vertical = vsg::vec3(0.0, 1.0, 0.0);
         layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
         layout->outlineWidth = 0.1;
+
+        // assign BillboardUnfirom to enable the billboard effect and pass settings.
+        layout->billboard = BillboardUniformValue::create(1.5f);
 
         auto text = vsg::Text::create();
         text->text = vsg::stringValue::create("Custom vsg::Text shaders.");
