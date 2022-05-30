@@ -45,6 +45,7 @@ public:
         vsg::ref_ptr<vsg::Group> attachmentPoint;
         vsg::ref_ptr<vsg::Options> options;
         vsg::ref_ptr<vsg::Node> loaded;
+        vsg::ResourceRequirements requirements;
     };
 
     struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
@@ -175,10 +176,20 @@ void DynamicLoadAndCompile::CompileOperation::run()
         vsg::CollectResourceRequirements collectRequirements;
         request->loaded->accept(collectRequirements);
 
+        auto& requirements = collectRequirements.requirements;
+
         for(auto& context : compileTraversal->contexts)
         {
-            context->reserve(collectRequirements.requirements);
+            vsg::ref_ptr<vsg::View> view = context->view;
+            if (view && !requirements.binStack.empty())
+            {
+                requirements.views[view] = requirements.binStack.top();
+            }
+
+            context->reserve(requirements);
         }
+
+        request->requirements = requirements;
 
         request->loaded->accept(*compileTraversal);
 
@@ -199,6 +210,31 @@ void DynamicLoadAndCompile::MergeOperation::run()
 {
     std::cout << "Merging " << request->filename << std::endl;
 
+    auto& requirements = request->requirements;
+
+    std::cout<<" requirements.maxSlot = "<<requirements.maxSlot<<std::endl;
+
+    for (auto& [const_view, binDetails] : requirements.views)
+    {
+        auto view = const_cast<vsg::View*>(const_view);
+        for (auto& binNumber : binDetails.indices)
+        {
+            bool binNumberMatched = false;
+            for (auto& bin : view->bins)
+            {
+                if (bin->binNumber == binNumber)
+                {
+                    binNumberMatched = true;
+                }
+            }
+            if (!binNumberMatched)
+            {
+                vsg::Bin::SortOrder sortOrder = (binNumber < 0) ? vsg::Bin::ASCENDING : ((binNumber == 0) ? vsg::Bin::NO_SORT : vsg::Bin::DESCENDING);
+                view->bins.push_back(vsg::Bin::create(binNumber, sortOrder));
+            }
+        }
+    }
+
     request->attachmentPoint->addChild(request->loaded);
 }
 
@@ -211,6 +247,7 @@ int main(int argc, char** argv)
 
         // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
+        options->sharedObjects = vsg::SharedObjects::create();
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
 #ifdef vsgXchange_all
