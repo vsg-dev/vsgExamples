@@ -67,6 +67,8 @@ void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequir
 {
     std::cout<<"Need to compile "<<object<<std::endl;
 
+    // TODO : avoid calling before main Viewer::compile() is called.
+
     auto compileTraversal = takeCompileTraversal();
 
     vsg::CollectResourceRequirements collectRequirements;
@@ -166,6 +168,11 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
                 }
             }
         }
+
+        // TODO:
+        //   1. Enable DatabasePager when required
+        //   2. Update slotNumber if it changes
+        //   3. Handle new Views
 
         attachmentPoint->addChild(node);
     }
