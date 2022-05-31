@@ -117,13 +117,13 @@ void CustomViewer::update()
 
 struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 {
-    Merge(vsg::observer_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::ResourceRequirements& in_requirements):
+    Merge(vsg::observer_ptr<CustomViewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::ResourceRequirements& in_requirements):
         viewer(in_viewer),
         attachmentPoint(in_attachmentPoint),
         node(in_node),
         requirements(in_requirements) {}
 
-    vsg::observer_ptr<vsg::Viewer> viewer;
+    vsg::observer_ptr<CustomViewer> viewer;
     vsg::ref_ptr<vsg::Group> attachmentPoint;
     vsg::ref_ptr<vsg::Node> node;
     vsg::ResourceRequirements requirements;
@@ -171,67 +171,31 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
     }
 };
 
-class DynamicLoadAndCompile : public vsg::Inherit<vsg::Object, DynamicLoadAndCompile>
+struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
 {
-public:
-    vsg::ref_ptr<vsg::ActivityStatus> status;
+    LoadOperation(vsg::observer_ptr<CustomViewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, const vsg::Path& in_filename, vsg::ref_ptr<vsg::Options> in_options) :
+        viewer(in_viewer),
+        attachmentPoint(in_attachmentPoint),
+        filename(in_filename),
+        options(in_options) {}
 
-    vsg::ref_ptr<vsg::OperationThreads> loadThreads;
+    vsg::observer_ptr<CustomViewer> viewer;
+    vsg::ref_ptr<vsg::Group> attachmentPoint;
+    vsg::Path filename;
+    vsg::ref_ptr<vsg::Options> options;
 
-    // window related settings used to set up the CompileTraversal
-    vsg::ref_ptr<CustomViewer> viewer;
-    vsg::ResourceRequirements resourceRequirements;
-
-    DynamicLoadAndCompile(vsg::ref_ptr<CustomViewer> in_viewer, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
-        status(in_status),
-        viewer(in_viewer)
-    {
-        loadThreads = vsg::OperationThreads::create(12, status);
-    }
-
-    struct Request : public vsg::Inherit<vsg::Object, Request>
-    {
-        Request(const vsg::Path& in_filename, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Options> in_options) :
-            filename(in_filename),
-            attachmentPoint(in_attachmentPoint),
-            options(in_options) {}
-
-        vsg::Path filename;
-        vsg::ref_ptr<vsg::Group> attachmentPoint;
-        vsg::ref_ptr<vsg::Options> options;
-        vsg::ref_ptr<vsg::Node> loaded;
-        vsg::ResourceRequirements requirements;
-    };
-
-    struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
-    {
-        LoadOperation(vsg::ref_ptr<Request> in_request, vsg::observer_ptr<DynamicLoadAndCompile> in_dlac) :
-            request(in_request),
-            dlac(in_dlac) {}
-
-        vsg::ref_ptr<Request> request;
-        vsg::observer_ptr<DynamicLoadAndCompile> dlac;
-
-        void run() override;
-    };
-
-    void loadRequest(const vsg::Path& filename, vsg::ref_ptr<vsg::Group> attachmentPoint, vsg::ref_ptr<vsg::Options> options)
-    {
-        auto request = Request::create(filename, attachmentPoint, options);
-        loadThreads->add(LoadOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
-    }
-
+    void run() override;
 };
 
-void DynamicLoadAndCompile::LoadOperation::run()
+void LoadOperation::run()
 {
-    vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
-    if (!dynamicLoadAndCompile) return;
+    vsg::ref_ptr<CustomViewer > custom_viewer = viewer;
 
-    std::cout << "Loading " << request->filename << std::endl;
-
-    if (auto node = vsg::read_cast<vsg::Node>(request->filename, request->options); node)
+    std::cout << "Loading " << filename << std::endl;
+    if (auto node = vsg::read_cast<vsg::Node>(filename, options); node)
     {
+        std::cout << "Loaded " << filename << std::endl;
+
         vsg::ComputeBounds computeBounds;
         node->accept(computeBounds);
 
@@ -241,18 +205,14 @@ void DynamicLoadAndCompile::LoadOperation::run()
 
         scale->addChild(node);
 
-        request->loaded = scale;
+        vsg::ResourceRequirements requirements;
+        custom_viewer->compile(node, requirements);
 
-        std::cout << "Loaded " << request->filename << std::endl;
+        std::cout << "Compiled " << filename << std::endl;
 
-        dynamicLoadAndCompile->viewer->compile(node, request->requirements);
-
-        vsg::observer_ptr<vsg::Viewer> viewer(dynamicLoadAndCompile->viewer);
-        dynamicLoadAndCompile->viewer->addUpdateOperation(Merge::create(viewer, request->attachmentPoint, request->loaded, request->requirements));
+        custom_viewer->addUpdateOperation(Merge::create(viewer, attachmentPoint, scale, requirements));
     }
 }
-
-
 
 int main(int argc, char** argv)
 {
@@ -305,6 +265,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
+
         // create the viewer and assign window(s) to it
         auto viewer = CustomViewer::create();
 
@@ -338,22 +299,6 @@ int main(int argc, char** argv)
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-        // create the DynamicLoadAndCompile object that manages loading, compile and merging of new objects.
-        // Pass in window and viewportState to help initialize CompilTraversals
-        auto dynamicLoadAndCompile = DynamicLoadAndCompile::create(viewer, viewer->status);
-
-        // build the scene graph attachments points to place all of the loaded models at.
-        for (int i = 1; i < argc; ++i)
-        {
-            int index = i - 1;
-            vsg::dvec3 position = origin + primary * static_cast<double>(index % numColumns) + secondary * static_cast<double>(index / numColumns);
-            auto transform = vsg::MatrixTransform::create(vsg::translate(position));
-
-            vsg_scene->addChild(transform);
-
-            dynamicLoadAndCompile->loadRequest(argv[i], transform, options);
-        }
-
         if (!resourceHints)
         {
             // To help reduce the number of vsg::DescriptorPool that need to be allocated we'll provide a minimum requirement via ResourceHints.
@@ -364,6 +309,24 @@ int main(int argc, char** argv)
 
         // configure the viewers rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
         viewer->compile(resourceHints);
+
+        auto loadThreads = vsg::OperationThreads::create(12, viewer->status);
+
+        // build the scene graph attachments points to place all of the loaded models at.
+        vsg::observer_ptr<CustomViewer> observer_viewer(viewer);
+        for (int i = 1; i < argc; ++i)
+        {
+            int index = i - 1;
+            vsg::dvec3 position = origin + primary * static_cast<double>(index % numColumns) + secondary * static_cast<double>(index / numColumns);
+            auto transform = vsg::MatrixTransform::create(vsg::translate(position));
+
+            vsg_scene->addChild(transform);
+
+            loadThreads->add(LoadOperation::create(observer_viewer, transform, argv[i], options));
+        }
+
+
+        std::cout<<"\nBefore main loop\n"<<std::endl;
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
