@@ -47,6 +47,20 @@ public:
 
     using vsg::Viewer::compile;
     void compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequirements& requirements);
+
+
+    std::mutex mutex_updateOperation;
+    std::list<vsg::ref_ptr<vsg::Operation>> updateOperations;
+
+    void addUpdateOperation(vsg::ref_ptr<vsg::Operation> op)
+    {
+        std::cout<<"addUpdateOperation("<<op<<")"<<std::endl;
+
+        std::scoped_lock lock(mutex_updateOperation);
+        updateOperations.push_back(op);
+    }
+
+    void update() override;
 };
 
 void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequirements& requirements)
@@ -83,13 +97,86 @@ void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequir
     addCompileTraversal(compileTraversal);
 }
 
+void CustomViewer::update()
+{
+    //std::cout<<"CustomViewer::update()"<<std::endl;
+    vsg::Viewer::update();
+
+    decltype(updateOperations) operations;
+    {
+        std::scoped_lock lock(mutex_updateOperation);
+        operations.swap(updateOperations);
+    }
+
+    for(auto& operation : operations)
+    {
+        operation->run();
+    }
+}
+
+
+struct Merge : public vsg::Inherit<vsg::Operation, Merge>
+{
+    Merge(vsg::observer_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::ResourceRequirements& in_requirements):
+        viewer(in_viewer),
+        attachmentPoint(in_attachmentPoint),
+        node(in_node),
+        requirements(in_requirements) {}
+
+    vsg::observer_ptr<vsg::Viewer> viewer;
+    vsg::ref_ptr<vsg::Group> attachmentPoint;
+    vsg::ref_ptr<vsg::Node> node;
+    vsg::ResourceRequirements requirements;
+
+    void run() override
+    {
+        std::cout<<"Merge::run() "<<attachmentPoint<<", "<<node<<std::endl;
+        std::cout<<"    requirements.maxSlot = "<<requirements.maxSlot<<std::endl;
+
+        if (requirements.containsPagedLOD)
+        {
+            std::cout<<"    conatians vsg::PagedLOD "<<std::endl;
+    #if 0
+            vsg::ref_ptr<vsg::DatabasePager> databasePager;
+            for (auto& task : viewer->recordAndSubmitTasks)
+            {
+                if (task->databasePager && !databasePager) databasePager = task->databasePager;
+            }
+            std::cout<<"    databasePager "<<databasePager<<std::endl;
+    #endif
+        }
+
+        for (auto& [const_view, binDetails] : requirements.views)
+        {
+            auto view = const_cast<vsg::View*>(const_view);
+            for (auto& binNumber : binDetails.indices)
+            {
+                bool binNumberMatched = false;
+                for (auto& bin : view->bins)
+                {
+                    if (bin->binNumber == binNumber)
+                    {
+                        binNumberMatched = true;
+                    }
+                }
+                if (!binNumberMatched)
+                {
+                    vsg::Bin::SortOrder sortOrder = (binNumber < 0) ? vsg::Bin::ASCENDING : ((binNumber == 0) ? vsg::Bin::NO_SORT : vsg::Bin::DESCENDING);
+                    view->bins.push_back(vsg::Bin::create(binNumber, sortOrder));
+                }
+            }
+        }
+
+        attachmentPoint->addChild(node);
+    }
+};
+
 class DynamicLoadAndCompile : public vsg::Inherit<vsg::Object, DynamicLoadAndCompile>
 {
 public:
     vsg::ref_ptr<vsg::ActivityStatus> status;
 
     vsg::ref_ptr<vsg::OperationThreads> loadThreads;
-    vsg::ref_ptr<vsg::OperationQueue> mergeQueue;
 
     // window related settings used to set up the CompileTraversal
     vsg::ref_ptr<CustomViewer> viewer;
@@ -100,7 +187,6 @@ public:
         viewer(in_viewer)
     {
         loadThreads = vsg::OperationThreads::create(12, status);
-        mergeQueue = vsg::OperationQueue::create(status);
     }
 
     struct Request : public vsg::Inherit<vsg::Object, Request>
@@ -129,37 +215,12 @@ public:
         void run() override;
     };
 
-    struct MergeOperation : public vsg::Inherit<vsg::Operation, MergeOperation>
-    {
-        MergeOperation(vsg::ref_ptr<Request> in_request, vsg::observer_ptr<DynamicLoadAndCompile> in_dlac) :
-            request(in_request),
-            dlac(in_dlac) {}
-
-        vsg::ref_ptr<Request> request;
-        vsg::observer_ptr<DynamicLoadAndCompile> dlac;
-
-        void run() override;
-    };
-
     void loadRequest(const vsg::Path& filename, vsg::ref_ptr<vsg::Group> attachmentPoint, vsg::ref_ptr<vsg::Options> options)
     {
         auto request = Request::create(filename, attachmentPoint, options);
         loadThreads->add(LoadOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
     }
 
-    void mergeRequest(vsg::ref_ptr<Request> request)
-    {
-        mergeQueue->add(MergeOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
-    }
-
-    void merge()
-    {
-        vsg::ref_ptr<vsg::Operation> operation;
-        while (operation = mergeQueue->take())
-        {
-            operation->run();
-        }
-    }
 };
 
 void DynamicLoadAndCompile::LoadOperation::run()
@@ -186,57 +247,12 @@ void DynamicLoadAndCompile::LoadOperation::run()
 
         dynamicLoadAndCompile->viewer->compile(node, request->requirements);
 
-        dynamicLoadAndCompile->mergeRequest(request);
-
-        // dynamicLoadAndCompile->compileRequest(request);
+        vsg::observer_ptr<vsg::Viewer> viewer(dynamicLoadAndCompile->viewer);
+        dynamicLoadAndCompile->viewer->addUpdateOperation(Merge::create(viewer, request->attachmentPoint, request->loaded, request->requirements));
     }
 }
 
 
-void DynamicLoadAndCompile::MergeOperation::run()
-{
-    std::cout << "Merging " << request->filename << std::endl;
-
-    auto& requirements = request->requirements;
-
-    std::cout<<"    requirements.maxSlot = "<<requirements.maxSlot<<std::endl;
-
-    if (requirements.containsPagedLOD)
-    {
-        std::cout<<"    conatians vsg::PagedLOD "<<std::endl;
-#if 0
-        vsg::ref_ptr<vsg::DatabasePager> databasePager;
-        for (auto& task : viewer->recordAndSubmitTasks)
-        {
-            if (task->databasePager && !databasePager) databasePager = task->databasePager;
-        }
-        std::cout<<"    databasePager "<<databasePager<<std::endl;
-#endif
-    }
-
-    for (auto& [const_view, binDetails] : requirements.views)
-    {
-        auto view = const_cast<vsg::View*>(const_view);
-        for (auto& binNumber : binDetails.indices)
-        {
-            bool binNumberMatched = false;
-            for (auto& bin : view->bins)
-            {
-                if (bin->binNumber == binNumber)
-                {
-                    binNumberMatched = true;
-                }
-            }
-            if (!binNumberMatched)
-            {
-                vsg::Bin::SortOrder sortOrder = (binNumber < 0) ? vsg::Bin::ASCENDING : ((binNumber == 0) ? vsg::Bin::NO_SORT : vsg::Bin::DESCENDING);
-                view->bins.push_back(vsg::Bin::create(binNumber, sortOrder));
-            }
-        }
-    }
-
-    request->attachmentPoint->addChild(request->loaded);
-}
 
 int main(int argc, char** argv)
 {
@@ -354,8 +370,6 @@ int main(int argc, char** argv)
         {
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
-
-            dynamicLoadAndCompile->merge();
 
             viewer->update();
 
