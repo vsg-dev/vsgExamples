@@ -9,28 +9,97 @@
 #include <iostream>
 #include <thread>
 
+
+class CustomViewer : public vsg::Inherit<vsg::Viewer, CustomViewer>
+{
+public:
+
+    vsg::ResourceRequirements resourceRequirements;
+
+    std::mutex mutex_compileTraversals;
+    std::list<vsg::ref_ptr<vsg::CompileTraversal>> compileTraversals;
+
+    vsg::ref_ptr<vsg::CompileTraversal> takeCompileTraversal()
+    {
+        {
+            std::scoped_lock lock(mutex_compileTraversals);
+            if (!compileTraversals.empty())
+            {
+                auto ct = compileTraversals.front();
+                compileTraversals.erase(compileTraversals.begin());
+                std::cout << "takeCompileTraversal() resuming " << ct << std::endl;
+                return ct;
+            }
+        }
+
+        std::cout << "takeCompileTraversal() creating a new CompileTraversal" << std::endl;
+        auto ct = vsg::CompileTraversal::create(*this, resourceRequirements);
+
+        return ct;
+    }
+
+    void addCompileTraversal(vsg::ref_ptr<vsg::CompileTraversal> ct)
+    {
+        std::cout << "addCompileTraversal(" << ct << ")" << std::endl;
+        std::scoped_lock lock(mutex_compileTraversals);
+        compileTraversals.push_back(ct);
+    }
+
+    using vsg::Viewer::compile;
+    void compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequirements& requirements);
+};
+
+void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequirements& requirements)
+{
+    std::cout<<"Need to compile "<<object<<std::endl;
+
+    auto compileTraversal = takeCompileTraversal();
+
+    vsg::CollectResourceRequirements collectRequirements;
+    object->accept(collectRequirements);
+
+    requirements = collectRequirements.requirements;
+
+    for(auto& context : compileTraversal->contexts)
+    {
+        vsg::ref_ptr<vsg::View> view = context->view;
+        if (view && !requirements.binStack.empty())
+        {
+            requirements.views[view] = requirements.binStack.top();
+        }
+
+        context->reserve(requirements);
+    }
+
+    object->accept(*compileTraversal);
+
+    std::cout << "Finished compile traversal " << object << std::endl;
+
+    compileTraversal->record(); // records and submits to queue
+    compileTraversal->waitForCompletion();
+
+    std::cout << "Finished waiting for compile " << object << std::endl;
+
+    addCompileTraversal(compileTraversal);
+}
+
 class DynamicLoadAndCompile : public vsg::Inherit<vsg::Object, DynamicLoadAndCompile>
 {
 public:
     vsg::ref_ptr<vsg::ActivityStatus> status;
 
     vsg::ref_ptr<vsg::OperationThreads> loadThreads;
-    vsg::ref_ptr<vsg::OperationThreads> compileThreads;
     vsg::ref_ptr<vsg::OperationQueue> mergeQueue;
 
-    std::mutex mutex_compileTraversals;
-    std::list<vsg::ref_ptr<vsg::CompileTraversal>> compileTraversals;
-
     // window related settings used to set up the CompileTraversal
-    vsg::ref_ptr<vsg::Viewer> viewer;
+    vsg::ref_ptr<CustomViewer> viewer;
     vsg::ResourceRequirements resourceRequirements;
 
-    DynamicLoadAndCompile(vsg::ref_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
+    DynamicLoadAndCompile(vsg::ref_ptr<CustomViewer> in_viewer, vsg::ref_ptr<vsg::ActivityStatus> in_status = vsg::ActivityStatus::create()) :
         status(in_status),
         viewer(in_viewer)
     {
         loadThreads = vsg::OperationThreads::create(12, status);
-        compileThreads = vsg::OperationThreads::create(1, status);
         mergeQueue = vsg::OperationQueue::create(status);
     }
 
@@ -60,18 +129,6 @@ public:
         void run() override;
     };
 
-    struct CompileOperation : public vsg::Inherit<vsg::Operation, CompileOperation>
-    {
-        CompileOperation(vsg::ref_ptr<Request> in_request, vsg::observer_ptr<DynamicLoadAndCompile> in_dlac) :
-            request(in_request),
-            dlac(in_dlac) {}
-
-        vsg::ref_ptr<Request> request;
-        vsg::observer_ptr<DynamicLoadAndCompile> dlac;
-
-        void run() override;
-    };
-
     struct MergeOperation : public vsg::Inherit<vsg::Operation, MergeOperation>
     {
         MergeOperation(vsg::ref_ptr<Request> in_request, vsg::observer_ptr<DynamicLoadAndCompile> in_dlac) :
@@ -90,40 +147,9 @@ public:
         loadThreads->add(LoadOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
     }
 
-    void compileRequest(vsg::ref_ptr<Request> request)
-    {
-        compileThreads->add(CompileOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
-    }
-
     void mergeRequest(vsg::ref_ptr<Request> request)
     {
         mergeQueue->add(MergeOperation::create(request, vsg::observer_ptr<DynamicLoadAndCompile>(this)));
-    }
-
-    vsg::ref_ptr<vsg::CompileTraversal> takeCompileTraversal()
-    {
-        {
-            std::scoped_lock lock(mutex_compileTraversals);
-            if (!compileTraversals.empty())
-            {
-                auto ct = compileTraversals.front();
-                compileTraversals.erase(compileTraversals.begin());
-                std::cout << "takeCompileTraversal() resuming " << ct << std::endl;
-                return ct;
-            }
-        }
-
-        std::cout << "takeCompileTraversal() creating a new CompileTraversal" << std::endl;
-        auto ct = vsg::CompileTraversal::create(viewer, resourceRequirements);
-
-        return ct;
-    }
-
-    void addCompileTraversal(vsg::ref_ptr<vsg::CompileTraversal> ct)
-    {
-        std::cout << "addCompileTraversal(" << ct << ")" << std::endl;
-        std::scoped_lock lock(mutex_compileTraversals);
-        compileTraversals.push_back(ct);
     }
 
     void merge()
@@ -158,53 +184,14 @@ void DynamicLoadAndCompile::LoadOperation::run()
 
         std::cout << "Loaded " << request->filename << std::endl;
 
-        dynamicLoadAndCompile->compileRequest(request);
-    }
-}
-
-void DynamicLoadAndCompile::CompileOperation::run()
-{
-    vsg::ref_ptr<DynamicLoadAndCompile> dynamicLoadAndCompile(dlac);
-    if (!dynamicLoadAndCompile) return;
-
-    if (request->loaded)
-    {
-        std::cout << "Compiling " << request->filename << std::endl;
-
-        auto compileTraversal = dynamicLoadAndCompile->takeCompileTraversal();
-
-        vsg::CollectResourceRequirements collectRequirements;
-        request->loaded->accept(collectRequirements);
-
-        auto& requirements = collectRequirements.requirements;
-
-        for(auto& context : compileTraversal->contexts)
-        {
-            vsg::ref_ptr<vsg::View> view = context->view;
-            if (view && !requirements.binStack.empty())
-            {
-                requirements.views[view] = requirements.binStack.top();
-            }
-
-            context->reserve(requirements);
-        }
-
-        request->requirements = requirements;
-
-        request->loaded->accept(*compileTraversal);
-
-        std::cout << "Finished compile traversal " << request->filename << std::endl;
-
-        compileTraversal->record(); // records and submits to queue
-        compileTraversal->waitForCompletion();
-
-        std::cout << "Finished waiting for compile " << request->filename << std::endl;
+        dynamicLoadAndCompile->viewer->compile(node, request->requirements);
 
         dynamicLoadAndCompile->mergeRequest(request);
 
-        dynamicLoadAndCompile->addCompileTraversal(compileTraversal);
+        // dynamicLoadAndCompile->compileRequest(request);
     }
 }
+
 
 void DynamicLoadAndCompile::MergeOperation::run()
 {
@@ -212,7 +199,20 @@ void DynamicLoadAndCompile::MergeOperation::run()
 
     auto& requirements = request->requirements;
 
-    std::cout<<" requirements.maxSlot = "<<requirements.maxSlot<<std::endl;
+    std::cout<<"    requirements.maxSlot = "<<requirements.maxSlot<<std::endl;
+
+    if (requirements.containsPagedLOD)
+    {
+        std::cout<<"    conatians vsg::PagedLOD "<<std::endl;
+#if 0
+        vsg::ref_ptr<vsg::DatabasePager> databasePager;
+        for (auto& task : viewer->recordAndSubmitTasks)
+        {
+            if (task->databasePager && !databasePager) databasePager = task->databasePager;
+        }
+        std::cout<<"    databasePager "<<databasePager<<std::endl;
+#endif
+    }
 
     for (auto& [const_view, binDetails] : requirements.views)
     {
@@ -290,7 +290,7 @@ int main(int argc, char** argv)
         }
 
         // create the viewer and assign window(s) to it
-        auto viewer = vsg::Viewer::create();
+        auto viewer = CustomViewer::create();
 
         viewer->addWindow(window);
 
