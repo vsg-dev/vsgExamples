@@ -271,7 +271,7 @@ public:
         auto commandPool = vsg::CommandPool::create(device, queueFamilyIndex);
         auto queue = device->getQueue(queueFamilyIndex);
 
-        vsg::submitCommandsToQueue(device, commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer) {
+        vsg::submitCommandsToQueue(commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer) {
             commands->record(commandBuffer);
         });
 
@@ -428,7 +428,7 @@ public:
         auto commandPool = vsg::CommandPool::create(device, queueFamilyIndex);
         auto queue = device->getQueue(queueFamilyIndex);
 
-        vsg::submitCommandsToQueue(device, commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer) {
+        vsg::submitCommandsToQueue(commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer) {
             commands->record(commandBuffer);
         });
 
