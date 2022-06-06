@@ -16,14 +16,16 @@ public:
 
     CustomViewer()
     {
-        compileTraversals = CompileTraverslas::create(status);
+        compileTraversals = CompileTraversals::create(status);
         updateOperations = UpdateOperations::create(status);
     }
 
     vsg::ResourceRequirements resourceRequirements;
 
-    using CompileTraverslas = vsg::ThreadSafeQueue<vsg::ref_ptr<vsg::CompileTraversal>>;
-    vsg::ref_ptr<CompileTraverslas> compileTraversals;
+    using CompileTraversals = vsg::ThreadSafeQueue<vsg::ref_ptr<vsg::CompileTraversal>>;
+    size_t numCompileTraversals = 0;
+    vsg::ref_ptr<CompileTraversals> compileTraversals;
+    vsg::ref_ptr<vsg::CompileTraversal> db_compileTraversal;
 
     using UpdateOperations = vsg::ThreadSafeQueue<vsg::ref_ptr<vsg::Operation>>;
     vsg::ref_ptr<UpdateOperations> updateOperations;
@@ -31,6 +33,19 @@ public:
     vsg::ref_ptr<vsg::CompileTraversal> takeCompileTraversal()
     {
         return compileTraversals->take_when_available();
+    }
+
+    CompileTraversals::container_type takeCompileTraversals(size_t count)
+    {
+        CompileTraversals::container_type  cts;
+        while (cts.size() < count)
+        {
+            auto ct = compileTraversals->take_when_available();
+            if (ct) cts.push_back(ct);
+            else break;
+        }
+
+        return cts;
     }
 
     void addCompileTraversal(vsg::ref_ptr<vsg::CompileTraversal> ct)
@@ -58,6 +73,10 @@ void CustomViewer::compile(vsg::ref_ptr<vsg::ResourceHints> hints)
     addCompileTraversal(vsg::CompileTraversal::create(*ct));
     addCompileTraversal(vsg::CompileTraversal::create(*ct));
     addCompileTraversal(vsg::CompileTraversal::create(*ct));
+
+    db_compileTraversal = vsg::CompileTraversal::create(*ct);
+
+    numCompileTraversals = 4;
 }
 
 void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequirements& requirements)
@@ -66,7 +85,7 @@ void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequir
 
     auto compileTraversal = takeCompileTraversal();
 
-    // if no CompileTraverslas are avilable abort compile
+    // if no CompileTraversals are avilable abort compile
     if (!compileTraversal) return;
 
     vsg::CollectResourceRequirements collectRequirements;
@@ -130,20 +149,45 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 
     void run() override
     {
-        // std::cout<<"Merge::run() path = "<<path<<", "<<attachmentPoint<<", "<<node<<std::endl;
-        // std::cout<<"    requirements.maxSlot = "<<requirements.maxSlot<<std::endl;
+        std::cout<<"Merge::run() path = "<<path<<", "<<attachmentPoint<<", "<<node<<std::endl;
 
-        if (requirements.containsPagedLOD)
+        vsg::ref_ptr<CustomViewer> ref_viewer = viewer;
+        if (ref_viewer)
         {
-            // std::cout<<"    conatians vsg::PagedLOD "<<std::endl;
-    #if 0
-            vsg::ref_ptr<vsg::DatabasePager> databasePager;
-            for (auto& task : viewer->recordAndSubmitTasks)
+            for (auto& task : ref_viewer->recordAndSubmitTasks)
             {
-                if (task->databasePager && !databasePager) databasePager = task->databasePager;
+                for (auto& commandGraph : task->commandGraphs)
+                {
+                    if (requirements.maxSlot > commandGraph->maxSlot)
+                    {
+                        commandGraph->maxSlot = requirements.maxSlot;
+                    }
+                }
             }
-            std::cout<<"    databasePager "<<databasePager<<std::endl;
-    #endif
+
+            if (requirements.containsPagedLOD)
+            {
+                vsg::ref_ptr<vsg::DatabasePager> databasePager;
+                for (auto& task : ref_viewer->recordAndSubmitTasks)
+                {
+                    if (task->databasePager && !databasePager) databasePager = task->databasePager;
+                }
+
+                if (!databasePager)
+                {
+                    databasePager = vsg::DatabasePager::create();
+                    for (auto& task : ref_viewer->recordAndSubmitTasks)
+                    {
+                        if (!task->databasePager)
+                        {
+                            task->databasePager = databasePager;
+                            task->databasePager->compileTraversal = ref_viewer->db_compileTraversal;
+                        }
+                    }
+
+                    databasePager->start();
+                }
+            }
         }
 
         for (auto& [const_view, binDetails] : requirements.views)
@@ -168,8 +212,6 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
         }
 
         // TODO:
-        //   1. Enable DatabasePager when required
-        //   2. Update slotNumber if it changes
         //   3. Handle new Views
 
         attachmentPoint->addChild(node);
@@ -227,6 +269,7 @@ int main(int argc, char** argv)
         // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->sharedObjects = vsg::SharedObjects::create();
+        options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
 #ifdef vsgXchange_all
