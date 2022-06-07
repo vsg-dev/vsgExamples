@@ -42,7 +42,7 @@ void updateViewer(Viewer& viewer, const CompileResult& compileResult)
                 if (!task->databasePager)
                 {
                     task->databasePager = databasePager;
-                    task->databasePager->compileTraversal = viewer.compileManager->db_compileTraversal;
+                    task->databasePager->compileManager = viewer.compileManager;
                 }
             }
 
