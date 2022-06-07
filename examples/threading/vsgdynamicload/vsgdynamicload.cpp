@@ -10,27 +10,27 @@
 #include <thread>
 
 
-class CustomViewer : public vsg::Inherit<vsg::Viewer, CustomViewer>
+namespace vsg
+{
+
+class CustomViewer : public Inherit<Viewer, CustomViewer>
 {
 public:
 
     CustomViewer()
     {
         compileTraversals = CompileTraversals::create(status);
-        updateOperations = UpdateOperations::create(status);
     }
 
-    vsg::ResourceRequirements resourceRequirements;
+    ResourceRequirements resourceRequirements;
 
-    using CompileTraversals = vsg::ThreadSafeQueue<vsg::ref_ptr<vsg::CompileTraversal>>;
+    using CompileTraversals = ThreadSafeQueue<ref_ptr<CompileTraversal>>;
     size_t numCompileTraversals = 0;
-    vsg::ref_ptr<CompileTraversals> compileTraversals;
-    vsg::ref_ptr<vsg::CompileTraversal> db_compileTraversal;
+    ref_ptr<CompileTraversals> compileTraversals;
+    ref_ptr<CompileTraversal> db_compileTraversal;
 
-    using UpdateOperations = vsg::ThreadSafeQueue<vsg::ref_ptr<vsg::Operation>>;
-    vsg::ref_ptr<UpdateOperations> updateOperations;
 
-    vsg::ref_ptr<vsg::CompileTraversal> takeCompileTraversal()
+    ref_ptr<CompileTraversal> takeCompileTraversal()
     {
         return compileTraversals->take_when_available();
     }
@@ -48,38 +48,31 @@ public:
         return cts;
     }
 
-    void addCompileTraversal(vsg::ref_ptr<vsg::CompileTraversal> ct)
+    void addCompileTraversal(ref_ptr<CompileTraversal> ct)
     {
         return compileTraversals->add(ct);
     }
 
-    void compile(vsg::ref_ptr<vsg::ResourceHints> hints = {}) override;
-    void compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequirements& requirements);
-
-    void addUpdateOperation(vsg::ref_ptr<vsg::Operation> op)
-    {
-        updateOperations->add(op);
-    }
-
-    void update() override;
+    void compile(ref_ptr<ResourceHints> hints = {}) override;
+    void compile(ref_ptr<Object> object, ResourceRequirements& requirements);
 };
 
-void CustomViewer::compile(vsg::ref_ptr<vsg::ResourceHints> hints)
+void CustomViewer::compile(ref_ptr<ResourceHints> hints)
 {
     Viewer::compile(hints);
 
-    auto ct = vsg::CompileTraversal::create(*this, resourceRequirements);
+    auto ct = CompileTraversal::create(*this, resourceRequirements);
     addCompileTraversal(ct);
-    addCompileTraversal(vsg::CompileTraversal::create(*ct));
-    addCompileTraversal(vsg::CompileTraversal::create(*ct));
-    addCompileTraversal(vsg::CompileTraversal::create(*ct));
+    addCompileTraversal(CompileTraversal::create(*ct));
+    addCompileTraversal(CompileTraversal::create(*ct));
+    addCompileTraversal(CompileTraversal::create(*ct));
 
-    db_compileTraversal = vsg::CompileTraversal::create(*ct);
+    db_compileTraversal = CompileTraversal::create(*ct);
 
     numCompileTraversals = 4;
 }
 
-void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequirements& requirements)
+void CustomViewer::compile(ref_ptr<Object> object, ResourceRequirements& requirements)
 {
     // std::cout<<"Need to compile "<<object<<std::endl;
 
@@ -88,7 +81,7 @@ void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequir
     // if no CompileTraversals are avilable abort compile
     if (!compileTraversal) return;
 
-    vsg::CollectResourceRequirements collectRequirements;
+    CollectResourceRequirements collectRequirements;
     object->accept(collectRequirements);
 
     auto& binStack = collectRequirements.requirements.binStack;
@@ -97,7 +90,7 @@ void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequir
 
     for(auto& context : compileTraversal->contexts)
     {
-        vsg::ref_ptr<vsg::View> view = context->view;
+        ref_ptr<View> view = context->view;
         if (view && !binStack.empty())
         {
             auto binDetails = binStack.top();
@@ -119,22 +112,11 @@ void CustomViewer::compile(vsg::ref_ptr<vsg::Object> object, vsg::ResourceRequir
     addCompileTraversal(compileTraversal);
 }
 
-void CustomViewer::update()
-{
-    //std::cout<<"CustomViewer::update()"<<std::endl;
-    vsg::Viewer::update();
-
-    auto operations = updateOperations->take_all();
-    for(auto& operation : operations)
-    {
-        operation->run();
-    }
-}
-
+} // end of namespace vsg
 
 struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 {
-    Merge(const vsg::Path& in_path, vsg::observer_ptr<CustomViewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::ResourceRequirements& in_requirements):
+    Merge(const vsg::Path& in_path, vsg::observer_ptr<vsg::CustomViewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::ResourceRequirements& in_requirements):
         path(in_path),
         viewer(in_viewer),
         attachmentPoint(in_attachmentPoint),
@@ -142,7 +124,7 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
         requirements(in_requirements) {}
 
     vsg::Path path;
-    vsg::observer_ptr<CustomViewer> viewer;
+    vsg::observer_ptr<vsg::CustomViewer> viewer;
     vsg::ref_ptr<vsg::Group> attachmentPoint;
     vsg::ref_ptr<vsg::Node> node;
     vsg::ResourceRequirements requirements;
@@ -151,7 +133,7 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
     {
         std::cout<<"Merge::run() path = "<<path<<", "<<attachmentPoint<<", "<<node<<std::endl;
 
-        vsg::ref_ptr<CustomViewer> ref_viewer = viewer;
+        vsg::ref_ptr<vsg::CustomViewer> ref_viewer = viewer;
         if (ref_viewer)
         {
             for (auto& task : ref_viewer->recordAndSubmitTasks)
@@ -220,13 +202,13 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 
 struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
 {
-    LoadOperation(vsg::observer_ptr<CustomViewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, const vsg::Path& in_filename, vsg::ref_ptr<vsg::Options> in_options) :
+    LoadOperation(vsg::ref_ptr<vsg::CustomViewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, const vsg::Path& in_filename, vsg::ref_ptr<vsg::Options> in_options) :
         viewer(in_viewer),
         attachmentPoint(in_attachmentPoint),
         filename(in_filename),
         options(in_options) {}
 
-    vsg::observer_ptr<CustomViewer> viewer;
+    vsg::observer_ptr<vsg::CustomViewer> viewer;
     vsg::ref_ptr<vsg::Group> attachmentPoint;
     vsg::Path filename;
     vsg::ref_ptr<vsg::Options> options;
@@ -236,7 +218,7 @@ struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
 
 void LoadOperation::run()
 {
-    vsg::ref_ptr<CustomViewer > custom_viewer = viewer;
+    vsg::ref_ptr<vsg::CustomViewer > custom_viewer = viewer;
 
     // std::cout << "Loading " << filename << std::endl;
     if (auto node = vsg::read_cast<vsg::Node>(filename, options); node)
@@ -314,7 +296,7 @@ int main(int argc, char** argv)
 
 
         // create the viewer and assign window(s) to it
-        auto viewer = CustomViewer::create();
+        auto viewer = vsg::CustomViewer::create();
 
         viewer->addWindow(window);
 
@@ -360,7 +342,7 @@ int main(int argc, char** argv)
         auto loadThreads = vsg::OperationThreads::create(numThreads, viewer->status);
 
         // build the scene graph attachments points to place all of the loaded models at.
-        vsg::observer_ptr<CustomViewer> observer_viewer(viewer);
+        vsg::observer_ptr<vsg::CustomViewer> observer_viewer(viewer);
         for (int i = 1; i < argc; ++i)
         {
             int index = i - 1;
