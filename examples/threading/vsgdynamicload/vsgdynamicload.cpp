@@ -13,23 +13,59 @@
 namespace vsg
 {
 
-class CustomViewer : public Inherit<Viewer, CustomViewer>
+struct CompileResult
+{
+    VkResult result = VK_INCOMPLETE;
+    uint32_t maxSlot = 0;
+    bool containsPagedLOD = false;
+    ResourceRequirements::Views views;
+
+    explicit operator bool() const noexcept { return result == VK_SUCCESS; }
+};
+
+class CompileManager : public Inherit<Object, CompileManager>
 {
 public:
 
-    CustomViewer()
+    CompileManager(Viewer& viewer, ref_ptr<ResourceHints> hints)
     {
-        compileTraversals = CompileTraversals::create(status);
+        compileTraversals = CompileTraversals::create(viewer.status);
+
+        ResourceRequirements requirements;
+
+        auto ct = CompileTraversal::create(viewer, requirements);
+        addCompileTraversal(ct);
+        addCompileTraversal(CompileTraversal::create(*ct));
+        addCompileTraversal(CompileTraversal::create(*ct));
+        addCompileTraversal(CompileTraversal::create(*ct));
+
+        db_compileTraversal = CompileTraversal::create(*ct);
+
+        numCompileTraversals = 4;
     }
 
-    ResourceRequirements resourceRequirements;
+    /// add a compile Context for device
+    void add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements = {});
+
+    /// add a compile Context for Window and associated viewport.
+    void add(ref_ptr<Window> window, ref_ptr<ViewportState> viewport = {}, const ResourceRequirements& resourceRequirements = {});
+
+    /// add a compile Context for View
+    void add(ref_ptr<Window> window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
+
+    /// add a compile Context for all the Views assigned to a Viewer
+    void add(Viewer& viewer, const ResourceRequirements& resourceRequirements = {});
+
+    /// compile object
+    CompileResult compile(ref_ptr<Object> object);
+
+    ref_ptr<CompileTraversal> db_compileTraversal;
+
+protected:
 
     using CompileTraversals = ThreadSafeQueue<ref_ptr<CompileTraversal>>;
     size_t numCompileTraversals = 0;
     ref_ptr<CompileTraversals> compileTraversals;
-    ref_ptr<CompileTraversal> db_compileTraversal;
-
-
     ref_ptr<CompileTraversal> takeCompileTraversal()
     {
         return compileTraversals->take_when_available();
@@ -53,40 +89,71 @@ public:
         return compileTraversals->add(ct);
     }
 
-    void compile(ref_ptr<ResourceHints> hints = {}) override;
-    void compile(ref_ptr<Object> object, ResourceRequirements& requirements);
 };
 
-void CustomViewer::compile(ref_ptr<ResourceHints> hints)
+void CompileManager::add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements)
 {
-    Viewer::compile(hints);
+    auto cts = takeCompileTraversals(numCompileTraversals);
+    for(auto& ct : cts)
+    {
+        ct->add(device, resourceRequirements);
 
-    auto ct = CompileTraversal::create(*this, resourceRequirements);
-    addCompileTraversal(ct);
-    addCompileTraversal(CompileTraversal::create(*ct));
-    addCompileTraversal(CompileTraversal::create(*ct));
-    addCompileTraversal(CompileTraversal::create(*ct));
-
-    db_compileTraversal = CompileTraversal::create(*ct);
-
-    numCompileTraversals = 4;
+        addCompileTraversal(ct);
+    }
 }
 
-void CustomViewer::compile(ref_ptr<Object> object, ResourceRequirements& requirements)
+void CompileManager::add(ref_ptr<Window> window, ref_ptr<ViewportState> viewport, const ResourceRequirements& resourceRequirements)
+{
+    auto cts = takeCompileTraversals(numCompileTraversals);
+    for(auto& ct : cts)
+    {
+        ct->add(window, viewport, resourceRequirements);
+
+        addCompileTraversal(ct);
+    }
+}
+
+void CompileManager::add(ref_ptr<Window> window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
+{
+    auto cts = takeCompileTraversals(numCompileTraversals);
+    for(auto& ct : cts)
+    {
+        ct->add(window, view, resourceRequirements);
+
+        addCompileTraversal(ct);
+    }
+}
+
+void CompileManager::add(Viewer& viewer, const ResourceRequirements& resourceRequirements)
+{
+    auto cts = takeCompileTraversals(numCompileTraversals);
+    for(auto& ct : cts)
+    {
+        ct->add(viewer, resourceRequirements);
+
+        addCompileTraversal(ct);
+    }
+}
+
+CompileResult CompileManager::compile(ref_ptr<Object> object)
 {
     // std::cout<<"Need to compile "<<object<<std::endl;
 
     auto compileTraversal = takeCompileTraversal();
 
     // if no CompileTraversals are avilable abort compile
-    if (!compileTraversal) return;
+    if (!compileTraversal) return {};
 
     CollectResourceRequirements collectRequirements;
     object->accept(collectRequirements);
 
-    auto& binStack = collectRequirements.requirements.binStack;
 
-    requirements = collectRequirements.requirements;
+    auto& requirements = collectRequirements.requirements;
+    auto& binStack = requirements.binStack;
+
+    CompileResult result;
+    result.maxSlot = requirements.maxSlot;
+    result.containsPagedLOD = requirements.containsPagedLOD;
 
     for(auto& context : compileTraversal->contexts)
     {
@@ -94,10 +161,10 @@ void CustomViewer::compile(ref_ptr<Object> object, ResourceRequirements& require
         if (view && !binStack.empty())
         {
             auto binDetails = binStack.top();
-            requirements.views[view] = binDetails;
+            result.views[view] = binDetails;
         }
 
-        context->reserve(collectRequirements.requirements);
+        context->reserve(requirements);
     }
 
     object->accept(*compileTraversal);
@@ -110,24 +177,110 @@ void CustomViewer::compile(ref_ptr<Object> object, ResourceRequirements& require
     // std::cout << "Finished waiting for compile " << object << std::endl;
 
     addCompileTraversal(compileTraversal);
+
+    result.result = VK_SUCCESS;
+
+    return result;
+}
+
+
+
+class CustomViewer : public Inherit<Viewer, CustomViewer>
+{
+public:
+
+    CustomViewer()
+    {
+    }
+
+    void compile(ref_ptr<ResourceHints> hints = {}) override;
+
+    ref_ptr<CompileManager> compileManager;
+};
+
+
+void updateViewer(CustomViewer& viewer, const CompileResult& compileResult)
+{
+    for (auto& task : viewer.recordAndSubmitTasks)
+    {
+        for (auto& commandGraph : task->commandGraphs)
+        {
+            if (compileResult.maxSlot > commandGraph->maxSlot)
+            {
+                commandGraph->maxSlot = compileResult.maxSlot;
+            }
+        }
+    }
+
+    if (compileResult.containsPagedLOD)
+    {
+        vsg::ref_ptr<vsg::DatabasePager> databasePager;
+        for (auto& task : viewer.recordAndSubmitTasks)
+        {
+            if (task->databasePager && !databasePager) databasePager = task->databasePager;
+        }
+
+        if (!databasePager)
+        {
+            databasePager = vsg::DatabasePager::create();
+            for (auto& task : viewer.recordAndSubmitTasks)
+            {
+                if (!task->databasePager)
+                {
+                    task->databasePager = databasePager;
+                    task->databasePager->compileTraversal = viewer.compileManager->db_compileTraversal;
+                }
+            }
+
+            databasePager->start();
+        }
+    }
+
+    for (auto& [const_view, binDetails] : compileResult.views)
+    {
+        auto view = const_cast<vsg::View*>(const_view);
+        for (auto& binNumber : binDetails.indices)
+        {
+            bool binNumberMatched = false;
+            for (auto& bin : view->bins)
+            {
+                if (bin->binNumber == binNumber)
+                {
+                    binNumberMatched = true;
+                }
+            }
+            if (!binNumberMatched)
+            {
+                vsg::Bin::SortOrder sortOrder = (binNumber < 0) ? vsg::Bin::ASCENDING : ((binNumber == 0) ? vsg::Bin::NO_SORT : vsg::Bin::DESCENDING);
+                view->bins.push_back(vsg::Bin::create(binNumber, sortOrder));
+            }
+        }
+    }
+}
+
+void CustomViewer::compile(ref_ptr<ResourceHints> hints)
+{
+    Viewer::compile(hints);
+
+    compileManager = CompileManager::create(*this, hints);
 }
 
 } // end of namespace vsg
 
 struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 {
-    Merge(const vsg::Path& in_path, vsg::observer_ptr<vsg::CustomViewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::ResourceRequirements& in_requirements):
+    Merge(const vsg::Path& in_path, vsg::observer_ptr<vsg::CustomViewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::CompileResult& in_compileResult):
         path(in_path),
         viewer(in_viewer),
         attachmentPoint(in_attachmentPoint),
         node(in_node),
-        requirements(in_requirements) {}
+        compileResult(in_compileResult) {}
 
     vsg::Path path;
     vsg::observer_ptr<vsg::CustomViewer> viewer;
     vsg::ref_ptr<vsg::Group> attachmentPoint;
     vsg::ref_ptr<vsg::Node> node;
-    vsg::ResourceRequirements requirements;
+    vsg::CompileResult compileResult;
 
     void run() override
     {
@@ -136,63 +289,8 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
         vsg::ref_ptr<vsg::CustomViewer> ref_viewer = viewer;
         if (ref_viewer)
         {
-            for (auto& task : ref_viewer->recordAndSubmitTasks)
-            {
-                for (auto& commandGraph : task->commandGraphs)
-                {
-                    if (requirements.maxSlot > commandGraph->maxSlot)
-                    {
-                        commandGraph->maxSlot = requirements.maxSlot;
-                    }
-                }
-            }
-
-            if (requirements.containsPagedLOD)
-            {
-                vsg::ref_ptr<vsg::DatabasePager> databasePager;
-                for (auto& task : ref_viewer->recordAndSubmitTasks)
-                {
-                    if (task->databasePager && !databasePager) databasePager = task->databasePager;
-                }
-
-                if (!databasePager)
-                {
-                    databasePager = vsg::DatabasePager::create();
-                    for (auto& task : ref_viewer->recordAndSubmitTasks)
-                    {
-                        if (!task->databasePager)
-                        {
-                            task->databasePager = databasePager;
-                            task->databasePager->compileTraversal = ref_viewer->db_compileTraversal;
-                        }
-                    }
-
-                    databasePager->start();
-                }
-            }
+            updateViewer(*ref_viewer, compileResult);
         }
-
-        for (auto& [const_view, binDetails] : requirements.views)
-        {
-            auto view = const_cast<vsg::View*>(const_view);
-            for (auto& binNumber : binDetails.indices)
-            {
-                bool binNumberMatched = false;
-                for (auto& bin : view->bins)
-                {
-                    if (bin->binNumber == binNumber)
-                    {
-                        binNumberMatched = true;
-                    }
-                }
-                if (!binNumberMatched)
-                {
-                    vsg::Bin::SortOrder sortOrder = (binNumber < 0) ? vsg::Bin::ASCENDING : ((binNumber == 0) ? vsg::Bin::NO_SORT : vsg::Bin::DESCENDING);
-                    view->bins.push_back(vsg::Bin::create(binNumber, sortOrder));
-                }
-            }
-        }
-
         // TODO:
         //   3. Handle new Views
 
@@ -234,10 +332,8 @@ void LoadOperation::run()
 
         scale->addChild(node);
 
-        vsg::ResourceRequirements requirements;
-        custom_viewer->compile(node, requirements);
-
-        custom_viewer->addUpdateOperation(Merge::create(filename, viewer, attachmentPoint, scale, requirements));
+        auto result = custom_viewer->compileManager->compile(node);
+        if (result) custom_viewer->addUpdateOperation(Merge::create(filename, viewer, attachmentPoint, scale, result));
     }
 }
 
