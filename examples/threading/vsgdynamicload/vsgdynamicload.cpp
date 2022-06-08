@@ -144,6 +144,67 @@ struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
     }
 };
 
+struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation>
+{
+    LoadViewOperation(vsg::ref_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Window> in_window, int32_t in_x, int32_t in_y, uint32_t in_width, uint32_t in_height, vsg::ref_ptr<vsg::Group> in_attachmentPoint, const vsg::Path& in_filename, vsg::ref_ptr<vsg::Options> in_options) :
+        viewer(in_viewer),
+        window(in_window),
+        x(in_x),
+        y(in_y),
+        width(in_width),
+        height(in_height),
+        attachmentPoint(in_attachmentPoint),
+        filename(in_filename),
+        options(in_options)
+    {
+    }
+
+    vsg::observer_ptr<vsg::Viewer> viewer;
+    vsg::observer_ptr<vsg::Window> window;
+    int32_t x, y;
+    uint32_t width, height;
+    vsg::ref_ptr<vsg::Group> attachmentPoint;
+    vsg::Path filename;
+    vsg::ref_ptr<vsg::Options> options;
+
+    void run() override
+    {
+        vsg::ref_ptr<vsg::Viewer > ref_viewer = viewer;
+
+        // std::cout << "Loading " << filename << std::endl;
+        if (auto node = vsg::read_cast<vsg::Node>(filename, options); node)
+        {
+            // std::cout << "Loaded " << filename << std::endl;
+
+            vsg::ComputeBounds computeBounds;
+            node->accept(computeBounds);
+
+            vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+            double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
+            double nearFarRatio = 0.001;
+
+            // set up the camera
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
+                                            centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+            auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
+                                                        nearFarRatio * radius, radius * 4.5);
+
+            auto viewportState = vsg::ViewportState::create(x, y, width, height);
+
+            auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
+            auto view = vsg::View::create(camera, node);
+
+            auto renderGraph = vsg::RenderGraph::create(window, view);
+            renderGraph->setClearValues({{0.2f, 0.2f, 0.2f, 1.0f}});
+
+            auto result = ref_viewer->compileManager->compile(renderGraph);
+
+            if (result) ref_viewer->addUpdateOperation(Merge::create(filename, viewer, attachmentPoint, renderGraph, result));
+        }
+    }
+};
+
 
 int main(int argc, char** argv)
 {
@@ -257,6 +318,9 @@ int main(int argc, char** argv)
 
             loadThreads->add(LoadOperation::create(observer_viewer, transform, argv[i], options));
         }
+
+        loadThreads->add(LoadViewOperation::create(observer_viewer, window, 50, 50, 256, 256, commandGraph, "models/openstreetmap.vsgt", options));
+        //loadThreads->add(LoadViewOperation::create(observer_viewer, window, 400, 50, 256, 256, commandGraph, "models/lz.vsgt", options));
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
