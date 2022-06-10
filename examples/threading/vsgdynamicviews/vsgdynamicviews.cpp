@@ -153,7 +153,7 @@ int main(int argc, char** argv)
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         // create a Group to contain all the nodes
-        auto vsg_scene = vsg::read_cast<vsg::Node>("models/lz.vsgt", options);
+        auto vsg_scene = vsg::read_cast<vsg::Node>("models/teapot.vsgt", options);
 
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
