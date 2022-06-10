@@ -202,19 +202,19 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
             auto renderGraph = vsg::RenderGraph::create(window, view);
             renderGraph->setClearValues({{0.2f, 0.2f, 0.2f, 1.0f}});
 
-            // need to add view to compieManager
+            // need to add view to compileManager
             ref_viewer->compileManager->add(window, view);
 
             auto result = ref_viewer->compileManager->compile(renderGraph, [&view](vsg::Context& context)
             {
                 if (context.view == view.get())
                 {
-                    std::cout<<"    Enabling comile for view "<<&context<<std::endl;
+                    std::cout<<"    Enabling compile for view "<<view<<std::endl;
                     return true;
                 }
                 else
                 {
-                    std::cout<<"    Disabling comile for view "<<&context<<std::endl;
+                    std::cout<<"    Disabling compile for view "<<view<<std::endl;
                     return false;
                 }
             });
