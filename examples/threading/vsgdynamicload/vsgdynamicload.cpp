@@ -15,6 +15,8 @@ namespace vsg
 
 void updateViewer(Viewer& viewer, const CompileResult& compileResult)
 {
+    std::cout<<"updateViewer() "<<compileResult.views.size()<<std::endl;
+    std::cout<<"    compileResult.maxSlot "<<compileResult.maxSlot<<std::endl;
     for (auto& task : viewer.recordAndSubmitTasks)
     {
         for (auto& commandGraph : task->commandGraphs)
@@ -25,6 +27,8 @@ void updateViewer(Viewer& viewer, const CompileResult& compileResult)
             }
         }
     }
+
+    std::cout<<"    compileResult.containsPagedLOD "<<compileResult.containsPagedLOD<<std::endl;
 
     if (compileResult.containsPagedLOD)
     {
@@ -50,9 +54,12 @@ void updateViewer(Viewer& viewer, const CompileResult& compileResult)
         }
     }
 
+    std::cout<<"    compileResult.views.size() "<<compileResult.views.size() <<std::endl;
+
     for (auto& [const_view, binDetails] : compileResult.views)
     {
         auto view = const_cast<vsg::View*>(const_view);
+        std::cout<<"    compileResult.view["<<view<<"] binDetails.indices.size() = "<<binDetails.indices.size() <<std::endl;
         for (auto& binNumber : binDetails.indices)
         {
             bool binNumberMatched = false;
@@ -70,9 +77,6 @@ void updateViewer(Viewer& viewer, const CompileResult& compileResult)
             }
         }
     }
-
-    // TODO:
-    //   3. Handle new Views
 }
 
 } // end of namespace vsg
@@ -125,7 +129,7 @@ struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
         vsg::ref_ptr<vsg::Viewer > ref_viewer = viewer;
 
         // std::cout << "Loading " << filename << std::endl;
-        if (auto node = vsg::read_cast<vsg::Node>(filename, options); node)
+        if (auto node = vsg::read_cast<vsg::Node>(filename, options))
         {
             // std::cout << "Loaded " << filename << std::endl;
 
@@ -172,7 +176,7 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
         vsg::ref_ptr<vsg::Viewer > ref_viewer = viewer;
 
         // std::cout << "Loading " << filename << std::endl;
-        if (auto node = vsg::read_cast<vsg::Node>(filename, options); node)
+        if (auto node = vsg::read_cast<vsg::Node>(filename, options))
         {
             // std::cout << "Loaded " << filename << std::endl;
 
@@ -198,7 +202,22 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
             auto renderGraph = vsg::RenderGraph::create(window, view);
             renderGraph->setClearValues({{0.2f, 0.2f, 0.2f, 1.0f}});
 
-            auto result = ref_viewer->compileManager->compile(renderGraph);
+            // need to add view to compieManager
+            ref_viewer->compileManager->add(window, view);
+
+            auto result = ref_viewer->compileManager->compile(renderGraph, [&view](vsg::Context& context)
+            {
+                if (context.view == view.get())
+                {
+                    std::cout<<"    Enabling comile for view "<<&context<<std::endl;
+                    return true;
+                }
+                else
+                {
+                    std::cout<<"    Disabling comile for view "<<&context<<std::endl;
+                    return false;
+                }
+            });
 
             if (result) ref_viewer->addUpdateOperation(Merge::create(filename, viewer, attachmentPoint, renderGraph, result));
         }
@@ -320,7 +339,7 @@ int main(int argc, char** argv)
         }
 
         loadThreads->add(LoadViewOperation::create(observer_viewer, window, 50, 50, 256, 256, commandGraph, "models/openstreetmap.vsgt", options));
-        //loadThreads->add(LoadViewOperation::create(observer_viewer, window, 400, 50, 256, 256, commandGraph, "models/lz.vsgt", options));
+        loadThreads->add(LoadViewOperation::create(observer_viewer, window, 400, 50, 256, 256, commandGraph, "models/lz.vsgt", options));
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
