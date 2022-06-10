@@ -96,7 +96,7 @@ int main(int argc, char** argv)
     auto startTime = std::chrono::steady_clock::now();
 
     // submit commands
-    vsg::submitCommandsToQueue(device, context->commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer) {
+    vsg::submitCommandsToQueue(context->commandPool, fence, 100000000000, computeQueue, [&](vsg::CommandBuffer& commandBuffer) {
         commandGraph->record(commandBuffer);
     });
 

@@ -175,6 +175,7 @@ int main(int argc, char** argv)
 
         // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
+        options->sharedObjects = vsg::SharedObjects::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
