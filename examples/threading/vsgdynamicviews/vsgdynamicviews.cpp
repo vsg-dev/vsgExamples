@@ -63,7 +63,8 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
 
     void run() override
     {
-        vsg::ref_ptr<vsg::Viewer > ref_viewer = viewer;
+        vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+        vsg::ref_ptr<vsg::Window> ref_window = window;
 
         // std::cout << "Loading " << filename << std::endl;
         if (auto node = vsg::read_cast<vsg::Node>(filename, options))
@@ -89,11 +90,11 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
             auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
             auto view = vsg::View::create(camera, node);
 
-            auto renderGraph = vsg::RenderGraph::create(window, view);
+            auto renderGraph = vsg::RenderGraph::create(ref_window, view);
             renderGraph->setClearValues({{0.2f, 0.2f, 0.2f, 1.0f}});
 
             // need to add view to compileManager
-            ref_viewer->compileManager->add(window, view);
+            ref_viewer->compileManager->add(*ref_window, view);
 
             auto result = ref_viewer->compileManager->compile(renderGraph, [&view](vsg::Context& context)
             {
