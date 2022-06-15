@@ -285,7 +285,7 @@ int main(int argc, char** argv)
 
     // assign a CompileTraversal to the Builder that will compile for all the views assigned to the viewer,
     // must be done after Viewer.assignRecordAndSubmitTasksAndPresentations();
-    builder->assignCompileTraversal(vsg::CompileTraversal::create(viewer));
+    builder->assignCompileTraversal(vsg::CompileTraversal::create(*viewer));
 
     viewer->compile();
 

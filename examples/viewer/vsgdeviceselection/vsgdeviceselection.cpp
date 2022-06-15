@@ -93,7 +93,35 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (arguments.read({"--PhysicalDevice", "--pd"}))
+
+    if (size_t pd_num = 0; arguments.read("--select", pd_num))
+    {
+        // use the Window implementation to create the Instance and Surface
+        auto instance = window->getOrCreateInstance();
+        auto surface = window->getOrCreateSurface();
+
+        auto physicalDevices = instance->getPhysicalDevices();
+        if (physicalDevices.empty())
+        {
+            std::cout<<"No physical devices reported."<<std::endl;
+            return 0;
+        }
+
+        if (pd_num >= physicalDevices.size())
+        {
+            std::cout<<"--select "<<pd_num<<", exceeds physical devices available, maximum permitted value is "<<physicalDevices.size()-1<<std::endl;
+            return 0;
+        }
+
+
+        // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they area available.
+        auto physicalDevice = physicalDevices[pd_num];
+
+        std::cout << "Created our own vsg::PhysicalDevice " << physicalDevice << std::endl;
+
+        window->setPhysicalDevice(physicalDevice);
+    }
+    else if (arguments.read({"--PhysicalDevice", "--pd"}))
     {
         // use the Window implementation to create the Instance and Surface
         auto instance = window->getOrCreateInstance();

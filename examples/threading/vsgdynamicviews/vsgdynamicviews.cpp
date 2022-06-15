@@ -38,22 +38,33 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
     }
 };
 
-struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
+struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation>
 {
-    LoadOperation(vsg::ref_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, const vsg::Path& in_filename, vsg::ref_ptr<vsg::Options> in_options) :
+    LoadViewOperation(vsg::ref_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Window> in_window, int32_t in_x, int32_t in_y, uint32_t in_width, uint32_t in_height, vsg::ref_ptr<vsg::Group> in_attachmentPoint, const vsg::Path& in_filename, vsg::ref_ptr<vsg::Options> in_options) :
         viewer(in_viewer),
+        window(in_window),
+        x(in_x),
+        y(in_y),
+        width(in_width),
+        height(in_height),
         attachmentPoint(in_attachmentPoint),
         filename(in_filename),
-        options(in_options) {}
+        options(in_options)
+    {
+    }
 
     vsg::observer_ptr<vsg::Viewer> viewer;
+    vsg::observer_ptr<vsg::Window> window;
+    int32_t x, y;
+    uint32_t width, height;
     vsg::ref_ptr<vsg::Group> attachmentPoint;
     vsg::Path filename;
     vsg::ref_ptr<vsg::Options> options;
 
     void run() override
     {
-        vsg::ref_ptr<vsg::Viewer > ref_viewer = viewer;
+        vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+        vsg::ref_ptr<vsg::Window> ref_window = window;
 
         // std::cout << "Loading " << filename << std::endl;
         if (auto node = vsg::read_cast<vsg::Node>(filename, options))
@@ -65,15 +76,45 @@ struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
 
             vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
             double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
-            auto scale = vsg::MatrixTransform::create(vsg::scale(1.0 / radius, 1.0 / radius, 1.0 / radius) * vsg::translate(-centre));
+            double nearFarRatio = 0.001;
 
-            scale->addChild(node);
+            // set up the camera
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
+                                            centre, vsg::dvec3(0.0, 0.0, 1.0));
 
-            auto result = ref_viewer->compileManager->compile(node);
-            if (result) ref_viewer->addUpdateOperation(Merge::create(filename, viewer, attachmentPoint, scale, result));
+            auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
+                                                        nearFarRatio * radius, radius * 4.5);
+
+            auto viewportState = vsg::ViewportState::create(x, y, width, height);
+
+            auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
+            auto view = vsg::View::create(camera, node);
+
+            auto renderGraph = vsg::RenderGraph::create(ref_window, view);
+            renderGraph->setClearValues({{0.2f, 0.2f, 0.2f, 1.0f}});
+
+            // need to add view to compileManager
+            ref_viewer->compileManager->add(*ref_window, view);
+
+            auto result = ref_viewer->compileManager->compile(renderGraph, [&view](vsg::Context& context)
+            {
+                if (context.view == view.get())
+                {
+                    std::cout<<"    Enabling compile for view "<<view<<std::endl;
+                    return true;
+                }
+                else
+                {
+                    std::cout<<"    Disabling compile for view "<<view<<std::endl;
+                    return false;
+                }
+            });
+
+            if (result) ref_viewer->addUpdateOperation(Merge::create(filename, viewer, attachmentPoint, renderGraph, result));
         }
     }
 };
+
 
 int main(int argc, char** argv)
 {
@@ -112,14 +153,8 @@ int main(int argc, char** argv)
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-        if (argc <= 1)
-        {
-            std::cout << "Please specify a 3d models on the command line." << std::endl;
-            return 1;
-        }
-
         // create a Group to contain all the nodes
-        auto vsg_scene = vsg::Group::create();
+        auto vsg_scene = vsg::read_cast<vsg::Node>("models/teapot.vsgt", options);
 
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
@@ -139,18 +174,30 @@ int main(int argc, char** argv)
         vsg::dvec3 primary(2.0, 0.0, 0.0);
         vsg::dvec3 secondary(0.0, 2.0, 0.0);
 
-        int numModels = static_cast<float>(argc - 1);
-        int numColumns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(numModels))));
-        int numRows = static_cast<int>(std::ceil(static_cast<float>(numModels) / static_cast<float>(numColumns)));
-
         // compute the bounds of the scene graph to help position camera
-        vsg::dvec3 centre = origin + primary * (static_cast<double>(numColumns - 1) * 0.5) + secondary * (static_cast<double>(numRows - 1) * 0.5);
-        double viewingDistance = std::sqrt(static_cast<float>(numModels)) * 3.0;
+        // compute the bounds of the scene graph to help position camera
+        vsg::ComputeBounds computeBounds;
+        vsg_scene->accept(computeBounds);
+        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
         double nearFarRatio = 0.001;
 
         // set up the camera
-        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -viewingDistance, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-        auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * viewingDistance, viewingDistance * 2.0);
+        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+        vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+        if (ellipsoidModel)
+        {
+            double horizonMountainHeight = 0.0;
+            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+        }
+        else
+        {
+            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+        }
+
+        // set up the camera
         auto viewportState = vsg::ViewportState::create(window->extent2D());
         auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
 
@@ -173,20 +220,13 @@ int main(int argc, char** argv)
         // configure the viewers rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
         viewer->compile(resourceHints);
 
+        // create threads to load models and views in background
         auto loadThreads = vsg::OperationThreads::create(numThreads, viewer->status);
 
-        // assign the LoadOperation that will do the load in the background and once loaded and compiled merged then via Merge operation that is assigned to updateOperations and called from viewer.udpate()
+        // assign the LoadViewOperation that will do the load in the background and once loaded and compiled merged then via Merge operation that is assigned to updateOperations and called from viewer.udpate()
         vsg::observer_ptr<vsg::Viewer> observer_viewer(viewer);
-        for (int i = 1; i < argc; ++i)
-        {
-            int index = i - 1;
-            vsg::dvec3 position = origin + primary * static_cast<double>(index % numColumns) + secondary * static_cast<double>(index / numColumns);
-            auto transform = vsg::MatrixTransform::create(vsg::translate(position));
-
-            vsg_scene->addChild(transform);
-
-            loadThreads->add(LoadOperation::create(observer_viewer, transform, argv[i], options));
-        }
+        loadThreads->add(LoadViewOperation::create(observer_viewer, window, 50, 50, 512, 480, commandGraph, "models/openstreetmap.vsgt", options));
+        loadThreads->add(LoadViewOperation::create(observer_viewer, window, 600, 50, 512, 480, commandGraph, "models/lz.vsgt", options));
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
