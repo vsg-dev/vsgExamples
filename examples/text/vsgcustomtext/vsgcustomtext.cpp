@@ -5,65 +5,80 @@
 #    include <vsgXchange/all.h>
 #endif
 
-struct BillboardUniform
+namespace CustomText
 {
-    BillboardUniform() {}
-    BillboardUniform(float s) : scale(s) {}
 
-    float scale = 2.0f;
-};
+    struct BillboardUniform
+    {
+        BillboardUniform() {}
+        BillboardUniform(float s) : scale(s) {}
 
-using BillboardUniformValue = vsg::Value<BillboardUniform>;
-
-class CustomLayout : public vsg::Inherit<vsg::StandardLayout, CustomLayout>
-{
-public:
-    vsg::ref_ptr<BillboardUniformValue> billboard;
-};
-
-vsg::ref_ptr<vsg::ShaderSet> createMyTextShaderSet(const vsg::Path& vertesShaderFilename,  const vsg::Path& fragmentShaderFilename, vsg::ref_ptr<const vsg::Options> options)
-{
-    // based on VulkanSceneGraph/src/text/Text.cpp's vsg::createTextShaderSet(ref_ptr<const Options> options) implementation
-
-    // load custom vertex shaders
-    auto vertexShader = vsg::read_cast<vsg::ShaderStage>(vertesShaderFilename, options);
-    // if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cppp
-
-    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>(fragmentShaderFilename, options);
-    // if (!fragmentShader) fragmentShader = text_frag(); // fallback to shaders/text_frag.cppp
-
-    uint32_t numTextIndices = 256;
-    vertexShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
-        {0, vsg::uintValue::create(numTextIndices)} // numTextIndices
+        float scale = 2.0f;
     };
 
-    auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+    using BillboardUniformValue = vsg::Value<BillboardUniform>;
 
-    shaderSet->addAttributeBinding("inPosition", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
-    shaderSet->addUniformBinding("textureAtlas", "", 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+    class CustomLayout : public vsg::Inherit<vsg::StandardLayout, CustomLayout>
+    {
+    public:
+        vsg::ref_ptr<BillboardUniformValue> billboard;
+    };
 
-    // use only for the billboard code path.
-    shaderSet->addUniformBinding("billboardUniform", "BILLBOARD_AND_SCALE", 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, BillboardUniformValue::create());
+    vsg::ref_ptr<vsg::ShaderSet> createMyTextShaderSet(const vsg::Path& vertesShaderFilename,  const vsg::Path& fragmentShaderFilename, vsg::ref_ptr<const vsg::Options> options)
+    {
+        // based on VulkanSceneGraph/src/text/Text.cpp's vsg::createTextShaderSet(ref_ptr<const Options> options) implementation
 
-    shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
+        // load custom vertex shaders
+        auto vertexShader = vsg::read_cast<vsg::ShaderStage>(vertesShaderFilename, options);
+        // if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cppp
 
-    shaderSet->addAttributeBinding("inColor", "CPU_LAYOUT", 1, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
-    shaderSet->addAttributeBinding("inOutlineColor", "CPU_LAYOUT", 2, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
-    shaderSet->addAttributeBinding("inOutlineWidth", "CPU_LAYOUT", 3, VK_FORMAT_R32_SFLOAT, vsg::floatArray::create(1));
-    shaderSet->addAttributeBinding("inTexCoord", "CPU_LAYOUT", 4, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
+        auto fragmentShader = vsg::read_cast<vsg::ShaderStage>(fragmentShaderFilename, options);
+        // if (!fragmentShader) fragmentShader = text_frag(); // fallback to shaders/text_frag.cppp
 
-    // assign the custom uniform binding
+        uint32_t numTextIndices = 256;
+        vertexShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+            {0, vsg::uintValue::create(numTextIndices)} // numTextIndices
+        };
 
-    return shaderSet;
+        auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+
+        shaderSet->addAttributeBinding("inPosition", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
+        shaderSet->addUniformBinding("textureAtlas", "", 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+
+        // use only for the billboard code path.
+        shaderSet->addUniformBinding("billboardUniform", "BILLBOARD_AND_SCALE", 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, BillboardUniformValue::create());
+
+        shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
+
+        shaderSet->addAttributeBinding("inColor", "CPU_LAYOUT", 1, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
+        shaderSet->addAttributeBinding("inOutlineColor", "CPU_LAYOUT", 2, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
+        shaderSet->addAttributeBinding("inOutlineWidth", "CPU_LAYOUT", 3, VK_FORMAT_R32_SFLOAT, vsg::floatArray::create(1));
+        shaderSet->addAttributeBinding("inTexCoord", "CPU_LAYOUT", 4, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
+
+        // assign the custom uniform binding
+
+        return shaderSet;
+    }
+
+
+    class CustomTechnique : public vsg::Inherit<vsg::CpuLayoutTechnique, CustomTechnique>
+    {
+    public:
+        void setup(vsg::Text* text, uint32_t minimumAllocation = 0) override;
+
+    };
+
 }
 
+EVSG_type_name(CustomText::BillboardUniformValue);
+EVSG_type_name(CustomText::CustomLayout);
+EVSG_type_name(CustomText::CustomTechnique);
 
-class CustomTechnique : public vsg::Inherit<vsg::CpuLayoutTechnique, CustomTechnique>
-{
-public:
-    void setup(vsg::Text* text, uint32_t minimumAllocation = 0) override;
+using namespace CustomText;
 
-};
+vsg::RegisterWithObjectFactoryProxy<CustomText::BillboardUniformValue> s_Register_BillboardUniformValue;
+vsg::RegisterWithObjectFactoryProxy<CustomText::CustomLayout> s_Register_CustomLayout;
+vsg::RegisterWithObjectFactoryProxy<CustomText::CustomTechnique> s_Register_CustomTechnique;
 
 void CustomTechnique::setup(vsg::Text* text, uint32_t minimumAllocation)
 {
@@ -332,59 +347,72 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    auto font = vsg::read_cast<vsg::Font>(font_filename, options);
+    vsg::ref_ptr<vsg::Node> scenegraph;
 
-    if (!font)
+    if (argc>1)
     {
-        std::cout << "Failing to read font : " << font_filename << std::endl;
-        return 1;
+        vsg::Path filename = arguments[1];
+        scenegraph = vsg::read_cast<vsg::Node>(filename, options);
+        if (!scenegraph)
+        {
+            std::cout<<"Error reading file "<<filename<<std::endl;
+            return 1;
+        }
     }
-
-    font->options = options;
-
-    // set up model transformation node
-    auto scenegraph = vsg::Group::create();
-
+    else
     {
-        auto layout = vsg::StandardLayout::create();
-        layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-        layout->position = vsg::vec3(0.0, 0.0, 0.0);
-        layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-        layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-        layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
-        layout->outlineWidth = 0.1;
+        auto group = vsg::Group::create();
+        scenegraph = group;
 
-        auto text = vsg::Text::create();
-        text->text = vsg::stringValue::create("Standard vsg::Text shaders.");
-        text->font = font;
-        text->layout = layout;
-        text->setup();
-        scenegraph->addChild(text);
-    }
+        auto font = vsg::read_cast<vsg::Font>(font_filename, options);
 
-    {
-        font->options->shaderSets["text"] = createMyTextShaderSet(vertesShaderFilename, fragmentShaderFilename, options);
+        if (!font)
+        {
+            std::cout << "Failing to read font : " << font_filename << std::endl;
+            return 1;
+        }
 
-        auto layout = CustomLayout::create();
-        layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-        layout->position = vsg::vec3(0.0, -2.0, 0.0);
-        layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-        layout->vertical = vsg::vec3(0.0, 1.0, 0.0);
-        layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
-        layout->outlineWidth = 0.1;
+        font->options = options;
+        {
+            auto layout = vsg::StandardLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+            layout->position = vsg::vec3(0.0, 0.0, 0.0);
+            layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+            layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+            layout->outlineWidth = 0.1;
 
-        // assign BillboardUnfirom to enable the billboard effect and pass settings.
-        layout->billboard = BillboardUniformValue::create(1.5f);
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("Standard vsg::Text shaders.");
+            text->font = font;
+            text->layout = layout;
+            text->setup();
+            group->addChild(text);
+        }
 
-        auto text = vsg::Text::create();
-        text->text = vsg::stringValue::create("Custom vsg::Text shaders.");
-        text->font = font;
-        text->layout = layout;
-        text->technique = CustomTechnique::create();
-        text->setup();
+        {
+            font->options->shaderSets["text"] = createMyTextShaderSet(vertesShaderFilename, fragmentShaderFilename, options);
 
+            auto layout = CustomLayout::create();
+            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+            layout->position = vsg::vec3(0.0, -2.0, 0.0);
+            layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+            layout->vertical = vsg::vec3(0.0, 1.0, 0.0);
+            layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+            layout->outlineWidth = 0.1;
 
-        scenegraph->addChild(text);
+            // assign BillboardUnfirom to enable the billboard effect and pass settings.
+            layout->billboard = BillboardUniformValue::create(1.5f);
+
+            auto text = vsg::Text::create();
+            text->text = vsg::stringValue::create("Custom vsg::Text shaders.");
+            text->font = font;
+            text->layout = layout;
+            text->technique = CustomTechnique::create();
+            text->setup();
+
+            group->addChild(text);
+        }
     }
 
     if (!output_filename.empty())
