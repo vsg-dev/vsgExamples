@@ -24,28 +24,28 @@ namespace vsg
         void debug(const std::string& message)
         {
             if (level > DEBUG) return;
-            std::scoped_lock<std::mutex> lock(mutex);
+            std::scoped_lock<std::mutex> lock(_mutex);
             debug_implementation(message);
         }
 
         void info(const std::string& message)
         {
             if (level > INFO) return;
-            std::scoped_lock<std::mutex> lock(mutex);
+            std::scoped_lock<std::mutex> lock(_mutex);
             info_implementation(message);
         }
 
         void warn(const std::string& message)
         {
             if (level > WARN) return;
-            std::scoped_lock<std::mutex> lock(mutex);
+            std::scoped_lock<std::mutex> lock(_mutex);
             info_implementation(message);
         }
 
         void error(const std::string& message)
         {
             if (level > ERROR) return;
-            std::scoped_lock<std::mutex> lock(mutex);
+            std::scoped_lock<std::mutex> lock(_mutex);
             info_implementation(message);
         }
 
@@ -54,12 +54,12 @@ namespace vsg
         {
             if (level > INFO) return;
 
-            std::scoped_lock<std::mutex> lock(mutex);
-            stream.str({});
-            stream.clear();
-            (stream << ... << args);
+            std::scoped_lock<std::mutex> lock(_mutex);
+            _stream.str({});
+            _stream.clear();
+            (_stream << ... << args);
 
-            debug_implementation(stream.str());
+            debug_implementation(_stream.str());
         }
 
         template<typename... Args>
@@ -67,12 +67,12 @@ namespace vsg
         {
             if (level > INFO) return;
 
-            std::scoped_lock<std::mutex> lock(mutex);
-            stream.str({});
-            stream.clear();
-            (stream << ... << args);
+            std::scoped_lock<std::mutex> lock(_mutex);
+            _stream.str({});
+            _stream.clear();
+            (_stream << ... << args);
 
-            info_implementation(stream.str().c_str());
+            info_implementation(_stream.str());
         }
 
         template<typename... Args>
@@ -80,12 +80,12 @@ namespace vsg
         {
             if (level > INFO) return;
 
-            std::scoped_lock<std::mutex> lock(mutex);
-            stream.str({});
-            stream.clear();
-            (stream << ... << args);
+            std::scoped_lock<std::mutex> lock(_mutex);
+            _stream.str({});
+            _stream.clear();
+            (_stream << ... << args);
 
-            info_implementation(stream.str().c_str());
+            info_implementation(_stream.str());
         }
 
         template<typename... Args>
@@ -93,18 +93,18 @@ namespace vsg
         {
             if (level > INFO) return;
 
-            std::scoped_lock<std::mutex> lock(mutex);
-            stream.str({});
-            stream.clear();
-            (stream << ... << args);
+            std::scoped_lock<std::mutex> lock(_mutex);
+            _stream.str({});
+            _stream.clear();
+            (_stream << ... << args);
 
-            info_implementation(stream.str().c_str());
+            info_implementation(_stream.str());
         }
 
     protected:
 
-        std::mutex mutex;
-        std::ostringstream stream;
+        std::mutex _mutex;
+        std::ostringstream _stream;
 
         virtual void debug_implementation(const std::string& message) = 0;
         virtual void info_implementation(const std::string& message) = 0;
@@ -151,7 +151,7 @@ namespace vsg
         log()->debug(args...);
     }
 
-    void debug(const char* str)
+    void debug(const std::string& str)
     {
         log()->debug(str);
     }
@@ -167,7 +167,7 @@ namespace vsg
     {
     }
 
-    void info(const char* str)
+    void info(const std::string& str)
     {
         log()->info(str);
     }
@@ -178,7 +178,7 @@ namespace vsg
         log()->warn(args...);
     }
 
-    void warn(const char* str)
+    void warn(const std::string& str)
     {
         log()->warn(str);
     }
@@ -189,7 +189,7 @@ namespace vsg
         log()->error(args...);
     }
 
-    void error(const char* str)
+    void error(const std::string& str)
     {
         log()->error(str);
     }
@@ -247,7 +247,7 @@ int main(int argc, char** argv)
     vsg::error("error string");
 
     vsg::info("time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
-    //vsg::log()->info_stream()<<"second time "<<10<<"ms, vector = ("<<vsg::vec3(10.0f, 20.0f, 30.0f)<< ")"<<std::endl;
+    //vsg::log()->info__stream()<<"second time "<<10<<"ms, vector = ("<<vsg::vec3(10.0f, 20.0f, 30.0f)<< ")"<<std::endl;
 
     vsg::log()->info("third time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
     vsg::info("forth time ", 30, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
