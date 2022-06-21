@@ -12,21 +12,55 @@ namespace vsg
         enum Level
         {
             ALL = 0,
+            DEBUG,
             INFO,
             WARN,
             ERROR,
-            CRITICAL,
             OFF
         };
 
-        Level level = ALL;
+        Level level = INFO;
 
-        virtual void info(const char* message) = 0;
-        virtual void info(const std::string& message) = 0;
-        virtual void info_no_mutex(const std::string& message) = 0;
-        virtual void warn(const std::string& message) = 0;
-        virtual void error(const std::string& message) = 0;
-        virtual void critical(const std::string& message) = 0;
+        void debug(const std::string& message)
+        {
+            if (level > DEBUG) return;
+            std::scoped_lock<std::mutex> lock(mutex);
+            debug_implementation(message);
+        }
+
+        void info(const std::string& message)
+        {
+            if (level > INFO) return;
+            std::scoped_lock<std::mutex> lock(mutex);
+            info_implementation(message);
+        }
+
+        void warn(const std::string& message)
+        {
+            if (level > WARN) return;
+            std::scoped_lock<std::mutex> lock(mutex);
+            info_implementation(message);
+        }
+
+        void error(const std::string& message)
+        {
+            if (level > ERROR) return;
+            std::scoped_lock<std::mutex> lock(mutex);
+            info_implementation(message);
+        }
+
+        template<typename... Args>
+        void debug(Args&&... args)
+        {
+            if (level > INFO) return;
+
+            std::scoped_lock<std::mutex> lock(mutex);
+            stream.str({});
+            stream.clear();
+            (stream << ... << args);
+
+            debug_implementation(stream.str());
+        }
 
         template<typename... Args>
         void info(Args&&... args)
@@ -37,11 +71,45 @@ namespace vsg
             stream.str({});
             stream.clear();
             (stream << ... << args);
-            info_no_mutex(stream.str().c_str());
+
+            info_implementation(stream.str().c_str());
         }
+
+        template<typename... Args>
+        void warn(Args&&... args)
+        {
+            if (level > INFO) return;
+
+            std::scoped_lock<std::mutex> lock(mutex);
+            stream.str({});
+            stream.clear();
+            (stream << ... << args);
+
+            info_implementation(stream.str().c_str());
+        }
+
+        template<typename... Args>
+        void error(Args&&... args)
+        {
+            if (level > INFO) return;
+
+            std::scoped_lock<std::mutex> lock(mutex);
+            stream.str({});
+            stream.clear();
+            (stream << ... << args);
+
+            info_implementation(stream.str().c_str());
+        }
+
+    protected:
 
         std::mutex mutex;
         std::ostringstream stream;
+
+        virtual void debug_implementation(const std::string& message) = 0;
+        virtual void info_implementation(const std::string& message) = 0;
+        virtual void warn_implementation(const std::string& message) = 0;
+        virtual void error_implementation(const std::string& message) = 0;
     };
 
     class StdLogger : public Inherit<Logger, StdLogger>
@@ -49,67 +117,26 @@ namespace vsg
     public:
         StdLogger() {}
 
-        void info(const char* message) override
+        void debug_implementation(const std::string& message) override
         {
-            if (level > INFO) return;
+            std::cout<<message<<'\n';
+        }
 
-            std::scoped_lock<std::mutex> lock(mutex);
-#if 0
-            std::cout<<message<<std::endl;
-#else
+        void info_implementation(const std::string& message)
+        {
             std::cout<<message;
             std::cout.put('\n');
-#endif
         }
 
-        void info(const std::string& message) override
+        void warn_implementation(const std::string& message)
         {
-            if (level > INFO) return;
-
-            std::scoped_lock<std::mutex> lock(mutex);
-#if 0
-            std::cout<<message<<std::endl;
-#else
-            std::cout<<message;
-            std::cout.put('\n');
-#endif
-        }
-
-        void info_no_mutex(const std::string& message) override
-        {
-            if (level > INFO) return;
-#if 0
-            std::cout<<message<<std::endl;
-#else
-            std::cout<<message;
-            std::cout.put('\n');
-#endif
-        }
-
-        void warn(const std::string& message) override
-        {
-            if (level > WARN) return;
-
-            std::scoped_lock<std::mutex> lock(mutex);
-            std::cout<<message<<std::endl;
-        }
-
-        void critical(const std::string& message) override
-        {
-            if (level > CRITICAL) return;
-
-            std::scoped_lock<std::mutex> lock(mutex);
             std::cerr<<message<<std::endl;
         }
 
-        void error(const std::string& message) override
+        void error_implementation(const std::string& message)
         {
-            if (level > ERROR) return;
-
-            std::scoped_lock<std::mutex> lock(mutex);
             std::cerr<<message<<std::endl;
         }
-
     };
 
     static ref_ptr<Logger>& log()
@@ -118,17 +145,19 @@ namespace vsg
         return s_logger;
     }
 
-
     template<typename... Args>
-    void info(Args&&... args)
+    void debug(Args&&... args)
     {
-        std::ostringstream stream;
-        (stream << ... << args);
-        log()->info(stream.str());
+        log()->debug(args...);
+    }
+
+    void debug(const char* str)
+    {
+        log()->debug(str);
     }
 
     template<typename... Args>
-    void info2(Args&&... args)
+    void info(Args&&... args)
     {
         log()->info(args...);
     }
@@ -143,13 +172,10 @@ namespace vsg
         log()->info(str);
     }
 
-
     template<typename... Args>
     void warn(Args&&... args)
     {
-        std::ostringstream stream;
-        (stream << ... << args);
-        log()->warn(stream.str());
+        log()->warn(args...);
     }
 
     void warn(const char* str)
@@ -158,24 +184,9 @@ namespace vsg
     }
 
     template<typename... Args>
-    void critical(Args&&... args)
-    {
-        std::ostringstream stream;
-        (stream << ... << args);
-        log()->warn(stream.str());
-    }
-
-    void critical(const char* str)
-    {
-        log()->critical(str);
-    }
-
-    template<typename... Args>
     void error(Args&&... args)
     {
-        std::ostringstream stream;
-        (stream << ... << args);
-        log()->warn(stream.str());
+        log()->error(args...);
     }
 
     void error(const char* str)
@@ -190,195 +201,36 @@ class CustomLogger : public vsg::Inherit<vsg::Logger, CustomLogger>
 public:
     CustomLogger() {}
 
-    void info(const char* message) override
+    void debug_implementation(const std::string& message) override
     {
-        if (level > INFO) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cout<<message<<std::endl;
+        std::cout<<"custom debug : "<<message<<"\n";
     }
 
-    void info(const std::string& message) override
+    void info_implementation(const std::string& message) override
     {
-        if (level > INFO) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cout<<message<<std::endl;
+        std::cout<<"custom info : "<<message<<"\n";
     }
 
-    void info_no_mutex(const std::string& message) override
+    void warn_implementation(const std::string& message) override
     {
-        if (level > INFO) return;
-#if 0
-        std::cout<<message<<std::endl;
-#else
-        std::cout<<message;
-        std::cout.put('\n');
-#endif
+        std::cerr<<"custom warn : "<<message<<std::endl;
     }
 
-    void warn(const std::string& message) override
+    void error_implementation(const std::string& message) override
     {
-        if (level > ERROR) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cout<<message<<std::endl;
+        std::cerr<<"custom error : "<<message<<std::endl;
     }
-
-    void critical(const std::string& message) override
-    {
-        if (level > CRITICAL) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cerr<<message<<std::endl;
-    }
-
-    void error(const std::string& message) override
-    {
-        if (level > ERROR) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cerr<<message<<std::endl;
-    }
-
-};
-
-class QuickLogger : public vsg::Inherit<vsg::Logger, QuickLogger>
-{
-public:
-    QuickLogger() {}
-
-    void info(const char* message) override
-    {
-        if (level > INFO) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cout<<message<<"\n";
-    }
-
-    void info(const std::string& message) override
-    {
-        if (level > INFO) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cout<<message<<"\n";
-    }
-
-    void info_no_mutex(const std::string& message) override
-    {
-        if (level > INFO) return;
-#if 0
-        std::cout<<message<<std::endl;
-#else
-        std::cout<<message;
-        std::cout.put('\n');
-#endif
-    }
-
-    void warn(const std::string& message) override
-    {
-        if (level > WARN) return;
-
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cout<<message<<std::endl;
-    }
-
-    void critical(const std::string& message) override
-    {
-        if (level > CRITICAL) return;
-
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cerr<<message<<std::endl;
-    }
-
-    void error(const std::string& message) override
-    {
-        if (level > ERROR) return;
-
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cerr<<message<<std::endl;
-    }
-
-};
-
-class QuickerLogger : public vsg::Inherit<vsg::Logger, QuickerLogger>
-{
-public:
-    QuickerLogger() {}
-
-    void info(const char* message) override
-    {
-        if (level > INFO) return;
-        std::cout<<message;
-        std::cout.put('\n');
-    }
-
-    void info(const std::string& message) override
-    {
-        if (level > INFO) return;
-#if 1
-        std::cout<<message;
-        std::cout.put('\n');
-#else
-        std::cout<<message<<'\n';
-#endif
-    }
-
-    void info_no_mutex(const std::string& message) override
-    {
-        if (level > INFO) return;
-#if 0
-        std::cout<<message<<std::endl;
-#else
-        std::cout<<message;
-        std::cout.put('\n');
-#endif
-    }
-
-    void warn(const std::string& message) override
-    {
-        if (level > WARN) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cout<<message<<std::endl;
-    }
-
-    void critical(const std::string& message) override
-    {
-        if (level > CRITICAL) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cerr<<message<<std::endl;
-    }
-
-    void error(const std::string& message) override
-    {
-        if (level > ERROR) return;
-        std::scoped_lock<std::mutex> lock(mutex);
-        std::cerr<<message<<std::endl;
-    }
-
 };
 
 class NullLogger : public vsg::Inherit<vsg::Logger, NullLogger>
 {
 public:
-    NullLogger() {}
+    NullLogger() { level = OFF; }
 
-    void info(const char*) override
-    {
-    }
-
-    void info(const std::string&) override
-    {
-    }
-
-    void info_no_mutex(const std::string&) override
-    {
-    }
-
-    void warn(const std::string&) override
-    {
-    }
-
-    void critical(const std::string&) override
-    {
-    }
-
-    void error(const std::string&) override
-    {
-    }
+    void debug_implementation(const std::string&) override {}
+    void info_implementation(const std::string&) override {}
+    void warn_implementation(const std::string&) override {}
+    void error_implementation(const std::string&) override {}
 };
 
 int main(int argc, char** argv)
@@ -392,14 +244,13 @@ int main(int argc, char** argv)
 
     vsg::info("info string");
     vsg::warn("warn string");
-    vsg::critical("critical string");
     vsg::error("error string");
 
     vsg::info("time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
     //vsg::log()->info_stream()<<"second time "<<10<<"ms, vector = ("<<vsg::vec3(10.0f, 20.0f, 30.0f)<< ")"<<std::endl;
 
     vsg::log()->info("third time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
-    vsg::info2("forth time ", 30, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
+    vsg::info("forth time ", 30, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
 
     std::cout<<std::endl;
 
@@ -407,7 +258,6 @@ int main(int argc, char** argv)
 
     vsg::info("info string");
     vsg::warn("warn string");
-    vsg::critical("critical string");
     vsg::error("error string");
     vsg::error("here ", std::string("and"), " matrix  = {",vsg::dmat4{}, "}");
 
@@ -419,11 +269,6 @@ int main(int argc, char** argv)
         vsg::info("A line ", i);
     }
     auto tick2 = vsg::clock::now();
-    for(size_t i=0; i<count; ++i)
-    {
-        vsg::info2("B line ", i);
-    }
-    auto tick2_5 = vsg::clock::now();
     for(size_t i=0; i<count; ++i)
     {
         vsg::info3("C line ", i);
@@ -440,7 +285,7 @@ int main(int argc, char** argv)
     }
     auto tick6 = vsg::clock::now();
 
-    vsg::log() = QuickLogger::create();
+    vsg::log() = CustomLogger::create();
     vsg::log()->level = vsg::Logger::Level(level);
 
     auto tick7 = vsg::clock::now();
@@ -450,18 +295,8 @@ int main(int argc, char** argv)
     }
     auto tick8 = vsg::clock::now();
 
-    vsg::log() = QuickerLogger::create();
-    vsg::log()->level = vsg::Logger::Level(level);
-
-    auto tick9 = vsg::clock::now();
-    for(size_t i=0; i<count; ++i)
-    {
-        vsg::info("simple3");
-    }
-    auto tick10 = vsg::clock::now();
-
     vsg::log() = NullLogger::create();
-    vsg::log()->level = vsg::Logger::Level(level);
+    //vsg::log()->level = vsg::Logger::Level(level);
 
     auto tick11 = vsg::clock::now();
     for(size_t i=0; i<count; ++i)
@@ -472,17 +307,15 @@ int main(int argc, char** argv)
 
     for(size_t i=0; i<count; ++i)
     {
-        vsg::info2("simple5", 10);
+        vsg::info("simple5", 10);
     }
     auto tick13 = vsg::clock::now();
 
     auto time1 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick2 - tick1).count();
-    auto time1_5 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick2_5 - tick2).count();
-    auto time2 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick3 - tick2_5).count();
+    auto time2 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick3 - tick2).count();
     auto time4 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick5 - tick3).count();
     auto time5 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick6 - tick5).count();
     auto time6 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick8 - tick7).count();
-    auto time7 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick10 - tick9).count();
     auto time8 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick12 - tick11).count();
     auto time9 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick13 - tick12).count();
 
@@ -490,12 +323,10 @@ int main(int argc, char** argv)
     vsg::log()->level = vsg::Logger::ALL;
 
     vsg::info("info() time = ",time1,"ms");
-    vsg::info("info2() time = ",time1_5,"ms");
     vsg::info("info3() time = ",time2,"ms");
     vsg::info("log->info() time = ",time4,"ms");
     vsg::info("vsg::info(\"simple\" time = ",time5,"ms");
-    vsg::info("quick vsg::info(\"simple\" time = ",time6,"ms");
-    vsg::info("quicker vsg::info(\"simple\" time = ",time7,"ms");
+    vsg::info("custom vsg::info(\"simple\" time = ",time6,"ms");
     vsg::info("null vsg::info(\"simple\" time = ",time8,"ms");
     vsg::info("null vsg::info(\"simple5\", 10) time = ",time9,"ms");
 
