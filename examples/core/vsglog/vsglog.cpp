@@ -1,200 +1,6 @@
 #include <vsg/all.h>
 
-#include <mutex>
-
-namespace vsg
-{
-    class Logger : public Object
-    {
-    public:
-        Logger() {}
-
-        enum Level
-        {
-            ALL = 0,
-            DEBUG,
-            INFO,
-            WARN,
-            ERROR,
-            OFF
-        };
-
-        Level level = INFO;
-
-        void debug(const std::string& message)
-        {
-            if (level > DEBUG) return;
-            std::scoped_lock<std::mutex> lock(_mutex);
-            debug_implementation(message);
-        }
-
-        void info(const std::string& message)
-        {
-            if (level > INFO) return;
-            std::scoped_lock<std::mutex> lock(_mutex);
-            info_implementation(message);
-        }
-
-        void warn(const std::string& message)
-        {
-            if (level > WARN) return;
-            std::scoped_lock<std::mutex> lock(_mutex);
-            info_implementation(message);
-        }
-
-        void error(const std::string& message)
-        {
-            if (level > ERROR) return;
-            std::scoped_lock<std::mutex> lock(_mutex);
-            info_implementation(message);
-        }
-
-        template<typename... Args>
-        void debug(Args&&... args)
-        {
-            if (level > INFO) return;
-
-            std::scoped_lock<std::mutex> lock(_mutex);
-            _stream.str({});
-            _stream.clear();
-            (_stream << ... << args);
-
-            debug_implementation(_stream.str());
-        }
-
-        template<typename... Args>
-        void info(Args&&... args)
-        {
-            if (level > INFO) return;
-
-            std::scoped_lock<std::mutex> lock(_mutex);
-            _stream.str({});
-            _stream.clear();
-            (_stream << ... << args);
-
-            info_implementation(_stream.str());
-        }
-
-        template<typename... Args>
-        void warn(Args&&... args)
-        {
-            if (level > INFO) return;
-
-            std::scoped_lock<std::mutex> lock(_mutex);
-            _stream.str({});
-            _stream.clear();
-            (_stream << ... << args);
-
-            info_implementation(_stream.str());
-        }
-
-        template<typename... Args>
-        void error(Args&&... args)
-        {
-            if (level > INFO) return;
-
-            std::scoped_lock<std::mutex> lock(_mutex);
-            _stream.str({});
-            _stream.clear();
-            (_stream << ... << args);
-
-            info_implementation(_stream.str());
-        }
-
-    protected:
-
-        std::mutex _mutex;
-        std::ostringstream _stream;
-
-        virtual void debug_implementation(const std::string& message) = 0;
-        virtual void info_implementation(const std::string& message) = 0;
-        virtual void warn_implementation(const std::string& message) = 0;
-        virtual void error_implementation(const std::string& message) = 0;
-    };
-
-    class StdLogger : public Inherit<Logger, StdLogger>
-    {
-    public:
-        StdLogger() {}
-
-        void debug_implementation(const std::string& message) override
-        {
-            std::cout<<message<<'\n';
-        }
-
-        void info_implementation(const std::string& message)
-        {
-            std::cout<<message;
-            std::cout.put('\n');
-        }
-
-        void warn_implementation(const std::string& message)
-        {
-            std::cerr<<message<<std::endl;
-        }
-
-        void error_implementation(const std::string& message)
-        {
-            std::cerr<<message<<std::endl;
-        }
-    };
-
-    static ref_ptr<Logger>& log()
-    {
-        static ref_ptr<Logger> s_logger = StdLogger::create();
-        return s_logger;
-    }
-
-    template<typename... Args>
-    void debug(Args&&... args)
-    {
-        log()->debug(args...);
-    }
-
-    void debug(const std::string& str)
-    {
-        log()->debug(str);
-    }
-
-    template<typename... Args>
-    void info(Args&&... args)
-    {
-        log()->info(args...);
-    }
-
-    template<typename... Args>
-    void info3(Args&&...)
-    {
-    }
-
-    void info(const std::string& str)
-    {
-        log()->info(str);
-    }
-
-    template<typename... Args>
-    void warn(Args&&... args)
-    {
-        log()->warn(args...);
-    }
-
-    void warn(const std::string& str)
-    {
-        log()->warn(str);
-    }
-
-    template<typename... Args>
-    void error(Args&&... args)
-    {
-        log()->error(args...);
-    }
-
-    void error(const std::string& str)
-    {
-        log()->error(str);
-    }
-
-}
+#include "Log.h"
 
 class CustomLogger : public vsg::Inherit<vsg::Logger, CustomLogger>
 {
@@ -222,16 +28,6 @@ public:
     }
 };
 
-class NullLogger : public vsg::Inherit<vsg::Logger, NullLogger>
-{
-public:
-    NullLogger() { level = OFF; }
-
-    void debug_implementation(const std::string&) override {}
-    void info_implementation(const std::string&) override {}
-    void warn_implementation(const std::string&) override {}
-    void error_implementation(const std::string&) override {}
-};
 
 int main(int argc, char** argv)
 {
@@ -240,7 +36,7 @@ int main(int argc, char** argv)
     auto count = arguments.value<size_t>(1000, "-n");
     auto level = arguments.value(0, "-l");
 
-    vsg::log()->level = vsg::Logger::Level(level);
+    vsg::logger()->level = vsg::Logger::Level(level);
 
     vsg::info("info string");
     vsg::warn("warn string");
@@ -249,7 +45,7 @@ int main(int argc, char** argv)
     vsg::info("time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
     //vsg::log()->info__stream()<<"second time "<<10<<"ms, vector = ("<<vsg::vec3(10.0f, 20.0f, 30.0f)<< ")"<<std::endl;
 
-    vsg::log()->info("third time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
+    vsg::logger()->info("third time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
     vsg::info("forth time ", 30, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
 
     std::cout<<std::endl;
@@ -268,15 +64,11 @@ int main(int argc, char** argv)
     {
         vsg::info("A line ", i);
     }
-    auto tick2 = vsg::clock::now();
-    for(size_t i=0; i<count; ++i)
-    {
-        vsg::info3("C line ", i);
-    }
+
     auto tick3 = vsg::clock::now();
     for(size_t i=0; i<count; ++i)
     {
-        vsg::log()->info("D line ", i);
+        vsg::logger()->info("D line ", i);
     }
     auto tick5 = vsg::clock::now();
     for(size_t i=0; i<count; ++i)
@@ -285,8 +77,8 @@ int main(int argc, char** argv)
     }
     auto tick6 = vsg::clock::now();
 
-    vsg::log() = CustomLogger::create();
-    vsg::log()->level = vsg::Logger::Level(level);
+    vsg::logger() = CustomLogger::create();
+    vsg::logger()->level = vsg::Logger::Level(level);
 
     auto tick7 = vsg::clock::now();
     for(size_t i=0; i<count; ++i)
@@ -295,7 +87,7 @@ int main(int argc, char** argv)
     }
     auto tick8 = vsg::clock::now();
 
-    vsg::log() = NullLogger::create();
+    vsg::logger() = vsg::NullLogger::create();
     //vsg::log()->level = vsg::Logger::Level(level);
 
     auto tick11 = vsg::clock::now();
@@ -311,19 +103,17 @@ int main(int argc, char** argv)
     }
     auto tick13 = vsg::clock::now();
 
-    auto time1 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick2 - tick1).count();
-    auto time2 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick3 - tick2).count();
+    auto time1 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick3 - tick1).count();
     auto time4 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick5 - tick3).count();
     auto time5 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick6 - tick5).count();
     auto time6 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick8 - tick7).count();
     auto time8 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick12 - tick11).count();
     auto time9 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick13 - tick12).count();
 
-    vsg::log() = vsg::StdLogger::create();
-    vsg::log()->level = vsg::Logger::ALL;
+    vsg::logger() = vsg::StdLogger::create();
+    vsg::logger()->level = vsg::Logger::ALL;
 
     vsg::info("info() time = ",time1,"ms");
-    vsg::info("info3() time = ",time2,"ms");
     vsg::info("log->info() time = ",time4,"ms");
     vsg::info("vsg::info(\"simple\" time = ",time5,"ms");
     vsg::info("custom vsg::info(\"simple\" time = ",time6,"ms");

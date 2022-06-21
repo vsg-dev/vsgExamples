@@ -1,4 +1,5 @@
-set(SOURCES vsglog.cpp)
+set(SOURCES vsglog.cpp
+    Log.cpp)
 
 add_executable(vsglog ${SOURCES})
 
