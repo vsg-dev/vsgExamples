@@ -1,7 +1,5 @@
 #include <vsg/all.h>
 
-#include "Log.h"
-
 class CustomLogger : public vsg::Inherit<vsg::Logger, CustomLogger>
 {
 public:
@@ -33,7 +31,7 @@ int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
 
-    auto count = arguments.value<size_t>(1000, "-n");
+    auto count = arguments.value<size_t>(10, "-n");
     auto level = arguments.value(0, "-l");
 
     vsg::logger()->level = vsg::Logger::Level(level);
