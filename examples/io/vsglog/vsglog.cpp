@@ -34,7 +34,7 @@ int main(int argc, char** argv)
     auto count = arguments.value<size_t>(10, "-n");
     auto level = arguments.value(0, "-l");
 
-    vsg::logger()->level = vsg::Logger::Level(level);
+    vsg::Logger::instance()->level = vsg::Logger::Level(level);
 
     vsg::info("info string");
     vsg::warn("warn string");
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     vsg::info("time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
     //vsg::log()->info__stream()<<"second time "<<10<<"ms, vector = ("<<vsg::vec3(10.0f, 20.0f, 30.0f)<< ")"<<std::endl;
 
-    vsg::logger()->info("third time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
+    vsg::Logger::instance()->info("third time ", 10, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
     vsg::info("forth time ", 30, "ms, vector = (", vsg::vec3(10.0f, 20.0f, 30.0f), ")");
 
     std::cout<<std::endl;
@@ -66,7 +66,7 @@ int main(int argc, char** argv)
     auto tick3 = vsg::clock::now();
     for(size_t i=0; i<count; ++i)
     {
-        vsg::logger()->info("D line ", i);
+        vsg::Logger::instance()->info("D line ", i);
     }
     auto tick5 = vsg::clock::now();
     for(size_t i=0; i<count; ++i)
@@ -75,8 +75,8 @@ int main(int argc, char** argv)
     }
     auto tick6 = vsg::clock::now();
 
-    vsg::logger() = CustomLogger::create();
-    vsg::logger()->level = vsg::Logger::Level(level);
+    vsg::Logger::instance() = CustomLogger::create();
+    vsg::Logger::instance()->level = vsg::Logger::Level(level);
 
     auto tick7 = vsg::clock::now();
     for(size_t i=0; i<count; ++i)
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     }
     auto tick8 = vsg::clock::now();
 
-    vsg::logger() = vsg::NullLogger::create();
+    vsg::Logger::instance() = vsg::NullLogger::create();
     //vsg::log()->level = vsg::Logger::Level(level);
 
     auto tick11 = vsg::clock::now();
@@ -108,8 +108,8 @@ int main(int argc, char** argv)
     auto time8 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick12 - tick11).count();
     auto time9 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick13 - tick12).count();
 
-    vsg::logger() = vsg::StdLogger::create();
-    vsg::logger()->level = vsg::Logger::ALL;
+    vsg::Logger::instance() = vsg::StdLogger::create();
+    vsg::Logger::instance()->level = vsg::Logger::ALL;
 
     vsg::info("info() time = ",time1,"ms");
     vsg::info("log->info() time = ",time4,"ms");
