@@ -111,7 +111,7 @@ int main(int argc, char** argv)
     auto time9 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick13 - tick12).count();
 
     vsg::Logger::instance() = vsg::StdLogger::create();
-    vsg::Logger::instance()->level = vsg::Logger::ALL;
+    vsg::Logger::instance()->level = vsg::Logger::LOGGER_ALL;
 
     vsg::info("info() time = ",time1,"ms");
     vsg::info("log->info() time = ",time4,"ms");
