@@ -8,6 +8,8 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#include <iostream>
+
 struct Params : public vsg::Inherit<vsg::Object, Params>
 {
     bool showGui = true; // you can toggle this with your own EventHandler and key

@@ -1,5 +1,7 @@
 #include <vsg/all.h>
 
+#include <iostream>
+
 class CustomLogger : public vsg::Inherit<vsg::Logger, CustomLogger>
 {
 public:

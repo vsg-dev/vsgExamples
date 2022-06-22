@@ -4,6 +4,8 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#include <iostream>
+
 namespace vsg
 {
     /// make a VK_API_VERSION value from a version string, i,e, a string of "1,2" maps to VK_API_VERSION_1_2
