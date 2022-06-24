@@ -2,16 +2,21 @@
 
 #include <iostream>
 
-class MultiThreadedLogger : public vsg::Inherit<vsg::Logger, MultiThreadedLogger>
+class ThreadLogger : public vsg::Inherit<vsg::Logger, ThreadLogger>
 {
 public:
-    MultiThreadedLogger() {}
+    ThreadLogger() {}
 
     void setThreadPrefix(std::thread::id id, const std::string& str)
     {
         std::scoped_lock<std::mutex> lock(_mutex);
         _threadPrefixes[id] = str;
     }
+
+    std::string debugPrefix = "debug: ";
+    std::string infoPrefix = "info: ";
+    std::string warnPrefix = "Warning: ";
+    std::string errorPrefix = "ERROR: ";
 
 protected:
 
@@ -33,25 +38,25 @@ protected:
     void debug_implementation(std::string_view message) override
     {
         print_id(std::cout, std::this_thread::get_id());
-        std::cout<<"debug: "<<message<<"\n";
+        std::cout<<debugPrefix<<message<<"\n";
     }
 
     void info_implementation(std::string_view message) override
     {
         print_id(std::cout, std::this_thread::get_id());
-        std::cout<<"info: "<<message<<"\n";
+        std::cout<<infoPrefix<<message<<"\n";
     }
 
     void warn_implementation(std::string_view message) override
     {
         print_id(std::cout, std::this_thread::get_id());
-        std::cerr<<"warn: "<<message<<std::endl;
+        std::cerr<<warnPrefix<<message<<std::endl;
     }
 
     void error_implementation(std::string_view message) override
     {
         print_id(std::cout, std::this_thread::get_id());
-        std::cerr<<"error: "<<message<<std::endl;
+        std::cerr<<errorPrefix<<message<<std::endl;
     }
 };
 
@@ -62,14 +67,16 @@ struct MyOperation : public vsg::Inherit<vsg::Operation, MyOperation>
 
     void run() override
     {
-        vsg::info("operation ",value);
+        auto level = vsg::Logger::Level(1 + value % 4);
+        vsg::info("info() operation ",value);
+        vsg::log(level, "log() operation ",value);
     }
 };
 
 int main(int argc, char** argv)
 {
-    // assign our custom MultiThreadedLogger
-    auto mt_logger = MultiThreadedLogger::create();
+    // assign our custom ThreadLogger
+    auto mt_logger = ThreadLogger::create();
     vsg::Logger::instance() = mt_logger;
 
     // set thread main thread prefix

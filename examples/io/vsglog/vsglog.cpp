@@ -35,10 +35,10 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto count = arguments.value<size_t>(0, "-n");
-    auto level = arguments.value(0, "-l");
+    auto level = vsg::Logger::Level(arguments.value(0, "-l"));
 
     // you can override the message verbosity by setting the minimum level that will be printed.
-    vsg::Logger::instance()->level = vsg::Logger::Level(level);
+    vsg::Logger::instance()->level = level;
 
     // simplist form of messaging gets passed to the vsg::Logger::instance().
     vsg::debug("debug string");
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 
     // override the default Logger with out our locally implemented Logger
     vsg::Logger::instance() = CustomLogger::create();
-    vsg::Logger::instance()->level = vsg::Logger::Level(level);
+    vsg::Logger::instance()->level = level;
 
     vsg::debug("debug string");
     vsg::info("info string");
