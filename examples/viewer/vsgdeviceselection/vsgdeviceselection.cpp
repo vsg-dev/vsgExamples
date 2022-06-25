@@ -52,10 +52,20 @@ int main(int argc, char** argv)
         std::cout<<"vkEnumerateInstanceVersion() "<<windowTraits->vulkanVersion<<std::endl;
     }
 
+    if (arguments.read({"--extensions", "-e"}))
+    {
+        auto extensions = vsg::getExtensionProperties();
+        for(auto& extension : extensions)
+        {
+            std::cout<<"extensionName = "<<extension.extensionName<<" specVersion = "<<extension.specVersion<<std::endl;
+        }
+    }
+
     if (std::string versionStr; arguments.read("--vulkan", versionStr))
     {
         windowTraits->vulkanVersion = vsg::makeVulkanApiVersion(versionStr);
     }
+
 
 #ifdef VK_API_VERSION_MAJOR
     auto version = windowTraits->vulkanVersion;
