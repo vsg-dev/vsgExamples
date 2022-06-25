@@ -52,9 +52,18 @@ int main(int argc, char** argv)
         std::cout<<"vkEnumerateInstanceVersion() "<<windowTraits->vulkanVersion<<std::endl;
     }
 
+    if (arguments.read("--layers"))
+    {
+        auto layerProperties = vsg::enumerateInstanceLayerProperties();
+        for(auto& layer : layerProperties)
+        {
+            std::cout<<"layerName = "<<layer.layerName<<" specVersion = "<<layer.specVersion<<", implementationVersion = "<<layer.implementationVersion<<", description = "<<layer.description<<std::endl;
+        }
+    }
+
     if (arguments.read({"--extensions", "-e"}))
     {
-        auto extensions = vsg::getExtensionProperties();
+        auto extensions = vsg::enumerateInstanceExtensionProperties();
         for(auto& extension : extensions)
         {
             std::cout<<"extensionName = "<<extension.extensionName<<" specVersion = "<<extension.specVersion<<std::endl;
