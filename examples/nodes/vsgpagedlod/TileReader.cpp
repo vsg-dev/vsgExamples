@@ -227,7 +227,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_subtile(uint32_t x, uint32_t y, uint3
 
     if (group->children.size() != 4)
     {
-        std::cout << "Warning: could not load all 4 subtiles, loaded only " << group->children.size() << std::endl;
+        vsg::warn("Warning: could not load all 4 subtiles, loaded only ", group->children.size());
 
         return {};
     }
@@ -269,7 +269,7 @@ vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const
     vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
-        std::cout << "Could not create shaders." << std::endl;
+        vsg::warn("Could not create shaders.");
         return {};
     }
 
