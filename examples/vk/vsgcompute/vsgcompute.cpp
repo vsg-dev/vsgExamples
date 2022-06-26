@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     if (debugLayer)
     {
         instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-        requestedLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+        requestedLayers.push_back("VK_LAYER_KHRONOS_validation");
         if (apiDumpLayer) requestedLayers.push_back("VK_LAYER_LUNARG_api_dump");
     }
 

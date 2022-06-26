@@ -164,7 +164,7 @@ int main(int argc, char** argv)
         vsg::Names requestedLayers;
         if (windowTraits->debugLayer)
         {
-            requestedLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+            requestedLayers.push_back("VK_LAYER_KHRONOS_validation");
             if (windowTraits->apiDumpLayer) requestedLayers.push_back("VK_LAYER_LUNARG_api_dump");
         }
 
