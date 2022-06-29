@@ -86,6 +86,9 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
+    options->sharedObjects = vsg::SharedObjects::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 #ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
@@ -112,6 +115,7 @@ int main(int argc, char** argv)
     try
     {
         auto vsg_scene = vsg::Group::create();
+        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
 
         if (argc > 1)
         {
@@ -119,6 +123,8 @@ int main(int argc, char** argv)
             if (auto node = vsg::read_cast<vsg::Node>(filename, options); node)
             {
                 vsg_scene->addChild(node);
+
+                if (auto em = node->getObject<vsg::EllipsoidModel>("EllipsoidModel")) ellipsoidModel = em;
             }
         }
 
@@ -147,7 +153,7 @@ int main(int argc, char** argv)
         auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
+        if (ellipsoidModel)
         {
             perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, 0.0);
         }
@@ -176,7 +182,7 @@ int main(int argc, char** argv)
         // add close handler to respond the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-        viewer->addEventHandler(vsg::Trackball::create(camera));
+        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
