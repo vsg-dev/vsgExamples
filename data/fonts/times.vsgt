@@ -1,17 +1,17 @@
-#vsga 0.0.2
+#vsga 0.4.3
 Root id=1 vsg::Font
 {
-  NumUserObjects 0
+  userObjects 0
   ascender 0.587891
   descender -0.149414
   height 0.870768
   charmap id=2 vsg::uintArray
   {
-    NumUserObjects 0
-    Layout 0 4 0 1 1 1 0
-    Size 64259
-    Storage id=0
-    Data 201 0 0 0 0 0 0 0 0 0 0 0
+    userObjects 0
+    Layout 0 4 0 1 1 1 0 -1
+    size 64259
+    storage id=0
+    data 201 0 0 0 0 0 0 0 0 0 0 0
      0 0 0 0 0 0 0 0 0 0 0 0
      0 0 0 0 0 0 0 0 2 104 26 85
      205 105 106 27 226 227 51 80 31 7 12 170
@@ -5369,11 +5369,11 @@ Root id=1 vsg::Font
   }
   glyphMetrics id=3 vsg::GlyphMetricsArray
   {
-    NumUserObjects 0
-    Layout 0 48 0 1 1 1 0
-    Size 258
-    Storage id=0
-    Data    uvrect 0 0 0 0
+    userObjects 0
+    Layout 0 48 0 1 1 1 0 -1
+    size 258
+    storage id=0
+    data    uvrect 0 0 0 0
     width 0
     height 0
     horiBearingX 0
@@ -7699,12 +7699,12 @@ Root id=1 vsg::Font
   }
   atlas id=4 vsg::shortArray2D
   {
-    NumUserObjects 0
-    Layout 71 2 0 1 1 1 0
-    Width 601
-    Height 739
-    Storage id=0
-    Data -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768
+    userObjects 0
+    Layout 71 2 0 1 1 1 0 -1
+    width 601
+    height 739
+    storage id=0
+    data -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768
      -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768
      -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768
      -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768
@@ -44717,4 +44717,5 @@ Root id=1 vsg::Font
      -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768 -32768
      -32768 -32768 -32768 -32768 -32768 -32768 -32768
   }
+  options id=0
 }
