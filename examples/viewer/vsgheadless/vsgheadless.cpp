@@ -156,11 +156,11 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
         region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         region.srcSubresource.layerCount = 1;
         region.srcOffsets[0] = VkOffset3D{0, 0, 0};
-        region.srcOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 0};
+        region.srcOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
         region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         region.dstSubresource.layerCount = 1;
         region.dstOffsets[0] = VkOffset3D{0, 0, 0};
-        region.dstOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 0};
+        region.dstOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
 
         auto blitImage = vsg::BlitImage::create();
         blitImage->srcImage = sourceImage;
@@ -338,7 +338,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     VkExtent2D extent{2048, 1024};
     VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+    VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
     vsg::CommandLine arguments(&argc, argv);
     arguments.read({"--extent", "-w"}, extent.width, extent.height);
@@ -351,7 +351,6 @@ int main(int argc, char** argv)
     auto depthFilename = arguments.value<vsg::Path>("depth.vsgb", {"--depth-file", "--df"});
     auto resizeCadence = arguments.value(0, "--resize");
     if (arguments.read("--st")) extent = VkExtent2D{192, 108};
-    if (arguments.read("--float")) depthFormat = VK_FORMAT_D32_SFLOAT;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -391,7 +390,6 @@ int main(int argc, char** argv)
         instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
         instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         requestedLayers.push_back("VK_LAYER_KHRONOS_validation");
-        requestedLayers.push_back("VK_LAYER_LUNARG_standard_validation");
         if (apiDumpLayer) requestedLayers.push_back("VK_LAYER_LUNARG_api_dump");
     }
 

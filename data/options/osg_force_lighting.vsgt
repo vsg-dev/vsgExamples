@@ -1,4 +1,4 @@
-#vsga 0.0.3
+#vsga 0.4.3
 Root id=1 osg2vsg::BuildOptions
 {
   insertCullGroups 1
@@ -10,6 +10,9 @@ Root id=1 osg2vsg::BuildOptions
   supportedShaderModeMask 1023
   overrideGeomAttributes 0
   overrideShaderModeMask 1
+  useDepthSorted 1
+  mapRGBtoRGBAHint 1
+  copyNames 1
   vertexShaderPath ""
   fragmentShaderPath ""
   extension "vsgb"

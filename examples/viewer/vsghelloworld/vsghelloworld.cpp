@@ -1,6 +1,8 @@
 #include <vsg/all.h>
 #include <vsgXchange/all.h>
 
+#include <iostream>
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them

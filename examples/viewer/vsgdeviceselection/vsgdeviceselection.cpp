@@ -4,6 +4,8 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#include <iostream>
+
 namespace vsg
 {
     /// make a VK_API_VERSION value from a version string, i,e, a string of "1,2" maps to VK_API_VERSION_1_2
@@ -50,10 +52,29 @@ int main(int argc, char** argv)
         std::cout<<"vkEnumerateInstanceVersion() "<<windowTraits->vulkanVersion<<std::endl;
     }
 
+    if (arguments.read("--layers"))
+    {
+        auto layerProperties = vsg::enumerateInstanceLayerProperties();
+        for(auto& layer : layerProperties)
+        {
+            std::cout<<"layerName = "<<layer.layerName<<" specVersion = "<<layer.specVersion<<", implementationVersion = "<<layer.implementationVersion<<", description = "<<layer.description<<std::endl;
+        }
+    }
+
+    if (arguments.read({"--extensions", "-e"}))
+    {
+        auto extensions = vsg::enumerateInstanceExtensionProperties();
+        for(auto& extension : extensions)
+        {
+            std::cout<<"extensionName = "<<extension.extensionName<<" specVersion = "<<extension.specVersion<<std::endl;
+        }
+    }
+
     if (std::string versionStr; arguments.read("--vulkan", versionStr))
     {
         windowTraits->vulkanVersion = vsg::makeVulkanApiVersion(versionStr);
     }
+
 
 #ifdef VK_API_VERSION_MAJOR
     auto version = windowTraits->vulkanVersion;
@@ -143,7 +164,7 @@ int main(int argc, char** argv)
         vsg::Names requestedLayers;
         if (windowTraits->debugLayer)
         {
-            requestedLayers.push_back("VK_LAYER_LUNARG_standard_validation");
+            requestedLayers.push_back("VK_LAYER_KHRONOS_validation");
             if (windowTraits->apiDumpLayer) requestedLayers.push_back("VK_LAYER_LUNARG_api_dump");
         }
 
