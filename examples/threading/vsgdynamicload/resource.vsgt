@@ -1,10 +1,12 @@
-#vsga 0.0.4
+#vsga 0.4.3
 Root id=1 vsg::ResourceHints
 {
-  NumUserObjects 0
-  MaxSlot 1
-  NumDescriptorSets 50000
+  userObjects 0
+  maxSlot 1
+  numDescriptorSets 50000
   NumDescriptorPoolSize 1
   type 1
   count 50000
+  minimumBufferSize 16777216
+  minimumDeviceMemorySize 16777216
 }
