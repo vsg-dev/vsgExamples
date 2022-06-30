@@ -1,19 +1,19 @@
-#vsga 0.0.0
-Root id=1000 vsg::MatrixTransform
+#vsga 0.4.3
+Root id=1 vsg::MatrixTransform
 {
-  NumUserObjects 1
-  Key "batch"
-  Object id=1 vsg::Objects
+  userObjects 1
+  key "batch"
+  object id=2 vsg::Objects
   {
-    NumUserObjects 0
-    NumChildren 5
-    Child id=2 vsg::vec3Array
+    userObjects 0
+    children 5
+    vsg::Object id=3 vsg::vec3Array
     {
-      NumUserObjects 0
-      Format 0
-      Layout 0 1 1 1 0
-      Size 3670
-      Data 0.0970687 0 0.000543749 -0 0 0 0.0958184 -0.015927 0.000543749 0.1758 0 0.0021
+      userObjects 0
+      Layout 0 12 0 1 1 1 0 -1
+      size 3670
+      storage id=0
+      data 0.0970687 0 0.000543749 -0 0 0 0.0958184 -0.015927 0.000543749 0.1758 0 0.0021
        0.173536 -0.0288453 0.0021 0.238106 0 0.00455625 0.0921919 -0.0309688 0.000543749 -0 0 0
        0.235039 -0.0390685 0.00455625 0.2859 0 0.0078 0.166968 -0.0560872 0.0021 0.282218 -0.0469105 0.0078
        0.321094 0 0.0117188 0.0863756 -0.0449389 0.000543749 -0 0 0 0.226144 -0.0759654 0.00455625
@@ -932,13 +932,13 @@ Root id=1000 vsg::MatrixTransform
        0.0663407 0.0222849 0.6648 0.047488 0.015952 0.675 0.0689503 0.011461 0.6648 0.06985 0 0.6648
        0.049356 0.00820399 0.675 0.05 0 0.675
     }
-    Child id=3 vsg::vec3Array
+    vsg::Object id=4 vsg::vec3Array
     {
-      NumUserObjects 0
-      Format 0
-      Layout 0 1 1 1 0
-      Size 3670
-      Data 0.0130356 0 -0.999915 -0 0 -1 0.0128701 -0.0020402 -0.999915 0.0300678 0 -0.999548
+      userObjects 0
+      Layout 0 12 0 1 1 1 0 -1
+      size 3670
+      storage id=0
+      data 0.0130356 0 -0.999915 -0 0 -1 0.0128701 -0.0020402 -0.999915 0.0300678 0 -0.999548
        0.0296826 -0.00470777 -0.999548 0.0542633 0 -0.998527 0.0123726 -0.00403518 -0.999915 -0 0 -1
        0.0535662 -0.00849712 -0.998528 0.0902762 0 -0.995917 0.0285354 -0.00930941 -0.999549 0.0891156 -0.0141371 -0.995921
        0.147067 0 -0.989127 0.0115711 -0.00591815 -0.999916 -0 0 -1 0.0514961 -0.0168018 -0.998532
@@ -1857,13 +1857,13 @@ Root id=1000 vsg::MatrixTransform
        0.351199 0.114663 0.929253 0.626231 0.204383 0.752371 0.365248 0.0580008 0.929101 0.370065 0 0.929006
        0.650946 0.103315 0.75206 0.65936 0 0.751828
     }
-    Child id=4 vsg::vec4Array
+    vsg::Object id=5 vsg::vec4Array
     {
-      NumUserObjects 0
-      Format 0
-      Layout 0 1 1 1 0
-      Size 3670
-      Data 0.0782448 0.996934 0.00102005 -1 0.078258 0.996933 0 -1 0.156809 0.987629 0 -1
+      userObjects 0
+      Layout 0 16 0 1 1 1 0 -1
+      size 3670
+      storage id=0
+      data 0.0782448 0.996934 0.00102005 -1 0.078258 0.996933 0 -1 0.156809 0.987629 0 -1
        0.0781872 0.996936 0.00235198 -1 0.156808 0.987629 0 -1 0.0780278 0.996942 0.00424029 -1
        0.310336 0.950627 0 -1 0.234378 0.972146 0 -1 0.156808 0.987629 0 -1
        0.0776214 0.996958 0.00703608 -1 0.310337 0.950627 0 -1 0.156808 0.987629 1.18575e-05 -1
@@ -3088,13 +3088,13 @@ Root id=1000 vsg::MatrixTransform
        -0.156802 0.98763 -1.26359e-05 -1 -0.0675698 0.997351 0.0269154 -1 -0.156605 0.987661 -0.000130783 -1
        -0.0442947 0.998263 0.0388451 -1
     }
-    Child id=5 vsg::vec2Array
+    vsg::Object id=6 vsg::vec2Array
     {
-      NumUserObjects 0
-      Format 0
-      Layout 0 1 1 1 0
-      Size 3670
-      Data 2 0.04 1.9 -7.45058e-09 1.9 0.04 2 0.08 1.9 0.08 2 0.12
+      userObjects 0
+      Layout 0 8 0 1 1 1 0 -1
+      size 3670
+      storage id=0
+      data 2 0.04 1.9 -7.45058e-09 1.9 0.04 2 0.08 1.9 0.08 2 0.12
        1.8 0.04 1.8 -7.45058e-09 1.9 0.12 2 0.16 1.8 0.08 1.9 0.16
        2 0.2 1.7 0.04 1.7 -7.45058e-09 1.8 0.12 1.9 0.2 2 0.24
        1.7 0.08 1.8 0.16 1.9 0.24 2 0.28 1.6 0.04 1.6 -7.45058e-09
@@ -3707,13 +3707,13 @@ Root id=1000 vsg::MatrixTransform
        0.15 1 0.1 0.8 0.05 0.8 -3.72529e-08 0.8 0.1 0.9 0.1 1
        0.05 0.9 -3.72529e-08 0.9 0.05 1 -3.72529e-08 1
     }
-    Child id=6 vsg::ushortArray
+    vsg::Object id=7 vsg::ushortArray
     {
-      NumUserObjects 0
-      Format 0
-      Layout 0 1 1 1 0
-      Size 18960
-      Data 2 1 0 2 0 3 3 4 2 4 3 5
+      userObjects 0
+      Layout 0 2 0 1 1 1 0 -1
+      size 18960
+      storage id=0
+      data 2 1 0 2 0 3 3 4 2 4 3 5
        6 2 4 6 7 2 5 8 4 8 5 9
        4 10 6 10 4 8 9 11 8 11 9 12
        10 13 6 13 14 6 8 15 10 15 8 11
@@ -5295,68 +5295,69 @@ Root id=1000 vsg::MatrixTransform
        3663 3666 3667 3666 3665 3668 3668 3667 3666 3667 3668 3669
     }
   }
-  NumChildren 1
-  Child id=7 vsg::MatrixTransform
+  children 1
+  vsg::Node id=8 vsg::MatrixTransform
   {
-    NumUserObjects 0
-    NumChildren 1
-    Child id=8 vsg::StateGroup
+    userObjects 0
+    children 1
+    vsg::Node id=9 vsg::StateGroup
     {
-      NumUserObjects 0
-      NumChildren 1
-      Child id=9 vsg::VertexIndexDraw
+      userObjects 0
+      children 1
+      vsg::Node id=10 vsg::VertexIndexDraw
       {
-        NumUserObjects 0
+        userObjects 0
         firstBinding 0
         NumArrays 4
-        Array id=2
         Array id=3
         Array id=4
         Array id=5
-        Indices id=6
+        Array id=6
+        Indices id=7
         indexCount 18960
         instanceCount 1
         firstIndex 0
         vertexOffset 0
         firstInstance 0
       }
-      NumStateCommands 2
-      StateCommand id=10 vsg::BindGraphicsPipeline
+      stateCommands 2
+      vsg::StateCommand id=11 vsg::BindGraphicsPipeline
       {
-        NumUserObjects 0
-        Slot 0
-        GraphicsPipeline id=11 vsg::GraphicsPipeline
+        userObjects 0
+        slot 0
+        pipeline id=12 vsg::GraphicsPipeline
         {
-          NumUserObjects 0
-          PipelineLayout id=12 vsg::PipelineLayout
+          userObjects 0
+          layout id=13 vsg::PipelineLayout
           {
-            NumUserObjects 0
-            Flags 0
-            NumDescriptorSetLayouts 1
-            DescriptorSetLayout id=13 vsg::DescriptorSetLayout
+            userObjects 0
+            flags 0
+            setLayouts 1
+            descriptorLayout id=14 vsg::DescriptorSetLayout
             {
-              NumUserObjects 0
-              NumDescriptorSetLayoutBindings 1
+              userObjects 0
+              bindings 1
               binding 10
               descriptorType 6
               descriptorCount 1
               stageFlags 16
             }
-            NumPushConstantRanges 1
+            pushConstantRanges 1
             stageFlags 1
             offset 0
             size 128
           }
-          NumShaderStages 2
-          ShaderStage id=14 vsg::ShaderStage
+          stages 2
+          vsg::ShaderStage id=15 vsg::ShaderStage
           {
-            NumUserObjects 0
-            Stage 1
-            EntryPoint "main"
-            ShaderModule id=15 vsg::ShaderModule
+            userObjects 0
+            stage 1
+            entryPointName "main"
+            module id=16 vsg::ShaderModule
             {
-              NumUserObjects 0
-              Source "#version 450
+              userObjects 0
+              hints id=0
+              source "#version 450
 #pragma import_defines ( VSG_NORMAL, VSG_TANGENT, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_NORMAL_MAP, VSG_BILLBOARD )
 #define VSG_NORMAL
 #define VSG_TANGENT
@@ -5452,8 +5453,8 @@ void main()
 #endif
 }
 "
-              SPIRVSize 656
-              SPIRV 119734787 65536 524295 96 0 131089 1 393227 1 1280527431 1685353262 808793134
+              code 656
+               119734787 65536 524295 96 0 131089 1 393227 1 1280527431 1685353262 808793134
                0 196622 0 1 917519 0 4 1852399981 0 21 29 41
                43 48 58 64 86 95 196611 2 450 589828 1096764487 1935622738
                1918988389 1600484449 1684105331 1868526181 1667590754 29556 262149 4 1852399981 0 327685 10
@@ -5511,15 +5512,16 @@ void main()
             }
             NumSpecializationConstants 0
           }
-          ShaderStage id=17 vsg::ShaderStage
+          vsg::ShaderStage id=17 vsg::ShaderStage
           {
-            NumUserObjects 0
-            Stage 16
-            EntryPoint "main"
-            ShaderModule id=18 vsg::ShaderModule
+            userObjects 0
+            stage 16
+            entryPointName "main"
+            module id=18 vsg::ShaderModule
             {
-              NumUserObjects 0
-              Source "#version 450
+              userObjects 0
+              hints id=0
+              source "#version 450
 #pragma import_defines ( VSG_NORMAL, VSG_COLOR, VSG_TEXCOORD0, VSG_LIGHTING, VSG_ALBEDO_COLOR, VSG_DIFFUSE_MAP, VSG_OPACITY_MAP, VSG_AMBIENT_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP )
 #define VSG_NORMAL
 #define VSG_TEXCOORD0
@@ -5625,8 +5627,8 @@ void main()
     if (outColor.a==0.0) discard;
 }
 "
-              SPIRVSize 745
-              SPIRV 119734787 65536 524295 115 0 131089 1 393227 1 1280527431 1685353262 808793134
+              code 745
+               119734787 65536 524295 115 0 131089 1 393227 1 1280527431 1685353262 808793134
                0 196622 0 1 655375 4 4 1852399981 0 35 41 45
                103 114 196624 4 7 196611 2 450 589828 1096764487 1935622738 1918988389
                1600484449 1684105331 1868526181 1667590754 29556 262149 4 1852399981 0 262149 9 1702060386
@@ -5692,10 +5694,10 @@ void main()
             }
             NumSpecializationConstants 0
           }
-          NumPipelineStates 6
-          PipelineState id=19 vsg::VertexInputState
+          pipelineStates 6
+          vsg::GraphicsPipelineState id=19 vsg::VertexInputState
           {
-            NumUserObjects 0
+            userObjects 0
             NumBindings 4
             binding 0
             stride 12
@@ -5727,23 +5729,39 @@ void main()
             format 103
             offset 0
           }
-          PipelineState id=20 vsg::InputAssemblyState
+          vsg::GraphicsPipelineState id=20 vsg::InputAssemblyState
           {
-            NumUserObjects 0
+            userObjects 0
             topology 3
             primitiveRestartEnable 0
           }
-          PipelineState id=21 vsg::RasterizationState
+          vsg::GraphicsPipelineState id=21 vsg::RasterizationState
           {
-            NumUserObjects 0
+            userObjects 0
+            depthClampEnable 0
+            rasterizerDiscardEnable 0
+            polygonMode 0
+            cullMode 2
+            frontFace 0
+            depthBiasEnable 0
+            depthBiasConstantFactor 1
+            depthBiasClamp 0
+            depthBiasSlopeFactor 1
+            lineWidth 1
           }
-          PipelineState id=22 vsg::MultisampleState
+          vsg::GraphicsPipelineState id=22 vsg::MultisampleState
           {
-            NumUserObjects 0
+            userObjects 0
+            rasterizationSamples 1
+            sampleShadingEnable 0
+            minSampleShading 0
+            NumSampleMask 0
+            alphaToCoverageEnable 0
+            alphaToOneEnable 0
           }
-          PipelineState id=23 vsg::ColorBlendState
+          vsg::GraphicsPipelineState id=23 vsg::ColorBlendState
           {
-            NumUserObjects 0
+            userObjects 0
             logicOp 3
             logicOpEnable 0
             NumColorBlendAttachments 1
@@ -5755,56 +5773,69 @@ void main()
             dstAlphaBlendFactor 0
             alphaBlendOp 0
             colorWriteMask 15
-            blendConstants0 0
-            blendConstants1 0
-            blendConstants2 0
-            blendConstants3 0
+            blendConstants 0 0 0 0
           }
-          PipelineState id=24 vsg::DepthStencilState
+          vsg::GraphicsPipelineState id=24 vsg::DepthStencilState
           {
-            NumUserObjects 0
+            userObjects 0
             depthTestEnable 1
             depthWriteEnable 1
             depthCompareOp 4
             depthBoundsTestEnable 0
             stencilTestEnable 0
+            front.failOp 0
+            front.passOp 0
+            front.depthFailOp 0
+            front.compareOp 0
+            front.compareMask 0
+            front.writeMask 0
+            front.reference 0
+            back.failOp 0
+            back.passOp 0
+            back.depthFailOp 0
+            back.compareOp 0
+            back.compareMask 0
+            back.writeMask 0
+            back.reference 0
+            minDepthBounds 0
+            maxDepthBounds 1
           }
           subpass 0
         }
       }
-      StateCommand id=25 vsg::BindDescriptorSet
+      vsg::StateCommand id=25 vsg::BindDescriptorSet
       {
-        NumUserObjects 0
-        Slot 1
-        PipelineLayout id=12
+        userObjects 0
+        slot 1
+        layout id=13
         firstSet 0
-        DescriptorSet id=26 vsg::DescriptorSet
+        descriptorSet id=26 vsg::DescriptorSet
         {
-          NumUserObjects 0
-          DescriptorSetLayout id=13
-          NumDescriptors 1
-          Descriptor id=27 vsg::DescriptorBuffer
+          userObjects 0
+          setLayout id=14
+          descriptors 1
+          vsg::Descriptor id=27 vsg::DescriptorBuffer
           {
-            NumUserObjects 0
-            DstBinding 10
-            DstArrayElement 0
-            NumData 1
-            Data id=28 vsg::vec4Value
+            userObjects 0
+            dstBinding 10
+            dstArrayElement 0
+            dataList 1
+            data id=28 vsg::vec4Value
             {
-              NumUserObjects 0
-              Format 0
-              Layout 0 1 1 1 0
+              userObjects 0
+              Layout 0 0 0 1 1 1 0 -1
               Value 1 0.929412 0.137255 1
             }
           }
         }
       }
+      prototypeArrayState id=0
     }
-    Matrix 1 0 0 0 0 -1.19209e-07 -1 0 0 1 -1.19209e-07 0
+    matrix 1 0 0 0 0 -1.19209e-07 -1 0 0 1 -1.19209e-07 0
      0 0 0 1
-    SubgraphRequiresLocalFrustum 1
+    subgraphRequiresLocalFrustum 1
   }
-  Matrix 1 0 0 0 0 1 0 0 0 0 1 0
+  matrix 1 0 0 0 0 1 0 0 0 0 1 0
    0 0 0 1
-  SubgraphRequiresLocalFrustum 1
+  subgraphRequiresLocalFrustum 1
 }
