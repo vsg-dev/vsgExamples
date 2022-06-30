@@ -44,8 +44,9 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
     rasterState->cullMode = VK_CULL_MODE_FRONT_BIT;
 
     auto depthState = vsg::DepthStencilState::create();
-    depthState->depthTestEnable = VK_FALSE;
+    depthState->depthTestEnable = VK_TRUE;
     depthState->depthWriteEnable = VK_FALSE;
+    depthState->depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
 
     vsg::GraphicsPipelineStates pipelineStates{
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
