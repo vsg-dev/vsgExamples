@@ -1,5 +1,5 @@
 #vsga 0.4.3
-Root id=1 vsgGIS::TileDatabase
+Root id=1 vsg::TileDatabase
 {
   userObjects 1
   key "EllipsoidModel"
@@ -9,7 +9,7 @@ Root id=1 vsgGIS::TileDatabase
     radiusEquator 6.37814e+06
     radiusPolar 6.35675e+06
   }
-  settings id=3 vsgGIS::TileDatabaseSettings
+  settings id=3 vsg::TileDatabaseSettings
   {
     extents -180 -90 0 180 90 1
     noX 1
