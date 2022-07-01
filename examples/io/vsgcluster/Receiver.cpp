@@ -120,7 +120,7 @@ bool Receiver::init(void)
     return _initialized;
 }
 
-unsigned int Receiver::recieve(void* buffer, const unsigned int buffer_size)
+unsigned int Receiver::receive(void* buffer, const unsigned int buffer_size)
 {
     if (!_initialized) init();
 

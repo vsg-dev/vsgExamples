@@ -30,10 +30,10 @@ namespace CustomText
 
         // load custom vertex shaders
         auto vertexShader = vsg::read_cast<vsg::ShaderStage>(vertesShaderFilename, options);
-        // if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cppp
+        // if (!vertexShader) vertexShader = text_vert(); // fallback to shaders/text_vert.cpp
 
         auto fragmentShader = vsg::read_cast<vsg::ShaderStage>(fragmentShaderFilename, options);
-        // if (!fragmentShader) fragmentShader = text_frag(); // fallback to shaders/text_frag.cppp
+        // if (!fragmentShader) fragmentShader = text_frag(); // fallback to shaders/text_frag.cpp
 
         uint32_t numTextIndices = 256;
         vertexShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{

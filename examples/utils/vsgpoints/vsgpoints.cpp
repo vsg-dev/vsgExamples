@@ -199,7 +199,7 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
 
     // load shaders
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/pointsprites.vert", options);
-    //if (!vertexShader) vertexShader = assimp_vert(); // fallback to shaders/assimp_vert.cppp
+    //if (!vertexShader) vertexShader = assimp_vert(); // fallback to shaders/assimp_vert.cpp
 
     vsg::ref_ptr<vsg::ShaderStage> fragmentShader;
     if (lighting)

@@ -211,7 +211,7 @@ bool PacketReceiver::add(std::unique_ptr<Packet> packet)
 vsg::ref_ptr<vsg::Object> PacketReceiver::receive()
 {
     auto first_packet = createPacket();
-    unsigned int first_size = receiver->recieve(&(*first_packet), sizeof(Packet));
+    unsigned int first_size = receiver->receive(&(*first_packet), sizeof(Packet));
     if (first_size == 0)
     {
         packetPool.emplace(std::move(first_packet));
@@ -227,7 +227,7 @@ vsg::ref_ptr<vsg::Object> PacketReceiver::receive()
     while(true)
     {
         auto packet = createPacket();
-        unsigned int size = receiver->recieve(&(*packet), sizeof(Packet));
+        unsigned int size = receiver->receive(&(*packet), sizeof(Packet));
         if (size == 0)
         {
             packetPool.emplace(std::move(packet));

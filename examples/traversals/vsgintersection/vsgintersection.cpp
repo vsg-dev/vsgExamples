@@ -36,7 +36,7 @@ public:
     {
         if (lastPointerEvent)
         {
-            interesection(*lastPointerEvent);
+            intersection(*lastPointerEvent);
             if (!lastIntersection) return;
 
             geom.position = vsg::vec3(lastIntersection->worldIntersection);
@@ -81,7 +81,7 @@ public:
 
         if (buttonPressEvent.button == 1)
         {
-            interesection(buttonPressEvent);
+            intersection(buttonPressEvent);
         }
     }
 
@@ -90,7 +90,7 @@ public:
         lastPointerEvent = &pointerEvent;
     }
 
-    void interesection(vsg::PointerEvent& pointerEvent)
+    void intersection(vsg::PointerEvent& pointerEvent)
     {
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);

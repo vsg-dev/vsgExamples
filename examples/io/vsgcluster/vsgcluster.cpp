@@ -235,13 +235,13 @@ int main(int argc, char** argv)
 
         if (rc)
         {
-            //unsigned int size = rc->recieve(buffer.data(), buffer_size);
-            //std::cout << "recieved size = " << size << std::endl;
+            //unsigned int size = rc->receive(buffer.data(), buffer_size);
+            //std::cout << "received size = " << size << std::endl;
             auto object = receiver.receive();
             viewerData = object.cast<cluster::ViewerData>();
             if (viewerData)
             {
-                std::cout<<"recieved viewerData "<<viewerData->alive<<std::endl;
+                std::cout<<"received viewerData "<<viewerData->alive<<std::endl;
 
                 lookAt->eye = viewerData->lookAt->eye;
                 lookAt->center = viewerData->lookAt->center;
@@ -249,7 +249,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::cout<<"recieved "<<object<<std::endl;
+                std::cout<<"received "<<object<<std::endl;
             }
         }
 

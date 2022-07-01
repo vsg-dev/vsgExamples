@@ -64,7 +64,7 @@ int main(int argc, char** argv)
         }
     };
 
-    // explictly create vistor and call accept on the scene
+    // explicitly create vistor and call accept on the scene
     MyVisitor myVisitor;
     scene->accept(myVisitor);
     std::cout << "MyVisitor() object types s=" << myVisitor.objectCounts.size()<< std::endl;
