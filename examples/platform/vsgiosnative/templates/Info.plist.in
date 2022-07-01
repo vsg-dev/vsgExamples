@@ -25,7 +25,7 @@
     <key>UILaunchStoryboardName</key>
     <string>${MACOSX_BUNDLE_LAUNCHSCREEN_STORYBOARD}</string>
 
-    <!-- Optionnal StoryBoard filename -->
+    <!-- Optional StoryBoard filename -->
     <key>UIMainStoryboardFile</key>
     <string>${MACOSX_BUNDLE_MAIN_STORYBOARD}</string>
 

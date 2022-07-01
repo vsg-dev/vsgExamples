@@ -39,8 +39,8 @@ class Receiver : public vsg::Inherit<vsg::Object, Receiver>
 public:
     Receiver(uint16_t port);
 
-    // Sync does a blocking wait to recieve next message
-    unsigned int recieve(void* buffer, const unsigned int buffer_size);
+    // Sync does a blocking wait to receive next message
+    unsigned int receive(void* buffer, const unsigned int buffer_size);
 
 private:
     bool init(void);

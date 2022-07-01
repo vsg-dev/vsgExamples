@@ -324,7 +324,7 @@ function(add_ios_app TARGET)
     ios_handle_cyclical_linking(LIBRARIES)
 
     # Define entry point for correct initialization.
-    # Maybe set this optionnal in the future if user wants to set his own entry point ?
+    # Maybe set this optional in the future if user wants to set his own entry point ?
     if(IOS_VERBOSE)
         message(STATUS "Add -e _main_wrapper linker flag to ${IOS_TARGET} to change application entry point to create UIApplication before QApplication")
     endif() # IOS_VERBOSE
@@ -439,13 +439,13 @@ function(add_ios_app TARGET)
     # Set Custom pList
     set_target_properties(${IOS_TARGET} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${IOS_CUSTOM_PLIST})
 
-    # Add asset dir as ressource
+    # Add asset dir as resource
     if(IOS_ASSET_DIR)
         target_sources(${IOS_TARGET} PRIVATE ${IOS_ASSET_DIR})
         set_source_files_properties(${IOS_ASSET_DIR} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     else(IOS_ASSET_DIR)
         if(IOS_VERBOSE)
-            message(STATUS "No Asset dir specified. This is the recommanded way to add Icons and LaunchImage")
+            message(STATUS "No Asset dir specified. This is the recommended way to add Icons and LaunchImage")
         endif() # IOS_VERBOSE
     endif() # IOS_ASSET_DIR
 
@@ -458,7 +458,7 @@ function(add_ios_app TARGET)
     endforeach()
 
 
-    # Add Launchscreen storyboard as ressource
+    # Add Launchscreen storyboard as resource
     if(IOS_LAUNCHSCREEN_STORYBOARD)
         target_sources(${IOS_TARGET} PRIVATE ${IOS_LAUNCHSCREEN_STORYBOARD})
         set_source_files_properties(${IOS_LAUNCHSCREEN_STORYBOARD} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
@@ -470,12 +470,12 @@ function(add_ios_app TARGET)
     else() # IOS_LAUNCHSCREEN_STORYBOARD
         if(IOS_VERBOSE)
             if(NOT IOS_REQUIRES_FULL_SCREEN)
-            message(WARNING "LaunchScreen.storyboard isn't specified, it's is now recommanded to have one if you don't set REQUIRES_FULL_SCREEN")
+            message(WARNING "LaunchScreen.storyboard isn't specified, it's is now recommended to have one if you don't set REQUIRES_FULL_SCREEN")
             endif() # NOT IOS_REQUIRES_FULL_SCREEN
         endif() # IOS_VERBOSE
     endif() # IOS_LAUNCHSCREEN_STORYBOARD
 
-    # Add Main storyboard as ressource
+    # Add Main storyboard as resource
     if(IOS_MAIN_STORYBOARD)
         target_sources(${IOS_TARGET} PRIVATE ${IOS_MAIN_STORYBOARD})
         set_source_files_properties(${IOS_MAIN_STORYBOARD} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)

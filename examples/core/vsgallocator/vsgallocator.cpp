@@ -50,7 +50,7 @@ public:
     {
         if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
         {
-            std::cout<<"CustomAllocator::dealocate("<<ptr<<")"<<std::endl;
+            std::cout<<"CustomAllocator::deallocate("<<ptr<<")"<<std::endl;
         }
         return Allocator::deallocate(ptr, size);
     }

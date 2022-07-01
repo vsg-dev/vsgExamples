@@ -56,7 +56,7 @@ public:
     {
         if (keyPress.keyBase == 'i' && lastPointerEvent)
         {
-            interesection(*lastPointerEvent);
+            intersection(*lastPointerEvent);
         }
     }
 
@@ -73,7 +73,7 @@ public:
         world_ClipSetttings->dirty();
     }
 
-    void interesection(vsg::PointerEvent& pointerEvent)
+    void intersection(vsg::PointerEvent& pointerEvent)
     {
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
@@ -325,9 +325,9 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
         // add intersection handler to track the mouse position
-        auto interesectionHandler = IntersectionHandler::create(camera, vsg_scene, ellipsoidModel, radius * 0.3);
-        viewer->addEventHandler(interesectionHandler);
-        interesectionHandler->world_ClipSetttings = worldClipSettings;
+        auto intersectionHandler = IntersectionHandler::create(camera, vsg_scene, ellipsoidModel, radius * 0.3);
+        viewer->addEventHandler(intersectionHandler);
+        intersectionHandler->world_ClipSetttings = worldClipSettings;
 
         // add trackball to control the Camera
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));

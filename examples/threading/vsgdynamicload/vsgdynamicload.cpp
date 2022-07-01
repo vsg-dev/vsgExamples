@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 
         auto loadThreads = vsg::OperationThreads::create(numThreads, viewer->status);
 
-        // assign the LoadOperation that will do the load in the background and once loaded and compiled merged then via Merge operation that is assigned to updateOperations and called from viewer.udpate()
+        // assign the LoadOperation that will do the load in the background and once loaded and compiled merged then via Merge operation that is assigned to updateOperations and called from viewer.update()
         vsg::observer_ptr<vsg::Viewer> observer_viewer(viewer);
         for (int i = 1; i < argc; ++i)
         {

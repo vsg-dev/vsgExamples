@@ -93,11 +93,11 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout<<"\nmy_property = "<<my_property<<", className = "<<my_property->className()<<std::endl;
     std::cout<<"    after constructor my_property->value->speed = "<<my_property->value().speed<<std::endl;
 
-    // we can modify the value struct by getting the value from the value obejct and mofifying it:
+    // we can modify the value struct by getting the value from the value object and mofifying it:
     my_property->value().speed += 2.0f;
     std::cout<<"    after increment my_property->value->speed = "<<my_property->value().speed<<std::endl;
 
-    // or get a referenece to underlying engine::property value held by the my_property object
+    // or get a reference to underlying engine::property value held by the my_property object
     auto& prop = my_property->value();
     prop.speed *= 2.0f; // modifying a member of the struct
     std::cout<<"    after multiplication my_property->value->speed = "<<prop.speed<<std::endl;
