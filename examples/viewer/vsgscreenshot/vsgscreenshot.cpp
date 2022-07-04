@@ -452,15 +452,19 @@ public:
             std::cout << "num_unset_depth = " << num_unset_depth << std::endl;
             std::cout << "num_set_depth = " << num_set_depth << std::endl;
 
-            vsg::write(imageData, depthFilename, options);
-            std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
+            if (vsg::write(imageData, depthFilename, options))
+            {
+                std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
+            }
         }
         else
         {
             auto imageData = vsg::MappedData<vsg::uintArray2D>::create(destinationMemory, 0, 0, vsg::Data::Layout{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
 
-            vsg::write(imageData, depthFilename);
-            std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
+            if (vsg::write(imageData, depthFilename))
+            {
+                std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
+            }
         }
     }
 };
