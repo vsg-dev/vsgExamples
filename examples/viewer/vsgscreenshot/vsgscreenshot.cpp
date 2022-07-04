@@ -148,6 +148,7 @@ public:
 
         if (event)
         {
+            vsg::info("Using vsg::Event/vkEvent");
             commands->addChild(vsg::WaitEvents::create(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, event));
             commands->addChild(vsg::ResetEvent::create(event, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT));
         }
@@ -500,6 +501,7 @@ int main(int argc, char** argv)
     arguments.read("--samples", windowTraits->samples);
     auto colorFilename = arguments.value<vsg::Path>("screenshot.vsgt", {"--color-file", "--cf"});
     auto depthFilename = arguments.value<vsg::Path>("depth.vsgt", {"--depth-file", "--df"});
+    auto use_vkEvent = arguments.read("--use-vkEvent");
     if (arguments.read("--msaa")) windowTraits->samples = VK_SAMPLE_COUNT_8_BIT;
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
     if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -593,7 +595,7 @@ int main(int argc, char** argv)
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    auto event = vsg::Event::create(window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignalled state
+    auto event = vsg::Event::create_if(use_vkEvent, window->getOrCreateDevice()); // Vulkan creates vkEvent in an unsignalled state
 
     // Add ScreenshotHandler to respond to keyboard and mouse events.
     auto screenshotHandler = ScreenshotHandler::create(event, colorFilename, depthFilename, options);
