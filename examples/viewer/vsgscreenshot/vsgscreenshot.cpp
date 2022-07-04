@@ -117,7 +117,7 @@ public:
             targetImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
         }
 
-        //std::cout<<"supportsBlit = "<<supportsBlit<<std::endl;
+        vsg::info("supportsBlit = ", supportsBlit);
 
         //
         // 2) create image to write to
@@ -193,11 +193,11 @@ public:
             region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             region.srcSubresource.layerCount = 1;
             region.srcOffsets[0] = VkOffset3D{0, 0, 0};
-            region.srcOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 0};
+            region.srcOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
             region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             region.dstSubresource.layerCount = 1;
             region.dstOffsets[0] = VkOffset3D{0, 0, 0};
-            region.dstOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 0};
+            region.dstOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
 
             auto blitImage = vsg::BlitImage::create();
             blitImage->srcImage = sourceImage;
@@ -475,13 +475,16 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgscreenshot";
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
 #ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
+
+    auto windowTraits = vsg::WindowTraits::create();
+    windowTraits->windowTitle = "vsgscreenshot";
 
     // enable transfer from the colour and depth buffer images
     windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -522,14 +525,16 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
+    auto vsg_scene = vsg::Group::create();
+    for (int i = 1; i < argc; ++i)
+    {
+        if (auto node = vsg::read_cast<vsg::Node>(arguments[i], options))
+        {
+            vsg_scene->addChild(node);
+        }
+    }
 
-    vsg::Path filename;
-    if (argc > 1) filename = arguments[1];
-    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-
-    auto vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
-    if (!vsg_scene)
+    if (vsg_scene->children.empty())
     {
         std::cout << "Please specify a 3d model file on the command line." << std::endl;
         return 1;
