@@ -474,12 +474,18 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgscreenshot";
 
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
+
     // enable transfer from the colour and depth buffer images
     windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     windowTraits->depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
+    arguments.read(options);
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read("--screen", windowTraits->screenNum);
@@ -512,10 +518,6 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-#ifdef vsgXchange_all
-    // add vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::all::create());
-#endif
 
     vsg::Path filename;
     if (argc > 1) filename = arguments[1];
@@ -554,8 +556,6 @@ int main(int argc, char** argv)
     std::cout << "depthStencilResolve_properites.supportedStencilResolveModes = " << depthStencilResolve_properites.supportedStencilResolveModes << std::endl;
     std::cout << "depthStencilResolve_properites.independentResolveNone = " << depthStencilResolve_properites.independentResolveNone << std::endl;
     std::cout << "depthStencilResolve_properites.independentResolve = " << depthStencilResolve_properites.independentResolve << std::endl;
-
-
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
