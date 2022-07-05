@@ -180,6 +180,8 @@ int main(int argc, char** argv)
     auto enable_tests = arguments.read("--test");
     auto numFrames = arguments.value(-1, "--nf");
     auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
+    auto assignOptions = arguments.read({"--assign-options", "--ao"});
+    auto resetOptions = arguments.read({"--reset-options", "--ro"});
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -199,7 +201,15 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    font->options = options;
+    if (assignOptions)
+    {
+        font->options = options;
+    }
+
+    if (resetOptions)
+    {
+        options->readerWriters.clear();
+    }
 
     // set up model transformation node
     auto scenegraph = vsg::Group::create();
@@ -266,7 +276,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -289,7 +298,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("VERTICAL_LAYOUT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -312,7 +320,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("LEFT_TO_RIGHT_LAYOUT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -335,7 +342,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("RIGHT_TO_LEFT_LAYOUT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -358,7 +364,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("horizontalAlignment\nCENTER_ALIGNMENT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -381,7 +386,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("horizontalAlignment\nLEFT_ALIGNMENT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -404,7 +408,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("horizontalAlignment\nRIGHT_ALIGNMENT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -428,7 +431,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("verticalAlignment\nBOTTOM_ALIGNMENT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -452,7 +454,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("verticalAlignment\nCENTER_ALIGNMENT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -476,7 +477,6 @@ int main(int argc, char** argv)
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("verticalAlignment\nTOP_ALIGNMENT");
             text->font = font;
-            text->font->options = options;
             text->layout = layout;
             text->setup();
             scenegraph->addChild(text);
@@ -541,7 +541,6 @@ int main(int argc, char** argv)
 
         dynamic_text->text = dynamic_text_label;
         dynamic_text->font = font;
-        dynamic_text->font->options = options;
         dynamic_text->layout = dynamic_text_layout;
         dynamic_text->setup(32); // allocate enough space for max possible characters
         scenegraph->addChild(dynamic_text);
