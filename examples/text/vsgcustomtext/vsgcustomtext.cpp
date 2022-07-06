@@ -221,7 +221,7 @@ void CustomTechnique::setup(vsg::Text* text, uint32_t minimumAllocation)
     {
         scenegraph = vsg::StateGroup::create();
 
-        auto shaderSet = createTextShaderSet(text->font->options);
+        auto shaderSet = text->shaderSet ? text->shaderSet : createTextShaderSet(text->font->options);
         auto config = vsg::GraphicsPipelineConfig::create(shaderSet);
 
         auto& sharedObjects = text->font->sharedObjects;
@@ -391,8 +391,6 @@ int main(int argc, char** argv)
         }
 
         {
-            font->options->shaderSets["text"] = createMyTextShaderSet(vertesShaderFilename, fragmentShaderFilename, options);
-
             auto layout = CustomLayout::create();
             layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
             layout->position = vsg::vec3(0.0, -2.0, 0.0);
@@ -406,6 +404,7 @@ int main(int argc, char** argv)
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("Custom vsg::Text shaders.");
+            text->shaderSet = createMyTextShaderSet(vertesShaderFilename, fragmentShaderFilename, options);
             text->font = font;
             text->layout = layout;
             text->technique = CustomTechnique::create();
