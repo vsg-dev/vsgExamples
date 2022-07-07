@@ -99,25 +99,6 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    auto physicalDevice = window->getOrCreatePhysicalDevice();
-    std::cout<<"physicalDevice = " << physicalDevice << std::endl;
-    for(auto& queueFamilyProperties : physicalDevice->getQueueFamilyProperties())
-    {
-        std::cout<<"    queueFamilyProperties.timestampValidBits = " << queueFamilyProperties.timestampValidBits << std::endl;
-    }
-
-    const auto& limits = physicalDevice->getProperties().limits;
-    std::cout<<"    limits.timestampComputeAndGraphics = " << limits.timestampComputeAndGraphics << std::endl;
-    std::cout<<"    limits.timestampPeriod = " << limits.timestampPeriod << " nanoseconds."<<std::endl;
-
-    if (!limits.timestampComputeAndGraphics)
-    {
-        std::cout<<"Timestamps not supported by device."<<std::endl;
-        return 1;
-    }
-
-    double timestampScaleToMilliseconds = 10e-6 * static_cast<double>(limits.timestampPeriod);
-
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     vsg_scene->accept(computeBounds);
@@ -164,25 +145,23 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::CommandGraph::create(window);
 
-    // create the query pool to to collect timing info
+    // create the query pool to to collect occlusion query info
     auto query_pool = vsg::QueryPool::create();
-    query_pool->queryType = VK_QUERY_TYPE_TIMESTAMP;
-    query_pool->queryCount = 2;
+    query_pool->queryType = VK_QUERY_TYPE_OCCLUSION;
+    query_pool->queryCount = 1;
 
     // reset the query pool
     auto reset_query = vsg::ResetQueryPool::create(query_pool);
     commandGraph->addChild(reset_query);
 
-    // write first timestamp
-    auto write1 = vsg::WriteTimestamp::create(query_pool, 0, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
-    commandGraph->addChild(write1);
+    // begin query
+    commandGraph->addChild(vsg::BeginQuery::create(query_pool, 0, 1));
 
     // add RenderGraph to render the main scene graph
     commandGraph->addChild(vsg::createRenderGraphForView(window, camera, vsg_scene));
 
-    // add second timestamp
-    auto write2 = vsg::WriteTimestamp::create(query_pool, 1, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
-    commandGraph->addChild(write2);
+    // add end query
+    commandGraph->addChild(vsg::EndQuery::create(query_pool, 0));
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
@@ -200,11 +179,10 @@ int main(int argc, char** argv)
 
         viewer->present();
 
-        std::vector<uint64_t> timestamps(2);
-        if (query_pool->getResults(timestamps) == VK_SUCCESS)
+        std::vector<uint64_t> results(1);
+        if (query_pool->getResults(results) == VK_SUCCESS)
         {
-            auto delta = timestampScaleToMilliseconds * static_cast<double>(timestamps[1] - timestamps[0]);
-            std::cout<<"delta = "<<delta<<"ms"<<std::endl;
+            std::cout<<"results[0] = "<<results[0]<<std::endl;
         }
     }
 
