@@ -155,7 +155,7 @@ int main(int argc, char** argv)
     commandGraph->addChild(reset_query);
 
     // begin query
-    commandGraph->addChild(vsg::BeginQuery::create(query_pool, 0, 1));
+    commandGraph->addChild(vsg::BeginQuery::create(query_pool, 0, 0));
 
     // add RenderGraph to render the main scene graph
     commandGraph->addChild(vsg::createRenderGraphForView(window, camera, vsg_scene));
