@@ -1,3 +1,5 @@
 add_subdirectory(vsgdraw)
 add_subdirectory(vsginterleaved)
 add_subdirectory(vsgexecutecommands)
+add_subdirectory(vsgtimestamps)
+add_subdirectory(vsgocclusionquery)
