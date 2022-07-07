@@ -69,7 +69,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto vsg_scene = vsg::Group::create();
+    auto group = vsg::Group::create();
 
     // read any vsg files and assign to the scene group
     for (int i = 1; i < argc; ++i)
@@ -77,13 +77,16 @@ int main(int argc, char** argv)
         vsg::Path filename = arguments[i];
         if (auto node = vsg::read_cast<vsg::Node>(filename, options))
         {
-            vsg_scene->addChild(node);
+            group->addChild(node);
         }
         else
         {
             std::cout << "Unable to load file " << filename << std::endl;
         }
     }
+
+    vsg::ref_ptr<vsg::Node> vsg_scene = group;
+    if (group->children.size() == 1) vsg_scene = group->children[0];
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
