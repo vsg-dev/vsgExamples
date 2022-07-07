@@ -174,14 +174,14 @@ int main(int argc, char** argv)
     commandGraph->addChild(reset_query);
 
     // write first timestamp
-    auto write1 = vsg::WriteTimestamp::create(query_pool, 0, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+    auto write1 = vsg::WriteTimestamp::create(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, query_pool, 0);
     commandGraph->addChild(write1);
 
     // add RenderGraph to render the main scene graph
     commandGraph->addChild(vsg::createRenderGraphForView(window, camera, vsg_scene));
 
     // add second timestamp
-    auto write2 = vsg::WriteTimestamp::create(query_pool, 1, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
+    auto write2 = vsg::WriteTimestamp::create(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, query_pool, 1);
     commandGraph->addChild(write2);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
