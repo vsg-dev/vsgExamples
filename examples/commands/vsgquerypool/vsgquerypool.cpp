@@ -96,6 +96,25 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
+    auto physicalDevice = window->getOrCreatePhysicalDevice();
+    std::cout<<"physicalDevice = " << physicalDevice << std::endl;
+    for(auto& queueFamilyProperties : physicalDevice->getQueueFamilyProperties())
+    {
+        std::cout<<"    queueFamilyProperties.timestampValidBits = " << queueFamilyProperties.timestampValidBits << std::endl;
+    }
+
+    const auto& limits = physicalDevice->getProperties().limits;
+    std::cout<<"    limits.timestampComputeAndGraphics = " << limits.timestampComputeAndGraphics << std::endl;
+    std::cout<<"    limits.timestampPeriod = " << limits.timestampPeriod << " nanoseconds."<<std::endl;
+
+    if (!limits.timestampComputeAndGraphics)
+    {
+        std::cout<<"Timestamps not supported by device."<<std::endl;
+        return 1;
+    }
+
+    double timestampScaleToMilliseconds = 10e-6 * static_cast<double>(limits.timestampPeriod);
+
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     vsg_scene->accept(computeBounds);
@@ -180,8 +199,8 @@ int main(int argc, char** argv)
         std::vector<uint64_t> timestamps(2);
         if (query_pool->getResults(timestamps) == VK_SUCCESS)
         {
-            auto delta = timestamps[1] - timestamps[0];
-            std::cout<<"delta = "<<delta<<std::endl;
+            auto delta = timestampScaleToMilliseconds * static_cast<double>(timestamps[1] - timestamps[0]);
+            std::cout<<"delta = "<<delta<<"ms"<<std::endl;
         }
     }
 
