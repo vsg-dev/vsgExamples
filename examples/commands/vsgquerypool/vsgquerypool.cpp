@@ -177,13 +177,12 @@ int main(int argc, char** argv)
 
         viewer->present();
 
-        auto timestamps = query_pool->getResults();
-        std::cout<<"timestamps ";
-        for(auto& timestamp : timestamps)
+        std::vector<uint64_t> timestamps(2);
+        if (query_pool->getResults(timestamps) == VK_SUCCESS)
         {
-            std::cout<<timestamp<<" ";
+            auto delta = timestamps[1] - timestamps[0];
+            std::cout<<"delta = "<<delta<<std::endl;
         }
-        std::cout<<std::endl;
     }
 
     // clean up done automatically thanks to ref_ptr<>
