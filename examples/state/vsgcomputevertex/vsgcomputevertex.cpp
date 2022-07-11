@@ -63,6 +63,32 @@ int main(int argc, char** argv)
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
+    // create the compute graph to compute the positions of the vertices
+    auto physicalDevice = window->getOrCreatePhysicalDevice();
+    auto computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
+    auto computeCommandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
+    {
+        vsg::DescriptorSetLayoutBindings descriptorBindings{
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}};
+        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+        auto pipelineLayout = vsg::PipelineLayout::create(
+            vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
+        auto descriptorSet = vsg::DescriptorSet::create(
+            descriptorSetLayout, vsg::Descriptors{
+                                     vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0,
+                                                                   VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)});
+        auto bindDescriptorSet =
+            vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
+        auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
+        auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
+
+        computeCommandGraph->addChild(bindPipeline);
+        computeCommandGraph->addChild(bindDescriptorSet);
+        computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
+    }
+
+
+    // set up graphics subgraph to render the computed vertices
     auto transform = vsg::MatrixTransform::create();
     auto graphicCommandGraph = vsg::CommandGraph::create(window);
     {
@@ -121,30 +147,6 @@ int main(int argc, char** argv)
 
         // add drawCommands to transform
         transform->addChild(drawCommands);
-    }
-
-    auto physicalDevice = window->getOrCreatePhysicalDevice();
-    auto queueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
-    auto computeCommandGraph = vsg::CommandGraph::create(device, queueFamily);
-
-    {
-        vsg::DescriptorSetLayoutBindings descriptorBindings{
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}};
-        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-        auto pipelineLayout = vsg::PipelineLayout::create(
-            vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
-        auto descriptorSet = vsg::DescriptorSet::create(
-            descriptorSetLayout, vsg::Descriptors{
-                                     vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0,
-                                                                   VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)});
-        auto bindDescriptorSet =
-            vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
-        auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
-        auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
-
-        computeCommandGraph->addChild(bindPipeline);
-        computeCommandGraph->addChild(bindDescriptorSet);
-        computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
     }
 
     // create the viewer and assign window(s) to it
