@@ -145,7 +145,7 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto traits = vsg::WindowTraits::create();
-    traits->windowTitle = "vsgexecutecommands";
+    traits->windowTitle = "vsgexecutecommands window1";
     traits->width = 800;
     traits->height = 600;
 
@@ -195,16 +195,25 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
+
     auto window1 = vsg::Window::create(traits);
     if (!window1)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window1." << std::endl;
         return 1;
     }
 
-    auto traits2 = vsg::WindowTraits::create(*traits);
+    auto traits2 = vsg::WindowTraits::create();
+    traits2->windowTitle = "vsgexecutecommands window2";
+    traits2->width = traits->width;
+    traits2->height = traits->height;
     traits2->shareWindow = window1;
     auto window2 = vsg::Window::create(traits2);
+    if (!window2)
+    {
+        std::cout << "Could not create window2." << std::endl;
+        return 1;
+    }
 
     viewer->addWindow(window1);
     viewer->addWindow(window2);
