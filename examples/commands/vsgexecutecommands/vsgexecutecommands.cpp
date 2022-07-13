@@ -203,11 +203,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto traits2 = vsg::WindowTraits::create();
+    auto traits2 = vsg::WindowTraits::create(*traits);
     traits2->windowTitle = "vsgexecutecommands window2";
-    traits2->width = traits->width;
-    traits2->height = traits->height;
     traits2->shareWindow = window1;
+
     auto window2 = vsg::Window::create(traits2);
     if (!window2)
     {
