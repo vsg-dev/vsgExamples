@@ -10,6 +10,8 @@
 
 #include <iostream>
 
+#define CUSTOMFONTS 1
+
 struct Params : public vsg::Inherit<vsg::Object, Params>
 {
     bool showGui = true; // you can toggle this with your own EventHandler and key
@@ -18,6 +20,9 @@ struct Params : public vsg::Inherit<vsg::Object, Params>
     float clearColor[3]{0.2f, 0.2f, 0.4f}; // Unfortunately, this doesn't change dynamically in vsg
     uint32_t counter = 0;
     float dist = 0.f;
+#if CUSTOMFONTS
+    ImFont* fontMain;
+#endif
 };
 
 class MyGuiComponent
@@ -77,6 +82,25 @@ public:
 
         return visibleComponents;
     }
+
+#if CUSTOMFONTS
+
+    bool initFonts()
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        std::string fontpath = "../../data/fonts/calibri.ttf";
+        float fontSize = 15.0;
+        _params->fontMain = io.Fonts->AddFontFromFileTTF(fontpath.c_str(), fontSize);
+        if (!_params->fontMain)
+        {
+            std::cout << "Failed to load font: " << fontpath << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+#endif
 
 private:
     vsg::ref_ptr<Params> _params;
@@ -174,7 +198,19 @@ int main(int argc, char** argv)
 
         // Create the ImGui node and add it to the renderGraph
         auto params = Params::create();
+#if CUSTOMFONTS
+        auto guiComponent = new MyGuiComponent(params);
+        auto gui = vsgImGui::RenderImGui::create(window, false, false);
+        gui->add(*guiComponent);
+
+        guiComponent->initFonts();
+        gui->_uploadFonts();
+
+        renderGraph->addChild(gui);
+#else
         renderGraph->addChild(vsgImGui::RenderImGui::create(window, MyGuiComponent(params)));
+#endif        
+
 
         // Add the ImGui event handler first to handle events early
         viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
