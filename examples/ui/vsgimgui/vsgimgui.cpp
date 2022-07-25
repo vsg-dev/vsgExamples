@@ -182,7 +182,7 @@ int main(int argc, char** argv)
                 // convert native filename to UTF8 string that is compatible with ImuGUi.
                 std::string c_fontFile = foundFontFile.string();
 
-                // initiazed ImGui
+                // initiaze ImGui
                 ImGui::CreateContext();
 
                 // read the font via ImGui, which will then be current when vsgImGui::RenderImGui initializes the rest of ImGui/Vulkan below
