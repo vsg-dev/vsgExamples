@@ -109,6 +109,8 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
     auto numFrames = arguments.value(-1, "-f");
+    auto fontFile = arguments.value<vsg::Path>({}, "--font");
+    auto fontSize = arguments.value<float>(30.0f, "--font-size");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -171,6 +173,28 @@ int main(int argc, char** argv)
 
         // create the normal 3D view of the scene
         renderGraph->addChild(vsg::View::create(camera, vsg_scene));
+
+        if (fontFile)
+        {
+            auto foundFontFile = vsg::findFile(fontFile, options);
+            if (foundFontFile)
+            {
+                // convert native filename to UTF8 string that is compatible with ImuGUi.
+                std::string c_fontFile = foundFontFile.string();
+
+                // initiazed ImGui
+                ImGui::CreateContext();
+
+                // read the font via ImGui, which will then be current when vsgImGui::RenderImGui initializes the rest of ImGui/Vulkan below
+                ImGuiIO& io = ImGui::GetIO();
+                auto imguiFont = io.Fonts->AddFontFromFileTTF(c_fontFile.c_str(), fontSize);
+                if (!imguiFont)
+                {
+                    std::cout << "Failed to load font: " << c_fontFile << std::endl;
+                    return 0;
+                }
+            }
+        }
 
         // Create the ImGui node and add it to the renderGraph
         auto params = Params::create();
