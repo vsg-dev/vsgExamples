@@ -63,40 +63,40 @@ int main(int argc, char** argv)
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
+    // setting we pass to the compute shader each frame to provide animation of vertex data.
+    auto computeScale = vsg::vec4Array::create(1);
+    computeScale->set(0, vsg::vec4(1.0, 1.0, 1.0, 0.0));
+    auto computeScaleBuffer = vsg::DescriptorBuffer::create(computeScale, 1);
+
     // create the compute graph to compute the positions of the vertices
     auto physicalDevice = window->getOrCreatePhysicalDevice();
     auto computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
     auto computeCommandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
     {
         vsg::DescriptorSetLayoutBindings descriptorBindings{
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}};
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} // ClipSettings uniform
+        };
+
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-        auto pipelineLayout = vsg::PipelineLayout::create(
-            vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
-        auto descriptorSet = vsg::DescriptorSet::create(
-            descriptorSetLayout, vsg::Descriptors{
-                                     vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0,
-                                                                   VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)});
-        auto bindDescriptorSet =
-            vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
+        auto pipelineLayout = vsg::PipelineLayout::create( vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
         auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
         auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
-
         computeCommandGraph->addChild(bindPipeline);
+
+        auto stroageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto descriptorSet = vsg::DescriptorSet::create( descriptorSetLayout, vsg::Descriptors{stroageBuffer, computeScaleBuffer});
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
+
         computeCommandGraph->addChild(bindDescriptorSet);
+
         computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
     }
-
 
     // set up graphics subgraph to render the computed vertices
     auto graphicCommandGraph = vsg::CommandGraph::create(window);
     {
         // set up graphics pipeline
-        vsg::DescriptorSetLayoutBindings descriptorBindings{
-            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
-
-        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-
         vsg::PushConstantRanges pushConstantRanges{
             {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
         };
@@ -118,18 +118,13 @@ int main(int argc, char** argv)
             vsg::ColorBlendState::create(),
             vsg::DepthStencilState::create()};
 
-        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{}, pushConstantRanges);
         auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
         auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
-
-        // create texture image and associated DescriptorSets and binding
-        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{});
-        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptorSet);
 
         // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
         auto scenegraph = vsg::StateGroup::create();
         scenegraph->add(bindGraphicsPipeline);
-        scenegraph->add(bindDescriptorSet);
 
         auto renderGraph = vsg::createRenderGraphForView(window, camera, scenegraph);
         graphicCommandGraph->addChild(copyBufferCmd);
@@ -166,6 +161,10 @@ int main(int argc, char** argv)
         viewer->handleEvents();
 
         viewer->update();
+
+        double frameTime = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
+        computeScale->at(0).z = sin(frameTime);
+        computeScaleBuffer->copyDataListToBuffers();
 
         viewer->recordAndSubmit();
 
