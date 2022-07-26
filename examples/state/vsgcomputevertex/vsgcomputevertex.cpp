@@ -89,7 +89,6 @@ int main(int argc, char** argv)
 
 
     // set up graphics subgraph to render the computed vertices
-    auto transform = vsg::MatrixTransform::create();
     auto graphicCommandGraph = vsg::CommandGraph::create(window);
     {
         // set up graphics pipeline
@@ -131,8 +130,6 @@ int main(int argc, char** argv)
         auto scenegraph = vsg::StateGroup::create();
         scenegraph->add(bindGraphicsPipeline);
         scenegraph->add(bindDescriptorSet);
-        // add transform to root of the scene graph
-        scenegraph->addChild(transform);
 
         auto renderGraph = vsg::createRenderGraphForView(window, camera, scenegraph);
         graphicCommandGraph->addChild(copyBufferCmd);
@@ -145,8 +142,7 @@ int main(int argc, char** argv)
         drawCommands->addChild(bind_vertex_buffer);
         drawCommands->addChild(vsg::Draw::create(256, 1, 0, 0));
 
-        // add drawCommands to transform
-        transform->addChild(drawCommands);
+        scenegraph->addChild(drawCommands);
     }
 
     // create the viewer and assign window(s) to it
@@ -158,6 +154,8 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
+    viewer->addEventHandler(vsg::Trackball::create(camera));
+
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
@@ -166,10 +164,6 @@ int main(int argc, char** argv)
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
-
-        // animate the transform
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->matrix = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
         viewer->update();
 
