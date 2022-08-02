@@ -312,6 +312,7 @@ int main(int argc, char** argv)
     windowTraits->windowTitle = "rendertotexture";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+    windowTraits->synchronizationLayer = arguments.read("--sync");
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
     bool separateCommandGraph = arguments.read("-s");

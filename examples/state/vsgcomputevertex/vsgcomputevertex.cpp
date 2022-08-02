@@ -23,6 +23,7 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+    windowTraits->synchronizationLayer = arguments.read("--sync");
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
