@@ -321,12 +321,11 @@ vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents
     // create texture image and associated DescriptorSets and binding
     auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-    auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
+    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::Descriptors{texture});
 
     // create StateGroup to bind any texture state
     auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(bindDescriptorSets);
+    scenegraph->add(bindDescriptorSet);
 
     // set up model transformation node
     auto transform = vsg::MatrixTransform::create(localToWorld); // VK_SHADER_STAGE_VERTEX_BIT
@@ -413,12 +412,11 @@ vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& tile_exte
     // create texture image and associated DescriptorSets and binding
     auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-    auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
+    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::Descriptors{texture});
 
     // create StateGroup to bind any texture state
     auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(bindDescriptorSets);
+    scenegraph->add(bindDescriptorSet);
 
     // set up model transformation node
     auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT

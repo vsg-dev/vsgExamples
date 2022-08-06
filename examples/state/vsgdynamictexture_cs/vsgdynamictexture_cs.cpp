@@ -173,8 +173,7 @@ int main(int argc, char** argv)
         auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
         auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
-        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, vsg::Descriptors{texture});
 
         // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
         scenegraph->add(bindGraphicsPipeline);
@@ -270,8 +269,7 @@ int main(int argc, char** argv)
         vsg::Descriptors descriptors{
             sourceBuffer,
             writeTexture};
-        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
-        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, descriptors);
 
         // set up the compute pipeline
         auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);

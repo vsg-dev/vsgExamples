@@ -291,8 +291,7 @@ int main(int argc, char** argv)
     auto heightFieldDescriptorImage = vsg::DescriptorImage::create(hfTextures, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     auto baseDescriptorImage = vsg::DescriptorImage::create(baseTextures, 1, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{heightFieldDescriptorImage, baseDescriptorImage});
-    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
+    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, vsg::Descriptors{heightFieldDescriptorImage, baseDescriptorImage});
 
     // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
@@ -315,8 +314,7 @@ int main(int argc, char** argv)
             auto uniformValue = vsg::uintValue::create(tileIndex);
             auto uniformBuffer = vsg::DescriptorBuffer::create(uniformValue, 0);
 
-            auto uniformDscriptorSet = vsg::DescriptorSet::create(tileSettingsDescriptorSetLayout, vsg::Descriptors{uniformBuffer});
-            auto uniformBindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, uniformDscriptorSet);
+            auto uniformBindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, vsg::Descriptors{uniformBuffer});
 
 #if 1
             // assign the tileIndex uniform directly to the transform group before the geometry

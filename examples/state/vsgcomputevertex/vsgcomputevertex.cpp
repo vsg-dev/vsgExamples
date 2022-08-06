@@ -85,9 +85,8 @@ int main(int argc, char** argv)
         auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
         computeCommandGraph->addChild(bindPipeline);
 
-        auto stroageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        auto descriptorSet = vsg::DescriptorSet::create( descriptorSetLayout, vsg::Descriptors{stroageBuffer, computeScaleBuffer});
-        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
+        auto storageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, vsg::Descriptors{storageBuffer, computeScaleBuffer});
 
         computeCommandGraph->addChild(bindDescriptorSet);
 

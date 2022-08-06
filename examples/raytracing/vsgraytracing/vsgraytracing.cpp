@@ -228,13 +228,12 @@ int main(int argc, char** argv)
         auto raytracingPipeline = vsg::RayTracingPipeline::create(pipelineLayout, shaderStages, shaderGroups);
         auto bindRayTracingPipeline = vsg::BindRayTracingPipeline::create(raytracingPipeline);
 
-        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor});
-        auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, raytracingPipeline->getPipelineLayout(), 0, vsg::DescriptorSets{descriptorSet});
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, raytracingPipeline->getPipelineLayout(), 0, vsg::Descriptors{accelDescriptor, storageImageDescriptor, raytracingUniformDescriptor});
 
         // state group to bind the pipeline and descriptor set
         auto scenegraph = vsg::Commands::create();
         scenegraph->addChild(bindRayTracingPipeline);
-        scenegraph->addChild(bindDescriptorSets);
+        scenegraph->addChild(bindDescriptorSet);
 
         // setup tracing of rays
         auto traceRays = vsg::TraceRays::create();

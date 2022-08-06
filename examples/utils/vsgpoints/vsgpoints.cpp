@@ -319,12 +319,11 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     auto material = vsg::DescriptorBuffer::create(mat, 10);
     descriptors.push_back(material);
 
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, descriptors);
-    auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
+    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, descriptors);
 
     auto sg = vsg::StateGroup::create();
     sg->add(bindGraphicsPipeline);
-    sg->add(bindDescriptorSets);
+    sg->add(bindDescriptorSet);
 
     return sg;
 }
