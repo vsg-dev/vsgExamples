@@ -27,7 +27,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-find_package(vsg 0.5.3 REQUIRED)
+find_package(vsg 0.5.3)
 
 # find the optional vsgExamples that can be used for reading and range of image and 3d model formats and shader compilation
 find_package(vsgXchange QUIET)
