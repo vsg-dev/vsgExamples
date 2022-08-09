@@ -60,9 +60,7 @@ public:
         {
             if (auto rasterizationState = pipelineState.cast<vsg::RasterizationState>())
             {
-                auto alternate_rasterizationState = vsg::RasterizationState::create();
-
-                *alternate_rasterizationState = *rasterizationState;
+                auto alternate_rasterizationState = vsg::RasterizationState::create(*rasterizationState);
 
                 alternate_rasterizationState->polygonMode = VK_POLYGON_MODE_LINE;
                 pipelineState = alternate_rasterizationState;
