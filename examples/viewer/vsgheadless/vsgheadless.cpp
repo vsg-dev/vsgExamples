@@ -332,6 +332,20 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Buffer>> createDepthCap
 
     return {commands, destinationBuffer};
 }
+ 
+    vsg::ref_ptr<vsg::DescriptorSetLayout> createDescriptorSetLayout(uint32_t numDescriptors, uint32_t numStorageDescriptors)
+    {
+        vsg::DescriptorSetLayoutBindings bindings;
+        for (uint32_t i=0; i<numDescriptors; ++i)
+        {
+            bindings.push_back({i, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+        }
+        for (uint32_t i=0; i<numStorageDescriptors; ++i)
+        {
+            bindings.push_back({i+numDescriptors, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+        }
+        return vsg::DescriptorSetLayout::create(bindings);
+    }
 
 int main(int argc, char** argv)
 {
@@ -410,6 +424,25 @@ int main(int argc, char** argv)
     deviceFeatures->get().samplerAnisotropy = VK_TRUE;
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
+
+    auto context = vsg::Context::create(device.get());
+
+    auto setLayout = createDescriptorSetLayout(1, 1);
+    setLayout->compile(*context);
+
+    vsg::DescriptorPoolSizes poolSizes{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100}, {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100}};
+    auto descriptorPool = vsg::DescriptorPool::create(device.get(), 1, poolSizes);
+
+    auto dsi = descriptorPool->allocateDescriptorSet(setLayout);
+    vsg::DescriptorSet::Implementation::recycle(dsi);
+    dsi = {};
+
+    setLayout = createDescriptorSetLayout(1, 0);
+    setLayout->compile(*context);
+
+    dsi = descriptorPool->allocateDescriptorSet(setLayout);
+    //crash
+
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
