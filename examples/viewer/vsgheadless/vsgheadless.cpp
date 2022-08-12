@@ -350,6 +350,7 @@ int main(int argc, char** argv)
     auto colorFilename = arguments.value<vsg::Path>("screenshot.vsgb", {"--color-file", "--cf"});
     auto depthFilename = arguments.value<vsg::Path>("depth.vsgb", {"--depth-file", "--df"});
     auto resizeCadence = arguments.value(0, "--resize");
+    auto useExecuteCommands = arguments.read("--use-ec");
     if (arguments.read("--st")) extent = VkExtent2D{192, 108};
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -462,10 +463,28 @@ int main(int argc, char** argv)
     renderGraph->renderArea.extent = extent;
     renderGraph->setClearValues({{0.2f, 0.2f, 0.4f, 1.0f}});
 
-    renderGraph->addChild(vsg::View::create(camera, vsg_scene));
+    auto view = vsg::View::create(camera, vsg_scene);
+
+    vsg::CommandGraphs commandGraphs;
+    if (useExecuteCommands)
+    {
+        auto secondaryCommandGraph = vsg::SecondaryCommandGraph::create(device, queueFamily);
+        secondaryCommandGraph->addChild(view);
+        secondaryCommandGraph->framebuffer = framebuffer;
+        commandGraphs.push_back(secondaryCommandGraph);
+
+        auto executeCommands = vsg::ExecuteCommands::create();
+        executeCommands->connect(secondaryCommandGraph);
+
+        renderGraph->contents = VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
+        renderGraph->addChild(executeCommands);
+    }
+    else
+        renderGraph->addChild(view);
 
     auto commandGraph = vsg::CommandGraph::create(device, queueFamily);
     commandGraph->addChild(renderGraph);
+    commandGraphs.push_back(commandGraph);
     if (colorBufferCapture) commandGraph->addChild(colorBufferCapture);
     if (depthBufferCapture) commandGraph->addChild(depthBufferCapture);
 
@@ -483,7 +502,7 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
     }
 
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+    viewer->assignRecordAndSubmitTaskAndPresentation(commandGraphs);
 
     viewer->compile();
 
