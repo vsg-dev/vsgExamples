@@ -78,7 +78,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     colorImageInfo.sampler = colorSampler;
 
     // create depth buffer
-    VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+    VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
     auto depthImage = vsg::Image::create();
     depthImage->imageType = VK_IMAGE_TYPE_2D;
     depthImage->extent = attachmentExtent;
@@ -94,7 +94,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
 
     // XXX Does layout matter?
     depthImageInfo.sampler = nullptr;
-    depthImageInfo.imageView = vsg::createImageView(context, depthImage, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    depthImageInfo.imageView = vsg::createImageView(context, depthImage, VK_IMAGE_ASPECT_DEPTH_BIT);
     depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions
