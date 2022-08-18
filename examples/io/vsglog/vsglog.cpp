@@ -8,22 +8,22 @@ public:
     CustomLogger() {}
 
 protected:
-    void debug_implementation(std::string_view message) override
+    void debug_implementation(const std::string_view& message) override
     {
         std::cout<<"custom debug : "<<message<<"\n";
     }
 
-    void info_implementation(std::string_view message) override
+    void info_implementation(const std::string_view& message) override
     {
         std::cout<<"custom info : "<<message<<"\n";
     }
 
-    void warn_implementation(std::string_view message) override
+    void warn_implementation(const std::string_view& message) override
     {
         std::cerr<<"custom warn : "<<message<<std::endl;
     }
 
-    void error_implementation(std::string_view message) override
+    void error_implementation(const std::string_view& message) override
     {
         std::cerr<<"custom error : "<<message<<std::endl;
     }
