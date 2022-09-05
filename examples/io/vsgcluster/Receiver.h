@@ -25,7 +25,7 @@
 // Class definition for the recipient of a broadcasted message
 //
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
 #    define NOMINMAX
 #    include <winsock.h>
 #else
@@ -48,7 +48,7 @@ private:
 private:
     virtual ~Receiver();
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     SOCKET _so;
     SOCKADDR_IN saddr;
 #else
