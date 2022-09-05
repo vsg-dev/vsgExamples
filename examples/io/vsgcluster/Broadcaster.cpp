@@ -16,6 +16,8 @@
 *  THE SOFTWARE.
 */
 
+#include "Broadcaster.h"
+
 #include <fcntl.h>
 #include <iostream>
 #include <stdio.h>
@@ -55,16 +57,11 @@
 #    include <sys/sockio.h>
 #    include <unistd.h>
 #elif defined(WIN32)
-#    define NOMINMAX
-#    include <stdio.h>
-#    include <winsock.h>
 #elif defined(__hpux)
 #    include <unistd.h>
 #else
 #    error Teach me how to build on this system
 #endif
-
-#include "Broadcaster.h"
 
 #define _VERBOSE 1
 

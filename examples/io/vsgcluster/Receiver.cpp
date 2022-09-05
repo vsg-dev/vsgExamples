@@ -16,13 +16,12 @@
 *  THE SOFTWARE.
 */
 
+#include "Receiver.h"
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/types.h>
-#if defined(_WIN32) && !defined(__CYGWIN__)
-#    define NOMINMAX
-#    include <winsock.h>
-#else
+#if !defined(WIN32)
 #    include <arpa/inet.h>
 #    include <errno.h>
 #    include <netdb.h>
@@ -34,15 +33,13 @@
 #endif
 #include <string.h>
 
-#include "Receiver.h"
-
 #include <iostream>
 
 Receiver::Receiver(uint16_t port) :
     _initialized(false),
     _port(port)
 {
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     WORD version = MAKEWORD(1, 1);
     WSADATA wsaData;
     // First, we start up Winsock
@@ -52,7 +49,7 @@ Receiver::Receiver(uint16_t port) :
 
 Receiver::~Receiver(void)
 {
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     closesocket(_so);
 
     WSACleanup();
@@ -75,7 +72,7 @@ bool Receiver::init(void)
         return false;
     }
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     const BOOL on = TRUE;
     setsockopt(_so, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(int));
 #else
@@ -85,14 +82,14 @@ bool Receiver::init(void)
 
     saddr.sin_family = AF_INET;
     saddr.sin_port = htons(_port);
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     saddr.sin_addr.s_addr = htonl(INADDR_ANY);
 #else
     saddr.sin_addr.s_addr = 0;
 #endif
 
     // set up a 1 second timeout.
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     DWORD tv = 1000; // 1 sec in ms
     if (setsockopt(_so, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&tv), sizeof(DWORD)))
     {
@@ -141,7 +138,7 @@ unsigned int Receiver::receive(void* buffer, const unsigned int buffer_size)
     FD_ZERO(&fdset);
     FD_SET(_so, &fdset);
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
 
     int read_bytes = recvfrom(_so, (char*)buffer, buffer_size, 0, (sockaddr*)&saddr, &size);
 
