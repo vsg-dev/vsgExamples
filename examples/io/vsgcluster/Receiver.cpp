@@ -16,13 +16,12 @@
 *  THE SOFTWARE.
 */
 
+#include "Receiver.h"
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/types.h>
-#if defined(WIN32) && !defined(__CYGWIN__)
-#    define NOMINMAX
-#    include <winsock.h>
-#else
+#if !defined(WIN32)
 #    include <arpa/inet.h>
 #    include <errno.h>
 #    include <netdb.h>
@@ -33,8 +32,6 @@
 #    include <unistd.h>
 #endif
 #include <string.h>
-
-#include "Receiver.h"
 
 #include <iostream>
 
