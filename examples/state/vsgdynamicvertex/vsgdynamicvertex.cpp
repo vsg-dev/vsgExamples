@@ -219,7 +219,9 @@ int main(int argc, char** argv)
         }
 
         auto fps = frameCount / (std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now() - startTime).count());
+        double transferSpeed = (double)(numVertices * sizeof(vsg::vec3) * fps);
         std::cout << "Average fps = " << fps << std::endl;
+        std::cout << "Average transfer speed " <<(transferSpeed) / (1024.0 * 1024.0) << " Mb/sec"<<std::endl;
     }
     catch (const vsg::Exception& exception)
     {
