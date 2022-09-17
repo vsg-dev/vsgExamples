@@ -1,4 +1,4 @@
-    #include <iostream>
+#include <iostream>
 #include <vsg/all.h>
 
 class UpdateImage : public vsg::Visitor
@@ -74,13 +74,15 @@ int main(int argc, char** argv)
     arguments.read("--window", windowTraits->width, windowTraits->height);
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
-    if (arguments.read("-t"))
+    if (arguments.read({"-t", "--st"}))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         windowTraits->width = 192, windowTraits->height = 108;
         windowTraits->decoration = false;
     }
     auto numFrames = arguments.value(-1, "-f");
+
+    auto dynamic = arguments.read("--dynamic");
 
     enum ArrayType
     {
@@ -94,7 +96,6 @@ int main(int argc, char** argv)
     if (arguments.read("--float")) arrayType = USE_FLOAT;
     if (arguments.read("--rgb")) arrayType = USE_RGB;
     if (arguments.read("--rgba")) arrayType = USE_RGBA;
-
     auto image_size = arguments.value<uint32_t>(256, "-s");
 
     vsg::GeometryInfo geomInfo;
@@ -162,6 +163,8 @@ int main(int argc, char** argv)
         break;
     }
 
+    if (dynamic) textureData->getLayout().dynamic = true;
+
     // initialize the image
     UpdateImage updateImage;
     updateImage(textureData, 0.0);
@@ -184,54 +187,68 @@ int main(int argc, char** argv)
         scenegraph->addChild(builder.createBox(geomInfo, stateInfo));
     }
 
-    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", vsg::ref_ptr<vsg::Device>(window->getOrCreateDevice()));
-    vsg::ref_ptr<vsg::CopyAndReleaseImage> copyImageCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
-
-    // setup command graph to copy the image data each frame then rendering the scene graph
+    vsg::ref_ptr<vsg::CopyAndReleaseImage> copyImageCmd;
+    if (dynamic)
     {
-        auto grahics_commandGraph = vsg::CommandGraph::create(window);
-        grahics_commandGraph->addChild(copyImageCmd);
-        grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
+        auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+    }
+    else
+    {
+        auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", vsg::ref_ptr<vsg::Device>(window->getOrCreateDevice()));
+        copyImageCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({grahics_commandGraph});
+        // setup command graph to copy the image data each frame then rendering the scene graph
+        {
+            auto grahics_commandGraph = vsg::CommandGraph::create(window);
+            grahics_commandGraph->addChild(copyImageCmd);
+            grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
+
+            viewer->assignRecordAndSubmitTaskAndPresentation({grahics_commandGraph});
+        }
     }
 
     // compile the Vulkan objects
     viewer->compile();
 
-    // texture has been filled in so it's now safe to get the ImageInfo that holds the handles to the texture's
-    struct FindTexture : public vsg::Visitor
+    vsg::ref_ptr<vsg::ImageInfo> textureImageInfo;
+
+    if (!dynamic)
     {
-        vsg::ref_ptr<vsg::ImageInfo> imageInfo;
-
-        void apply(vsg::Object& object) override
+        // texture has been filled in so it's now safe to get the ImageInfo that holds the handles to the texture's
+        struct FindTexture : public vsg::Visitor
         {
-            object.traverse(*this);
-        }
-        void apply(vsg::StateGroup& sg) override
-        {
-            for (auto& sc : sg.stateCommands) { sc->accept(*this); }
-            sg.traverse(*this);
-        }
-        void apply(vsg::DescriptorImage& di) override
-        {
-            if (!di.imageInfoList.empty()) imageInfo = di.imageInfoList[0]; // contextID=0, and only one imageData
-        }
+            vsg::ref_ptr<vsg::ImageInfo> imageInfo;
 
-        static vsg::ref_ptr<vsg::ImageInfo> find(vsg::Node* node)
+            void apply(vsg::Object& object) override
+            {
+                object.traverse(*this);
+            }
+            void apply(vsg::StateGroup& sg) override
+            {
+                for (auto& sc : sg.stateCommands) { sc->accept(*this); }
+                sg.traverse(*this);
+            }
+            void apply(vsg::DescriptorImage& di) override
+            {
+                if (!di.imageInfoList.empty()) imageInfo = di.imageInfoList[0]; // contextID=0, and only one imageData
+            }
+
+            static vsg::ref_ptr<vsg::ImageInfo> find(vsg::Node* node)
+            {
+                FindTexture fdi;
+                node->accept(fdi);
+                return fdi.imageInfo;
+            }
+        };
+
+        textureImageInfo = FindTexture::find(scenegraph);
+
+        if (!textureImageInfo || !textureImageInfo->imageView)
         {
-            FindTexture fdi;
-            node->accept(fdi);
-            return fdi.imageInfo;
+            std::cout << "Can not locate imageInfo to update." << std::endl;
+            return 1;
         }
-    };
-
-    auto textureImageInfo = FindTexture::find(scenegraph);
-
-    if (!textureImageInfo || !textureImageInfo->imageView)
-    {
-        std::cout << "Can not locate imageInfo to update." << std::endl;
-        return 1;
     }
 
     auto startTime = vsg::clock::now();
@@ -248,8 +265,11 @@ int main(int argc, char** argv)
         // update texture data
         updateImage(textureData, time);
 
-        // copy data to staging buffer and issue a copy command to transfer to the GPU texture image
-        copyImageCmd->copy(textureData, textureImageInfo);
+        if (!dynamic)
+        {
+            // copy data to staging buffer and issue a copy command to transfer to the GPU texture image
+            copyImageCmd->copy(textureData, textureImageInfo);
+        }
 
         viewer->update();
 
