@@ -41,6 +41,8 @@ int main(int argc, char** argv)
 
     // set up text group
     auto textgroup = vsg::TextGroup::create();
+    if (arguments.read("--new")) textgroup->new_implementation = true;
+    else textgroup->new_implementation = false;
 
     {
         {
@@ -203,11 +205,14 @@ int main(int argc, char** argv)
                 void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
                 {
                     // Let the base StandardLayout class do the basic glyph setup
+                    size_t start_of_text = quads.size();
+
                     Inherit::layout(text, font, quads);
 
                     // modify each generated glyph quad's position and colours etc.
-                    for (auto& quad : quads)
+                    for (size_t qi = start_of_text; qi < quads.size(); ++qi)
                     {
+                        auto& quad = quads[qi];
                         for (int i = 0; i < 4; ++i)
                         {
                             quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
@@ -233,13 +238,15 @@ int main(int argc, char** argv)
         }
     }
 
+    textgroup->setup();
+
     if (!output_filename.empty())
     {
-        vsg::write(textgroup, output_filename);
+        //vsg::write(textgroup, output_filename);
+        vsg::write(textgroup->renderSubgraph, output_filename);
         return 1;
     }
 
-    textgroup->setup();
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
