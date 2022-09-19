@@ -1,5 +1,3 @@
-#include "TextGroup.h"
-
 #include <vsg/all.h>
 #include <iostream>
 
