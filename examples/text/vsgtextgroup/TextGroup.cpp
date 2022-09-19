@@ -27,7 +27,6 @@ void TextGroup::write(Output& output) const
 
 void TextGroup::setup(uint32_t minimumAllocation)
 {
-    info("TextGroup::setup( ", minimumAllocation," ) children.size() = ", children.size(), ", new_implementation = ", new_implementation);
     if (new_implementation)
     {
         struct CountQuads : public ConstVisitor
@@ -61,7 +60,6 @@ void TextGroup::setup(uint32_t minimumAllocation)
         std::map<ref_ptr<Font>, TextQuads> fontTextQuadsMap;
         for(auto& [font, count] : fontTextQuadCountMap)
         {
-            info("fontTextQuadsMap[ ",font," } ", count);
             fontTextQuadsMap[font].reserve(count);
         }
 
@@ -69,8 +67,6 @@ void TextGroup::setup(uint32_t minimumAllocation)
         {
             TextQuads& quads = fontTextQuadsMap[text->font];
             text->layout->layout(text->text, *(text->font), quads);
-
-            info("text ", text, ", quads.size() = ", quads.size());
         }
 
         auto group = Group::create();
@@ -99,8 +95,6 @@ ref_ptr<Node> TextGroup::createRenderingSubgraph(ref_ptr<Font> font, TextQuads& 
     {
         return {};
     }
-
-    info("TextGroup::createRenderingSubgraph( ", font, " , ", quads.size(), ")");
 
     ref_ptr<vec3Array> vertices;
     ref_ptr<vec4Array> colors;
@@ -136,12 +130,6 @@ ref_ptr<Node> TextGroup::createRenderingSubgraph(ref_ptr<Font> font, TextQuads& 
     uint32_t num_colors = singleColor ? 1 : num_vertices;
     uint32_t num_outlineColors = singleOutlineColor ? 1 : num_vertices;
     uint32_t num_outlineWidths = singleOutlineWidth ? 1 : num_vertices;
-
-    info("num_vertices ", num_vertices);
-    info("num_colors ", num_colors);
-    info("singleColor ", singleColor);
-    info("singleOutlineColor ", singleOutlineColor);
-    info("singleOutlineWidth ", singleOutlineWidth);
 
     if (!vertices || num_vertices > vertices->size()) vertices = vec3Array::create(num_vertices);
     if (!colors || num_colors > colors->size()) colors = vec4Array::create(num_colors);

@@ -20,6 +20,13 @@ int main(int argc, char** argv)
     auto output_filename = arguments.value(std::string(), "-o");
     auto numFrames = arguments.value(-1, "--nf");
     auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
+    if (arguments.read("-t"))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->width = 192, windowTraits->height = 108;
+        windowTraits->decoration = false;
+    }
+    uint32_t numLabels = arguments.value(1000, "-n");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -44,198 +51,224 @@ int main(int argc, char** argv)
     if (arguments.read("--new")) textgroup->new_implementation = true;
     else textgroup->new_implementation = false;
 
+    double numBlocks = ceil(static_cast<double>(numLabels) / 10.0);
+    uint32_t numColumns = static_cast<uint32_t>(ceil(sqrt(numBlocks)));
+    uint32_t numRows = static_cast<uint32_t>(ceil(static_cast<double>(numBlocks) / static_cast<double>(numColumns)));
+
+    vsg::vec3 row_origin(0.0f, 0.0f, 0.0f);
+    vsg::vec3 dx(20.0f, 0.0f, 0.0f);
+    vsg::vec3 dy(0.0f, 20.0f, 0.0f);
+    for(uint32_t r = 0; r < numRows; ++r)
     {
+        vsg::vec3 local_origin = row_origin;
+        for(uint32_t c = 0; c < numColumns; ++c)
         {
-            auto layout = vsg::StandardLayout::create();
-            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-            layout->position = vsg::vec3(6.0, 0.0, 0.0);
-            layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-            layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
-            layout->outlineWidth = 0.1;
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->glyphLayout = vsg::StandardLayout::VERTICAL_LAYOUT;
-            layout->position = vsg::vec3(-1.0, 0.0, 2.0);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 0.0, 0.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("VERTICAL_LAYOUT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->glyphLayout = vsg::StandardLayout::LEFT_TO_RIGHT_LAYOUT;
-            layout->position = vsg::vec3(-1.0, 0.0, 2.0);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(0.0, 1.0, 0.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("LEFT_TO_RIGHT_LAYOUT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->glyphLayout = vsg::StandardLayout::RIGHT_TO_LEFT_LAYOUT;
-            layout->position = vsg::vec3(13.0, 0.0, 2.0);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(0.0, 0.0, 1.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("RIGHT_TO_LEFT_LAYOUT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-            layout->position = vsg::vec3(2.0, 0.0, -8.0);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("horizontalAlignment\nCENTER_ALIGNMENT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->horizontalAlignment = vsg::StandardLayout::LEFT_ALIGNMENT;
-            layout->position = vsg::vec3(2.0, 0.0, -9.0);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("horizontalAlignment\nLEFT_ALIGNMENT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->horizontalAlignment = vsg::StandardLayout::RIGHT_ALIGNMENT;
-            layout->position = vsg::vec3(2.0, 0.0, -10.0);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("horizontalAlignment\nRIGHT_ALIGNMENT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-            layout->verticalAlignment = vsg::StandardLayout::BOTTOM_ALIGNMENT;
-            layout->position = vsg::vec3(10.0, 0.0, -8.5);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("verticalAlignment\nBOTTOM_ALIGNMENT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-            layout->verticalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-            layout->position = vsg::vec3(10.0, 0.0, -9.0);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("verticalAlignment\nCENTER_ALIGNMENT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-
-        {
-            auto layout = vsg::StandardLayout::create();
-            layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-            layout->verticalAlignment = vsg::StandardLayout::TOP_ALIGNMENT;
-            layout->position = vsg::vec3(10.0, 0.0, -9.5);
-            layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
-
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("verticalAlignment\nTOP_ALIGNMENT");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
-        }
-        if (output_filename.empty())
-        {
-            struct CustomLayout : public vsg::Inherit<vsg::StandardLayout, CustomLayout>
+            if (textgroup->children.size() < numLabels)
             {
-                void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
+                auto layout = vsg::StandardLayout::create();
+                layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+                layout->position = local_origin + vsg::vec3(6.0, 0.0, 0.0);
+                layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+                layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+                layout->outlineWidth = 0.1;
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->glyphLayout = vsg::StandardLayout::VERTICAL_LAYOUT;
+                layout->position = local_origin + vsg::vec3(-1.0, 0.0, 2.0);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(1.0, 0.0, 0.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("VERTICAL_LAYOUT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->glyphLayout = vsg::StandardLayout::LEFT_TO_RIGHT_LAYOUT;
+                layout->position = local_origin + vsg::vec3(-1.0, 0.0, 2.0);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(0.0, 1.0, 0.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("LEFT_TO_RIGHT_LAYOUT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->glyphLayout = vsg::StandardLayout::RIGHT_TO_LEFT_LAYOUT;
+                layout->position = local_origin + vsg::vec3(13.0, 0.0, 2.0);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(0.0, 0.0, 1.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("RIGHT_TO_LEFT_LAYOUT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+                layout->position = local_origin + vsg::vec3(2.0, 0.0, -8.0);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("horizontalAlignment\nCENTER_ALIGNMENT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->horizontalAlignment = vsg::StandardLayout::LEFT_ALIGNMENT;
+                layout->position = local_origin + vsg::vec3(2.0, 0.0, -9.0);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("horizontalAlignment\nLEFT_ALIGNMENT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->horizontalAlignment = vsg::StandardLayout::RIGHT_ALIGNMENT;
+                layout->position = local_origin + vsg::vec3(2.0, 0.0, -10.0);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("horizontalAlignment\nRIGHT_ALIGNMENT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+                layout->verticalAlignment = vsg::StandardLayout::BOTTOM_ALIGNMENT;
+                layout->position = local_origin + vsg::vec3(10.0, 0.0, -8.5);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("verticalAlignment\nBOTTOM_ALIGNMENT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+                layout->verticalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+                layout->position = local_origin + vsg::vec3(10.0, 0.0, -9.0);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("verticalAlignment\nCENTER_ALIGNMENT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels)
+            {
+                auto layout = vsg::StandardLayout::create();
+                layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+                layout->verticalAlignment = vsg::StandardLayout::TOP_ALIGNMENT;
+                layout->position = local_origin + vsg::vec3(10.0, 0.0, -9.5);
+                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("verticalAlignment\nTOP_ALIGNMENT");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            if (textgroup->children.size() < numLabels && output_filename.empty())
+            {
+                struct CustomLayout : public vsg::Inherit<vsg::StandardLayout, CustomLayout>
                 {
-                    // Let the base StandardLayout class do the basic glyph setup
-                    size_t start_of_text = quads.size();
-
-                    Inherit::layout(text, font, quads);
-
-                    // modify each generated glyph quad's position and colours etc.
-                    for (size_t qi = start_of_text; qi < quads.size(); ++qi)
+                    void layout(const vsg::Data* text, const vsg::Font& font, vsg::TextQuads& quads) override
                     {
-                        auto& quad = quads[qi];
-                        for (int i = 0; i < 4; ++i)
+                        // Let the base StandardLayout class do the basic glyph setup
+                        size_t start_of_text = quads.size();
+
+                        Inherit::layout(text, font, quads);
+
+                        // modify each generated glyph quad's position and colours etc.
+                        for (size_t qi = start_of_text; qi < quads.size(); ++qi)
                         {
-                            quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
-                            quad.colors[i].r = 0.5f + 0.5f * sin(quad.vertices[i].x);
-                            quad.outlineColors[i] = vsg::vec4(cos(0.5 * quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
-                            quad.outlineWidths[i] = 0.1f + 0.15f * (1.0f + sin(quad.vertices[i].x));
+                            auto& quad = quads[qi];
+                            for (int i = 0; i < 4; ++i)
+                            {
+                                quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
+                                quad.colors[i].r = 0.5f + 0.5f * sin(quad.vertices[i].x);
+                                quad.outlineColors[i] = vsg::vec4(cos(0.5 * quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
+                                quad.outlineWidths[i] = 0.1f + 0.15f * (1.0f + sin(quad.vertices[i].x));
+                            }
                         }
-                    }
+                    };
                 };
-            };
 
-            auto layout = CustomLayout::create();
-            layout->position = vsg::vec3(0.0, 0.0, -3.0);
-            layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-            layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
+                auto layout = CustomLayout::create();
+                layout->position = local_origin + vsg::vec3(0.0, 0.0, -3.0);
+                layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+                layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+                layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
 
-            auto text = vsg::Text::create();
-            text->text = vsg::stringValue::create("You can use Outlines\nand your own CustomLayout.");
-            text->font = font;
-            text->layout = layout;
-            textgroup->addChild(text);
+                auto text = vsg::Text::create();
+                text->text = vsg::stringValue::create("You can use Outlines\nand your own CustomLayout.");
+                text->font = font;
+                text->layout = layout;
+                textgroup->addChild(text);
+            }
+
+            local_origin += dx;
         }
+        row_origin += dy;
     }
 
     textgroup->setup();
@@ -288,6 +321,9 @@ int main(int argc, char** argv)
     // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
+    auto startTime = vsg::clock::now();
+    double numFramesCompleted = 0.0;
+
     // main frame loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
@@ -299,6 +335,15 @@ int main(int argc, char** argv)
         viewer->recordAndSubmit();
 
         viewer->present();
+
+        numFramesCompleted += 1.0;
+    }
+
+
+    auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
+    if (numFramesCompleted > 0.0)
+    {
+        std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
     }
 
     // clean up done automatically thanks to ref_ptr<>
