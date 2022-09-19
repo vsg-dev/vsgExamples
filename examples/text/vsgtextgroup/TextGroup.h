@@ -31,7 +31,7 @@ namespace vsg
 
         ref_ptr<Node> renderSubgraph;
 
-        bool new_implementation = false;
+        bool old_implementation = false;
 
         void addChild(ref_ptr<Text> text) { children.push_back(text); }
 

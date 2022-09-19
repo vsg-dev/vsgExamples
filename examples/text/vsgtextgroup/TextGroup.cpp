@@ -27,7 +27,7 @@ void TextGroup::write(Output& output) const
 
 void TextGroup::setup(uint32_t minimumAllocation)
 {
-    if (new_implementation)
+    if (!old_implementation)
     {
         struct CountQuads : public ConstVisitor
         {
