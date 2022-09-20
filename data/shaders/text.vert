@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#pragma import_defines (GPU_LAYOUT, CPU_LAYOUT)
+#pragma import_defines (GPU_LAYOUT, CPU_LAYOUT, BILLBOARD)
 
 #ifdef GPU_LAYOUT
 
@@ -36,7 +36,13 @@
     layout(location = 3) in float inOutlineWidth;
     layout(location = 4) in vec3 inTexCoord;
 
+    #ifdef BILLBOARD
+    layout(location = 5) in vec4 inCenterAndAutoScaleDistance;
+    #endif
+
 #endif
+
+
 
 layout(push_constant) uniform PushConstants {
     mat4 projection;
@@ -93,11 +99,34 @@ void main() {
     fragTexCoord = vec2(mix(uv_rec[0], uv_rec[2], inPosition.x), mix(uv_rec[1], uv_rec[3], inPosition.y));
 #else
     // CPU layout provides all vertex data
+    #ifdef BILLBOARD
+    vec4 center_object = vec4(inCenterAndAutoScaleDistance.xyz, 1.0);
+    float autoScaleDistance = inCenterAndAutoScaleDistance.w;
+
+    vec4 center_eye = pc.modelview * center_object;
+    float distance = -center_eye.z;
+
+    float scale = (distance < autoScaleDistance) ? distance/autoScaleDistance : 1.0;
+    mat4 S = mat4(scale, 0.0, 0.0, 0.0,
+                  0.0, scale, 0.0, 0.0,
+                  0.0, 0.0, scale, 0.0,
+                  0.0, 0.0, 0.0, 1.0);
+
+    mat4 T = mat4(1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  center_eye.x, center_eye.y, center_eye.z, 1.0);
+
+    gl_Position = (pc.projection * (T*S)) * vec4(inPosition, 1.0);
+    #else
     gl_Position = (pc.projection * pc.modelview) * vec4(inPosition, 1.0);
+    #endif
+
     gl_Position.z -= inTexCoord.z*0.001;
     fragColor = inColor;
     outlineColor = inOutlineColor;
     outlineWidth = inOutlineWidth;
     fragTexCoord = inTexCoord.xy;
 #endif
+
 }

@@ -25,6 +25,8 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
     uint32_t numLabels = arguments.value(1000, "-n");
+    bool billboard = arguments.read({"-b", "--billboard"});
+    float billboardAutoScaleDistance = arguments.value(100.0f, "--distance");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -44,6 +46,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    font->options = options;
+
     // set up text group
     auto textgroup = vsg::TextGroup::create();
     if (arguments.read("--old")) textgroup->old_implementation = true;
@@ -51,10 +55,14 @@ int main(int argc, char** argv)
     double numBlocks = ceil(static_cast<double>(numLabels) / 10.0);
     uint32_t numColumns = static_cast<uint32_t>(ceil(sqrt(numBlocks)));
     uint32_t numRows = static_cast<uint32_t>(ceil(static_cast<double>(numBlocks) / static_cast<double>(numColumns)));
+    float size = 1.0f;
 
     vsg::vec3 row_origin(0.0f, 0.0f, 0.0f);
     vsg::vec3 dx(20.0f, 0.0f, 0.0f);
     vsg::vec3 dy(0.0f, 20.0f, 0.0f);
+    vsg::vec3 horizontal = vsg::vec3(size, 0.0, 0.0);
+    vsg::vec3 vertical = billboard ? vsg::vec3(0.0, size, 0.0) : vsg::vec3(0.0, 0.0, size);
+
     for(uint32_t r = 0; r < numRows; ++r)
     {
         vsg::vec3 local_origin = row_origin;
@@ -65,10 +73,12 @@ int main(int argc, char** argv)
                 auto layout = vsg::StandardLayout::create();
                 layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
                 layout->position = local_origin + vsg::vec3(6.0, 0.0, 0.0);
-                layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+                layout->horizontal = horizontal;
+                layout->vertical = vertical;
                 layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
                 layout->outlineWidth = 0.1;
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
@@ -82,9 +92,11 @@ int main(int argc, char** argv)
                 auto layout = vsg::StandardLayout::create();
                 layout->glyphLayout = vsg::StandardLayout::VERTICAL_LAYOUT;
                 layout->position = local_origin + vsg::vec3(-1.0, 0.0, 2.0);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(1.0, 0.0, 0.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("VERTICAL_LAYOUT");
@@ -98,9 +110,11 @@ int main(int argc, char** argv)
                 auto layout = vsg::StandardLayout::create();
                 layout->glyphLayout = vsg::StandardLayout::LEFT_TO_RIGHT_LAYOUT;
                 layout->position = local_origin + vsg::vec3(-1.0, 0.0, 2.0);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(0.0, 1.0, 0.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("LEFT_TO_RIGHT_LAYOUT");
@@ -114,9 +128,11 @@ int main(int argc, char** argv)
                 auto layout = vsg::StandardLayout::create();
                 layout->glyphLayout = vsg::StandardLayout::RIGHT_TO_LEFT_LAYOUT;
                 layout->position = local_origin + vsg::vec3(13.0, 0.0, 2.0);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(0.0, 0.0, 1.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("RIGHT_TO_LEFT_LAYOUT");
@@ -130,9 +146,11 @@ int main(int argc, char** argv)
                 auto layout = vsg::StandardLayout::create();
                 layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
                 layout->position = local_origin + vsg::vec3(2.0, 0.0, -8.0);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("horizontalAlignment\nCENTER_ALIGNMENT");
@@ -146,9 +164,11 @@ int main(int argc, char** argv)
                 auto layout = vsg::StandardLayout::create();
                 layout->horizontalAlignment = vsg::StandardLayout::LEFT_ALIGNMENT;
                 layout->position = local_origin + vsg::vec3(2.0, 0.0, -9.0);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("horizontalAlignment\nLEFT_ALIGNMENT");
@@ -162,9 +182,11 @@ int main(int argc, char** argv)
                 auto layout = vsg::StandardLayout::create();
                 layout->horizontalAlignment = vsg::StandardLayout::RIGHT_ALIGNMENT;
                 layout->position = local_origin + vsg::vec3(2.0, 0.0, -10.0);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("horizontalAlignment\nRIGHT_ALIGNMENT");
@@ -179,9 +201,11 @@ int main(int argc, char** argv)
                 layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
                 layout->verticalAlignment = vsg::StandardLayout::BOTTOM_ALIGNMENT;
                 layout->position = local_origin + vsg::vec3(10.0, 0.0, -8.5);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("verticalAlignment\nBOTTOM_ALIGNMENT");
@@ -196,9 +220,11 @@ int main(int argc, char** argv)
                 layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
                 layout->verticalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
                 layout->position = local_origin + vsg::vec3(10.0, 0.0, -9.0);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("verticalAlignment\nCENTER_ALIGNMENT");
@@ -213,9 +239,11 @@ int main(int argc, char** argv)
                 layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
                 layout->verticalAlignment = vsg::StandardLayout::TOP_ALIGNMENT;
                 layout->position = local_origin + vsg::vec3(10.0, 0.0, -9.5);
-                layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
+                layout->horizontal = horizontal * 0.5f;
+                layout->vertical = vertical * 0.5f;
                 layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("verticalAlignment\nTOP_ALIGNMENT");
@@ -252,9 +280,11 @@ int main(int argc, char** argv)
 
                 auto layout = CustomLayout::create();
                 layout->position = local_origin + vsg::vec3(0.0, 0.0, -3.0);
-                layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-                layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+                layout->horizontal = horizontal;
+                layout->vertical = vertical;
                 layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
+                layout->billboard = billboard;
+                layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
                 auto text = vsg::Text::create();
                 text->text = vsg::stringValue::create("You can use Outlines\nand your own CustomLayout.");
@@ -272,8 +302,7 @@ int main(int argc, char** argv)
 
     if (!output_filename.empty())
     {
-        //vsg::write(textgroup, output_filename);
-        vsg::write(textgroup->renderSubgraph, output_filename);
+        vsg::write(textgroup, output_filename);
         return 1;
     }
 
