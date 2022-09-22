@@ -50,7 +50,6 @@ int main(int argc, char** argv)
 
     // set up text group
     auto textgroup = vsg::TextGroup::create();
-    if (arguments.read("--old")) textgroup->old_implementation = true;
 
     double numBlocks = ceil(static_cast<double>(numLabels) / 10.0);
     uint32_t numColumns = static_cast<uint32_t>(ceil(sqrt(numBlocks)));
