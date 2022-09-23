@@ -18,6 +18,8 @@ int main(int argc, char** argv)
     auto output_filename = arguments.value(std::string(), "-o");
     auto numFrames = arguments.value(-1, "--nf");
     auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
+    auto assignOptions = arguments.read({"--assign-options", "--ao"});
+    auto resetOptions = arguments.read({"--reset-options", "--ro"});
     if (arguments.read("-t"))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -46,7 +48,15 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    font->options = options;
+    if (assignOptions)
+    {
+        font->options = options;
+    }
+
+    if (resetOptions)
+    {
+        options->readerWriters.clear();
+    }
 
     // set up text group
     auto textgroup = vsg::TextGroup::create();
