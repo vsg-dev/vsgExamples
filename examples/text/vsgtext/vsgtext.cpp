@@ -269,9 +269,10 @@ int main(int argc, char** argv)
             layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
             layout->position = vsg::vec3(6.0, 0.0, 0.0);
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-            layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+            layout->vertical = vsg::vec3(0.0, 1.0, 0.0);
             layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
             layout->outlineWidth = 0.1;
+            layout->billboard = true;
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
@@ -533,9 +534,10 @@ int main(int argc, char** argv)
         // currently vsg::GpuLayoutTechnique is the only technique that supports dynamic update of the text parameters
         dynamic_text->technique = vsg::GpuLayoutTechnique::create();
 
+        dynamic_text_layout->billboard = true;
         dynamic_text_layout->position = vsg::vec3(0.0, 0.0, -6.0);
         dynamic_text_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-        dynamic_text_layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+        dynamic_text_layout->vertical = dynamic_text_layout->billboard ? vsg::vec3(0.0, 1.0, 0.0) : vsg::vec3(0.0, 0.0, 1.0) ;
         dynamic_text_layout->color = vsg::vec4(1.0, 0.9, 1.0, 1.0);
         dynamic_text_layout->outlineWidth = 0.1;
 
