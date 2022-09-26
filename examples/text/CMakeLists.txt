@@ -1,2 +1,2 @@
 add_subdirectory(vsgtext)
-add_subdirectory(vsgcustomtext)
+add_subdirectory(vsgtextgroup)

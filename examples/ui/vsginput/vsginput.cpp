@@ -177,7 +177,6 @@ int main(int argc, char** argv)
 
         main->text = main_label;
         main->font = font;
-        main->font->options = options;
         main->layout = main_layout;
         main->setup();
         scenegraph->addChild(main);
@@ -200,7 +199,6 @@ int main(int argc, char** argv)
         auto pointer_string = vsg::stringValue::create("Pointer event:");
         pointer_text->text = pointer_string;
         pointer_text->font = font;
-        pointer_text->font->options = options;
         pointer_text->layout = pointer_layout;
         pointer_text->setup(256);
         scenegraph->addChild(pointer_text);
@@ -223,7 +221,6 @@ int main(int argc, char** argv)
         auto keyboard_string = vsg::stringValue::create("Keyboard event:");
         keyboard_text->text = keyboard_string;
         keyboard_text->font = font;
-        keyboard_text->font->options = options;
         keyboard_text->layout = keyboard_layout;
         keyboard_text->setup(256);
         scenegraph->addChild(keyboard_text);
@@ -246,7 +243,6 @@ int main(int argc, char** argv)
         auto scroll_string = vsg::stringValue::create("Scroll event:");
         scroll_text->text = scroll_string;
         scroll_text->font = font;
-        scroll_text->font->options = options;
         scroll_text->layout = scroll_layout;
         scroll_text->setup(256);
         scenegraph->addChild(scroll_text);
@@ -269,7 +265,6 @@ int main(int argc, char** argv)
         auto application_string = vsg::stringValue::create("Window event:");
         window_text->text = application_string;
         window_text->font = font;
-        window_text->font->options = options;
         window_text->layout = application_layout;
         window_text->setup(256);
         scenegraph->addChild(window_text);
@@ -292,7 +287,6 @@ int main(int argc, char** argv)
         auto application_string = vsg::stringValue::create("Frame event:");
         frame_text->text = application_string;
         frame_text->font = font;
-        frame_text->font->options = options;
         frame_text->layout = application_layout;
         frame_text->setup(256);
         scenegraph->addChild(frame_text);
