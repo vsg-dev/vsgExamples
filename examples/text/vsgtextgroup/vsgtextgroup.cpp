@@ -18,8 +18,6 @@ int main(int argc, char** argv)
     auto output_filename = arguments.value(std::string(), "-o");
     auto numFrames = arguments.value(-1, "--nf");
     auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
-    auto assignOptions = arguments.read({"--assign-options", "--ao"});
-    auto resetOptions = arguments.read({"--reset-options", "--ro"});
     if (arguments.read("-t"))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -48,16 +46,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    if (assignOptions)
-    {
-        font->options = options;
-    }
-
-    if (resetOptions)
-    {
-        options->readerWriters.clear();
-    }
-
     // set up text group
     auto textgroup = vsg::TextGroup::create();
 
@@ -77,10 +65,12 @@ int main(int argc, char** argv)
         vsg::vec3 local_origin = row_origin;
         for(uint32_t c = 0; c < numColumns; ++c)
         {
+
             if (textgroup->children.size() < numLabels)
             {
                 auto layout = vsg::StandardLayout::create();
                 layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+                //layout->verticalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
                 layout->position = local_origin + vsg::vec3(6.0, 0.0, 0.0);
                 layout->horizontal = horizontal;
                 layout->vertical = vertical;

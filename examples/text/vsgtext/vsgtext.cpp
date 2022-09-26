@@ -180,9 +180,6 @@ int main(int argc, char** argv)
     auto enable_tests = arguments.read("--test");
     auto numFrames = arguments.value(-1, "--nf");
     auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
-    auto assignOptions = arguments.read({"--assign-options", "--ao"});
-    auto resetOptions = arguments.read({"--reset-options", "--ro"});
-
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
@@ -199,16 +196,6 @@ int main(int argc, char** argv)
     {
         std::cout << "Failing to read font : " << font_filename << std::endl;
         return 1;
-    }
-
-    if (assignOptions)
-    {
-        font->options = options;
-    }
-
-    if (resetOptions)
-    {
-        options->readerWriters.clear();
     }
 
     // set up model transformation node
