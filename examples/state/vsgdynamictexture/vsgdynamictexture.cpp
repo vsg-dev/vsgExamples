@@ -162,7 +162,7 @@ int main(int argc, char** argv)
     }
 
     // set the dynmaic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
-    textureData->getLayout().dynamic = true;
+    textureData->getLayout().dataVariance = vsg::DYNAMIC_DATA;
 
     // initialize the image
     UpdateImage updateImage;

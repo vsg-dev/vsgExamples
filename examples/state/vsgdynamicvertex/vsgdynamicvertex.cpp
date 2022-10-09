@@ -125,7 +125,7 @@ int main(int argc, char** argv)
         {
             for(auto& vertices : verticesList)
             {
-                vertices->getLayout().dynamic = true;
+                vertices->getLayout().dataVariance = vsg::DYNAMIC_DATA;
                 numVertices += vertices->size();
             }
         }

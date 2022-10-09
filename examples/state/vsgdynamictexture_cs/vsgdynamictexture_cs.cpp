@@ -117,7 +117,7 @@ int main(int argc, char** argv)
     // setup texture source image data
     vsg::ref_ptr<vsg::Data> textureData = vsg::vec3Array2D::create(256, 256);
     textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
-    textureData->getLayout().dynamic = true;
+    textureData->getLayout().dataVariance = vsg::DYNAMIC_DATA;
 
     // initialize the source image data
     UpdateImage updateImage;

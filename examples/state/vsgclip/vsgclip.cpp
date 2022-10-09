@@ -248,7 +248,7 @@ int main(int argc, char** argv)
 
         auto eyeClipSettings = vsg::vec4Array::create(1);
         eyeClipSettings->set(0, vsg::vec4(0.0, 0.0, 0.0, 0.0));
-        eyeClipSettings->getLayout().dynamic = true;
+        eyeClipSettings->getLayout().dataVariance = vsg::DYNAMIC_DATA;
 
         auto device = window->getOrCreateDevice();
 
