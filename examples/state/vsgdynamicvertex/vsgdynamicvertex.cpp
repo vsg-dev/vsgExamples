@@ -98,9 +98,11 @@ int main(int argc, char** argv)
 
         auto numFrames = arguments.value(-1, "-f");
 
+        bool multiThreading = arguments.read("--mt");
         auto modify = arguments.read("--modify");
         auto dirty = arguments.read("--dirty");
         auto dynamic = arguments.read("--dynamic") || dirty || modify;
+        bool lateTransfer = arguments.read("--late");
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -125,7 +127,8 @@ int main(int argc, char** argv)
         {
             for(auto& vertices : verticesList)
             {
-                vertices->getLayout().dataVariance = vsg::DYNAMIC_DATA;
+                //vertices->getLayout().dataVariance = vsg::DYNAMIC_DATA;
+                vertices->getLayout().dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
                 numVertices += vertices->size();
             }
         }
@@ -179,6 +182,10 @@ int main(int argc, char** argv)
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+
+        vsg::info("multiThreading = ", multiThreading);
+        if (multiThreading) viewer->setupThreading();
 
         viewer->compile();
 

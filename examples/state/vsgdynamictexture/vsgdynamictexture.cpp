@@ -95,6 +95,8 @@ int main(int argc, char** argv)
     if (arguments.read("--rgb")) arrayType = USE_RGB;
     if (arguments.read("--rgba")) arrayType = USE_RGBA;
     auto image_size = arguments.value<uint32_t>(256, "-s");
+    bool lateTransfer = arguments.read("--late");
+    bool multiThreading = arguments.read("--mt");
 
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
@@ -162,7 +164,7 @@ int main(int argc, char** argv)
     }
 
     // set the dynmaic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
-    textureData->getLayout().dataVariance = vsg::DYNAMIC_DATA;
+    textureData->getLayout().dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
 
     // initialize the image
     UpdateImage updateImage;
@@ -189,9 +191,10 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
+    if (multiThreading) viewer->setupThreading();
+
     // compile the Vulkan objects
     viewer->compile();
-
 
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
