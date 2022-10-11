@@ -35,6 +35,8 @@ public:
                 ++ptr;
             }
         }
+
+        image.dirty();
     }
 
     // use the vsg::Visitor to safely cast to types handled by the UpdateImage class
@@ -112,11 +114,12 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(camera));
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-    // setup texture image
+    // setup texture source image data
     vsg::ref_ptr<vsg::Data> textureData = vsg::vec3Array2D::create(256, 256);
     textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
+    textureData->getLayout().dataVariance = vsg::DYNAMIC_DATA;
 
-    // initialize the image
+    // initialize the source image data
     UpdateImage updateImage;
     updateImage(textureData, 0.0);
 
@@ -225,11 +228,6 @@ int main(int argc, char** argv)
         transform->addChild(drawCommands);
     }
 
-    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice());
-    vsg::ref_ptr<vsg::CopyAndReleaseBuffer> copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
-
-    auto bufferInfo = vsg::BufferInfo::create();
-
     // set up compute shader subgraph
     {
         auto physicalDevice = window->getOrCreatePhysicalDevice();
@@ -246,10 +244,6 @@ int main(int argc, char** argv)
         // binding 0 source buffer
         // binding 1 image2d
 
-        // allocate output storage buffer
-        VkDeviceSize bufferSize = sizeof(vsg::vec4) * width * height;
-        auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
         // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
         vsg::DescriptorSetLayoutBindings descriptorBindings{
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
@@ -257,12 +251,7 @@ int main(int argc, char** argv)
         };
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-        bufferInfo->buffer = buffer;
-        bufferInfo->offset = 0;
-        bufferInfo->range = bufferSize;
-
-
-        auto sourceBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{vsg::BufferInfo::create(buffer, 0, bufferSize)}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto sourceBuffer = vsg::DescriptorBuffer::create(textureData, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         auto writeTexture = vsg::DescriptorImage::create(imageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
         auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
@@ -313,7 +302,6 @@ int main(int argc, char** argv)
         auto compute_commandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
 
         compute_commandGraph->addChild(preCopyBarrierCmd);
-        compute_commandGraph->addChild(copyBufferCmd);
         compute_commandGraph->addChild(bindPipeline);
         compute_commandGraph->addChild(bindDescriptorSet);
         compute_commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
@@ -341,9 +329,6 @@ int main(int argc, char** argv)
 
         // update texture data
         updateImage(textureData, time);
-
-        // copy data to staging buffer and issue a copy command to transfer to the GPU texture image
-        copyBufferCmd->copy(textureData, bufferInfo);
 
         viewer->update();
 

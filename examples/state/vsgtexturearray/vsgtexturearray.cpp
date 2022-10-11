@@ -25,6 +25,7 @@ void updateBaseTexture(vsg::ubvec4Array2D& image, float value)
             image.set(c, r, vsg::ubvec4(uint8_t(intensity * intensity * 255.0), uint8_t(intensity * 255.0), uint8_t(intensity * 255.0), 255));
         }
     }
+    image.dirty();
 }
 
 void updateElevation(vsg::floatArray2D& heightField, float value)
@@ -46,6 +47,7 @@ void updateElevation(vsg::floatArray2D& heightField, float value)
             heightField.set(c, r, intensity);
         }
     }
+    heightField.dirty();
 }
 
 vsg::ref_ptr<vsg::Node> createGeometry()
@@ -203,6 +205,7 @@ int main(int argc, char** argv)
     {
         auto textureData = vsg::ubvec4Array2D::create(256, 256);
         textureData->getLayout().format = VK_FORMAT_R8G8B8A8_UNORM;
+        if (update) textureData->getLayout().dataVariance = vsg::DYNAMIC_DATA;
 
         updateBaseTexture(*textureData, 1.0f);
 
@@ -370,12 +373,6 @@ int main(int argc, char** argv)
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
-
-
-    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", window->getOrCreateDevice());
-    auto copyCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
-    commandGraph->children.insert(commandGraph->children.begin(), copyCmd);
-
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     // add event handlers
@@ -390,8 +387,6 @@ int main(int argc, char** argv)
     // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
     vsg::Context context(window->getOrCreateDevice());
 
-    auto& imageDataList = baseDescriptorImage->imageInfoList;
-
     // main frame loop
     while (viewer->advanceToNextFrame())
     {
@@ -404,20 +399,11 @@ int main(int argc, char** argv)
             float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
 
             uint32_t textureToUpdate = 0; // viewer->getFrameStamp()->frameCount % numTiles;
-
-            auto& textureImageData = imageDataList[textureToUpdate];
-            auto textureData = textureImageData->imageView->image->data.cast<vsg::ubvec4Array2D>();
-
+            auto& textureData = textureDataList[textureToUpdate];
             if (textureData)
             {
                 // update texture data
                 updateBaseTexture(*textureData, time);
-
-                copyCmd->copy(textureData, textureImageData);
-            }
-            else
-            {
-                std::cout << "textureImageData.imageView->image->data = " << textureImageData->imageView->image->data << ", cast =" << textureImageData->imageView->image->data.cast<vsg::vec4Array2D>() << std::endl;
             }
         }
 

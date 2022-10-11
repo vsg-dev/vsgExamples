@@ -1,4 +1,4 @@
-    #include <iostream>
+#include <iostream>
 #include <vsg/all.h>
 
 class UpdateImage : public vsg::Visitor
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
     arguments.read("--window", windowTraits->width, windowTraits->height);
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
-    if (arguments.read("-t"))
+    if (arguments.read({"-t", "--st"}))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         windowTraits->width = 192, windowTraits->height = 108;
@@ -94,8 +94,9 @@ int main(int argc, char** argv)
     if (arguments.read("--float")) arrayType = USE_FLOAT;
     if (arguments.read("--rgb")) arrayType = USE_RGB;
     if (arguments.read("--rgba")) arrayType = USE_RGBA;
-
     auto image_size = arguments.value<uint32_t>(256, "-s");
+    bool lateTransfer = arguments.read("--late");
+    bool multiThreading = arguments.read("--mt");
 
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
@@ -162,6 +163,9 @@ int main(int argc, char** argv)
         break;
     }
 
+    // set the dynmaic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
+    textureData->getLayout().dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
+
     // initialize the image
     UpdateImage updateImage;
     updateImage(textureData, 0.0);
@@ -184,55 +188,13 @@ int main(int argc, char** argv)
         scenegraph->addChild(builder.createBox(geomInfo, stateInfo));
     }
 
-    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", vsg::ref_ptr<vsg::Device>(window->getOrCreateDevice()));
-    vsg::ref_ptr<vsg::CopyAndReleaseImage> copyImageCmd = vsg::CopyAndReleaseImage::create(memoryBufferPools);
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-    // setup command graph to copy the image data each frame then rendering the scene graph
-    {
-        auto grahics_commandGraph = vsg::CommandGraph::create(window);
-        grahics_commandGraph->addChild(copyImageCmd);
-        grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
-
-        viewer->assignRecordAndSubmitTaskAndPresentation({grahics_commandGraph});
-    }
+    if (multiThreading) viewer->setupThreading();
 
     // compile the Vulkan objects
     viewer->compile();
-
-    // texture has been filled in so it's now safe to get the ImageInfo that holds the handles to the texture's
-    struct FindTexture : public vsg::Visitor
-    {
-        vsg::ref_ptr<vsg::ImageInfo> imageInfo;
-
-        void apply(vsg::Object& object) override
-        {
-            object.traverse(*this);
-        }
-        void apply(vsg::StateGroup& sg) override
-        {
-            for (auto& sc : sg.stateCommands) { sc->accept(*this); }
-            sg.traverse(*this);
-        }
-        void apply(vsg::DescriptorImage& di) override
-        {
-            if (!di.imageInfoList.empty()) imageInfo = di.imageInfoList[0]; // contextID=0, and only one imageData
-        }
-
-        static vsg::ref_ptr<vsg::ImageInfo> find(vsg::Node* node)
-        {
-            FindTexture fdi;
-            node->accept(fdi);
-            return fdi.imageInfo;
-        }
-    };
-
-    auto textureImageInfo = FindTexture::find(scenegraph);
-
-    if (!textureImageInfo || !textureImageInfo->imageView)
-    {
-        std::cout << "Can not locate imageInfo to update." << std::endl;
-        return 1;
-    }
 
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
@@ -247,9 +209,6 @@ int main(int argc, char** argv)
 
         // update texture data
         updateImage(textureData, time);
-
-        // copy data to staging buffer and issue a copy command to transfer to the GPU texture image
-        copyImageCmd->copy(textureData, textureImageInfo);
 
         viewer->update();
 

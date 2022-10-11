@@ -47,8 +47,6 @@ int main(int argc, char** argv)
     }
 
     auto device = window->getOrCreateDevice();
-    auto memoryBufferPools = vsg::MemoryBufferPools::create("Staging_MemoryBufferPool", device);
-    auto copyBufferCmd = vsg::CopyAndReleaseBuffer::create(memoryBufferPools);
 
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * 256;
     auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -66,7 +64,9 @@ int main(int argc, char** argv)
 
     // setting we pass to the compute shader each frame to provide animation of vertex data.
     auto computeScale = vsg::vec4Array::create(1);
+    computeScale->getLayout().dataVariance = vsg::DYNAMIC_DATA;
     computeScale->set(0, vsg::vec4(1.0, 1.0, 1.0, 0.0));
+
     auto computeScaleBuffer = vsg::DescriptorBuffer::create(computeScale, 1);
 
     // create the compute graph to compute the positions of the vertices
@@ -128,7 +128,6 @@ int main(int argc, char** argv)
         scenegraph->add(bindGraphicsPipeline);
 
         auto renderGraph = vsg::createRenderGraphForView(window, camera, scenegraph);
-        graphicCommandGraph->addChild(copyBufferCmd);
         graphicCommandGraph->addChild(renderGraph);
 
         // setup geometry
@@ -165,7 +164,7 @@ int main(int argc, char** argv)
 
         double frameTime = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
         computeScale->at(0).z = sin(frameTime);
-        computeScaleBuffer->copyDataListToBuffers();
+        computeScale->dirty();
 
         viewer->recordAndSubmit();
 
