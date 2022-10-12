@@ -172,7 +172,11 @@ int main(int argc, char** argv)
         commandGraph->addChild(renderGraph);
 
         // create the normal 3D view of the scene
-        renderGraph->addChild(vsg::View::create(camera, vsg_scene));
+        auto view = vsg::View::create(camera);
+        view->addChild(vsg::createHeadlight());
+        view->addChild(vsg_scene);
+
+        renderGraph->addChild(view);
 
         if (fontFile)
         {

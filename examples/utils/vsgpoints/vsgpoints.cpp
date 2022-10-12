@@ -222,8 +222,11 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
         return {};
     }
 
+    vsg::info("vertexShader = ", vertexShader);
+    vsg::info("fragmentShader = ", fragmentShader);
+
     auto shaderHints = vsg::ShaderCompileSettings::create();
-    std::vector<std::string>& defines = shaderHints->defines;
+    auto& defines = shaderHints->defines;
 
     vertexShader->module->hints = shaderHints;
     vertexShader->module->code = {};
@@ -250,12 +253,18 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     }
 
     {
-        descriptorBindings.push_back(VkDescriptorSetLayoutBinding{10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
+        descriptorBindings.push_back(VkDescriptorSetLayoutBinding{10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}); // Material
     }
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::DescriptorSetLayouts descriptorSetLayouts{descriptorSetLayout};
+
+    if (lighting)
+    {
+        auto viewDescriptorSetLayout = vsg::ViewDescriptorSetLayout::create();
+        descriptorSetLayouts.push_back(viewDescriptorSetLayout);
+    }
 
     vsg::PushConstantRanges pushConstantRanges{
         {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
@@ -314,7 +323,7 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
 
     auto mat = vsg::PhongMaterialValue::create();
     mat->value().alphaMask = 1.0f;
-    mat->value().alphaMaskCutoff = 0.99f;
+    mat->value().alphaMaskCutoff = 0.5f;
 
     auto material = vsg::DescriptorBuffer::create(mat, 10);
     descriptors.push_back(material);
@@ -325,6 +334,11 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     auto sg = vsg::StateGroup::create();
     sg->add(bindGraphicsPipeline);
     sg->add(bindDescriptorSets);
+
+    if (lighting)
+    {
+        sg->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1));
+    }
 
     return sg;
 }

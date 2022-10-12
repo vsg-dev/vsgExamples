@@ -28,8 +28,10 @@
 // Class definition for broadcasting a buffer to a LAN
 //
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
+#ifndef NOMINMAX
 #    define NOMINMAX
+#endif
 #    include <winsock.h>
 #else
 #    include <netinet/in.h>
@@ -57,14 +59,14 @@ private:
 
     std::string _ifr_name;
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     SOCKET _so;
 #else
     int _so;
 #endif
     bool _initialized;
     short _port;
-#if defined(_WIN32) && !defined(__CYGWIN__)
+#if defined(WIN32) && !defined(__CYGWIN__)
     SOCKADDR_IN saddr;
 #else
     struct sockaddr_in saddr;
