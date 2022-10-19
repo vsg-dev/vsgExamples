@@ -27,6 +27,12 @@ protected:
     {
         std::cerr<<"custom error : "<<message<<std::endl;
     }
+
+    void fatal_implementation(const std::string_view& message) override
+    {
+        std::cerr<<"custom error : "<<message<<std::endl;
+        throw vsg::Exception{std::string(message)};
+    }
 };
 
 
