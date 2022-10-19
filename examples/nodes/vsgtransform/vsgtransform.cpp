@@ -10,8 +10,9 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
 #ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
@@ -33,6 +34,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     double scale = arguments.value<double>(3.0, {"-s", "--scale"});
+    bool just_scale = arguments.read({"--js", "--just-scale"});
 
     // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
 
@@ -59,20 +61,26 @@ int main(int argc, char** argv)
 
     auto scene = vsg::Group::create();
 
-    auto tm_1 = vsg::MatrixTransform::create();
-    tm_1->matrix = vsg::translate(-radius*(0.75+scale*0.5), 0.0, 0.0);
-    tm_1->addChild(model);
-    scene->addChild(tm_1);
+    if (!just_scale)
+    {
+        auto tm_1 = vsg::MatrixTransform::create();
+        tm_1->matrix = vsg::translate(-radius*(0.75+scale*0.5), 0.0, 0.0);
+        tm_1->addChild(model);
+        scene->addChild(tm_1);
+    }
 
     auto tm_2 = vsg::MatrixTransform::create();
     tm_2->matrix = vsg::translate(centre) * vsg::scale(scale, scale, scale) * vsg::translate(-centre);
     tm_2->addChild(model);
     scene->addChild(tm_2);
 
-    auto tm_3 = vsg::MatrixTransform::create();
-    tm_3->matrix = vsg::translate(centre + vsg::dvec3(radius*(0.75+scale*0.5), 0.0, 0.0)) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(-centre);
-    tm_3->addChild(model);
-    scene->addChild(tm_3);
+    if (!just_scale)
+    {
+        auto tm_3 = vsg::MatrixTransform::create();
+        tm_3->matrix = vsg::translate(centre + vsg::dvec3(radius*(0.75+scale*0.5), 0.0, 0.0)) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(-centre);
+        tm_3->addChild(model);
+        scene->addChild(tm_3);
+    }
 
     // write out scene if required
     if (!outputFilename.empty())
