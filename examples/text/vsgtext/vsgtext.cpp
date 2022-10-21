@@ -514,7 +514,7 @@ int main(int argc, char** argv)
         }
     }
 
-    auto dynamic_text_label = vsg::stringValue::create("");
+    auto dynamic_text_label = vsg::stringValue::create("GpuLayoutTechnique");
     auto dynamic_text_layout = vsg::StandardLayout::create();
     auto dynamic_text = vsg::Text::create();
     {
