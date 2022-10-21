@@ -238,7 +238,7 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
     vsg::DescriptorSetLayoutBindings descriptorBindings;
 
     // enable the point sprite code paths
-    defines.push_back("VSG_POINT_SPRITE");
+    defines.insert("VSG_POINT_SPRITE");
 
     vsg::ref_ptr<vsg::Data> textureData;
     //textureData = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
@@ -249,7 +249,7 @@ vsg::ref_ptr<vsg::StateGroup> createStateGroup(vsg::ref_ptr<const vsg::Options> 
 
         // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
         descriptorBindings.push_back(VkDescriptorSetLayoutBinding{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr});
-        defines.push_back("VSG_DIFFUSE_MAP");
+        defines.insert("VSG_DIFFUSE_MAP");
     }
 
     {
