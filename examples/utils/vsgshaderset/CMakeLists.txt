@@ -1,5 +1,6 @@
 set(SOURCES
     text.cpp
+    flat.cpp
     vsgshaderset.cpp
 )
 

@@ -5,7 +5,9 @@
 #    include <vsgXchange/all.h>
 #endif
 
+// functions provided by text.cpp, flat.cpp
 extern vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
+extern vsg::ref_ptr<vsg::ShaderSet> flat_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
 
 void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
 {
@@ -160,7 +162,7 @@ int main(int argc, char** argv)
 
     if (arguments.read("--flat"))
     {
-        if (!shaderSet) shaderSet = vsg::createFlatShadedShaderSet(options);
+        if (!shaderSet) shaderSet = vsgShaderSet ? vsg::createFlatShadedShaderSet(options) : flat_ShaderSet(options);
         options->shaderSets["flat"] = shaderSet;
     }
     if (arguments.read("--phong"))
