@@ -9,6 +9,7 @@
 extern vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
 extern vsg::ref_ptr<vsg::ShaderSet> flat_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
 extern vsg::ref_ptr<vsg::ShaderSet> phong_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
+extern vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
 
 void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
 {
@@ -174,7 +175,7 @@ int main(int argc, char** argv)
 
     if (arguments.read("--pbr"))
     {
-        if (!shaderSet) shaderSet = vsg::createPhysicsBasedRenderingShaderSet(options);
+        if (!shaderSet) shaderSet = vsgShaderSet ? vsg::createPhysicsBasedRenderingShaderSet(options) : pbr_ShaderSet(options);
         options->shaderSets["pbr"] = shaderSet;
     }
 

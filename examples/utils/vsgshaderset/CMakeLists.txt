@@ -2,6 +2,7 @@ set(SOURCES
     text.cpp
     flat.cpp
     phong.cpp
+    pbr.cpp
     vsgshaderset.cpp
 )
 
