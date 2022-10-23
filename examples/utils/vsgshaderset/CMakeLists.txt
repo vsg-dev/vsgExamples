@@ -1,6 +1,7 @@
 set(SOURCES
     text.cpp
     flat.cpp
+    phong.cpp
     vsgshaderset.cpp
 )
 

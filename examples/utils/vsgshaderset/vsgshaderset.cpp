@@ -8,6 +8,7 @@
 // functions provided by text.cpp, flat.cpp
 extern vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
 extern vsg::ref_ptr<vsg::ShaderSet> flat_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
+extern vsg::ref_ptr<vsg::ShaderSet> phong_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
 
 void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
 {
@@ -167,7 +168,7 @@ int main(int argc, char** argv)
     }
     if (arguments.read("--phong"))
     {
-        if (!shaderSet) shaderSet = vsg::createPhongShaderSet(options);
+        if (!shaderSet) shaderSet = vsgShaderSet ? vsg::createPhongShaderSet(options) : phong_ShaderSet(options);
         options->shaderSets["phong"] = shaderSet;
     }
 
