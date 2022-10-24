@@ -145,11 +145,7 @@ int main(int argc, char** argv)
     if (argc <= 1) return 0;
 
     auto inputFilename = arguments.value<vsg::Path>("", "-i");
-    std::cout<<"inputFilename = "<<inputFilename<<std::endl;
-
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
-    std::cout<<"outputFilename = "<<outputFilename<<std::endl;
-
     bool binary = arguments.read("--binary");
     bool vsgShaderSet = arguments.read("--vsg");
     bool stripShaderSetBeforeWrite = arguments.read({"-s", "--strip"});
