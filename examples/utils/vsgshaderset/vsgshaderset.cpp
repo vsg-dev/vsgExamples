@@ -130,7 +130,10 @@ std::set<std::string> supportedDefines(const vsg::ShaderSet& shaderSet)
 int main(int argc, char** argv)
 {
     // use the vsg::Options object to pass the ReaderWriter_all to use when reading files.
-    auto options = vsg::Options::create(vsgXchange::all::create());
+    auto options = vsg::Options::create();
+#ifdef vsgXchange_FOUND
+    options->add(vsgXchange::all::create());
+#endif
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
 
