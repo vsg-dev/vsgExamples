@@ -180,6 +180,7 @@ int main(int argc, char** argv)
     auto enable_tests = arguments.read("--test");
     auto numFrames = arguments.value(-1, "--nf");
     auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
+    bool disableDepthTest = arguments.read({"--ddt", "--disable-depth-test"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
@@ -196,6 +197,17 @@ int main(int argc, char** argv)
     {
         std::cout << "Failing to read font : " << font_filename << std::endl;
         return 1;
+    }
+
+    if (disableDepthTest)
+    {
+        // assign a custom StateSet to options->shaderSets so that subsequent TextGroup::setup(0, options) call will pass in our customo ShaderSet.
+        auto shaderSet = options->shaderSets["text"] = vsg::createTextShaderSet(options);
+
+        // create a DepthStencilState, disable depth test and add this to the ShaderSet::defaultGraphicsPipelineStates container so it's used when setting up the TextGroup subgraph
+        auto depthStencilState = vsg::DepthStencilState::create();
+        depthStencilState->depthTestEnable = VK_FALSE;
+        shaderSet->defaultGraphicsPipelineStates.push_back(depthStencilState);
     }
 
     // set up model transformation node
@@ -245,7 +257,7 @@ int main(int argc, char** argv)
         text->font = font;
         text->layout = layout;
         text->text = text_string;
-        text->setup();
+        text->setup(0, options);
 
         scenegraph->addChild(text);
     }
@@ -265,7 +277,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("VulkanSceneGraph now\nhas SDF text support.");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -287,7 +299,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("VERTICAL_LAYOUT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -309,7 +321,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("LEFT_TO_RIGHT_LAYOUT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -331,7 +343,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("RIGHT_TO_LEFT_LAYOUT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -353,7 +365,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("horizontalAlignment\nCENTER_ALIGNMENT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -375,7 +387,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("horizontalAlignment\nLEFT_ALIGNMENT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -397,7 +409,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("horizontalAlignment\nRIGHT_ALIGNMENT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -420,7 +432,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("verticalAlignment\nBOTTOM_ALIGNMENT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -443,7 +455,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("verticalAlignment\nCENTER_ALIGNMENT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -466,7 +478,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("verticalAlignment\nTOP_ALIGNMENT");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
 
             if (enable_tests)
@@ -509,7 +521,7 @@ int main(int argc, char** argv)
             text->text = vsg::stringValue::create("You can use Outlines\nand your own CustomLayout.");
             text->font = font;
             text->layout = layout;
-            text->setup();
+            text->setup(0, options);
             scenegraph->addChild(text);
         }
     }
@@ -587,7 +599,7 @@ int main(int argc, char** argv)
         // update the dynamic_text label string and position
         dynamic_text_label->value() = vsg::make_string("GpuLayoutTechnique: ", viewer->getFrameStamp()->frameCount);
         dynamic_text_layout->position.x += 0.01;
-        dynamic_text->setup();
+        dynamic_text->setup(0, options);
 
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

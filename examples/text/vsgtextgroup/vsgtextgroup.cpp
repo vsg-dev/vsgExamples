@@ -5,6 +5,7 @@
 #    include <vsgXchange/all.h>
 #endif
 
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -26,6 +27,7 @@ int main(int argc, char** argv)
     }
     uint32_t numLabels = arguments.value(1000, "-n");
     bool billboard = arguments.read({"-b", "--billboard"});
+    bool disableDepthTest = arguments.read({"--ddt", "--disable-depth-test"});
     float billboardAutoScaleDistance = arguments.value(100.0f, "--distance");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -45,6 +47,18 @@ int main(int argc, char** argv)
         std::cout << "Failing to read font : " << font_filename << std::endl;
         return 1;
     }
+
+    if (disableDepthTest)
+    {
+        // assign a custom StateSet to options->shaderSets so that subsequent TextGroup::setup(0, options) call will pass in our customo ShaderSet.
+        auto shaderSet = options->shaderSets["text"] = vsg::createTextShaderSet(options);
+
+        // create a DepthStencilState, disable depth test and add this to the ShaderSet::defaultGraphicsPipelineStates container so it's used when setting up the TextGroup subgraph
+        auto depthStencilState = vsg::DepthStencilState::create();
+        depthStencilState->depthTestEnable = VK_FALSE;
+        shaderSet->defaultGraphicsPipelineStates.push_back(depthStencilState);
+    }
+
 
     // set up text group
     auto textgroup = vsg::TextGroup::create();
@@ -297,7 +311,7 @@ int main(int argc, char** argv)
         row_origin += dy;
     }
 
-    textgroup->setup();
+    textgroup->setup(0, options);
 
     if (!output_filename.empty())
     {
