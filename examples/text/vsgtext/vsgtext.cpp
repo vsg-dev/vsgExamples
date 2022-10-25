@@ -201,7 +201,7 @@ int main(int argc, char** argv)
 
     if (disableDepthTest)
     {
-        // assign a custom StateSet to options->shaderSets so that subsequent TextGroup::setup(0, options) call will pass in our customo ShaderSet.
+        // assign a custom StateSet to options->shaderSets so that subsequent TextGroup::setup(0, options) call will pass in our custom ShaderSet.
         auto shaderSet = options->shaderSets["text"] = vsg::createTextShaderSet(options);
 
         // create a DepthStencilState, disable depth test and add this to the ShaderSet::defaultGraphicsPipelineStates container so it's used when setting up the TextGroup subgraph
