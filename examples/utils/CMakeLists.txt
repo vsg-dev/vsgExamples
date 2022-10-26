@@ -1,4 +1,3 @@
 add_subdirectory(vsgbuilder)
-add_subdirectory(vsgpoints)
 add_subdirectory(vsgstatecomposer)
 add_subdirectory(vsgshaderset)
