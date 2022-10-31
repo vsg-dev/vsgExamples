@@ -28,8 +28,8 @@ vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> opti
 {
     vsg::info("Local pbr_ShaderSet(",options,")");
 
-    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp.vert", options);
-    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp_pbr.frag", options);
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_pbr.frag", options);
 
     if (!vertexShader || !fragmentShader)
     {
