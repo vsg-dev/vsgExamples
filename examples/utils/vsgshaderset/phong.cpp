@@ -28,8 +28,8 @@ vsg::ref_ptr<vsg::ShaderSet> phong_ShaderSet(vsg::ref_ptr<const vsg::Options> op
 {
     vsg::info("Local phong_ShaderSet(",options,")");
 
-    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp.vert", options);
-    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp_phong.frag", options);
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_phong.frag", options);
 
     if (!vertexShader || !fragmentShader)
     {

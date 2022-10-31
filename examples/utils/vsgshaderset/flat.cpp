@@ -28,8 +28,8 @@ vsg::ref_ptr<vsg::ShaderSet> flat_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
 {
     vsg::info("Local flat_ShaderSet(",options,")");
 
-    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp.vert", options);
-    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/assimp_flat_shaded.frag", options);
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_flat_shaded.frag", options);
 
     if (!vertexShader || !fragmentShader)
     {
