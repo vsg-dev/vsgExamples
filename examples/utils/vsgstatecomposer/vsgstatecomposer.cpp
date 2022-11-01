@@ -175,7 +175,7 @@ int main(int argc, char** argv)
                 vdsl = sharedObjects->shared_default<vsg::ViewDescriptorSetLayout>();
             else
                 vdsl = vsg::ViewDescriptorSetLayout::create();
-            graphicsPipelineConfig->additionalDescrptorSetLayout = vdsl;
+            graphicsPipelineConfig->additionalDescriptorSetLayout = vdsl;
 
             // share the pipeline config and initilaize if it's unique
             if (sharedObjects) sharedObjects->share(graphicsPipelineConfig, [](auto gpc) { gpc->init(); });
