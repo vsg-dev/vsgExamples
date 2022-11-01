@@ -25,7 +25,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
             // treat as a 24bit depth buffer
             float div = 1.0f / static_cast<float>(1 << 24);
 
-            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
+            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Properties{VK_FORMAT_R32G32B32A32_SFLOAT});
             auto dest_itr = rgba->begin();
             for (auto& v : fa)
             {
@@ -37,7 +37,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
 
         void apply(vsg::floatArray2D& fa) override
         {
-            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
+            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Properties{VK_FORMAT_R32G32B32A32_SFLOAT});
             auto dest_itr = rgba->begin();
             for (auto& v : fa)
             {
@@ -139,7 +139,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
          {1.0f, 1.0f, 1.0f},
          {1.0f, 1.0f, 1.0f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    uint8_t origin = textureData->getLayout().origin; // in Vulkan the origin is by default top left.
+    uint8_t origin = textureData->properties.origin; // in Vulkan the origin is by default top left.
     float left = 0.0f;
     float right = 1.0f;
     float top = (origin == vsg::TOP_LEFT) ? 0.0f : 1.0f;

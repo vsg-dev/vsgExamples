@@ -21,7 +21,7 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
             // treat as a 24bit depth buffer
             float div = 1.0f / static_cast<float>(1 << 24);
 
-            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
+            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Properties{VK_FORMAT_R32G32B32A32_SFLOAT});
             auto dest_itr = rgba->begin();
             for (auto& v : fa)
             {
@@ -33,7 +33,7 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
 
         void apply(vsg::floatArray2D& fa) override
         {
-            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
+            auto rgba = vsg::vec4Array2D::create(fa.width(), fa.height(), vsg::Data::Properties{VK_FORMAT_R32G32B32A32_SFLOAT});
             auto dest_itr = rgba->begin();
             for (auto& v : fa)
             {
@@ -48,7 +48,7 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
                 data->accept(*this);
             else
             {
-                auto image = vsg::vec4Array2D::create(1, 1, vsg::Data::Layout{VK_FORMAT_R32G32B32A32_SFLOAT});
+                auto image = vsg::vec4Array2D::create(1, 1, vsg::Data::Properties{VK_FORMAT_R32G32B32A32_SFLOAT});
                 image->set(0, 0, vsg::vec4(0.5f, 1.0f, 0.5f, 1.0f));
                 textureData = image;
             }
@@ -138,7 +138,7 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
          {1.0f, 1.0f, 1.0f},
          {1.0f, 1.0f, 1.0f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    bool top_left = textureData->getLayout().origin == vsg::TOP_LEFT; // in Vulkan the origin is by default top left.
+    bool top_left = textureData->properties.origin == vsg::TOP_LEFT; // in Vulkan the origin is by default top left.
     float left = 0.0f;
     float right = 1.0f;
     float top = top_left ? 0.0f : 1.0f;

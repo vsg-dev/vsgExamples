@@ -178,8 +178,8 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::vec3& origin, const vsg::ve
 
     float left = 0.0f;
     float right = 1.0f;
-    float top = (imageData->getLayout().origin == vsg::TOP_LEFT) ? 0.0f : 1.0f;
-    float bottom = (imageData->getLayout().origin == vsg::TOP_LEFT) ? 1.0f : 0.0f;
+    float top = (imageData->properties.origin == vsg::TOP_LEFT) ? 0.0f : 1.0f;
+    float bottom = (imageData->properties.origin == vsg::TOP_LEFT) ? 1.0f : 0.0f;
     auto texcoords = vsg::vec2Array::create(
         {{left, bottom},
          {right, bottom},

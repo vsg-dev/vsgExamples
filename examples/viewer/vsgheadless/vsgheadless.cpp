@@ -581,7 +581,7 @@ int main(int argc, char** argv)
                 auto deviceMemory = copiedColorBuffer->getDeviceMemory(device->deviceID);
 
                 // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
-                auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Layout{imageFormat}, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
+                auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{imageFormat}, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
 
                 vsg::write(imageData, colorFilename);
             }
@@ -594,13 +594,13 @@ int main(int argc, char** argv)
                 // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
                 if (depthFormat == VK_FORMAT_D32_SFLOAT || depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT)
                 {
-                    auto imageData = vsg::MappedData<vsg::floatArray2D>::create(deviceMemory, 0, 0, vsg::Data::Layout{depthFormat}, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
+                    auto imageData = vsg::MappedData<vsg::floatArray2D>::create(deviceMemory, 0, 0, vsg::Data::Properties{depthFormat}, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
 
                     vsg::write(imageData, depthFilename);
                 }
                 else
                 {
-                    auto imageData = vsg::MappedData<vsg::uintArray2D>::create(deviceMemory, 0, 0, vsg::Data::Layout{depthFormat}, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
+                    auto imageData = vsg::MappedData<vsg::uintArray2D>::create(deviceMemory, 0, 0, vsg::Data::Properties{depthFormat}, extent.width, extent.height); // deviceMemory, offset, flags and dimensions
 
                     vsg::write(imageData, depthFilename);
                 }

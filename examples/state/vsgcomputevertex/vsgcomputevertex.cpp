@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 
     // setting we pass to the compute shader each frame to provide animation of vertex data.
     auto computeScale = vsg::vec4Array::create(1);
-    computeScale->getLayout().dataVariance = vsg::DYNAMIC_DATA;
+    computeScale->properties.dataVariance = vsg::DYNAMIC_DATA;
     computeScale->set(0, vsg::vec4(1.0, 1.0, 1.0, 0.0));
 
     auto computeScaleBuffer = vsg::DescriptorBuffer::create(computeScale, 1);

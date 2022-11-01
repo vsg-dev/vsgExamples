@@ -146,7 +146,7 @@ int main(int argc, char** argv)
     case (USE_FLOAT):
         // use float image - typically for displacementMap
         textureData = vsg::floatArray2D::create(image_size, image_size);
-        textureData->getLayout().format = VK_FORMAT_R32_SFLOAT;
+        textureData->properties.format = VK_FORMAT_R32_SFLOAT;
         break;
     case (USE_RGB):
         // note, RGB image data has to be converted to RGBA when copying to a vkImage,
@@ -154,17 +154,17 @@ int main(int argc, char** argv)
         // this makes RGB substantially slower than using RGBA data.
         // one approach, illustrated in the vsgdynamictexture_cs example, for avoiding this conversion overhead is to use a compute shader to map the RGB data to RGBA.
         textureData = vsg::vec3Array2D::create(image_size, image_size);
-        textureData->getLayout().format = VK_FORMAT_R32G32B32_SFLOAT;
+        textureData->properties.format = VK_FORMAT_R32G32B32_SFLOAT;
         break;
     case (USE_RGBA):
         // R, RG and RGBA data can be copied to vkImage without any conversion so is efficient, while RGB requires conversion, see below explanation
         textureData = vsg::vec4Array2D::create(image_size, image_size);
-        textureData->getLayout().format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        textureData->properties.format = VK_FORMAT_R32G32B32A32_SFLOAT;
         break;
     }
 
     // set the dynmaic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
-    textureData->getLayout().dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
+    textureData->properties.dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
 
     // initialize the image
     UpdateImage updateImage;

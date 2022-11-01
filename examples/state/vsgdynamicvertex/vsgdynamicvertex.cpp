@@ -127,8 +127,7 @@ int main(int argc, char** argv)
         {
             for(auto& vertices : verticesList)
             {
-                //vertices->getLayout().dataVariance = vsg::DYNAMIC_DATA;
-                vertices->getLayout().dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
+                vertices->properties.dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
                 numVertices += vertices->size();
             }
         }

@@ -204,8 +204,8 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < numTiles; ++i)
     {
         auto textureData = vsg::ubvec4Array2D::create(256, 256);
-        textureData->getLayout().format = VK_FORMAT_R8G8B8A8_UNORM;
-        if (update) textureData->getLayout().dataVariance = vsg::DYNAMIC_DATA;
+        textureData->properties.format = VK_FORMAT_R8G8B8A8_UNORM;
+        if (update) textureData->properties.dataVariance = vsg::DYNAMIC_DATA;
 
         updateBaseTexture(*textureData, 1.0f);
 
@@ -217,7 +217,7 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < numTiles; ++i)
     {
         auto heightField = vsg::floatArray2D::create(64, 64);
-        heightField->getLayout().format = VK_FORMAT_R32_SFLOAT;
+        heightField->properties.format = VK_FORMAT_R32_SFLOAT;
 
         updateElevation(*heightField, 1.0f);
         heightFieldDataList.push_back(heightField);
