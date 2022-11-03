@@ -8,12 +8,6 @@ project(vsgExamples
 
 SET(VSGEXAMPLES_RELEASE_CANDIDATE 1)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-include(vsgMacros)
-
-vsg_setup_dir_vars()
-vsg_setup_build_vars()
-
 # build all examples into the bin directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
@@ -28,6 +22,9 @@ if (VULKAN_SDK)
 endif()
 
 find_package(vsg 1.0.0)
+
+vsg_setup_dir_vars()
+vsg_setup_build_vars()
 
 # find the optional vsgExamples that can be used for reading and range of image and 3d model formats and shader compilation
 find_package(vsgXchange QUIET)
