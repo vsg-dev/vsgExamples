@@ -55,6 +55,22 @@ int main(int argc, char** argv)
     stateInfo.lighting = !arguments.read("--flat");
     stateInfo.two_sided = arguments.read("--two-sided");
 
+    if (vsg::vec4 specularColor; arguments.read("--specular", specularColor))
+    {
+        vsg::info("specular = ", specularColor);
+        if (stateInfo.lighting)
+        {
+            builder->shaderSet = vsg::createPhongShaderSet(options);
+            if (auto& materialBinding = builder->shaderSet->getUniformBinding("material"))
+            {
+                auto mat = vsg::PhongMaterialValue::create();
+                mat->value().specular = specularColor;
+                materialBinding.data = mat;
+                vsg::info("using custom material ", mat);
+            }
+        }
+    }
+
     arguments.read("--dx", geomInfo.dx);
     arguments.read("--dy", geomInfo.dy);
     arguments.read("--dz", geomInfo.dz);

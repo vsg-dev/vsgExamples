@@ -12,17 +12,17 @@ Root id=1 vsg::TileDatabase
   settings id=3 vsg::TileDatabaseSettings
   {
     extents -180 -90 0 180 90 1
-    noX 2
+    noX 1
     noY 1
-    maxLevel 10
-    originTopLeft 0
+    maxLevel 19
+    originTopLeft 1
     lodTransitionScreenHeightRatio 0.25
-    projection ""
+    projection "EPSG:3857"
     ellipsoidModel id=2
-    imageLayer "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg"
+    imageLayer "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
     terrainLayer ""
     mipmapLevelsHint 16
-    lighting 1
+    lighting 0
     shaderSet id=0
   }
 }

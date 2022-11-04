@@ -22,7 +22,7 @@ Root id=1 vsg::TileDatabase
     imageLayer "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg"
     terrainLayer ""
     mipmapLevelsHint 16
-    lighting 1
+    lighting 0
     shaderSet id=0
   }
 }

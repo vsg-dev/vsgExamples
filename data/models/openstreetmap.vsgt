@@ -1,4 +1,4 @@
-#vsga 0.4.3
+#vsga 0.7.1
 Root id=1 vsg::TileDatabase
 {
   userObjects 1
@@ -22,5 +22,7 @@ Root id=1 vsg::TileDatabase
     imageLayer "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
     terrainLayer ""
     mipmapLevelsHint 16
+    lighting 1
+    shaderSet id=0
   }
 }
