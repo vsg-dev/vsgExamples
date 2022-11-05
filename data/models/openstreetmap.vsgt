@@ -19,7 +19,7 @@ Root id=1 vsg::TileDatabase
     lodTransitionScreenHeightRatio 0.25
     projection "EPSG:3857"
     ellipsoidModel id=2
-    imageLayer "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    imageLayer "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
     terrainLayer ""
     mipmapLevelsHint 16
     lighting 1
