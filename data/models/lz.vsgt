@@ -1,4 +1,4 @@
-#vsga 0.4.3
+#vsga 0.7.3
 Root id=1 vsg::MatrixTransform
 {
   userObjects 1
@@ -6,8 +6,8 @@ Root id=1 vsg::MatrixTransform
   object id=2 vsg::stringValue
   {
     userObjects 0
-    Layout 0 0 0 1 1 1 0 -1
-    Value "saved_model.osg"
+    properties 0 0 0 1 1 1 0 -1 0
+    value "saved_model.osg"
   }
   children 3
   vsg::Node id=3 vsg::MatrixTransform
@@ -35,7 +35,7 @@ Root id=1 vsg::MatrixTransform
             Array id=8 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -43,7 +43,7 @@ Root id=1 vsg::MatrixTransform
             Array id=9 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -51,7 +51,7 @@ Root id=1 vsg::MatrixTransform
             Array id=10 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -59,7 +59,7 @@ Root id=1 vsg::MatrixTransform
             Array id=11 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.7769 -0.8972 1.77821
@@ -67,7 +67,7 @@ Root id=1 vsg::MatrixTransform
             Indices id=12 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -513,7 +513,7 @@ void main()
                 rasterizationSamples 1
                 sampleShadingEnable 0
                 minSampleShading 0
-                NumSampleMask 0
+                sampleMasks 0
                 alphaToCoverageEnable 0
                 alphaToOneEnable 0
               }
@@ -522,7 +522,7 @@ void main()
                 userObjects 0
                 logicOp 3
                 logicOpEnable 0
-                NumColorBlendAttachments 1
+                attachments 1
                 blendEnable 1
                 srcColorBlendFactor 6
                 dstColorBlendFactor 7
@@ -565,6 +565,7 @@ void main()
           {
             userObjects 0
             slot 1
+            pipelineBindPoint 0
             layout id=15
             firstSet 0
             descriptorSet id=28 vsg::DescriptorSet
@@ -600,7 +601,7 @@ void main()
                 image id=31 vsg::ubvec4Array2D
                 {
                   userObjects 0
-                  Layout 37 4 1 1 1 1 2 -1
+                  properties 37 4 1 1 1 1 2 -1 0
                   width 128
                   height 128
                   storage id=0
@@ -6069,6 +6070,7 @@ void main()
                 }
               }
             }
+            dynamicOffsets 0
           }
           prototypeArrayState id=0
         }
@@ -6090,7 +6092,7 @@ void main()
             Array id=35 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.175 0 0 0.175 0 0 0.175 0 0.24 -0.175 0 0.24
@@ -6098,7 +6100,7 @@ void main()
             Array id=36 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6106,7 +6108,7 @@ void main()
             Array id=37 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6114,7 +6116,7 @@ void main()
             Array id=38 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.7981 -1.0853 1.7684
@@ -6122,7 +6124,7 @@ void main()
             Indices id=39 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6156,7 +6158,7 @@ void main()
             Array id=43 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -6164,7 +6166,7 @@ void main()
             Array id=44 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6172,7 +6174,7 @@ void main()
             Array id=45 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6180,7 +6182,7 @@ void main()
             Array id=46 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.5543 -0.9117 1.79274
@@ -6188,7 +6190,7 @@ void main()
             Indices id=47 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6222,7 +6224,7 @@ void main()
             Array id=51 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -6230,7 +6232,7 @@ void main()
             Array id=52 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6238,7 +6240,7 @@ void main()
             Array id=53 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6246,7 +6248,7 @@ void main()
             Array id=54 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.8405 -1.259 1.76699
@@ -6254,7 +6256,7 @@ void main()
             Indices id=55 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6288,7 +6290,7 @@ void main()
             Array id=59 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -6296,7 +6298,7 @@ void main()
             Array id=60 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6304,7 +6306,7 @@ void main()
             Array id=61 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6312,7 +6314,7 @@ void main()
             Array id=62 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.3424 -0.8538 1.79718
@@ -6320,7 +6322,7 @@ void main()
             Indices id=63 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6354,7 +6356,7 @@ void main()
             Array id=67 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.24 -0.05 0 0.24
@@ -6362,7 +6364,7 @@ void main()
             Array id=68 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6370,7 +6372,7 @@ void main()
             Array id=69 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6378,7 +6380,7 @@ void main()
             Array id=70 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.8442 -1.3442 1.76686
@@ -6386,7 +6388,7 @@ void main()
             Indices id=71 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6420,7 +6422,7 @@ void main()
             Array id=75 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.184 -0.05 0 0.184
@@ -6428,7 +6430,7 @@ void main()
             Array id=76 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6436,7 +6438,7 @@ void main()
             Array id=77 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6444,7 +6446,7 @@ void main()
             Array id=78 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.4967 -1.418 1.77845
@@ -6452,7 +6454,7 @@ void main()
             Indices id=79 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6486,7 +6488,7 @@ void main()
             Array id=83 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.138 -0.05 0 0.138
@@ -6494,7 +6496,7 @@ void main()
             Array id=84 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6502,7 +6504,7 @@ void main()
             Array id=85 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6510,7 +6512,7 @@ void main()
             Array id=86 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.3131 -1.2704 1.7922
@@ -6518,7 +6520,7 @@ void main()
             Indices id=87 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6552,7 +6554,7 @@ void main()
             Array id=91 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -6560,7 +6562,7 @@ void main()
             Array id=92 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6568,7 +6570,7 @@ void main()
             Array id=93 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6576,7 +6578,7 @@ void main()
             Array id=94 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.141 -0.8827 1.81059
@@ -6584,7 +6586,7 @@ void main()
             Indices id=95 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6618,7 +6620,7 @@ void main()
             Array id=99 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -6626,7 +6628,7 @@ void main()
             Array id=100 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6634,7 +6636,7 @@ void main()
             Array id=101 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6642,7 +6644,7 @@ void main()
             Array id=102 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.8723 -1.5339 1.7648
@@ -6650,7 +6652,7 @@ void main()
             Indices id=103 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6684,7 +6686,7 @@ void main()
             Array id=107 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.158 -0.05 0 0.158
@@ -6692,7 +6694,7 @@ void main()
             Array id=108 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6700,7 +6702,7 @@ void main()
             Array id=109 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6708,7 +6710,7 @@ void main()
             Array id=110 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.0902 -1.2049 1.8018
@@ -6716,7 +6718,7 @@ void main()
             Indices id=111 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6750,7 +6752,7 @@ void main()
             Array id=115 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.24 -0.05 0 0.24
@@ -6758,7 +6760,7 @@ void main()
             Array id=116 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6766,7 +6768,7 @@ void main()
             Array id=117 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6774,7 +6776,7 @@ void main()
             Array id=118 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.8639 -1.6885 1.75994
@@ -6782,7 +6784,7 @@ void main()
             Indices id=119 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6816,7 +6818,7 @@ void main()
             Array id=123 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.113 -0.05 0 0.113
@@ -6824,7 +6826,7 @@ void main()
             Array id=124 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6832,7 +6834,7 @@ void main()
             Array id=125 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6840,7 +6842,7 @@ void main()
             Array id=126 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.041 -1.3196 1.80237
@@ -6848,7 +6850,7 @@ void main()
             Indices id=127 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6882,7 +6884,7 @@ void main()
             Array id=131 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -6890,7 +6892,7 @@ void main()
             Array id=132 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6898,7 +6900,7 @@ void main()
             Array id=133 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6906,7 +6908,7 @@ void main()
             Array id=134 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.9252 -1.8667 1.75417
@@ -6914,7 +6916,7 @@ void main()
             Indices id=135 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -6948,7 +6950,7 @@ void main()
             Array id=139 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.115 -0.05 0 0.115
@@ -6956,7 +6958,7 @@ void main()
             Array id=140 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -6964,7 +6966,7 @@ void main()
             Array id=141 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -6972,7 +6974,7 @@ void main()
             Array id=142 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.2705 -1.2704 1.82331
@@ -6980,7 +6982,7 @@ void main()
             Indices id=143 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7019,7 +7021,7 @@ void main()
             Array id=148 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -7027,7 +7029,7 @@ void main()
             Array id=149 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7035,7 +7037,7 @@ void main()
             Array id=150 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7043,7 +7045,7 @@ void main()
             Array id=151 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.904 -2.0259 1.75487
@@ -7051,7 +7053,7 @@ void main()
             Indices id=152 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7085,7 +7087,7 @@ void main()
             Array id=156 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -7093,7 +7095,7 @@ void main()
             Array id=157 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7101,7 +7103,7 @@ void main()
             Array id=158 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7109,7 +7111,7 @@ void main()
             Array id=159 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.8617 -2.1851 1.75628
@@ -7117,7 +7119,7 @@ void main()
             Indices id=160 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7151,7 +7153,7 @@ void main()
             Array id=164 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -7159,7 +7161,7 @@ void main()
             Array id=165 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7167,7 +7169,7 @@ void main()
             Array id=166 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7175,7 +7177,7 @@ void main()
             Array id=167 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.7345 -2.3443 1.76052
@@ -7183,7 +7185,7 @@ void main()
             Indices id=168 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7217,7 +7219,7 @@ void main()
             Array id=172 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -7225,7 +7227,7 @@ void main()
             Array id=173 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7233,7 +7235,7 @@ void main()
             Array id=174 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7241,7 +7243,7 @@ void main()
             Array id=175 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.8087 -2.4166 1.75853
@@ -7249,7 +7251,7 @@ void main()
             Indices id=176 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7283,7 +7285,7 @@ void main()
             Array id=180 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.276 -0.05 0 0.276
@@ -7291,7 +7293,7 @@ void main()
             Array id=181 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7299,7 +7301,7 @@ void main()
             Array id=182 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7307,7 +7309,7 @@ void main()
             Array id=183 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.5426 -2.3442 1.76692
@@ -7315,7 +7317,7 @@ void main()
             Indices id=184 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7349,7 +7351,7 @@ void main()
             Array id=188 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.316 -0.05 0 0.316
@@ -7357,7 +7359,7 @@ void main()
             Array id=189 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7365,7 +7367,7 @@ void main()
             Array id=190 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7373,7 +7375,7 @@ void main()
             Array id=191 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.477 -2.4179 1.76963
@@ -7381,7 +7383,7 @@ void main()
             Indices id=192 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7415,7 +7417,7 @@ void main()
             Array id=196 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.226 -0.05 0 0.226
@@ -7423,7 +7425,7 @@ void main()
             Array id=197 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7431,7 +7433,7 @@ void main()
             Array id=198 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7439,7 +7441,7 @@ void main()
             Array id=199 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.3852 -2.5327 1.77656
@@ -7447,7 +7449,7 @@ void main()
             Indices id=200 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7481,7 +7483,7 @@ void main()
             Array id=204 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.32 -0.05 0 0.32
@@ -7489,7 +7491,7 @@ void main()
             Array id=205 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7497,7 +7499,7 @@ void main()
             Array id=206 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7505,7 +7507,7 @@ void main()
             Array id=207 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.4967 -2.6474 1.7767
@@ -7513,7 +7515,7 @@ void main()
             Indices id=208 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7547,7 +7549,7 @@ void main()
             Array id=212 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.368 -0.05 0 0.368
@@ -7555,7 +7557,7 @@ void main()
             Array id=213 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7563,7 +7565,7 @@ void main()
             Array id=214 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7571,7 +7573,7 @@ void main()
             Array id=215 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.6082 -2.7212 1.78092
@@ -7579,7 +7581,7 @@ void main()
             Indices id=216 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7613,7 +7615,7 @@ void main()
             Array id=220 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.138 -0.05 0 0.138
@@ -7621,7 +7623,7 @@ void main()
             Array id=221 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7629,7 +7631,7 @@ void main()
             Array id=222 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7637,7 +7639,7 @@ void main()
             Array id=223 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.0836 -2.1311 1.77098
@@ -7645,7 +7647,7 @@ void main()
             Indices id=224 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7679,7 +7681,7 @@ void main()
             Array id=228 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.23 -0.05 0 0.23
@@ -7687,7 +7689,7 @@ void main()
             Array id=229 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7695,7 +7697,7 @@ void main()
             Array id=230 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7703,7 +7705,7 @@ void main()
             Array id=231 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.3131 -2.6065 1.78144
@@ -7711,7 +7713,7 @@ void main()
             Indices id=232 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7745,7 +7747,7 @@ void main()
             Array id=236 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.286 -0.05 0 0.286
@@ -7753,7 +7755,7 @@ void main()
             Array id=237 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7761,7 +7763,7 @@ void main()
             Array id=238 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7769,7 +7771,7 @@ void main()
             Array id=239 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.6344 -2.8359 1.7868
@@ -7777,7 +7779,7 @@ void main()
             Indices id=240 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7811,7 +7813,7 @@ void main()
             Array id=244 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.25 -0.05 0 0.25
@@ -7819,7 +7821,7 @@ void main()
             Array id=245 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7827,7 +7829,7 @@ void main()
             Array id=246 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7835,7 +7837,7 @@ void main()
             Array id=247 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.418 -2.7458 1.78465
@@ -7843,7 +7845,7 @@ void main()
             Indices id=248 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7877,7 +7879,7 @@ void main()
             Array id=252 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.158 -0.05 0 0.158
@@ -7885,7 +7887,7 @@ void main()
             Array id=253 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7893,7 +7895,7 @@ void main()
             Array id=254 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7901,7 +7903,7 @@ void main()
             Array id=255 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.0115 -2.213 1.7737
@@ -7909,7 +7911,7 @@ void main()
             Indices id=256 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -7943,7 +7945,7 @@ void main()
             Array id=260 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.302 -0.05 0 0.302
@@ -7951,7 +7953,7 @@ void main()
             Array id=261 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -7959,7 +7961,7 @@ void main()
             Array id=262 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -7967,7 +7969,7 @@ void main()
             Array id=263 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.2213 -2.6638 1.78643
@@ -7975,7 +7977,7 @@ void main()
             Indices id=264 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8014,7 +8016,7 @@ void main()
             Array id=269 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.378 -0.05 0 0.378
@@ -8022,7 +8024,7 @@ void main()
             Array id=270 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8030,7 +8032,7 @@ void main()
             Array id=271 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8038,7 +8040,7 @@ void main()
             Array id=272 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.5492 -2.8933 1.7963
@@ -8046,7 +8048,7 @@ void main()
             Indices id=273 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8080,7 +8082,7 @@ void main()
             Array id=277 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.113 -0.05 0 0.113
@@ -8088,7 +8090,7 @@ void main()
             Array id=278 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8096,7 +8098,7 @@ void main()
             Array id=279 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8104,7 +8106,7 @@ void main()
             Array id=280 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.0606 -2.2786 1.77589
@@ -8112,7 +8114,7 @@ void main()
             Indices id=281 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8146,7 +8148,7 @@ void main()
             Array id=285 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.254 -0.05 0 0.254
@@ -8154,7 +8156,7 @@ void main()
             Array id=286 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8162,7 +8164,7 @@ void main()
             Array id=287 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8170,7 +8172,7 @@ void main()
             Array id=288 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.1951 -2.7622 1.78628
@@ -8178,7 +8180,7 @@ void main()
             Indices id=289 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8212,7 +8214,7 @@ void main()
             Array id=293 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.332 -0.05 0 0.332
@@ -8220,7 +8222,7 @@ void main()
             Array id=294 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8228,7 +8230,7 @@ void main()
             Array id=295 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8236,7 +8238,7 @@ void main()
             Array id=296 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.5295 -3.0409 1.81478
@@ -8244,7 +8246,7 @@ void main()
             Indices id=297 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8278,7 +8280,7 @@ void main()
             Array id=301 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.115 -0.05 0 0.115
@@ -8286,7 +8288,7 @@ void main()
             Array id=302 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8294,7 +8296,7 @@ void main()
             Array id=303 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8302,7 +8304,7 @@ void main()
             Array id=304 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.1328 -2.3442 1.77807
@@ -8310,7 +8312,7 @@ void main()
             Indices id=305 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8344,7 +8346,7 @@ void main()
             Array id=309 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.366 -0.05 0 0.366
@@ -8352,7 +8354,7 @@ void main()
             Array id=310 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8360,7 +8362,7 @@ void main()
             Array id=311 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8368,7 +8370,7 @@ void main()
             Array id=312 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.4246 -3.0491 1.8149
@@ -8376,7 +8378,7 @@ void main()
             Indices id=313 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8410,7 +8412,7 @@ void main()
             Array id=317 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.22 -0.05 0 0.22
@@ -8418,7 +8420,7 @@ void main()
             Array id=318 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8426,7 +8428,7 @@ void main()
             Array id=319 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8434,7 +8436,7 @@ void main()
             Array id=320 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.123 -2.8687 1.80037
@@ -8442,7 +8444,7 @@ void main()
             Indices id=321 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8476,7 +8478,7 @@ void main()
             Array id=325 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.151 -0.05 0 0.151
@@ -8484,7 +8486,7 @@ void main()
             Array id=326 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8492,7 +8494,7 @@ void main()
             Array id=327 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8500,7 +8502,7 @@ void main()
             Array id=328 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.2246 -2.4343 1.78108
@@ -8508,7 +8510,7 @@ void main()
             Indices id=329 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8542,7 +8544,7 @@ void main()
             Array id=333 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.274 -0.05 0 0.274
@@ -8550,7 +8552,7 @@ void main()
             Array id=334 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8558,7 +8560,7 @@ void main()
             Array id=335 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8566,7 +8568,7 @@ void main()
             Array id=336 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -0.3 -3.0818 1.81816
@@ -8574,7 +8576,7 @@ void main()
             Indices id=337 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8608,7 +8610,7 @@ void main()
             Array id=341 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.238 -0.05 0 0.238
@@ -8616,7 +8618,7 @@ void main()
             Array id=342 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8624,7 +8626,7 @@ void main()
             Array id=343 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8632,7 +8634,7 @@ void main()
             Array id=344 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.0213 -2.9507 1.80101
@@ -8640,7 +8642,7 @@ void main()
             Indices id=345 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8674,7 +8676,7 @@ void main()
             Array id=349 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.127 -0.05 0 0.127
@@ -8682,7 +8684,7 @@ void main()
             Array id=350 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8690,7 +8692,7 @@ void main()
             Array id=351 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8698,7 +8700,7 @@ void main()
             Array id=352 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.336 -2.5245 1.78411
@@ -8706,7 +8708,7 @@ void main()
             Indices id=353 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8740,7 +8742,7 @@ void main()
             Array id=357 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.151 -0.05 0 0.151
@@ -8748,7 +8750,7 @@ void main()
             Array id=358 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8756,7 +8758,7 @@ void main()
             Array id=359 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8764,7 +8766,7 @@ void main()
             Array id=360 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.336 -1.4344 1.81678
@@ -8772,7 +8774,7 @@ void main()
             Indices id=361 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8806,7 +8808,7 @@ void main()
             Array id=365 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.224 -0.05 0 0.224
@@ -8814,7 +8816,7 @@ void main()
             Array id=366 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8822,7 +8824,7 @@ void main()
             Array id=367 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8830,7 +8832,7 @@ void main()
             Array id=368 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.1065 -3.0163 1.79452
@@ -8838,7 +8840,7 @@ void main()
             Indices id=369 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8872,7 +8874,7 @@ void main()
             Array id=373 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.11 -0.05 0 0.11
@@ -8880,7 +8882,7 @@ void main()
             Array id=374 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8888,7 +8890,7 @@ void main()
             Array id=375 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8896,7 +8898,7 @@ void main()
             Array id=376 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.4541 -2.4261 1.78985
@@ -8904,7 +8906,7 @@ void main()
             Indices id=377 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -8938,7 +8940,7 @@ void main()
             Array id=381 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.119 -0.05 0 0.119
@@ -8946,7 +8948,7 @@ void main()
             Array id=382 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -8954,7 +8956,7 @@ void main()
             Array id=383 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -8962,7 +8964,7 @@ void main()
             Array id=384 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.4934 -2.2786 1.79
@@ -8970,7 +8972,7 @@ void main()
             Indices id=385 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9009,7 +9011,7 @@ void main()
             Array id=390 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.372 -0.05 0 0.372
@@ -9017,7 +9019,7 @@ void main()
             Array id=391 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9025,7 +9027,7 @@ void main()
             Array id=392 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9033,7 +9035,7 @@ void main()
             Array id=393 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.0738 -3.1802 1.81305
@@ -9041,7 +9043,7 @@ void main()
             Indices id=394 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9075,7 +9077,7 @@ void main()
             Array id=398 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.298 -0.05 0 0.298
@@ -9083,7 +9085,7 @@ void main()
             Array id=399 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9091,7 +9093,7 @@ void main()
             Array id=400 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9099,7 +9101,7 @@ void main()
             Array id=401 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.2508 -3.2048 1.80352
@@ -9107,7 +9109,7 @@ void main()
             Indices id=402 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9141,7 +9143,7 @@ void main()
             Array id=406 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.334 -0.05 0 0.334
@@ -9149,7 +9151,7 @@ void main()
             Array id=407 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9157,7 +9159,7 @@ void main()
             Array id=408 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9165,7 +9167,7 @@ void main()
             Array id=409 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.2836 -3.3031 1.80239
@@ -9173,7 +9175,7 @@ void main()
             Indices id=410 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9207,7 +9209,7 @@ void main()
             Array id=414 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.186 -0.05 0 0.186
@@ -9215,7 +9217,7 @@ void main()
             Array id=415 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9223,7 +9225,7 @@ void main()
             Array id=416 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9231,7 +9233,7 @@ void main()
             Array id=417 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.5459 -2.6474 1.7868
@@ -9239,7 +9241,7 @@ void main()
             Indices id=418 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9273,7 +9275,7 @@ void main()
             Array id=422 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.149 -0.05 0 0.149
@@ -9281,7 +9283,7 @@ void main()
             Array id=423 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9289,7 +9291,7 @@ void main()
             Array id=424 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9297,7 +9299,7 @@ void main()
             Array id=425 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.7426 -2.6884 1.78025
@@ -9305,7 +9307,7 @@ void main()
             Indices id=426 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9339,7 +9341,7 @@ void main()
             Array id=430 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.167 -0.05 0 0.167
@@ -9347,7 +9349,7 @@ void main()
             Array id=431 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9355,7 +9357,7 @@ void main()
             Array id=432 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9363,7 +9365,7 @@ void main()
             Array id=433 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.8475 -2.7458 1.7831
@@ -9371,7 +9373,7 @@ void main()
             Indices id=434 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9405,7 +9407,7 @@ void main()
             Array id=438 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.112 -0.05 0 0.112
@@ -9413,7 +9415,7 @@ void main()
             Array id=439 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9421,7 +9423,7 @@ void main()
             Array id=440 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9429,7 +9431,7 @@ void main()
             Array id=441 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.7295 -2.2868 1.79
@@ -9437,7 +9439,7 @@ void main()
             Indices id=442 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9471,7 +9473,7 @@ void main()
             Array id=446 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.189 -0.05 0 0.189
@@ -9479,7 +9481,7 @@ void main()
             Array id=447 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9487,7 +9489,7 @@ void main()
             Array id=448 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9495,7 +9497,7 @@ void main()
             Array id=449 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.418 -2.8933 1.80581
@@ -9503,7 +9505,7 @@ void main()
             Indices id=450 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9537,7 +9539,7 @@ void main()
             Array id=454 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.143 -0.05 0 0.143
@@ -9545,7 +9547,7 @@ void main()
             Array id=455 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9553,7 +9555,7 @@ void main()
             Array id=456 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9561,7 +9563,7 @@ void main()
             Array id=457 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.4835 -2.5327 1.82006
@@ -9569,7 +9571,7 @@ void main()
             Indices id=458 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9603,7 +9605,7 @@ void main()
             Array id=462 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.183 -0.05 0 0.183
@@ -9611,7 +9613,7 @@ void main()
             Array id=463 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9619,7 +9621,7 @@ void main()
             Array id=464 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9627,7 +9629,7 @@ void main()
             Array id=465 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.6343 -3.0409 1.8
@@ -9635,7 +9637,7 @@ void main()
             Indices id=466 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9669,7 +9671,7 @@ void main()
             Array id=470 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.127 -0.05 0 0.127
@@ -9677,7 +9679,7 @@ void main()
             Array id=471 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9685,7 +9687,7 @@ void main()
             Array id=472 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9693,7 +9695,7 @@ void main()
             Array id=473 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.6246 -1.418 1.8371
@@ -9701,7 +9703,7 @@ void main()
             Indices id=474 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9735,7 +9737,7 @@ void main()
             Array id=478 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.167 -0.05 0 0.167
@@ -9743,7 +9745,7 @@ void main()
             Array id=479 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9751,7 +9753,7 @@ void main()
             Array id=480 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9759,7 +9761,7 @@ void main()
             Array id=481 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.6343 -2.1065 1.83932
@@ -9767,7 +9769,7 @@ void main()
             Indices id=482 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9801,7 +9803,7 @@ void main()
             Array id=486 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.186 -0.05 0 0.186
@@ -9809,7 +9811,7 @@ void main()
             Array id=487 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9817,7 +9819,7 @@ void main()
             Array id=488 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9825,7 +9827,7 @@ void main()
             Array id=489 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.1819 -1.5983 1.85786
@@ -9833,7 +9835,7 @@ void main()
             Indices id=490 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9872,7 +9874,7 @@ void main()
             Array id=495 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.184 -0.05 0 0.184
@@ -9880,7 +9882,7 @@ void main()
             Array id=496 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9888,7 +9890,7 @@ void main()
             Array id=497 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9896,7 +9898,7 @@ void main()
             Array id=498 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.8245 -2.3196 1.8444
@@ -9904,7 +9906,7 @@ void main()
             Indices id=499 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -9938,7 +9940,7 @@ void main()
             Array id=503 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.11 -0.05 0 0.11
@@ -9946,7 +9948,7 @@ void main()
             Array id=504 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -9954,7 +9956,7 @@ void main()
             Array id=505 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -9962,7 +9964,7 @@ void main()
             Array id=506 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.7623 -1.336 1.85173
@@ -9970,7 +9972,7 @@ void main()
             Indices id=507 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10004,7 +10006,7 @@ void main()
             Array id=511 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.112 -0.05 0 0.112
@@ -10012,7 +10014,7 @@ void main()
             Array id=512 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10020,7 +10022,7 @@ void main()
             Array id=513 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10028,7 +10030,7 @@ void main()
             Array id=514 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.0639 -1.4753 1.86258
@@ -10036,7 +10038,7 @@ void main()
             Indices id=515 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10070,7 +10072,7 @@ void main()
             Array id=519 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.119 -0.05 0 0.119
@@ -10078,7 +10080,7 @@ void main()
             Array id=520 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10086,7 +10088,7 @@ void main()
             Array id=521 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10094,7 +10096,7 @@ void main()
             Array id=522 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.9393 -1.3934 1.85972
@@ -10102,7 +10104,7 @@ void main()
             Indices id=523 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10136,7 +10138,7 @@ void main()
             Array id=527 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.166 -0.05 0 0.166
@@ -10144,7 +10146,7 @@ void main()
             Array id=528 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10152,7 +10154,7 @@ void main()
             Array id=529 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10160,7 +10162,7 @@ void main()
             Array id=530 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.0343 -2.6228 1.83797
@@ -10168,7 +10170,7 @@ void main()
             Indices id=531 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10202,7 +10204,7 @@ void main()
             Array id=535 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.16 -0.05 0 0.16
@@ -10210,7 +10212,7 @@ void main()
             Array id=536 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10218,7 +10220,7 @@ void main()
             Array id=537 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10226,7 +10228,7 @@ void main()
             Array id=538 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.9556 -2.3032 1.85349
@@ -10234,7 +10236,7 @@ void main()
             Indices id=539 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10268,7 +10270,7 @@ void main()
             Array id=543 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.137 -0.05 0 0.137
@@ -10276,7 +10278,7 @@ void main()
             Array id=544 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10284,7 +10286,7 @@ void main()
             Array id=545 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10292,7 +10294,7 @@ void main()
             Array id=546 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.1524 -3.4671 1.8
@@ -10300,7 +10302,7 @@ void main()
             Indices id=547 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10334,7 +10336,7 @@ void main()
             Array id=551 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.166 -0.05 0 0.166
@@ -10342,7 +10344,7 @@ void main()
             Array id=552 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10350,7 +10352,7 @@ void main()
             Array id=553 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10358,7 +10360,7 @@ void main()
             Array id=554 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.1786 -2.8851 1.82382
@@ -10366,7 +10368,7 @@ void main()
             Indices id=555 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10400,7 +10402,7 @@ void main()
             Array id=559 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.149 -0.05 0 0.149
@@ -10408,7 +10410,7 @@ void main()
             Array id=560 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10416,7 +10418,7 @@ void main()
             Array id=561 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10424,7 +10426,7 @@ void main()
             Array id=562 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.4835 -1.5819 1.87628
@@ -10432,7 +10434,7 @@ void main()
             Indices id=563 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10466,7 +10468,7 @@ void main()
             Array id=567 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.194 -0.05 0 0.194
@@ -10474,7 +10476,7 @@ void main()
             Array id=568 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10482,7 +10484,7 @@ void main()
             Array id=569 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10490,7 +10492,7 @@ void main()
             Array id=570 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.7196 -1.7868 1.86604
@@ -10498,7 +10500,7 @@ void main()
             Indices id=571 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10532,7 +10534,7 @@ void main()
             Array id=575 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.2 -0.05 0 0.2
@@ -10540,7 +10542,7 @@ void main()
             Array id=576 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10548,7 +10550,7 @@ void main()
             Array id=577 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10556,7 +10558,7 @@ void main()
             Array id=578 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.4082 -1.0409 1.84256
@@ -10564,7 +10566,7 @@ void main()
             Indices id=579 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10598,7 +10600,7 @@ void main()
             Array id=583 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.125 -0.05 0 0.125
@@ -10606,7 +10608,7 @@ void main()
             Array id=584 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10614,7 +10616,7 @@ void main()
             Array id=585 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10622,7 +10624,7 @@ void main()
             Array id=586 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.1196 -2.3688 1.85677
@@ -10630,7 +10632,7 @@ void main()
             Indices id=587 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10664,7 +10666,7 @@ void main()
             Array id=591 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.105 -0.05 0 0.105
@@ -10672,7 +10674,7 @@ void main()
             Array id=592 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10680,7 +10682,7 @@ void main()
             Array id=593 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10688,7 +10690,7 @@ void main()
             Array id=594 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.8573 -1.877 1.86877
@@ -10696,7 +10698,7 @@ void main()
             Indices id=595 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10730,7 +10732,7 @@ void main()
             Array id=599 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.124 -0.05 0 0.124
@@ -10738,7 +10740,7 @@ void main()
             Array id=600 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10746,7 +10748,7 @@ void main()
             Array id=601 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10754,7 +10756,7 @@ void main()
             Array id=602 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.0147 -1.9753 1.87272
@@ -10762,7 +10764,7 @@ void main()
             Indices id=603 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10801,7 +10803,7 @@ void main()
             Array id=608 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.102 -0.05 0 0.102
@@ -10809,7 +10811,7 @@ void main()
             Array id=609 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10817,7 +10819,7 @@ void main()
             Array id=610 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10825,7 +10827,7 @@ void main()
             Array id=611 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.4802 -3.3031 1.8
@@ -10833,7 +10835,7 @@ void main()
             Indices id=612 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10867,7 +10869,7 @@ void main()
             Array id=616 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.115 0 0 0.115 0 0 0.115 0 0.24 -0.115 0 0.24
@@ -10875,7 +10877,7 @@ void main()
             Array id=617 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10883,7 +10885,7 @@ void main()
             Array id=618 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10891,7 +10893,7 @@ void main()
             Array id=619 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.9425 -1.5491 1.90462
@@ -10899,7 +10901,7 @@ void main()
             Indices id=620 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -10933,7 +10935,7 @@ void main()
             Array id=624 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.151 -0.05 0 0.151
@@ -10941,7 +10943,7 @@ void main()
             Array id=625 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -10949,7 +10951,7 @@ void main()
             Array id=626 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -10957,7 +10959,7 @@ void main()
             Array id=627 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.5589 -3.172 1.80856
@@ -10965,7 +10967,7 @@ void main()
             Indices id=628 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11004,7 +11006,7 @@ void main()
             Array id=633 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.311 -0.1 0 0.311
@@ -11012,7 +11014,7 @@ void main()
             Array id=634 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11020,7 +11022,7 @@ void main()
             Array id=635 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11028,7 +11030,7 @@ void main()
             Array id=636 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.0958 -1.713 1.89557
@@ -11036,7 +11038,7 @@ void main()
             Indices id=637 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11070,7 +11072,7 @@ void main()
             Array id=641 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.136 -0.05 0 0.136
@@ -11078,7 +11080,7 @@ void main()
             Array id=642 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11086,7 +11088,7 @@ void main()
             Array id=643 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11094,7 +11096,7 @@ void main()
             Array id=644 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.3622 -2.0983 1.8877
@@ -11102,7 +11104,7 @@ void main()
             Indices id=645 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11136,7 +11138,7 @@ void main()
             Array id=649 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.131 -0.05 0 0.131
@@ -11144,7 +11146,7 @@ void main()
             Array id=650 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11152,7 +11154,7 @@ void main()
             Array id=651 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11160,7 +11162,7 @@ void main()
             Array id=652 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.4802 -2.3933 1.87596
@@ -11168,7 +11170,7 @@ void main()
             Indices id=653 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11202,7 +11204,7 @@ void main()
             Array id=657 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.195 -0.05 0 0.195
@@ -11210,7 +11212,7 @@ void main()
             Array id=658 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11218,7 +11220,7 @@ void main()
             Array id=659 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11226,7 +11228,7 @@ void main()
             Array id=660 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.336 -1.8278 1.90394
@@ -11234,7 +11236,7 @@ void main()
             Indices id=661 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11268,7 +11270,7 @@ void main()
             Array id=665 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.167 -0.05 0 0.167
@@ -11276,7 +11278,7 @@ void main()
             Array id=666 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11284,7 +11286,7 @@ void main()
             Array id=667 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11292,7 +11294,7 @@ void main()
             Array id=668 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.7163 -2.8114 1.82772
@@ -11300,7 +11302,7 @@ void main()
             Indices id=669 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11334,7 +11336,7 @@ void main()
             Array id=673 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.178 -0.05 0 0.178
@@ -11342,7 +11344,7 @@ void main()
             Array id=674 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11350,7 +11352,7 @@ void main()
             Array id=675 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11358,7 +11360,7 @@ void main()
             Array id=676 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.513 -2.0737 1.8994
@@ -11366,7 +11368,7 @@ void main()
             Indices id=677 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11400,7 +11402,7 @@ void main()
             Array id=681 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.167 -0.05 0 0.167
@@ -11408,7 +11410,7 @@ void main()
             Array id=682 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11416,7 +11418,7 @@ void main()
             Array id=683 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11424,7 +11426,7 @@ void main()
             Array id=684 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1.9688 -1.2868 1.91481
@@ -11432,7 +11434,7 @@ void main()
             Indices id=685 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11466,7 +11468,7 @@ void main()
             Array id=689 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.182 -0.05 0 0.182
@@ -11474,7 +11476,7 @@ void main()
             Array id=690 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11482,7 +11484,7 @@ void main()
             Array id=691 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11490,7 +11492,7 @@ void main()
             Array id=692 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.631 -2.254 1.89257
@@ -11498,7 +11500,7 @@ void main()
             Indices id=693 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11532,7 +11534,7 @@ void main()
             Array id=697 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.145 -0.05 0 0.145
@@ -11540,7 +11542,7 @@ void main()
             Array id=698 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11548,7 +11550,7 @@ void main()
             Array id=699 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11556,7 +11558,7 @@ void main()
             Array id=700 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.7163 -2.4179 1.88397
@@ -11564,7 +11566,7 @@ void main()
             Indices id=701 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11598,7 +11600,7 @@ void main()
             Array id=705 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.154 -0.05 0 0.154
@@ -11606,7 +11608,7 @@ void main()
             Array id=706 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11614,7 +11616,7 @@ void main()
             Array id=707 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11622,7 +11624,7 @@ void main()
             Array id=708 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 2.1196 -1.1147 1.93135
@@ -11630,7 +11632,7 @@ void main()
             Indices id=709 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11664,7 +11666,7 @@ void main()
             Array id=713 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.188 -0.05 0 0.188
@@ -11672,7 +11674,7 @@ void main()
             Array id=714 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11680,7 +11682,7 @@ void main()
             Array id=715 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11688,7 +11690,7 @@ void main()
             Array id=716 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 3.0441 -2.4671 1.8964
@@ -11696,7 +11698,7 @@ void main()
             Indices id=717 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11730,7 +11732,7 @@ void main()
             Array id=721 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.154 -0.05 0 0.154
@@ -11738,7 +11740,7 @@ void main()
             Array id=722 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11746,7 +11748,7 @@ void main()
             Array id=723 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11754,7 +11756,7 @@ void main()
             Array id=724 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 3.2081 -2.4179 1.91231
@@ -11762,7 +11764,7 @@ void main()
             Indices id=725 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11796,7 +11798,7 @@ void main()
             Array id=729 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.153 -0.05 0 0.153
@@ -11804,7 +11806,7 @@ void main()
             Array id=730 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11812,7 +11814,7 @@ void main()
             Array id=731 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11820,7 +11822,7 @@ void main()
             Array id=732 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 3.2277 -2.3196 1.92604
@@ -11828,7 +11830,7 @@ void main()
             Indices id=733 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11862,7 +11864,7 @@ void main()
             Array id=737 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.161 -0.05 0 0.161
@@ -11870,7 +11872,7 @@ void main()
             Array id=738 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11878,7 +11880,7 @@ void main()
             Array id=739 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11886,7 +11888,7 @@ void main()
             Array id=740 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 3.3654 -2.5819 1.90623
@@ -11894,7 +11896,7 @@ void main()
             Indices id=741 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11928,7 +11930,7 @@ void main()
             Array id=745 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.196 -0.05 0 0.196
@@ -11936,7 +11938,7 @@ void main()
             Array id=746 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -11944,7 +11946,7 @@ void main()
             Array id=747 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -11952,7 +11954,7 @@ void main()
             Array id=748 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 3.4179 -2.7622 1.89844
@@ -11960,7 +11962,7 @@ void main()
             Indices id=749 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -11994,7 +11996,7 @@ void main()
             Array id=753 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.05 0 0 0.05 0 0 0.05 0 0.128 -0.05 0 0.128
@@ -12002,7 +12004,7 @@ void main()
             Array id=754 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -12010,7 +12012,7 @@ void main()
             Array id=755 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -12018,7 +12020,7 @@ void main()
             Array id=756 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 3.4769 -2.4671 1.93399
@@ -12026,7 +12028,7 @@ void main()
             Indices id=757 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -12060,7 +12062,7 @@ void main()
             Array id=761 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.06 0 0 0.06 0 0 0.06 0 0.16 -0.06 0 0.16
@@ -12068,7 +12070,7 @@ void main()
             Array id=762 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -12076,7 +12078,7 @@ void main()
             Array id=763 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -12084,7 +12086,7 @@ void main()
             Array id=764 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.6639 3.2048 2.72344
@@ -12092,7 +12094,7 @@ void main()
             Indices id=765 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -12126,7 +12128,7 @@ void main()
             Array id=769 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.125 0 0 0.125 0 0 0.125 0 0.2 -0.125 0 0.2
@@ -12134,7 +12136,7 @@ void main()
             Array id=770 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -12142,7 +12144,7 @@ void main()
             Array id=771 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -12150,7 +12152,7 @@ void main()
             Array id=772 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 0.6246 3.4835 2.70044
@@ -12158,7 +12160,7 @@ void main()
             Indices id=773 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -12197,7 +12199,7 @@ void main()
             Array id=778 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -12205,7 +12207,7 @@ void main()
             Array id=779 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -12213,7 +12215,7 @@ void main()
             Array id=780 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -12221,7 +12223,7 @@ void main()
             Array id=781 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -3.2355 -1.8378 1.67592
@@ -12229,7 +12231,7 @@ void main()
             Indices id=782 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -12263,7 +12265,7 @@ void main()
             Array id=786 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -12271,7 +12273,7 @@ void main()
             Array id=787 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -12279,7 +12281,7 @@ void main()
             Array id=788 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -12287,7 +12289,7 @@ void main()
             Array id=789 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -3.3202 -1.6497 1.67935
@@ -12295,7 +12297,7 @@ void main()
             Indices id=790 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -12329,7 +12331,7 @@ void main()
             Array id=794 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data -0.1 0 0 0.1 0 0 0.1 0 0.24 -0.1 0 0.24
@@ -12337,7 +12339,7 @@ void main()
             Array id=795 vsg::vec4Array
             {
               userObjects 0
-              Layout 0 16 0 1 1 1 0 -1
+              properties 0 16 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data 1 1 1 1
@@ -12345,7 +12347,7 @@ void main()
             Array id=796 vsg::vec2Array
             {
               userObjects 0
-              Layout 0 8 0 1 1 1 0 -1
+              properties 0 8 0 1 1 1 0 -1 0
               size 4
               storage id=0
               data 0 0 1 0 1 1 0 1
@@ -12353,7 +12355,7 @@ void main()
             Array id=797 vsg::vec3Array
             {
               userObjects 0
-              Layout 0 12 0 1 1 1 0 -1
+              properties 0 12 0 1 1 1 0 -1 0
               size 1
               storage id=0
               data -3.3308 -1.5484 1.68237
@@ -12361,7 +12363,7 @@ void main()
             Indices id=798 vsg::ushortArray
             {
               userObjects 0
-              Layout 0 2 0 1 1 1 0 -1
+              properties 0 2 0 1 1 1 0 -1 0
               size 6
               storage id=0
               data 0 1 2 0 2 3
@@ -12403,7 +12405,7 @@ void main()
           Array id=803 vsg::vec3Array
           {
             userObjects 0
-            Layout 0 12 0 1 1 1 0 -1
+            properties 0 12 0 1 1 1 0 -1 0
             size 1482
             storage id=0
             data -5.55029 -5.69922 1.78 -5.55029 -5.40234 1.82 -5.55029 -5.10156 1.86 -5.55029 -4.80078 1.88
@@ -12781,7 +12783,7 @@ void main()
           Array id=804 vsg::vec4Array
           {
             userObjects 0
-            Layout 0 16 0 1 1 1 0 -1
+            properties 0 16 0 1 1 1 0 -1 0
             size 1
             storage id=0
             data 1 1 1 1
@@ -12789,7 +12791,7 @@ void main()
           Array id=805 vsg::vec2Array
           {
             userObjects 0
-            Layout 0 8 0 1 1 1 0 -1
+            properties 0 8 0 1 1 1 0 -1 0
             size 1482
             storage id=0
             data 0.1121 0.0171 0.1094 0.0411 0.1066 0.0654 0.1038 0.0898 0.101 0.1141 0.0982 0.1384
@@ -13043,7 +13045,7 @@ void main()
           Indices id=806 vsg::ushortArray
           {
             userObjects 0
-            Layout 0 2 0 1 1 1 0 -1
+            properties 0 2 0 1 1 1 0 -1 0
             size 8208
             storage id=0
             data 0 39 1 39 40 1 1 40 2 40 41 2
@@ -14129,7 +14131,7 @@ void main()
               rasterizationSamples 1
               sampleShadingEnable 0
               minSampleShading 0
-              NumSampleMask 0
+              sampleMasks 0
               alphaToCoverageEnable 0
               alphaToOneEnable 0
             }
@@ -14138,7 +14140,7 @@ void main()
               userObjects 0
               logicOp 3
               logicOpEnable 0
-              NumColorBlendAttachments 1
+              attachments 1
               blendEnable 0
               srcColorBlendFactor 0
               dstColorBlendFactor 0
@@ -14181,6 +14183,7 @@ void main()
         {
           userObjects 0
           slot 1
+          pipelineBindPoint 0
           layout id=809
           firstSet 0
           descriptorSet id=822 vsg::DescriptorSet
@@ -14216,7 +14219,7 @@ void main()
               image id=825 vsg::ubvec4Array2D
               {
                 userObjects 0
-                Layout 37 4 1 1 1 1 2 -1
+                properties 37 4 1 1 1 1 2 -1 0
                 width 256
                 height 256
                 storage id=0
@@ -36069,6 +36072,7 @@ void main()
               }
             }
           }
+          dynamicOffsets 0
         }
         prototypeArrayState id=0
       }
@@ -36094,7 +36098,7 @@ void main()
           Array id=830 vsg::vec3Array
           {
             userObjects 0
-            Layout 0 12 0 1 1 1 0 -1
+            properties 0 12 0 1 1 1 0 -1 0
             size 64
             storage id=0
             data 1.3999 3.1474 2.8042 1.3999 3.1474 2.7542 1.39501 3.1783 2.8042 1.39501 3.1783 2.7542
@@ -36117,7 +36121,7 @@ void main()
           Array id=831 vsg::vec2Array
           {
             userObjects 0
-            Layout 0 8 0 1 1 1 0 -1
+            properties 0 8 0 1 1 1 0 -1 0
             size 64
             storage id=0
             data 0 1 0 0 0.2 1 0.2 0 0.4 1 0.4 0
@@ -36135,7 +36139,7 @@ void main()
           Indices id=832 vsg::ushortArray
           {
             userObjects 0
-            Layout 0 2 0 1 1 1 0 -1
+            properties 0 2 0 1 1 1 0 -1 0
             size 180
             storage id=0
             data 0 1 2 1 3 2 2 3 4 3 5 4
@@ -36538,7 +36542,7 @@ void main()
               rasterizationSamples 1
               sampleShadingEnable 0
               minSampleShading 0
-              NumSampleMask 0
+              sampleMasks 0
               alphaToCoverageEnable 0
               alphaToOneEnable 0
             }
@@ -36547,7 +36551,7 @@ void main()
               userObjects 0
               logicOp 3
               logicOpEnable 0
-              NumColorBlendAttachments 1
+              attachments 1
               blendEnable 0
               srcColorBlendFactor 0
               dstColorBlendFactor 0
@@ -36590,6 +36594,7 @@ void main()
         {
           userObjects 0
           slot 1
+          pipelineBindPoint 0
           layout id=835
           firstSet 0
           descriptorSet id=848 vsg::DescriptorSet
@@ -36625,7 +36630,7 @@ void main()
               image id=851 vsg::ubvec4Array2D
               {
                 userObjects 0
-                Layout 37 4 1 1 1 1 2 -1
+                properties 37 4 1 1 1 1 2 -1 0
                 width 64
                 height 64
                 storage id=0
@@ -37998,6 +38003,7 @@ void main()
               }
             }
           }
+          dynamicOffsets 0
         }
         prototypeArrayState id=0
       }
