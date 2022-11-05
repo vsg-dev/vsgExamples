@@ -3,7 +3,7 @@ Example programs that test and illustrate how to use the [VulkanSceneGraph](http
 
 * [core](examples/core/) examples
 * [maths](examples/maths/) examples
-* [viewer](examples/viewer/) examples
+* [app](examples/app/) examples
 * [vk](examples/vk/) examples
 * [text](examples/text/) examples
 * [rtx](examples/rtx/) examples

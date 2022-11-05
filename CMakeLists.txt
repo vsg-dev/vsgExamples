@@ -27,7 +27,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-find_package(vsg 0.7.2)
+find_package(vsg 0.7.3)
 
 # find the optional vsgExamples that can be used for reading and range of image and 3d model formats and shader compilation
 find_package(vsgXchange QUIET)
@@ -76,7 +76,7 @@ add_subdirectory(examples/commands)
 add_subdirectory(examples/nodes)
 add_subdirectory(examples/traversals)
 add_subdirectory(examples/threading)
-add_subdirectory(examples/viewer)
+add_subdirectory(examples/app)
 add_subdirectory(examples/vk)
 add_subdirectory(examples/text)
 add_subdirectory(examples/rtx)
