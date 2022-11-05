@@ -80,7 +80,7 @@ int main(int argc, char** argv)
     {
         for(size_t c=0; (c < numColumns) && (scenegraph->children.size() < numInstances); ++c)
         {
-            auto graphicsPipelineConfig = vsg::GraphicsPipelineConfig::create(shaderSet);
+            auto graphicsPipelineConfig = vsg::GraphicsPipelineConfigurator::create(shaderSet);
 
             // set up graphics pipeline
             vsg::Descriptors descriptors;
