@@ -6,7 +6,7 @@ project(vsgExamples
         LANGUAGES CXX C
 )
 
-SET(vsgExamples_RELEASE_CANDIDATE 0)
+SET(VSGEXAMPLES_RELEASE_CANDIDATE 1)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(vsgMacros)
@@ -61,7 +61,7 @@ vsg_add_target_clang_format(
 
     vsg_add_option_maintainer(
         PREFIX vsgExamples
-        RCLEVEL vsgExamples_RELEASE_CANDIDATE
+        RCLEVEL ${VSGEXAMPLES_RELEASE_CANDIDATE}
     )
 
 endif()
