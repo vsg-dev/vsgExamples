@@ -35,26 +35,26 @@ find_package(vsgImGui QUIET)
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
 
+vsg_add_target_clang_format(
+    FILES
+        ${CMAKE_SOURCE_DIR}/*/*/*.h
+        ${CMAKE_SOURCE_DIR}/*/*/*.cpp
+        ${CMAKE_SOURCE_DIR}/*/*/*/*.h
+        ${CMAKE_SOURCE_DIR}/*/*/*/*.cpp
+)
+vsg_add_target_clobber()
+vsg_add_target_cppcheck(
+    FILES
+        examples/
+)
+vsg_add_target_docs(
+    FILES
+        examples/
+)
+vsg_add_target_uninstall()
+
 # only provide custom targets if not building as a submodule/FetchContent
 if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
-
-vsg_add_target_clang_format(
-        FILES
-            ${CMAKE_SOURCE_DIR}/*/*/*.h
-            ${CMAKE_SOURCE_DIR}/*/*/*.cpp
-            ${CMAKE_SOURCE_DIR}/*/*/*/*.h
-            ${CMAKE_SOURCE_DIR}/*/*/*/*.cpp
-    )
-    vsg_add_target_clobber()
-    vsg_add_target_cppcheck(
-        FILES
-            examples/
-    )
-    vsg_add_target_docs(
-        FILES
-            examples/
-    )
-    vsg_add_target_uninstall()
 
     vsg_add_option_maintainer(
         PREFIX vsgExamples
