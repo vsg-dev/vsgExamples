@@ -19,6 +19,7 @@ install_manifest.txt
 CMakeDoxyfile.in
 CMakeDoxygenDefaults.cmake
 Doxyfile.docs
+Doxyfile.docs-vsgExamples
 
 
 # Compiled Object files
