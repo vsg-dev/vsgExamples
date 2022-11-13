@@ -195,7 +195,7 @@ int main(int argc, char** argv)
     }
 
     // load the scene graph to render
-    vsg::Path filename = "https://raw.githubusercontent.com/robertosfield/TestData/master/Earth_VSG/earth.vsgb";
+    vsg::Path filename = "models/lz.vsgt";
     if (argc > 1) filename = arguments[1];
     vsg::ref_ptr<vsg::Node> vsg_scene = vsg::read_cast<vsg::Node>(filename, options);
     if (!vsg_scene) return 0;
