@@ -14,7 +14,7 @@ int main(int argc, char** argv)
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     arguments.read(options);
 
-    vsg::Path filename = "https://raw.githubusercontent.com/robertosfield/TestData/master/Earth_VSG/earth.vsgb";
+    vsg::Path filename = "models/openstreetmap.vsgt";
     if (argc > 1) filename = arguments[1];
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
