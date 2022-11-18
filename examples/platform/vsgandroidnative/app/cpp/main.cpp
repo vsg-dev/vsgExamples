@@ -21,7 +21,7 @@ struct AppData
 {
     struct android_app* app;
 
-    vsg::ref_ptr<vsg::Window::Traits> traits;
+    vsg::ref_ptr<vsg::WindowTraits> traits;
     vsg::ref_ptr<vsg::Viewer> viewer;
     vsg::ref_ptr<vsgAndroid::Android_Window> window;
 
