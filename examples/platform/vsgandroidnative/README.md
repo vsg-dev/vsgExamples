@@ -20,6 +20,8 @@ This example demonstates how to create a window, load assests and render a scene
     4. At the bottom of the file add the path to your cmake directory (v3.13) like so
        cmake.dir=/usr/local/Cellar/cmake/3.13.0
     5. Open /app/build.gradle and change the '-Dvsg_DIR' path in the cmake arguments section to point to your Android VSG install path.
+	  * Alternatively, edit app/cpp/CMakeLists.txt and add replace find_package(vsg) with add_subdirectory(/path/to/VulkanSceneGraph vsg). This will build vsg from source, as part of the Android app's CMake project
+	  * Note that when using -Dvsg_DIR or CMAKE_PREFIX_PATH on Android, only paths within the Android sysroot are allowed by default. You can use find_package(vsg NO_CMAKE_FIND_ROOT_PATH) to override this behaviour
     6. Build the application
     
     

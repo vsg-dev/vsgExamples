@@ -63,7 +63,7 @@ int main(int argc, char** argv)
             tileReader->maxLevel = 19;
             tileReader->originTopLeft = true;
             tileReader->projection = "EPSG:3857"; // spherical-mercator
-            tileReader->imageLayer = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+            tileReader->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
         }
 
         if (arguments.read("--rm") || !tileReader->imageLayer)

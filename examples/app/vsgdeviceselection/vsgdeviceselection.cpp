@@ -137,8 +137,9 @@ int main(int argc, char** argv)
 
         // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they area available.
         auto physicalDevice = physicalDevices[pd_num];
+        auto properties = physicalDevice->getProperties();
 
-        std::cout << "Created our own vsg::PhysicalDevice " << physicalDevice << std::endl;
+        std::cout << "Selected vsg::PhysicalDevice " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType <<std::endl;
 
         window->setPhysicalDevice(physicalDevice);
     }

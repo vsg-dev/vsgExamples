@@ -120,9 +120,11 @@ public:
 
             if (verbose)
             {
+                std::string name;
                 for (auto& node : intersection->nodePath)
                 {
                     std::cout << ", " << node->className();
+                    if (node->getValue("name", name)) std::cout<<":name="<<name;
                 }
 
                 std::cout << ", Arrays[ ";

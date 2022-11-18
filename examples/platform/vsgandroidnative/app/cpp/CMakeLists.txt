@@ -21,7 +21,8 @@ target_include_directories(vsgnative PRIVATE
     ${ANDROID_NDK}/sources/android/native_app_glue)
 
 # find vsg
-find_package(vsg REQUIRED)
+# find_package(vsg REQUIRED)
+add_subdirectory(/path/to/VulkanSceneGraph vsg)
 
 # add lib dependencies
 target_link_libraries(vsgnative
