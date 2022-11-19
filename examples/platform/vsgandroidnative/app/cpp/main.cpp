@@ -9,7 +9,7 @@
 #include <android_native_app_glue.h>
 
 #include <vsg/all.h>
-#include <vsg/platform/Android/Android_Window.h>
+#include <vsg/platform/android/Android_Window.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vsgnative", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vsgnative", __VA_ARGS__))
@@ -25,7 +25,7 @@ struct AppData
     vsg::ref_ptr<vsg::Viewer> viewer;
     vsg::ref_ptr<vsgAndroid::Android_Window> window;
 
-    vsg::BufferDataList uniformBufferData;
+    // vsg::BufferDataList uniformBufferData;
     vsg::ref_ptr<vsg::mat4Value> projMatrix;
     vsg::ref_ptr<vsg::mat4Value> viewMatrix;
     vsg::ref_ptr<vsg::mat4Value> modelMatrix;
@@ -46,7 +46,7 @@ static int vsg_init(struct AppData* appData)
     appData->viewer = vsg::Viewer::create();
 
     // setup traits
-    appData->traits = new vsg::Window::Traits();
+    appData->traits = new vsg::WindowTraits();
     appData->traits->width = ANativeWindow_getWidth(appData->app->window);
     appData->traits->height = ANativeWindow_getHeight(appData->app->window);
 
@@ -62,6 +62,8 @@ static int vsg_init(struct AppData* appData)
         return 1;
     }
 
+    auto vsg_scene = vsg::Group::create();
+
     // get the width/height
     uint32_t width = appData->window->extent2D().width;
     uint32_t height = appData->window->extent2D().height;
@@ -72,7 +74,35 @@ static int vsg_init(struct AppData* appData)
     // attach the window to the viewer
     appData->viewer->addWindow(window);
 
+    // compute the bounds of the scene graph to help position camera
+    vsg::ComputeBounds computeBounds;
+    vsg_scene->accept(computeBounds);
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+    double nearFarRatio = 0.001;
 
+    // set up the camera
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+    if (ellipsoidModel)
+    {
+        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, 0.0);
+    }
+    else
+    {
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+    }
+
+    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+
+    auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+    appData->viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+    appData->viewer->compile();
+
+    /*
     // set search paths to try find data folder in the devices Download folder
     vsg::Paths searchPaths = { "/storage/emulated/0/Download/data", "/sdcard/Download/data" };
 
@@ -279,6 +309,8 @@ static int vsg_init(struct AppData* appData)
         win->addStage(vsg::GraphicsStage::create(commandGraph));
         win->populateCommandBuffers();
     }
+     */
+
     return 0;
 }
 
@@ -289,7 +321,7 @@ static void vsg_term(struct AppData* appData)
     appData->modelMatrix = nullptr;
     appData->viewMatrix = nullptr;
     appData->projMatrix = nullptr;
-    appData->uniformBufferData.clear();
+    // appData->uniformBufferData.clear();
     appData->animate = false;
 }
 
@@ -304,11 +336,11 @@ static void vsg_frame(struct AppData* appData)
     }
 
     // poll events and advance frame counters
-    viewer->advance();
-
     // pass any events into EventHandlers assigned to the Viewer
-    viewer->handleEvents();
+    appData->viewer->handleEvents();
 
+    appData->viewer->update();
+    // TODO
     appData->time = appData->time + 0.033f;
     //float previousTime = engine->time;
     //engine->time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-startTime).count();
@@ -322,10 +354,12 @@ static void vsg_frame(struct AppData* appData)
     (*appData->viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
     (*appData->modelMatrix) = vsg::rotate(appData->time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
-    vsg::copyDataListToBuffers(appData->uniformBufferData);
+    // vsg::copyDataListToBuffers(appData->uniformBufferData);
 
     // render
-    appData->viewer->submitFrame();
+    appData->viewer->recordAndSubmit();
+    appData->viewer->present();
+
 }
 
 //
