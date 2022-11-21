@@ -64,7 +64,7 @@ if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
 endif()
 
 # install data
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION share/vsgExamples)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/ DESTINATION share/vsgExamples)
 
 # pure VSG examples
 add_subdirectory(examples/core)
