@@ -8,8 +8,15 @@ add_library(native_app_glue STATIC
 # set the use of C++17
 set(CMAKE_CXX_STANDARD 17)
 
-# find vsg
+# To prevent errors when loading the native activity, ensure library name is the same in debug builds
+set(CMAKE_DEBUG_POSTFIX "")
+
+# Including vsg as a CMake module
+# NO_CMAKE_FIND_ROOT_PATH is required as Android CMake only looks within the toolchain's sysroot by default
 # find_package(vsg REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+
+# Including VSG from source
+# Update this path to your VulkanSceneGraph source directory
 add_subdirectory(D:/dev/vsg/VulkanSceneGraph vsg)
 
 # Export ANativeActivity_onCreate(),
@@ -17,11 +24,9 @@ add_subdirectory(D:/dev/vsg/VulkanSceneGraph vsg)
 set(CMAKE_SHARED_LINKER_FLAGS
     "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 
-# To prevent errors when loading the native activity, ensure library name is the same in debug
-set(CMAKE_DEBUG_POSTFIX "")
-
 # add vsgnative target
-add_library(vsgnative SHARED main.cpp)
+add_library(vsgnative SHARED
+        main.cpp)
 
 # add the app glue include directory
 target_include_directories(vsgnative PRIVATE
@@ -29,8 +34,9 @@ target_include_directories(vsgnative PRIVATE
 
 # add lib dependencies
 target_link_libraries(vsgnative
+    vsg::vsg
     android
     native_app_glue
     log
-    vsg::vsg)
+    )
 
