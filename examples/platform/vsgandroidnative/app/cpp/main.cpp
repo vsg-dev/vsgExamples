@@ -11,6 +11,8 @@
 #include <vsg/all.h>
 #include <vsg/platform/android/Android_Window.h>
 
+#include "model_teapot.cpp"
+
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vsgnative", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vsgnative", __VA_ARGS__))
 
@@ -46,30 +48,31 @@ static int vsg_init(struct AppData* appData)
     appData->viewer = vsg::Viewer::create();
 
     // setup traits
-    appData->traits = new vsg::WindowTraits();
+    // appData->traits = vsgAndroid::Android_WindowTraits::create(appData->app->window);
+    appData->traits = vsg::WindowTraits::create();
+    appData->traits->setValue("nativeWindow", appData->app->window);
+
     appData->traits->width = ANativeWindow_getWidth(appData->app->window);
     appData->traits->height = ANativeWindow_getHeight(appData->app->window);
 
-    // attach the apps native window to the traits, vsg will create a surface inside this.
-    //traits.nativeHandle = engine->app->window;
-    appData->traits->nativeWindow = appData->app->window;
-
     // create a window using the ANativeWindow passed via traits
-    vsg::ref_ptr<vsg::Window> window(vsg::Window::create(appData->traits));
+    vsg::ref_ptr<vsg::Window> window;
+    try {
+        window = vsg::Window::create(appData->traits);
+    } catch( const std::bad_any_cast& e ) {
+        LOGW("Error: Failed to create a VSG Window due to std::bad_any_cast - The application was linked to the C++ STL incorrectly");
+        throw;
+    }
     if (!window)
     {
         LOGW("Error: Could not create window a VSG window.");
         return 1;
     }
 
-    auto vsg_scene = vsg::Group::create();
-
-    // get the width/height
-    uint32_t width = appData->window->extent2D().width;
-    uint32_t height = appData->window->extent2D().height;
+    auto vsg_scene = teapot();
 
     // cast the window to an android window so we can pass it events
-    appData->window = static_cast<vsgAndroid::Android_Window*>(window.get());
+    appData->window = window.cast<vsgAndroid::Android_Window>();
 
     // attach the window to the viewer
     appData->viewer->addWindow(window);
@@ -82,7 +85,7 @@ static int vsg_init(struct AppData* appData)
     double nearFarRatio = 0.001;
 
     // set up the camera
-    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(-radius * 3.5, 1.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
@@ -335,30 +338,36 @@ static void vsg_frame(struct AppData* appData)
         return;
     }
 
-    // poll events and advance frame counters
-    // pass any events into EventHandlers assigned to the Viewer
-    appData->viewer->handleEvents();
+    if(appData->viewer->advanceToNextFrame()) {
+        // poll events and advance frame counters
+        // pass any events into EventHandlers assigned to the Viewer
+        appData->viewer->handleEvents();
 
-    appData->viewer->update();
-    // TODO
-    appData->time = appData->time + 0.033f;
-    //float previousTime = engine->time;
-    //engine->time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-startTime).count();
-    //if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
+        appData->viewer->update();
+        appData->time = appData->time + 0.033f;
+        //float previousTime = engine->time;
+        //engine->time = std::chrono::duration<float, std::chrono::seconds::period>(std::chrono::steady_clock::now()-startTime).count();
+        //if (printFrameRate) std::cout<<"time = "<<time<<" fps="<<1.0/(time-previousTime)<<std::endl;
 
-    // update
-    uint32_t width = appData->window->extent2D().width;
-    uint32_t height = appData->window->extent2D().height;
+        // update
+        /*
+        uint32_t width = appData->window->extent2D().width;
+        uint32_t height = appData->window->extent2D().height;
 
-    (*appData->projMatrix) = vsg::perspective(vsg::radians(45.0f), float(width)/float(height), 0.1f, 10.f);
-    (*appData->viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
-    (*appData->modelMatrix) = vsg::rotate(appData->time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
+        (*appData->projMatrix) = vsg::perspective(vsg::radians(45.0f), float(width) / float(height),
+                                                  0.1f, 10.f);
+        (*appData->viewMatrix) = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f),
+                                             vsg::vec3(0.0f, 0.0f, 0.0f),
+                                             vsg::vec3(0.0f, 0.0f, 1.0f));
+        (*appData->modelMatrix) = vsg::rotate(appData->time * vsg::radians(90.0f),
+                                              vsg::vec3(0.0f, 0.0, 1.0f));
+        */
+        // vsg::copyDataListToBuffers(appData->uniformBufferData);
 
-    // vsg::copyDataListToBuffers(appData->uniformBufferData);
-
-    // render
-    appData->viewer->recordAndSubmit();
-    appData->viewer->present();
+        // render
+        appData->viewer->recordAndSubmit();
+        appData->viewer->present();
+    }
 
 }
 
