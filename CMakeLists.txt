@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.7)
 
 project(vsgExamples
-        VERSION 1.0.0
+        VERSION 1.0.1
         DESCRIPTION "Set of example programs that test and illustrate how to use the VulkanSceneGraph"
         LANGUAGES CXX C
 )
 
-SET(VSGEXAMPLES_RELEASE_CANDIDATE 0)
+SET(VSGEXAMPLES_RELEASE_CANDIDATE 1)
 
 # build all examples into the bin directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
@@ -64,7 +64,7 @@ if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
 endif()
 
 # install data
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data DESTINATION share/vsgExamples)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/ DESTINATION share/vsgExamples)
 
 # pure VSG examples
 add_subdirectory(examples/core)
