@@ -4,8 +4,10 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#ifdef vsgImGui_FOUND
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -169,6 +171,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
     return scenegraph;
 }
 
+#ifdef vsgImGui_FOUND
 class EventHandlerBase : public vsg::Inherit<vsgImGui::SendEventsToImGui, EventHandlerBase>
 {
 public:
@@ -307,6 +310,7 @@ public:
         return true;
     }
 };
+#endif
 
 int main(int argc, char** argv)
 {
@@ -488,6 +492,7 @@ int main(int argc, char** argv)
         auto renderGraph = createRenderGraphForView(window, camera, vsg_scene);
         commandGraph->addChild(renderGraph);
 
+#ifdef vsgImGui_FOUND
         // the RenderImGui instance must be created before each event handler
         vsg::ref_ptr<vsgImGui::RenderImGui> renderImGui = vsgImGui::RenderImGui::create(window);
         vsg::ref_ptr<EventHandlerBase> helpHandler = HelpHandler::create();
@@ -503,7 +508,10 @@ int main(int argc, char** argv)
         viewer->addEventHandler(helpHandler);
         // add handler to show for example the frame rate
         viewer->addEventHandler(statisticsHandler);
-
+#else
+        // add close handler to respond the close window button and pressing escape
+        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+#endif
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         viewer->compile();
