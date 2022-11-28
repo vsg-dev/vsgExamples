@@ -227,6 +227,15 @@ public:
     }
 };
 
+class StatisticsHandler : public vsg::Inherit<EventHandlerBase, StatisticsHandler>
+{
+public:
+    StatisticsHandler()
+    {
+        setKeys(ImGuiKey_S, vsg::KEY_s, "s - show statistics");
+    }
+};
+
 class HelpComponent : public ComponentBase
 {
 public:
@@ -239,6 +248,22 @@ public:
         ImGui::Begin("Help", NULL, ImGuiWindowFlags_AlwaysAutoResize);
         for (const std::string& text : _parent->helpTexts())
             ImGui::Text("%s", text.c_str());
+        ImGui::End();
+        return true;
+    }
+};
+
+class StatisticsComponent : public ComponentBase
+{
+public:
+    explicit StatisticsComponent(EventHandlerBase* parent) :
+        ComponentBase(parent) {}
+
+    bool drawComponent() override
+    {
+        ImGui::SetNextWindowBgAlpha(0.0f);
+        ImGui::Begin("Statistics");
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         ImGui::End();
         return true;
     }
@@ -430,12 +455,16 @@ int main(int argc, char** argv)
         // the RenderImGui instance must be created before each event handler
         vsg::ref_ptr<vsgImGui::RenderImGui> renderImGui = vsgImGui::RenderImGui::create(window);
         vsg::ref_ptr<EventHandlerBase> helpHandler = HelpHandler::create();
+        vsg::ref_ptr<EventHandlerBase> statisticsHandler = StatisticsHandler::create();
 
         renderImGui->add(HelpComponent(helpHandler));
+        renderImGui->add(StatisticsComponent(statisticsHandler));
         renderGraph->addChild(renderImGui);
 
         // add handler to show the help page
         viewer->addEventHandler(helpHandler);
+        // add handler to show for example the frame rate
+        viewer->addEventHandler(statisticsHandler);
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
