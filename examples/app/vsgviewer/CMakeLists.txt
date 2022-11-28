@@ -4,7 +4,7 @@ set(SOURCES
 
 add_executable(vsgviewer ${SOURCES})
 
-target_link_libraries(vsgviewer vsg::vsg)
+target_link_libraries(vsgviewer vsg::vsg  vsgImGui::vsgImGui)
 
 if (vsgXchange_FOUND)
     target_compile_definitions(vsgviewer PRIVATE vsgXchange_FOUND)

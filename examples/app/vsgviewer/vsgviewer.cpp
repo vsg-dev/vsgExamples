@@ -4,6 +4,9 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#include <vsgImGui/RenderImGui.h>
+#include <vsgImGui/SendEventsToImGui.h>
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -165,6 +168,81 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
 
     return scenegraph;
 }
+
+class EventHandlerBase : public vsg::Inherit<vsgImGui::SendEventsToImGui, EventHandlerBase>
+{
+public:
+    void setKeys(uint16_t imKey, vsg::KeySymbol actionKey, const std::string& helpText = std::string())
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        io.WantCaptureKeyboard = true;
+        _assignKeyMapping(imKey, actionKey);
+        _actionKey = actionKey;
+        _helpTexts.push_back(helpText);
+        _helpTexts.sort();
+    }
+
+    bool enabled() const { return _enabled; }
+
+    const std::list<std::string>& helpTexts() const { return _helpTexts; }
+
+protected:
+    vsg::KeySymbol _actionKey{vsg::KEY_Undefined};
+    bool _enabled{false};
+    static std::list<std::string> _helpTexts;
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (_actionKey != vsg::KEY_Undefined && keyPress.keyBase == _actionKey)
+            _enabled = !_enabled;
+    }
+};
+
+std::list<std::string> EventHandlerBase::_helpTexts;
+
+class ComponentBase
+{
+public:
+    explicit ComponentBase(EventHandlerBase* parent) :
+        _parent(parent) {}
+
+    bool operator()()
+    {
+        if (_parent->enabled())
+            return drawComponent();
+        return false;
+    }
+
+protected:
+    vsg::ref_ptr<EventHandlerBase> _parent;
+    virtual bool drawComponent() = 0;
+};
+
+class HelpHandler : public vsg::Inherit<EventHandlerBase, HelpHandler>
+{
+public:
+    explicit HelpHandler()
+    {
+        setKeys(ImGuiKey_H, vsg::KEY_h, "h - show help");
+    }
+};
+
+class HelpComponent : public ComponentBase
+{
+public:
+    explicit HelpComponent(EventHandlerBase* parent) :
+        ComponentBase(parent) {}
+
+    bool drawComponent() override
+    {
+        ImGui::SetNextWindowBgAlpha(0.0f);
+        ImGui::Begin("Help", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+        for (const std::string& text : _parent->helpTexts())
+            ImGui::Text("%s", text.c_str());
+        ImGui::End();
+        return true;
+    }
+};
 
 int main(int argc, char** argv)
 {
@@ -345,7 +423,20 @@ int main(int argc, char** argv)
             std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        auto commandGraph = vsg::CommandGraph::create(window);
+        auto renderGraph = createRenderGraphForView(window, camera, vsg_scene);
+        commandGraph->addChild(renderGraph);
+
+        // the RenderImGui instance must be created before each event handler
+        vsg::ref_ptr<vsgImGui::RenderImGui> renderImGui = vsgImGui::RenderImGui::create(window);
+        vsg::ref_ptr<EventHandlerBase> helpHandler = HelpHandler::create();
+
+        renderImGui->add(HelpComponent(helpHandler));
+        renderGraph->addChild(renderImGui);
+
+        // add handler to show the help page
+        viewer->addEventHandler(helpHandler);
+
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         viewer->compile();
