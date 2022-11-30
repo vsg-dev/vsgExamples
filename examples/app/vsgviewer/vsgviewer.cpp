@@ -175,11 +175,23 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, ui
 class EventHandlerBase : public vsg::Inherit<vsgImGui::SendEventsToImGui, EventHandlerBase>
 {
 public:
-    void setKeys(uint16_t imKey, vsg::KeySymbol actionKey, const std::string& helpText = std::string())
+    void setKey(vsg::KeySymbol actionKey, const std::string& helpText = std::string())
     {
         ImGuiIO& io = ImGui::GetIO();
         io.WantCaptureKeyboard = true;
-        _assignKeyMapping(imKey, actionKey);
+        KeyAndModifier key(actionKey, vsg::KeyModifier());
+        if (_vsgToIntermediateMap.find(key) == _vsgToIntermediateMap.end()) {
+            uint16_t imKey;
+            switch(actionKey)
+            {
+                case vsg::KEY_h: imKey = ImGuiKey_H; break;
+                case vsg::KEY_s: imKey = ImGuiKey_S; break;
+                case vsg::KEY_Escape: imKey = ImGuiKey_Escape; break;
+                default: throw vsg::Exception{std::string("undefined key mapping for vsgImGui")};
+            }
+            std::cerr << __FUNCTION__ << imKey << " " <<  actionKey << std::endl;
+            _assignKeyMapping(imKey, actionKey);
+        }
         _actionKey = actionKey;
         _helpTexts.push_back(helpText);
         _helpTexts.sort();
@@ -228,7 +240,7 @@ public:
     explicit CloseHandler(vsg::Viewer* viewer) :
         _viewer(viewer)
     {
-        setKeys(ImGuiKey_Escape, vsg::KEY_Escape, "Escape - quit application");
+        setKey(vsg::KEY_Escape, "Escape - quit application");
     }
 
     virtual void close()
@@ -265,7 +277,7 @@ class HelpHandler : public vsg::Inherit<EventHandlerBase, HelpHandler>
 public:
     explicit HelpHandler()
     {
-        setKeys(ImGuiKey_H, vsg::KEY_h, "h - show help");
+        setKey(vsg::KEY_h, "h - show help");
     }
 };
 
@@ -274,7 +286,7 @@ class StatisticsHandler : public vsg::Inherit<EventHandlerBase, StatisticsHandle
 public:
     StatisticsHandler()
     {
-        setKeys(ImGuiKey_S, vsg::KEY_s, "s - show statistics");
+        setKey(vsg::KEY_s, "s - show statistics");
     }
 };
 
