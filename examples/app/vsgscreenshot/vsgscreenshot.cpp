@@ -283,8 +283,23 @@ public:
         VkSubresourceLayout subResourceLayout;
         vkGetImageSubresourceLayout(*device, destinationImage->vk(device->deviceID), &subResource, &subResourceLayout);
 
-        // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
-        auto imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
+        size_t destRowWidth = width * sizeof(vsg::ubvec4);
+        vsg::ref_ptr<vsg::Data> imageData;
+        if (destRowWidth == subResourceLayout.rowPitch)
+        {
+            imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
+        }
+        else
+        {
+            // Map the buffer memory and assign as a ubyteArray that will automatically unmap itself on destruction.
+            // A ubyteArray is used as the graphics buffer memory is not contiguous like vsg::Array2D, so map to a flat buffer first then copy to Array2D.
+            auto mappedData = vsg::MappedData<vsg::ubyteArray>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{targetImageFormat}, subResourceLayout.rowPitch*height);
+            imageData = vsg::ubvec4Array2D::create(width, height, vsg::Data::Properties{targetImageFormat});
+            for (uint32_t row = 0; row < height; ++row)
+            {
+                std::memcpy(imageData->dataPointer(row*width), mappedData->dataPointer(row * subResourceLayout.rowPitch), destRowWidth);
+            }
+        }
 
         if (vsg::write(imageData, colorFilename, options))
         {
