@@ -64,7 +64,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_p
     }
     else
     {
-        std::basic_stringstream<vsg::Path::value_type> sstr(tile_info);
+        std::basic_stringstream<vsg::Path::value_type> sstr(tile_info.native());
 
         uint32_t x, y, lod;
         sstr >> x >> y >> lod;
