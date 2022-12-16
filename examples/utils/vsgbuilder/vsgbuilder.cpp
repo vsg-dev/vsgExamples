@@ -55,19 +55,28 @@ int main(int argc, char** argv)
     stateInfo.lighting = !arguments.read("--flat");
     stateInfo.two_sided = arguments.read("--two-sided");
 
-    if (vsg::vec4 specularColor; arguments.read("--specular", specularColor))
+    vsg::vec4 specularColor;
+    bool hasSpecularColor = arguments.read("--specular", specularColor);
+    vsg::vec4 diffuseColor;
+    bool hasDiffuseColor = arguments.read("--diffuse", diffuseColor);
+    if (stateInfo.lighting && (hasDiffuseColor || hasSpecularColor))
     {
-        vsg::info("specular = ", specularColor);
-        if (stateInfo.lighting)
+        builder->shaderSet = vsg::createPhongShaderSet(options);
+        if (auto& materialBinding = builder->shaderSet->getUniformBinding("material"))
         {
-            builder->shaderSet = vsg::createPhongShaderSet(options);
-            if (auto& materialBinding = builder->shaderSet->getUniformBinding("material"))
+            auto mat = vsg::PhongMaterialValue::create();
+            if (hasSpecularColor)
             {
-                auto mat = vsg::PhongMaterialValue::create();
+                vsg::info("specular = ", specularColor);
                 mat->value().specular = specularColor;
-                materialBinding.data = mat;
-                vsg::info("using custom material ", mat);
             }
+            if (hasDiffuseColor)
+            {
+                vsg::info("diffuse= ", diffuseColor);
+                mat->value().diffuse = diffuseColor;
+            }
+            materialBinding.data = mat;
+            vsg::info("using custom material ", mat);
         }
     }
 
