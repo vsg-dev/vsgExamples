@@ -38,12 +38,12 @@ public:
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
-        assign(*keyboard_text, vsg::make_string(keyPress.className(), ", keyBase=", keyPress.keyBase, ", keyModified=", keyPress.keyModified, " ", char(keyPress.keyModified)));
+        assign(*keyboard_text, vsg::make_string(keyPress.className(), ", keyBase=", keyPress.keyBase, " ", char(keyPress.keyBase), ", keyModified=", keyPress.keyModified, " ", char(keyPress.keyModified)));
     }
 
     void apply(vsg::KeyReleaseEvent& keyRelease) override
     {
-        assign(*keyboard_text, vsg::make_string(keyRelease.className(), ", keyBase=", keyRelease.keyBase, ", keyModified=", keyRelease.keyModified, " ", char(keyRelease.keyModified)));
+        assign(*keyboard_text, vsg::make_string(keyRelease.className(), ", keyBase=", keyRelease.keyBase, " ", char(keyRelease.keyBase), ", keyModified=", keyRelease.keyModified, " ", char(keyRelease.keyModified)));
     }
 
     void apply(vsg::MoveEvent& moveEvent) override
