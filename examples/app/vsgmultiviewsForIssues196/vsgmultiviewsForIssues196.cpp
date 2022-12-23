@@ -281,10 +281,11 @@ int main(int argc, char** argv)
     }
 
     viewer->compile();
-
-    window->setRenderPass(createCustomRenderPass(window->getDevice(), window->surfaceFormat().format,
-                                                 window->depthFormat(),
-                                                 false));
+    if (separateRenderGraph) {
+        window->setRenderPass(createCustomRenderPass(window->getDevice(), window->surfaceFormat().format,
+                                                     window->depthFormat(),
+                                                     false));
+    }
 
     // rendering main loop
     while (viewer->advanceToNextFrame())
