@@ -39,8 +39,6 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
-    bool separateRenderGraph = arguments.read("-s");
-
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     auto options = vsg::Options::create();
@@ -101,46 +99,30 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
     viewer->addEventHandler(vsg::Trackball::create(main_camera));
 
-    if (separateRenderGraph)
-    {
-        std::cout << "Using a RenderGraph per View" << std::endl;
-        auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
-        auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
-        secondary_RenderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.2f, 1.0f}};
+    auto renderGraph = vsg::RenderGraph::create(window);
 
-        auto commandGraph = vsg::CommandGraph::create(window);
-        commandGraph->addChild(main_RenderGraph);
-        commandGraph->addChild(secondary_RenderGraph);
+    // add main view that covers the whole window.
+    renderGraph->addChild(main_view);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-    }
-    else
-    {
-        std::cout << "Using a single RenderGraph, with both Views separated by a ClearAttachments" << std::endl;
-        auto renderGraph = vsg::RenderGraph::create(window);
+    // clear the depth buffer before view2 gets rendered
+    VkClearValue colorClearValue{};
+    colorClearValue.color = {{0.2f, 0.2f, 0.2f, 1.0f}};
+    VkClearAttachment color_attachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, colorClearValue};
 
-        renderGraph->addChild(main_view);
+    VkClearValue depthClearValue{};
+    depthClearValue.depthStencil = {0.0f, 0};
+    VkClearAttachment depth_attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, depthClearValue};
 
-        // clear the depth buffer before view2 gets rendered
+    VkClearRect rect{secondary_camera->getRenderArea(), 0, 1};
+    auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{color_attachment, depth_attachment}, vsg::ClearAttachments::Rects{rect, rect});
+    renderGraph->addChild(clearAttachments);
 
-        VkClearValue colorClearValue{};
-        colorClearValue.color = {{0.2f, 0.2f, 0.2f, 1.0f}};
-        VkClearAttachment color_attachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, colorClearValue};
+    // add the second insert view that overlays ontop.
+    renderGraph->addChild(secondary_view);
 
-        VkClearValue depthClearValue{};
-        depthClearValue.depthStencil = {0.0f, 0};
-        VkClearAttachment depth_attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, depthClearValue};
-
-        VkClearRect rect{secondary_camera->getRenderArea(), 0, 1};
-        auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{color_attachment, depth_attachment}, vsg::ClearAttachments::Rects{rect, rect});
-        renderGraph->addChild(clearAttachments);
-
-        renderGraph->addChild(secondary_view);
-
-        auto commandGraph = vsg::CommandGraph::create(window);
-        commandGraph->addChild(renderGraph);
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-    }
+    auto commandGraph = vsg::CommandGraph::create(window);
+    commandGraph->addChild(renderGraph);
+    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
 
