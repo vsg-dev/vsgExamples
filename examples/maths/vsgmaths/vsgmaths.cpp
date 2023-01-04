@@ -255,10 +255,10 @@ int main(int /*argc*/, char** /*argv*/)
 
     std::cout << "x_to_y * y_to_x = "  << x_to_y * y_to_x << std::endl;
     std::cout << "x_to_z * z_to_x = "  << x_to_z * z_to_x << std::endl;
-    std::cout << "y_to_x * y_to_x = "  << y_to_x * x_to_y << std::endl;
+    std::cout << "y_to_x * x_to_y = "  << y_to_x * x_to_y << std::endl;
     std::cout << "y_to_z * z_to_y = "  << y_to_z * z_to_y << std::endl;
     std::cout << "z_to_x * x_to_z = "  << z_to_x * x_to_z << std::endl;
-    std::cout << "z_to_y * y_to_z = "  << y_to_z * z_to_y << std::endl;
+    std::cout << "z_to_y * y_to_z = "  << z_to_y * y_to_z << std::endl;
 
     return 0;
 }
