@@ -1,6 +1,7 @@
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
 #include <vsgImGui/imgui.h>
+#include <vsgImGui/implot.h>
 
 #include <vsg/all.h>
 
@@ -15,6 +16,7 @@ struct Params : public vsg::Inherit<vsg::Object, Params>
     bool showGui = true; // you can toggle this with your own EventHandler and key
     bool showDemoWindow = false;
     bool showSecondWindow = false;
+    bool showImPlotDemoWindow = false;
     float clearColor[3]{0.2f, 0.2f, 0.4f}; // Unfortunately, this doesn't change dynamically in vsg
     uint32_t counter = 0;
     float dist = 0.f;
@@ -41,6 +43,8 @@ public:
             ImGui::Text("Some useful message here.");                 // Display some text (you can use a format strings too)
             ImGui::Checkbox("Demo Window", &_params->showDemoWindow); // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &_params->showSecondWindow);
+            ImGui::Checkbox("ImPlot Demo Window", &_params->showImPlotDemoWindow);
+
             ImGui::SliderFloat("float", &_params->dist, 0.0f, 1.0f);        // Edit 1 float using a slider from 0.0f to 1.0f
             ImGui::ColorEdit3("clear color", (float*)&_params->clearColor); // Edit 3 floats representing a color
 
@@ -71,6 +75,13 @@ public:
         if (_params->showDemoWindow)
         {
             ImGui::ShowDemoWindow(&_params->showDemoWindow);
+
+            visibleComponents = true;
+        }
+
+        if (_params->showImPlotDemoWindow)
+        {
+            ImPlot::ShowDemoWindow(&_params->showImPlotDemoWindow);
 
             visibleComponents = true;
         }
