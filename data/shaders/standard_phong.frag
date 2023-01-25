@@ -77,7 +77,7 @@ vec3 getNormal()
     if (!gl_FrontFacing)
         result = -result;
 #endif
-
+    return result;
 }
 
 vec3 computeLighting(vec3 ambientColor, vec3 diffuseColor, vec3 specularColor, vec3 emissiveColor, float shininess, float ambientOcclusion, vec3 ld, vec3 nd, vec3 vd)
