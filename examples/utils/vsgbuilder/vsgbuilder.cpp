@@ -92,6 +92,7 @@ int main(int argc, char** argv)
     bool quad = arguments.read("--quad");
     bool sphere = arguments.read("--sphere");
     bool heightfield = arguments.read("--hf");
+    bool billboard = arguments.read("--billboard");
 
     if (!(box || sphere || cone || capsule || quad || cylinder || disk || heightfield))
     {
@@ -134,37 +135,63 @@ int main(int argc, char** argv)
 
         vsg::dbox bound;
 
-        if (numVertices > 0)
+        if (numVertices > 0 || billboard)
         {
-            stateInfo.instance_positions_vec3 = true;
+            if (numVertices == 0) numVertices = 1;
 
-            float w = std::pow(float(numVertices), 0.33f) * 2.0f * vsg::length(geomInfo.dx);
-            geomInfo.positions = vsg::vec3Array::create(numVertices);
-            for (auto& v : *(geomInfo.positions))
+            if (billboard)
             {
-                v.set(w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
-                      w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
-                      w * (float(std::rand()) / float(RAND_MAX) - 0.5f));
-            }
+                stateInfo.billboard = true;
 
-            radius += (0.5 * sqrt(3.0) * w);
-
-            if (floatColors)
-            {
-                auto colors = vsg::vec4Array::create(geomInfo.positions->size());
-                geomInfo.colors = colors;
-                for (auto& c : *(colors))
+                float w = std::pow(float(numVertices), 0.33f) * 2.0f * vsg::length(geomInfo.dx);
+                float scaleDistance = w*3.0;
+                auto positions = vsg::vec4Array::create(numVertices);
+                geomInfo.positions = positions;
+                for (auto& v : *(positions))
                 {
-                    c.set(float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), 1.0f);
+                    v.set(w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
+                        w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
+                        w * (float(std::rand()) / float(RAND_MAX) - 0.5f), scaleDistance);
                 }
+
+                radius += (0.5 * sqrt(3.0) * w);
             }
             else
             {
-                auto colors = vsg::ubvec4Array::create(geomInfo.positions->size());
-                geomInfo.colors = colors;
-                for (auto& c : *(colors))
+                stateInfo.instance_positions_vec3 = true;
+
+                float w = std::pow(float(numVertices), 0.33f) * 2.0f * vsg::length(geomInfo.dx);
+                auto positions = vsg::vec3Array::create(numVertices);
+                geomInfo.positions = positions;
+                for (auto& v : *(positions))
                 {
-                    c.set(uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), 255);
+                    v.set(w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
+                        w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
+                        w * (float(std::rand()) / float(RAND_MAX) - 0.5f));
+                }
+
+                radius += (0.5 * sqrt(3.0) * w);
+            }
+
+            if (numVertices > 1)
+            {
+                if (floatColors)
+                {
+                    auto colors = vsg::vec4Array::create(numVertices);
+                    geomInfo.colors = colors;
+                    for (auto& c : *(colors))
+                    {
+                        c.set(float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), float(std::rand()) / float(RAND_MAX), 1.0f);
+                    }
+                }
+                else
+                {
+                    auto colors = vsg::ubvec4Array::create(numVertices);
+                    geomInfo.colors = colors;
+                    for (auto& c : *(colors))
+                    {
+                        c.set(uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), uint8_t(255.0 * float(std::rand()) / float(RAND_MAX)), 255);
+                    }
                 }
             }
         }
