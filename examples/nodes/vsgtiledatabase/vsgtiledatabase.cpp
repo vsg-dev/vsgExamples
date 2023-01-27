@@ -7,6 +7,80 @@
 #include <iostream>
 #include <thread>
 
+namespace vsg
+{
+
+std::string_view find_field(const std::string& source, const std::string_view& start_match, const std::string_view& end_match)
+{
+    auto start_pos = source.find(start_match);
+    if (start_pos == std::string::npos) return {};
+
+    start_pos += start_match.size();
+
+    auto end_pos = source.find(end_match, start_pos);
+    if (end_pos == std::string::npos) return {};
+
+    return {&source[start_pos], end_pos - start_pos};
+}
+
+void replace(std::string& source, const std::string_view& match, const std::string_view& replacement)
+{
+    for(;;)
+    {
+        auto pos = source.find(match);
+        if (pos == std::string::npos) break;
+        source.erase(pos, match.size());
+        source.insert(pos, replacement);
+    }
+}
+
+std::string getBingMapsImageURL(const std::string& imagerySet, const std::string& culture, const std::string& key, ref_ptr<const Options> options)
+{
+    // read the meta data to set up the direct imageLayer URL.
+    std::string metadata_url("https://dev.virtualearth.net/REST/V1/Imagery/Metadata/{imagerySet}?output=xml&key={key}");
+    vsg::replace(metadata_url, "{imagerySet}", imagerySet);
+    vsg::replace(metadata_url, "{key}", key);
+
+    vsg::info("metadata_url = ", metadata_url);
+
+    auto local_options = vsg::Options::create(*options);
+    local_options->extensionHint = ".txt";
+
+    if (auto metadata = vsg::read_cast<vsg::stringValue>(metadata_url, local_options))
+    {
+        auto& str = metadata->value();
+        auto imageUrl = vsg::find_field(str, "<ImageUrl>", "</ImageUrl>");
+        if (!imageUrl.empty())
+        {
+            std::string url(imageUrl.substr());
+
+            auto sumbdomain = vsg::find_field(str, "<ImageUrlSubdomains><string>", "</string>");
+            if (!sumbdomain.empty())
+            {
+                vsg::replace(url, "{subdomain}", sumbdomain.substr());
+            }
+
+            vsg::replace(url, "{culture}", culture);
+
+            vsg::info("Setup Bing Maps imageLayer : ", url);
+
+            return url;
+        }
+        else
+        {
+            vsg::info("Failed to find imageUrl in : ", str);
+        }
+    }
+    else
+    {
+        vsg::info("failed to read : ", metadata_url);
+    }
+
+    return {};
+}
+
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -50,9 +124,11 @@ int main(int argc, char** argv)
 
     if (arguments.read("--bing-maps"))
     {
-        // Bing Maps
-        std::string metadata_uri("https://dev.virtualearth.net/REST/V1/Imagery/Metadata/{imagerySet}?output=xml&key={key}");
-        auto imagerySet = arguments.value<std::string>("Arial", "--imagey");
+        // Bing Maps official documentation:
+        //    metadata (includes imagerySet details): https://learn.microsoft.com/en-us/bingmaps/rest-services/imagery/get-imagery-metadata
+        //    culture codes: https://learn.microsoft.com/en-us/bingmaps/rest-services/common-parameters-and-types/supported-culture-codes
+        //    api key: https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
+        auto imagerySet = arguments.value<std::string>("Aerial", "--imagery");
         auto culture = arguments.value<std::string>("en-GB", "--culture");
         auto key = arguments.value<std::string>("", "--key");
         if (key.empty()) key = vsg::getEnv("VSG_BING_KEY");
@@ -69,8 +145,18 @@ int main(int argc, char** argv)
         settings->maxLevel = 17;
         settings->originTopLeft = true;
         settings->lighting = false;
-        settings->projection = "EPSG:3857";
-        settings->imageLayer = "https://ecn.t3.tiles.virtualearth.net/tiles/h{quadkey}.jpeg?g=1236";
+        settings->projection = "EPSG:3857"; // Spherical Mecator
+
+        if (!key.empty())
+        {
+            settings->imageLayer = getBingMapsImageURL(imagerySet, culture, key, options);
+        }
+
+        if (settings->imageLayer.empty())
+        {
+            // direct access fallback
+            settings->imageLayer = "https://ecn.t3.tiles.virtualearth.net/tiles/h{quadkey}.jpeg?g=1236";
+        }
     }
 
     if (arguments.read("--osm"))
@@ -82,7 +168,7 @@ int main(int argc, char** argv)
         settings->maxLevel = 17;
         settings->originTopLeft = true;
         settings->lighting = false;
-        settings->projection = "EPSG:3857";
+        settings->projection = "EPSG:3857";  // Spherical Mecator
         settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
     }
 
