@@ -48,6 +48,31 @@ int main(int argc, char** argv)
 
     auto settings = vsg::TileDatabaseSettings::create();
 
+    if (arguments.read("--bing-maps"))
+    {
+        // Bing Maps
+        std::string metadata_uri("https://dev.virtualearth.net/REST/V1/Imagery/Metadata/{imagerySet}?output=xml&key={key}");
+        auto imagerySet = arguments.value<std::string>("Arial", "--imagey");
+        auto culture = arguments.value<std::string>("en-GB", "--culture");
+        auto key = arguments.value<std::string>("", "--key");
+        if (key.empty()) key = vsg::getEnv("VSG_BING_KEY");
+        if (key.empty()) key = vsg::getEnv("OSGEARTH_BING_KEY");
+
+        vsg::info("imagerySet = ", imagerySet);
+        vsg::info("culture = ", culture);
+        vsg::info("key = ", key);
+
+        // setup BingMaps settings
+        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings->noX = 2;
+        settings->noY = 2;
+        settings->maxLevel = 17;
+        settings->originTopLeft = true;
+        settings->lighting = false;
+        settings->projection = "EPSG:3857";
+        settings->imageLayer = "https://ecn.t3.tiles.virtualearth.net/tiles/h{quadkey}.jpeg?g=1236";
+    }
+
     if (arguments.read("--osm"))
     {
         // setup OpenStreetMap settings
@@ -59,19 +84,6 @@ int main(int argc, char** argv)
         settings->lighting = false;
         settings->projection = "EPSG:3857";
         settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
-    }
-
-    if (std::string key; arguments.read("--bing-maps", key))
-    {
-        // setup OpenStreetMap settings
-        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        settings->noX = 2;
-        settings->noY = 2;
-        settings->maxLevel = 17;
-        settings->originTopLeft = true;
-        settings->lighting = false;
-        settings->projection = "EPSG:3857";
-        settings->imageLayer = "https://ecn.t3.tiles.virtualearth.net/tiles/h{quadkey}.jpeg?g=1236";
     }
 
     if (arguments.read("--rm") || !settings->imageLayer)
