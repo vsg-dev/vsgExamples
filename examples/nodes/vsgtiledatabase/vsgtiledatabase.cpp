@@ -61,6 +61,19 @@ int main(int argc, char** argv)
         settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
     }
 
+    if (std::string key; arguments.read("--bing-maps", key))
+    {
+        // setup OpenStreetMap settings
+        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings->noX = 2;
+        settings->noY = 2;
+        settings->maxLevel = 17;
+        settings->originTopLeft = true;
+        settings->lighting = false;
+        settings->projection = "EPSG:3857";
+        settings->imageLayer = "https://ecn.t3.tiles.virtualearth.net/tiles/h{quadkey}.jpeg?g=1236";
+    }
+
     if (arguments.read("--rm") || !settings->imageLayer)
     {
         // setup ready map settings
