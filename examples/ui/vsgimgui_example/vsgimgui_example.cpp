@@ -1,5 +1,6 @@
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
+#include <vsgImGui/ImageComponent.h>
 #include <vsgImGui/imgui.h>
 #include <vsgImGui/implot.h>
 
@@ -17,6 +18,8 @@ struct Params : public vsg::Inherit<vsg::Object, Params>
     bool showDemoWindow = false;
     bool showSecondWindow = false;
     bool showImPlotDemoWindow = false;
+    bool showLogoWindow = true;
+    bool showImagesWindow = false;
     float clearColor[3]{0.2f, 0.2f, 0.4f}; // Unfortunately, this doesn't change dynamically in vsg
     uint32_t counter = 0;
     float dist = 0.f;
@@ -25,8 +28,8 @@ struct Params : public vsg::Inherit<vsg::Object, Params>
 class MyGuiComponent
 {
 public:
-    MyGuiComponent(vsg::ref_ptr<Params> params) :
-        _params(params)
+    MyGuiComponent(vsg::ref_ptr<Params> params, vsg::ref_ptr<vsgImGui::ImageComponent> in_image) :
+        image(in_image), _params(params)
     {
     }
 
@@ -44,6 +47,7 @@ public:
             ImGui::Checkbox("Demo Window", &_params->showDemoWindow); // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &_params->showSecondWindow);
             ImGui::Checkbox("ImPlot Demo Window", &_params->showImPlotDemoWindow);
+            ImGui::Checkbox("Images Window", &_params->showImagesWindow);
 
             ImGui::SliderFloat("float", &_params->dist, 0.0f, 1.0f);        // Edit 1 float using a slider from 0.0f to 1.0f
             ImGui::ColorEdit3("clear color", (float*)&_params->clearColor); // Edit 3 floats representing a color
@@ -86,9 +90,60 @@ public:
             visibleComponents = true;
         }
 
+        // UV for a squre in the logo image
+        ImVec2 squareUV(static_cast<float>(image->height) / image->width, 1.0f);
+
+        if (_params->showLogoWindow)
+        {
+            // Copied from imgui_demo.cpp simple overlay
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+            const float PAD = 10.0f;
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+            ImVec2 work_size = viewport->WorkSize;
+            ImVec2 window_pos, window_pos_pivot;
+            window_pos.x = work_pos.x + PAD;
+            window_pos.y = work_pos.y + work_size.y - PAD;
+            window_pos_pivot.x =  0.0f;
+            window_pos_pivot.y =  1.0f;
+            ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
+            window_flags |= ImGuiWindowFlags_NoMove;
+            ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+            ImGui::Begin("vsgCS UI", nullptr, window_flags);
+            // Display a square from the VSG logo
+            const float size = 128.0f;
+            (*image)(size, size, ImVec2(0.0f, 0.0f), squareUV);
+            ImGui::End();
+            ImGui::PopStyleVar();
+
+            visibleComponents = true;
+        }
+
+        if (_params->showImagesWindow)
+        {
+            ImGui::Begin("Image Window", &_params->showImagesWindow);
+            ImGui::Text("An image:");
+            // The logo texture is big, show show it at half size
+            (*image)(image->width / 2.0f, image->height / 2.0f);
+            // We could make another component class for ImageButton, but we will take a short cut
+            // and reuse the descriptor set from our existing image.
+            //
+            // Make a small square button
+            if (ImGui::ImageButton("Button", image->getTextureID(),
+                                   ImVec2(32.0f, 32.0f),
+                                   ImVec2(0.0f, 0.0f),
+                                   squareUV))
+                _params->counter++;
+
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", _params->counter);
+            ImGui::End();
+
+        }
         return visibleComponents;
     }
-
+    vsg::ref_ptr<vsgImGui::ImageComponent> image;
 private:
     vsg::ref_ptr<Params> _params;
 };
@@ -213,7 +268,11 @@ int main(int argc, char** argv)
 
         // Create the ImGui node and add it to the renderGraph
         auto params = Params::create();
-        renderGraph->addChild(vsgImGui::RenderImGui::create(window, MyGuiComponent(params)));
+        auto texData = vsg::read_cast<vsg::Data>("textures/VSGlogo.png", options);
+        auto imageComponent = vsgImGui::ImageComponent::create(window, texData);
+        auto renderImGui = vsgImGui::RenderImGui::create(window, MyGuiComponent(params, imageComponent));
+        renderImGui->addResource(imageComponent);
+        renderGraph->addChild(renderImGui);
 
         // Add the ImGui event handler first to handle events early
         viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
