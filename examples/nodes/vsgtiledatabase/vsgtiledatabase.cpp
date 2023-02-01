@@ -34,49 +34,79 @@ void replace(std::string& source, const std::string_view& match, const std::stri
     }
 }
 
-std::string getBingMapsImageURL(const std::string& imagerySet, const std::string& culture, const std::string& key, ref_ptr<const Options> options)
+ref_ptr<TileDatabaseSettings> getBingMapsSettings(const std::string& imagerySet, const std::string& culture, const std::string& key, ref_ptr<const Options> options)
 {
-    // read the meta data to set up the direct imageLayer URL.
-    std::string metadata_url("https://dev.virtualearth.net/REST/V1/Imagery/Metadata/{imagerySet}?output=xml&key={key}");
-    vsg::replace(metadata_url, "{imagerySet}", imagerySet);
-    vsg::replace(metadata_url, "{key}", key);
+    auto settings = TileDatabaseSettings::create();
 
-    vsg::info("metadata_url = ", metadata_url);
+    // setup BingMaps settings
+    settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+    settings->noX = 2;
+    settings->noY = 2;
+    settings->maxLevel = 19;
+    settings->originTopLeft = true;
+    settings->lighting = false;
+    settings->projection = "EPSG:3857"; // Spherical Mecator
 
-    auto local_options = vsg::Options::create(*options);
-    local_options->extensionHint = ".txt";
-
-    if (auto metadata = vsg::read_cast<vsg::stringValue>(metadata_url, local_options))
+    if (!key.empty())
     {
-        auto& str = metadata->value();
-        auto imageUrl = vsg::find_field(str, "<ImageUrl>", "</ImageUrl>");
-        if (!imageUrl.empty())
-        {
-            std::string url(imageUrl.substr());
+        // read the meta data to set up the direct imageLayer URL.
+        std::string metadata_url("https://dev.virtualearth.net/REST/V1/Imagery/Metadata/{imagerySet}?output=xml&key={key}");
+        vsg::replace(metadata_url, "{imagerySet}", imagerySet);
+        vsg::replace(metadata_url, "{key}", key);
 
-            auto sumbdomain = vsg::find_field(str, "<ImageUrlSubdomains><string>", "</string>");
-            if (!sumbdomain.empty())
+        vsg::info("metadata_url = ", metadata_url);
+
+        auto txt_options = vsg::Options::create(*options);
+        txt_options->extensionHint = ".txt";
+
+        if (auto metadata = vsg::read_cast<vsg::stringValue>(metadata_url, txt_options))
+        {
+            auto& str = metadata->value();
+            vsg::info("metadata = ", str);
+
+            std::string copyright(vsg::find_field(str, "<Copyright>", "</Copyright>"));
+            std::string brandLogoUri(vsg::find_field(str, "<BrandLogoUri>", "</BrandLogoUri>"));
+            std::string zoomMax(vsg::find_field(str, "<ZoomMax>", "</ZoomMax>"));
+
+            vsg::info("copyright = ", copyright);
+            vsg::info("brandLogoUri = ", brandLogoUri);
+            vsg::info("zoomMax = ", zoomMax);
+
+            settings->setValue("copyright", copyright);
+            settings->setValue("logo", brandLogoUri);
+
+            if (!brandLogoUri.empty())
             {
-                vsg::replace(url, "{subdomain}", sumbdomain.substr());
+                auto logo = vsg::read_cast<vsg::Data>(brandLogoUri, options);
+                vsg::info("logo = ", logo);
+                // TODO need to create a logo subgraph
             }
 
-            vsg::replace(url, "{culture}", culture);
+            auto imageUrl = vsg::find_field(str, "<ImageUrl>", "</ImageUrl>");
+            if (!imageUrl.empty())
+            {
+                std::string url(imageUrl.substr());
 
-            vsg::info("Setup Bing Maps imageLayer : ", url);
+                auto sumbdomain = vsg::find_field(str, "<ImageUrlSubdomains><string>", "</string>");
+                if (!sumbdomain.empty())
+                {
+                    vsg::replace(url, "{subdomain}", sumbdomain.substr());
+                }
 
-            return url;
-        }
-        else
-        {
-            vsg::info("Failed to find imageUrl in : ", str);
+                vsg::replace(url, "{culture}", culture);
+
+                settings->imageLayer = url;
+            }
         }
     }
-    else
+
+    if (settings->imageLayer.empty())
     {
-        vsg::info("failed to read : ", metadata_url);
+        // direct access fallback
+        settings->imageLayer = "https://ecn.t3.tiles.virtualearth.net/tiles/h{quadkey}.jpeg?g=1236";
     }
 
-    return {};
+    return settings;
 }
 
 }
@@ -120,7 +150,7 @@ int main(int argc, char** argv)
     uint32_t numOperationThreads = 0;
     if (arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
 
-    auto settings = vsg::TileDatabaseSettings::create();
+    vsg::ref_ptr<vsg::TileDatabaseSettings> settings;
 
     if (arguments.read("--bing-maps"))
     {
@@ -138,30 +168,26 @@ int main(int argc, char** argv)
         vsg::info("culture = ", culture);
         vsg::info("key = ", key);
 
-        // setup BingMaps settings
-        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        settings->noX = 2;
-        settings->noY = 2;
-        settings->maxLevel = 17;
-        settings->originTopLeft = true;
-        settings->lighting = false;
-        settings->projection = "EPSG:3857"; // Spherical Mecator
-
-        if (!key.empty())
-        {
-            settings->imageLayer = getBingMapsImageURL(imagerySet, culture, key, options);
-        }
-
-        if (settings->imageLayer.empty())
-        {
-            // direct access fallback
-            settings->imageLayer = "https://ecn.t3.tiles.virtualearth.net/tiles/h{quadkey}.jpeg?g=1236";
-        }
+        settings = getBingMapsSettings(imagerySet, culture, key, options);
     }
 
-    if (arguments.read("--osm"))
+    if (arguments.read("--rm"))
+    {
+        // setup ready map settings
+        settings = vsg::TileDatabaseSettings::create();
+        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings->noX = 2;
+        settings->noY = 1;
+        settings->maxLevel = 10;
+        settings->originTopLeft = false;
+        settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
+        // settings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+    }
+
+    if (arguments.read("--osm") || !settings)
     {
         // setup OpenStreetMap settings
+        settings = vsg::TileDatabaseSettings::create();
         settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
         settings->noX = 1;
         settings->noY = 1;
@@ -172,16 +198,11 @@ int main(int argc, char** argv)
         settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
     }
 
-    if (arguments.read("--rm") || !settings->imageLayer)
+
+    if (!settings)
     {
-        // setup ready map settings
-        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        settings->noX = 2;
-        settings->noY = 1;
-        settings->maxLevel = 10;
-        settings->originTopLeft = false;
-        settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
-        // settings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+        std::cout<<"No TileDatabaseSettings assigned."<<std::endl;
+        return 1;
     }
 
     arguments.read("-t", settings->lodTransitionScreenHeightRatio);
