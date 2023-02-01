@@ -31,10 +31,8 @@ public:
     }
 
     // Example here taken from the Dear imgui comments (mostly)
-    bool operator()()
+    void operator()(vsg::RecordTraversal&)
     {
-        bool visibleComponents = false;
-
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         if (_params->showGui)
         {
@@ -56,8 +54,6 @@ public:
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
-
-            visibleComponents = true;
         }
 
         // 3. Show another simple window.
@@ -68,25 +64,17 @@ public:
             if (ImGui::Button("Close Me"))
                 _params->showSecondWindow = false;
             ImGui::End();
-
-            visibleComponents = true;
         }
 
         if (_params->showDemoWindow)
         {
             ImGui::ShowDemoWindow(&_params->showDemoWindow);
-
-            visibleComponents = true;
         }
 
         if (_params->showImPlotDemoWindow)
         {
             ImPlot::ShowDemoWindow(&_params->showImPlotDemoWindow);
-
-            visibleComponents = true;
         }
-
-        return visibleComponents;
     }
 
 private:
