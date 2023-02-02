@@ -15,4 +15,5 @@ add_subdirectory(vsgcameras)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsghelloworld)
+    add_subdirectory(vsgpresent)
 endif()
