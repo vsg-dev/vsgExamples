@@ -6,38 +6,7 @@
 #include <iostream>
 #include <thread>
 
-struct MarkdownBuilder
-{
-    void heading(size_t level, std::string_view& line)
-    {
-        std::cout<<"heading("<<level<<", "<<line<<")"<<std::endl;
-    }
-
-    void horizontal_rule()
-    {
-        std::cout<<"horizontal_rule"<<std::endl;
-    }
-
-    void ordered_list(size_t item_number, std::string_view& line)
-    {
-        std::cout<<"ordered_list("<<item_number<<", "<<line<<")"<<std::endl;
-    }
-
-    void unordered_list(std::string_view& line)
-    {
-        std::cout<<"unordered_list("<<line<<")"<<std::endl;
-    }
-
-    void paragraph(std::string_view& line)
-    {
-        std::cout<<"paragraph("<<line<<")"<<std::endl;
-    }
-
-    void block(std::string_view& line)
-    {
-        std::cout<<"block("<<line<<")"<<std::endl;
-    }
-};
+#include "Document.h"
 
 vsg::ref_ptr<vsg::Node> parse_md(const std::string& text)
 {
@@ -88,29 +57,18 @@ vsg::ref_ptr<vsg::Node> parse_md(const std::string& text)
         return count;
     };
 
-    MarkdownBuilder builder;
+    auto document = Markdown::Document::create();
 
     std::string::size_type pos = 0;
-    std::string_view next_line = get_line_and_advance(text, pos);
-    remove_white_space(next_line);
-
-    size_t list_number = 0;
-    bool lines_left = true;
-    while (lines_left)
+    while (pos < text.size())
     {
-        std::string_view line = next_line;
-        if (pos < text.size())
-        {
-            next_line = get_line_and_advance(text, pos);
-            remove_white_space(next_line);
-        }
-        else
-        {
-            next_line = {};
-            lines_left = false;
-        }
+        std::string_view line = get_line_and_advance(text, pos);
+        remove_white_space(line);
 
-        if (line.empty()) continue;
+        if (line.empty())
+        {
+            continue;
+        }
 
         // check for # Heading
         if (line[0]=='#')
@@ -122,26 +80,23 @@ vsg::ref_ptr<vsg::Node> parse_md(const std::string& text)
                 remove_white_space(line);
 
                 // create a header label
-                builder.heading(count, line);
+                document->add(Markdown::Heading::create(count, line));
                 continue;
             }
         }
 
-        if (!next_line.empty())
+        // checked for underlined version of Heading
+        if (count_matches(line, '=')==line.size())
         {
-            // checked for underlined version of Heading
-            if (count_matches(next_line, '=')==next_line.size())
-            {
-                builder.heading(1, line);
-                next_line = {};
-                continue;
-            }
-            if (count_matches(next_line, '-')==next_line.size())
-            {
-                builder.heading(2, line);
-                next_line = {};
-                continue;
-            }
+            // TODO get previously added item, if it's a Text then remove it and add content to currently line
+            document->add(Markdown::Heading::create(1, line));
+            continue;
+        }
+        if (count_matches(line, '-')==line.size())
+        {
+            // TODO get previously added item, if it's a Text then remove it and add content to currently line
+            document->add(Markdown::Heading::create(2, line));
+            continue;
         }
 
         if (line[0]=='*' && line.size()>1 && line[1]==' ')
@@ -149,7 +104,10 @@ vsg::ref_ptr<vsg::Node> parse_md(const std::string& text)
             // check for unorder list.
             line.remove_prefix(2);
             remove_white_space(line);
-            builder.unordered_list(line);
+            // TODO if previous item was an unorderedList then use it
+            auto unorderedList = Markdown::UnorderedList::create();
+            unorderedList->add(Markdown::Paragraph::create(line));
+            document->add(unorderedList);
             continue;
         }
 
@@ -166,26 +124,92 @@ vsg::ref_ptr<vsg::Node> parse_md(const std::string& text)
                     {
                         line.remove_prefix(point_pos+1);
                         remove_white_space(line);
-                        builder.ordered_list(++list_number, line);
+
+                        // TODO if previous item was an orderedList then use it
+                        auto orderedList = Markdown::OrderedList::create();
+                        orderedList->add(Markdown::Paragraph::create(line));
+                        document->add(orderedList);
                         continue;
                     }
                 }
             }
         }
 
-
         if (line.size() >= 3 && (line[0]=='-' || line[0]=='*' || line[0]=='_'))
         {
             // check for horizontal rule
             if (count_matches(line, line[0])==line.size())
             {
-                builder.horizontal_rule();
+                document->add(Markdown::HorizontalRule::create());
                 continue;
             }
         }
 
-        builder.paragraph(line);
+        document->add(Markdown::Paragraph::create(line));
     }
+
+    struct PrintDocuemt : public Markdown::DocumentVisitor
+    {
+        void apply(Markdown::Item& item) override
+        {
+            std::cout<<"item = "<<item.className()<<std::endl;
+        }
+
+        void apply(Markdown::Text& text) override
+        {
+            std::cout<<"text = "<<text.text<<std::endl;
+        }
+
+        void apply(Markdown::Paragraph& paragraph) override
+        {
+            std::cout<<"paragraph = ";
+            for(auto& item : paragraph.items)
+            {
+                item->accept(*this);
+            }
+            std::cout<<std::endl;
+        }
+
+        void apply(Markdown::Heading& heading) override
+        {
+            std::cout<<"heading = "<<heading.size<<", "<<heading.text<<std::endl;
+        }
+
+        void apply(Markdown::OrderedList& orderedList) override
+        {
+            std::cout<<"orderedList = "<<std::endl;
+            size_t count = 1;
+            for(auto& item : orderedList.items)
+            {
+                std::cout<<count<<". ";
+                item->accept(*this);
+                ++count;
+            }
+        }
+
+        void apply(Markdown::UnorderedList& unorderedList) override
+        {
+            std::cout<<"unorderedList = "<<std::endl;
+            for(auto& item : unorderedList.items)
+            {
+                std::cout<<"  * ";
+                item->accept(*this);
+            }
+        }
+
+        void apply(Markdown::Document& document) override
+        {
+            std::cout<<"doc = "<<document.className()<<std::endl;
+            for(auto& item : document.items)
+            {
+                item->accept(*this);
+            }
+        }
+    };
+
+    std::cout<<"Document read "<<document<<std::endl;
+
+    vsg::visit<PrintDocuemt>(document);
 
     return {};
 }

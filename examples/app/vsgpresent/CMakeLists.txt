@@ -1,4 +1,5 @@
 set(SOURCES
+    Document.cpp
     vsgpresent.cpp
 )
 
