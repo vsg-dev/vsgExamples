@@ -103,11 +103,11 @@ int main(int argc, char** argv)
             path = vsg::filePath(filename);
 
             auto object = vsg::read(filename, options);
-            if (auto node = object.cast<vsg::Node>(); node)
+            if (auto node = object.cast<vsg::Node>())
             {
                 group->addChild(node);
             }
-            else if (auto data = object.cast<vsg::Data>(); data)
+            else if (auto data = object.cast<vsg::Data>())
             {
                 if (auto textureGeometry = createTextureQuad(data, options))
                 {
