@@ -137,7 +137,7 @@ int main(int argc, char** argv)
             {
                 vsg_scene->addChild(node);
 
-                if (auto em = node->getObject<vsg::EllipsoidModel>("EllipsoidModel")) ellipsoidModel = em;
+                ellipsoidModel = node->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
             }
         }
 
