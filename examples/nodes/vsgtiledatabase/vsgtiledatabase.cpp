@@ -43,6 +43,9 @@ int main(int argc, char** argv)
     arguments.read("--file-cache", options->fileCache);
     bool osgEarthStyleMouseButtons = arguments.read({"--osgearth", "-e"});
 
+    VkClearColorValue clearColor{{0.2f, 0.2f, 0.4f, 1.0f}};
+    arguments.read({"--bc", "--background-color"}, clearColor.float32[0], clearColor.float32[1], clearColor.float32[2], clearColor.float32[3]);
+
     uint32_t numOperationThreads = 0;
     if (arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
 
@@ -235,7 +238,10 @@ int main(int argc, char** argv)
         std::cout << "No. of tiles loaed " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
     }
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+    auto rendergraph = vsg::createRenderGraphForView(window, camera, vsg_scene);
+    rendergraph->setClearValues(clearColor);
+
+    auto commandGraph = vsg::CommandGraph::create(window, rendergraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
