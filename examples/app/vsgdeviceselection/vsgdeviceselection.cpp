@@ -61,12 +61,14 @@ int main(int argc, char** argv)
         }
     }
 
-    if (arguments.read({"--extensions", "-e"}))
+    bool print_extensiions = arguments.read({"--extensions", "-e"});
+    if (print_extensiions)
     {
+        std::cout<<"vsg::enumerateInstanceExtensionProperties()"<<std::endl;
         auto extensions = vsg::enumerateInstanceExtensionProperties();
         for(auto& extension : extensions)
         {
-            std::cout<<"extensionName = "<<extension.extensionName<<" specVersion = "<<extension.specVersion<<std::endl;
+            std::cout<<"    extensionName = "<<extension.extensionName<<", specVersion = "<<extension.specVersion<<std::endl;
         }
     }
 
@@ -194,6 +196,17 @@ int main(int argc, char** argv)
     {
         std::cout << "Using vsg::Window default behavior to create the required vsg::Device." << std::endl;
     }
+
+    if (print_extensiions)
+    {
+        std::cout<<"PhysicalDevice::enumerateDeviceExtensionProperties()"<<std::endl;
+        auto physicalDevice = window->getOrCreatePhysicalDevice();
+        for(auto extension : physicalDevice->enumerateDeviceExtensionProperties())
+        {
+            std::cout<<"    extensionName = "<<extension.extensionName<<", spec = "<<extension.specVersion<<std::endl;
+        }
+    }
+
 
     // load the scene graph to render
     vsg::Path filename = "models/lz.vsgt";
