@@ -115,7 +115,7 @@ void main() {
     gl_Position = (pc.projection * pc.modelview) * vec4(textLayout.position.xyz + pos, 1.0);
     #endif
 
-    gl_Position.z -= inPosition.z*0.001;
+    gl_Position.z += inPosition.z*0.0001;
 
     fragColor = textLayout.color;
     outlineColor = textLayout.outlineColor;
@@ -130,7 +130,7 @@ void main() {
     gl_Position = (pc.projection * pc.modelview) * vec4(inPosition, 1.0);
     #endif
 
-    gl_Position.z -= inTexCoord.z*0.001;
+    gl_Position.z += inTexCoord.z*0.0001;
     fragColor = inColor;
     outlineColor = inOutlineColor;
     outlineWidth = inOutlineWidth;
