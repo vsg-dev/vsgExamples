@@ -39,10 +39,28 @@ public:
             intersection(*lastPointerEvent);
             if (!lastIntersection) return;
 
-            geom.position = vsg::vec3(lastIntersection->worldIntersection);
+            vsg::info("keyPress.keyModifier = ", keyPress.keyModifier, " keyPress.keyBase = ", keyPress.keyBase);
+
             geom.dx.set(scale, 0.0f, 0.0f);
             geom.dy.set(0.0f, scale, 0.0f);
             geom.dz.set(0.0f, 0.0f, scale);
+
+            if (keyPress.keyModifier == vsg::MODKEY_Control)
+            {
+                // when we press the ctrl key we want to enable billboard of the created shapes
+                state.billboard = true;
+
+                // when billboard the position is pivot point in local cooridnates
+                geom.position.set(0.0f, 0.0f, 0.0f);
+
+                // the position is set by positions data, in this case just one poistion so use a vec4Value, but we can if need use a array of positions
+                auto pos = vsg::vec3(lastIntersection->worldIntersection);
+                geom.positions = vsg::vec4Value::create(vsg::vec4(pos.x, pos.y, pos.z, scale*5.0)); // x,y,z and scaleDistance
+            }
+            else
+            {
+                geom.position = vsg::vec3(lastIntersection->worldIntersection);
+            }
 
             if (keyPress.keyBase == 'b')
             {
@@ -72,6 +90,13 @@ public:
             {
                 vsg::write(scenegraph, "builder.vsgt");
             }
+        }
+
+        if (state.billboard)
+        {
+            // switch off billboarding so other shapes aren't affected.
+            state.billboard = false;
+            geom.positions = {};
         }
     }
 
@@ -191,7 +216,7 @@ int main(int argc, char** argv)
         if (model)
         {
             scene->addChild(model);
-            ellipsoidModel = model->getObject<vsg::EllipsoidModel>("EllipsoidModel");
+            ellipsoidModel = model->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
         }
     }
 
@@ -279,7 +304,7 @@ int main(int argc, char** argv)
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    viewer->addEventHandler(vsg::Trackball::create(camera));
+    viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
     auto intersectionHandler = IntersectionHandler::create(builder, camera, scene, ellipsoidModel, radius * 0.1, options);
     intersectionHandler->state = stateInfo;

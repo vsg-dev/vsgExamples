@@ -123,7 +123,7 @@ int main(int argc, char** argv)
         // set up the camera
         vsg::ref_ptr<vsg::LookAt> lookAt;
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+        auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
         if (ellipsoidModel)
         {
             if (poi_latitude != invalid_value && poi_longitude != invalid_value)

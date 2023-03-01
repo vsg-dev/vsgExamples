@@ -226,5 +226,39 @@ int main(int /*argc*/, char** /*argv*/)
     test_inverse(rot_z);
     test_inverse(plane_trans);
 
+
+    std::cout<< std::endl<<"Test vsg::transform(vsg::CoordinateConvention src, vsg::CoordinateConvention dest, vsg::dmat&)"<<std::endl;
+    vsg::dmat4 x_to_y;
+    vsg::transform(vsg::CoordinateConvention::X_UP, vsg::CoordinateConvention::Y_UP, x_to_y);
+
+    vsg::dmat4 x_to_z;
+    vsg::transform(vsg::CoordinateConvention::X_UP, vsg::CoordinateConvention::Z_UP, x_to_z);
+
+    vsg::dmat4 y_to_z;
+    vsg::transform(vsg::CoordinateConvention::Y_UP, vsg::CoordinateConvention::Z_UP, y_to_z);
+
+    vsg::dmat4 y_to_x;
+    vsg::transform(vsg::CoordinateConvention::Y_UP, vsg::CoordinateConvention::X_UP, y_to_x);
+
+    vsg::dmat4 z_to_x;
+    vsg::transform(vsg::CoordinateConvention::Z_UP, vsg::CoordinateConvention::X_UP, z_to_x);
+
+    vsg::dmat4 z_to_y;
+    vsg::transform(vsg::CoordinateConvention::Z_UP, vsg::CoordinateConvention::Y_UP, z_to_y);
+
+    std::cout << "x_to_y = " << x_to_y << " rotate = " << vsg::rotate(vsg::radians(90.0), 0.0, 0.0, -1.0) << std::endl;
+    std::cout << "x_to_z = " << x_to_z << " rotate = " << vsg::rotate(vsg::radians(90.0), 0.0, -1.0, 0.0) << std::endl;
+    std::cout << "y_to_x = " << y_to_x << " rotate = " << vsg::rotate(vsg::radians(90.0), 0.0, 0.0, 1.0) << std::endl;
+    std::cout << "y_to_z = " << y_to_z << " rotate = " << vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) << std::endl;
+    std::cout << "z_to_x = " << z_to_x << " rotate = " << vsg::rotate(vsg::radians(90.0), 0.0, 1.0, 0.0) << std::endl;
+    std::cout << "z_to_y = " << z_to_y << " rotate = " << vsg::rotate(vsg::radians(90.0), -1.0, 0.0, 0.0) << std::endl;
+
+    std::cout << "x_to_y * y_to_x = "  << x_to_y * y_to_x << std::endl;
+    std::cout << "x_to_z * z_to_x = "  << x_to_z * z_to_x << std::endl;
+    std::cout << "y_to_x * x_to_y = "  << y_to_x * x_to_y << std::endl;
+    std::cout << "y_to_z * z_to_y = "  << y_to_z * z_to_y << std::endl;
+    std::cout << "z_to_x * x_to_z = "  << z_to_x * x_to_z << std::endl;
+    std::cout << "z_to_y * y_to_z = "  << z_to_y * y_to_z << std::endl;
+
     return 0;
 }

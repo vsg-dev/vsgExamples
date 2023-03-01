@@ -52,6 +52,7 @@ layout(location = 0) out vec4 outColor;
 // or from the interpolated mesh normal and tangent attributes.
 vec3 getNormal()
 {
+    vec3 result;
 #ifdef VSG_NORMAL_MAP
     // Perturb normal, see http://www.thetenthplanet.de/archives/1180
     vec3 tangentNormal = texture(normalMap, texCoord0).xyz * 2.0 - 1.0;
@@ -68,10 +69,15 @@ vec3 getNormal()
     vec3 B = -normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);
 
-    return normalize(TBN * tangentNormal);
+    result = normalize(TBN * tangentNormal);
 #else
-    return normalize(normalDir);
+    result = normalize(normalDir);
 #endif
+#ifdef VSG_TWO_SIDED_LIGHTING
+    if (!gl_FrontFacing)
+        result = -result;
+#endif
+    return result;
 }
 
 vec3 computeLighting(vec3 ambientColor, vec3 diffuseColor, vec3 specularColor, vec3 emissiveColor, float shininess, float ambientOcclusion, vec3 ld, vec3 nd, vec3 vd)
@@ -165,13 +171,6 @@ void main()
             vec3 direction = -lightData.values[index++].xyz;
 
             float unclamped_LdotN = dot(direction, nd);
-            #ifdef VSG_TWO_SIDED_LIGHTING
-            if (unclamped_LdotN < 0.0)
-            {
-                nd = -nd;
-                unclamped_LdotN = -unclamped_LdotN;
-            }
-            #endif
 
             float diff = max(unclamped_LdotN, 0.0);
             color.rgb += (diffuseColor.rgb * lightColor.rgb) * (diff * lightColor.a);
@@ -197,13 +196,6 @@ void main()
             float scale = lightColor.a / distance2;
 
             float unclamped_LdotN = dot(direction, nd);
-            #ifdef VSG_TWO_SIDED_LIGHTING
-            if (unclamped_LdotN < 0.0)
-            {
-                nd = -nd;
-                unclamped_LdotN = -unclamped_LdotN;
-            }
-            #endif
 
             float diff = scale * max(unclamped_LdotN, 0.0);
 
@@ -233,13 +225,6 @@ void main()
             float scale = (lightColor.a  * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
 
             float unclamped_LdotN = dot(direction, nd);
-            #ifdef VSG_TWO_SIDED_LIGHTING
-            if (unclamped_LdotN < 0.0)
-            {
-                nd = -nd;
-                unclamped_LdotN = -unclamped_LdotN;
-            }
-            #endif
 
             float diff = scale * max(unclamped_LdotN, 0.0);
             color.rgb += (diffuseColor.rgb * lightColor.rgb) * diff;

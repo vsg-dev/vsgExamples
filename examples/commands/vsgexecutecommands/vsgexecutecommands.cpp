@@ -229,10 +229,10 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     double aspectRatio = traits->fullscreen ? (1920.0 / 1080.0) : static_cast<double>(traits->width) / static_cast<double>(traits->height);
-    if (vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel")); ellipsoidModel)
+    if (auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel"))
     {
         double horizonMountainHeight = 0.0;
-        perspective = vsg::EllipsoidPerspective::create(lookAt, vsg::EllipsoidModel::create(), 30.0, aspectRatio, nearFarRatio, horizonMountainHeight);
+        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, aspectRatio, nearFarRatio, horizonMountainHeight);
     }
     else
     {
