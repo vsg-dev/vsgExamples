@@ -111,9 +111,20 @@ int main(int argc, char** argv)
 
                 auto [graphicsFamily, presentFamily] = physicalDevice->getQueueFamily(windowTraits->queueFlags, surface);
                 if (graphicsFamily >= 0 && presentFamily >= 0)
-                    std::cout << "    matched " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType << std::endl;
+                    std::cout << "    matched ";
                 else
-                    std::cout << "    not matched " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType << std::endl;
+                    std::cout << "    not matched ";
+
+                std::cout << physicalDevice << " " << properties.deviceName
+                          << ", deviceType = " << properties.deviceType
+#ifdef VK_API_VERSION_MAJOR
+                          << ", apiVersion = "<<VK_API_VERSION_MAJOR(properties.apiVersion)<<"."<<VK_API_VERSION_MINOR(properties.apiVersion)<<"."<<VK_API_VERSION_PATCH(properties.apiVersion)
+                          << ", driverVersion = "<<VK_API_VERSION_MAJOR(properties.driverVersion)<<"."<<VK_API_VERSION_MINOR(properties.driverVersion)<<"."<<VK_API_VERSION_PATCH(properties.driverVersion)
+#else
+                          << ", apiVersion = "<<properties.apiVersion
+                          << ", driverVersion = "<<properties.driverVersion
+#endif
+                          << std::endl;
             }
             return 0;
         }
