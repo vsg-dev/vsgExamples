@@ -134,23 +134,16 @@ int main(int argc, char** argv)
         else if (type <= 2)
         {
             std::cout << "Using vsg::DrawMeshTasksIndirect" << std::endl;
-            auto data = vsg::DrawMeshTasksIndirectCommandArray::create(1);
-            data->at(0).groupCountX = 3;
-            data->at(0).groupCountY = 1;
-            data->at(0).groupCountZ = 1;
-            scenegraph->addChild(vsg::DrawMeshTasksIndirect::create(data, 1, 8));
+            auto data = vsg::uivec3Value::create(3, 1, 1); // groupCountX = 3, groupCountY = 1, groupCountZ = 1
+            scenegraph->addChild(vsg::DrawMeshTasksIndirect::create(data, 1, 12));
         }
         else
         {
             std::cout << "Using vsg::DrawMeshTasksIndirectCount" << std::endl;
-            auto data = vsg::DrawMeshTasksIndirectCommandArray::create(1);
-            data->at(0).groupCountX = 5;
-            data->at(0).groupCountY = 1;
-            data->at(0).groupCountZ = 1;
+            auto data = vsg::uivec3Value::create(5, 1, 1); // groupCountX = 5, groupCountY = 1, groupCountZ = 1
+            auto count = vsg::uintValue::create(1);
 
-            auto count = vsg::uintArray::create(1);
-            count->at(0) = 1;
-            scenegraph->addChild(vsg::DrawMeshTasksIndirectCount::create(data, count, 1, 8));
+            scenegraph->addChild(vsg::DrawMeshTasksIndirectCount::create(data, count, 1, 12));
         }
 
         if (outputFilename)
