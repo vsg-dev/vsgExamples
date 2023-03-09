@@ -135,18 +135,18 @@ int main(int argc, char** argv)
         {
             std::cout << "Using vsg::DrawMeshTasksIndirect" << std::endl;
             auto data = vsg::DrawMeshTasksIndirectCommandArray::create(1);
-            data->at(0).x = 3;
-            data->at(0).y = 1;
-            data->at(0).z = 1;
+            data->at(0).groupCountX = 3;
+            data->at(0).groupCountY = 1;
+            data->at(0).groupCountZ = 1;
             scenegraph->addChild(vsg::DrawMeshTasksIndirect::create(data, 1, 8));
         }
         else
         {
             std::cout << "Using vsg::DrawMeshTasksIndirectCount" << std::endl;
             auto data = vsg::DrawMeshTasksIndirectCommandArray::create(1);
-            data->at(0).x = 5;
-            data->at(0).y = 1;
-            data->at(0).z = 1;
+            data->at(0).groupCountX = 5;
+            data->at(0).groupCountY = 1;
+            data->at(0).groupCountZ = 1;
 
             auto count = vsg::uintArray::create(1);
             count->at(0) = 1;
