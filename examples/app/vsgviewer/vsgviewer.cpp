@@ -25,6 +25,24 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vs
     return builder->createQuad(geom, state);
 }
 
+void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
+{
+    auto shaderHints = vsg::ShaderCompileSettings::create();
+    shaderHints->generateDebugInfo = true;
+
+    auto& text = options->shaderSets["text"] = vsg::createTextShaderSet(options);
+    text->defaultShaderHints = shaderHints;
+
+    auto& flat = options->shaderSets["flat"] = vsg::createFlatShadedShaderSet(options);
+    flat->defaultShaderHints = shaderHints;
+
+    auto& phong = options->shaderSets["phong"] = vsg::createPhongShaderSet(options);
+    phong->defaultShaderHints = shaderHints;
+
+    auto& pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
+    pbr->defaultShaderHints = shaderHints;
+}
+
 int main(int argc, char** argv)
 {
     try
@@ -81,6 +99,12 @@ int main(int argc, char** argv)
         auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
+
+        if (arguments.read({"--shader-debug-info", "--sdi"}))
+        {
+            enableGenerateDebugInfo(options);
+            windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+        }
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
 
