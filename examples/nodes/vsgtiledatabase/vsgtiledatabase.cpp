@@ -23,7 +23,7 @@ int main(int argc, char** argv)
     arguments.read(options);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgpagedlod";
+    windowTraits->windowTitle = "vsgtiledatabase";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;

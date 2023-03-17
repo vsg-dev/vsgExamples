@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 
 project(vsgExamples
-        VERSION 1.0.2
+        VERSION 1.0.3
         DESCRIPTION "Set of example programs that test and illustrate how to use the VulkanSceneGraph"
         LANGUAGES CXX C
 )
@@ -78,7 +78,7 @@ add_subdirectory(examples/threading)
 add_subdirectory(examples/app)
 add_subdirectory(examples/vk)
 add_subdirectory(examples/text)
-add_subdirectory(examples/rtx)
+add_subdirectory(examples/meshshaders)
 add_subdirectory(examples/raytracing)
 add_subdirectory(examples/platform)
 add_subdirectory(examples/utils)
