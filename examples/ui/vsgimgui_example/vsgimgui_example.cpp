@@ -29,11 +29,13 @@ class MyGui : public vsg::Inherit<vsg::Command, MyGui>
 {
 public:
     vsg::ref_ptr<vsgImGui::ImageComponent> image;
-    vsg::ref_ptr<Params> _params;
+    vsg::ref_ptr<Params> params;
 
-    MyGui(vsg::ref_ptr<Params> params, vsg::ref_ptr<vsgImGui::ImageComponent> in_image) :
-        image(in_image), _params(params)
+    MyGui(vsg::ref_ptr<Params> in_params, vsg::ref_ptr<vsg::Options> options = {}) :
+        params(in_params)
     {
+        auto texData = vsg::read_cast<vsg::Data>("textures/VSGlogo.png", options);
+        image = vsgImGui::ImageComponent::create_if(texData, texData);
     }
 
     // we need to compile textures before we can use them for rendering
@@ -46,50 +48,50 @@ public:
     void record(vsg::CommandBuffer& cb) const override
     {
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-        if (_params->showGui)
+        if (params->showGui)
         {
             ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
             ImGui::Text("Some useful message here.");                 // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &_params->showDemoWindow); // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &_params->showSecondWindow);
-            ImGui::Checkbox("ImPlot Demo Window", &_params->showImPlotDemoWindow);
+            ImGui::Checkbox("Demo Window", &params->showDemoWindow); // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &params->showSecondWindow);
+            ImGui::Checkbox("ImPlot Demo Window", &params->showImPlotDemoWindow);
             if (image)
             {
-                ImGui::Checkbox("Images Window", &_params->showImagesWindow);
+                ImGui::Checkbox("Images Window", &params->showImagesWindow);
             }
 
-            ImGui::SliderFloat("float", &_params->dist, 0.0f, 1.0f);        // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&_params->clearColor); // Edit 3 floats representing a color
+            ImGui::SliderFloat("float", &params->dist, 0.0f, 1.0f);        // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::ColorEdit3("clear color", (float*)&params->clearColor); // Edit 3 floats representing a color
 
             if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
-                _params->counter++;
+                params->counter++;
 
             ImGui::SameLine();
-            ImGui::Text("counter = %d", _params->counter);
+            ImGui::Text("counter = %d", params->counter);
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
         }
 
         // 3. Show another simple window.
-        if (_params->showSecondWindow)
+        if (params->showSecondWindow)
         {
-            ImGui::Begin("Another Window", &_params->showSecondWindow); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Begin("Another Window", &params->showSecondWindow); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
             ImGui::Text("Hello from another window!");
             if (ImGui::Button("Close Me"))
-                _params->showSecondWindow = false;
+                params->showSecondWindow = false;
             ImGui::End();
         }
 
-        if (_params->showDemoWindow)
+        if (params->showDemoWindow)
         {
-            ImGui::ShowDemoWindow(&_params->showDemoWindow);
+            ImGui::ShowDemoWindow(&params->showDemoWindow);
         }
 
-        if (_params->showImPlotDemoWindow)
+        if (params->showImPlotDemoWindow)
         {
-            ImPlot::ShowDemoWindow(&_params->showImPlotDemoWindow);
+            ImPlot::ShowDemoWindow(&params->showImPlotDemoWindow);
         }
 
         // UV for a squre in the logo image
@@ -97,7 +99,7 @@ public:
         {
             ImVec2 squareUV(static_cast<float>(image->height) / image->width, 1.0f);
 
-            if (_params->showLogoWindow)
+            if (params->showLogoWindow)
             {
                 // Copied from imgui_demo.cpp simple overlay
                 ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
@@ -124,9 +126,9 @@ public:
                 ImGui::PopStyleVar();
             }
 
-            if (_params->showImagesWindow)
+            if (params->showImagesWindow)
             {
-                ImGui::Begin("Image Window", &_params->showImagesWindow);
+                ImGui::Begin("Image Window", &params->showImagesWindow);
                 ImGui::Text("An image:");
                 // The logo texture is big, show show it at half size
 
@@ -140,10 +142,10 @@ public:
                                     ImVec2(32.0f, 32.0f),
                                     ImVec2(0.0f, 0.0f),
                                     squareUV))
-                    _params->counter++;
+                    params->counter++;
 
                 ImGui::SameLine();
-                ImGui::Text("counter = %d", _params->counter);
+                ImGui::Text("counter = %d", params->counter);
                 ImGui::End();
             }
         }
@@ -271,9 +273,7 @@ int main(int argc, char** argv)
 
         // Create the ImGui node and add it to the renderGraph
         auto params = Params::create();
-        auto texData = vsg::read_cast<vsg::Data>("textures/VSGlogo.png", options);
-        auto imageComponent = vsgImGui::ImageComponent::create_if(texData, texData);
-        auto renderImGui = vsgImGui::RenderImGui::create(window, MyGui::create(params, imageComponent));
+        auto renderImGui = vsgImGui::RenderImGui::create(window, MyGui::create(params, options));
         renderGraph->addChild(renderImGui);
 
         // Add the ImGui event handler first to handle events early
