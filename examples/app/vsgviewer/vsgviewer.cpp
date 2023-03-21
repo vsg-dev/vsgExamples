@@ -25,6 +25,24 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vs
     return builder->createQuad(geom, state);
 }
 
+void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
+{
+    auto shaderHints = vsg::ShaderCompileSettings::create();
+    shaderHints->generateDebugInfo = true;
+
+    auto& text = options->shaderSets["text"] = vsg::createTextShaderSet(options);
+    text->defaultShaderHints = shaderHints;
+
+    auto& flat = options->shaderSets["flat"] = vsg::createFlatShadedShaderSet(options);
+    flat->defaultShaderHints = shaderHints;
+
+    auto& phong = options->shaderSets["phong"] = vsg::createPhongShaderSet(options);
+    phong->defaultShaderHints = shaderHints;
+
+    auto& pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
+    pbr->defaultShaderHints = shaderHints;
+}
+
 int main(int argc, char** argv)
 {
     try
@@ -82,6 +100,12 @@ int main(int argc, char** argv)
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        if (arguments.read({"--shader-debug-info", "--sdi"}))
+        {
+            enableGenerateDebugInfo(options);
+            windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+        }
+
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -103,11 +127,11 @@ int main(int argc, char** argv)
             path = vsg::filePath(filename);
 
             auto object = vsg::read(filename, options);
-            if (auto node = object.cast<vsg::Node>(); node)
+            if (auto node = object.cast<vsg::Node>())
             {
                 group->addChild(node);
             }
-            else if (auto data = object.cast<vsg::Data>(); data)
+            else if (auto data = object.cast<vsg::Data>())
             {
                 if (auto textureGeometry = createTextureQuad(data, options))
                 {
@@ -157,7 +181,7 @@ int main(int argc, char** argv)
         auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel(vsg_scene->getObject<vsg::EllipsoidModel>("EllipsoidModel"));
+        auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
         if (ellipsoidModel)
         {
             perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);

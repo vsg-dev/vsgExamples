@@ -119,6 +119,7 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
+    arguments.read("--samples", windowTraits->samples);
     auto numFrames = arguments.value(-1, "-f");
     auto fontFile = arguments.value<vsg::Path>({}, "--font");
     auto fontSize = arguments.value<float>(30.0f, "--font-size");
@@ -137,7 +138,7 @@ int main(int argc, char** argv)
             {
                 vsg_scene->addChild(node);
 
-                if (auto em = node->getObject<vsg::EllipsoidModel>("EllipsoidModel")) ellipsoidModel = em;
+                ellipsoidModel = node->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
             }
         }
 
