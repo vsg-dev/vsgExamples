@@ -34,7 +34,7 @@ public:
     }
 
     // Example here taken from the Dear imgui comments (mostly)
-    void operator()(vsg::RecordTraversal&)
+    void operator()(vsg::RecordTraversal& rt)
     {
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         if (_params->showGui)
@@ -106,9 +106,11 @@ public:
                 ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
                 ImGui::Begin("vsgCS UI", nullptr, window_flags);
+
                 // Display a square from the VSG logo
                 const float size = 128.0f;
-                (*image)(size, size, ImVec2(0.0f, 0.0f), squareUV);
+                ImGui::Image(image->getTextureID(rt.deviceID()), ImVec2(size, size), ImVec2(0.0f, 0.0f), squareUV);
+
                 ImGui::End();
                 ImGui::PopStyleVar();
             }
@@ -118,12 +120,14 @@ public:
                 ImGui::Begin("Image Window", &_params->showImagesWindow);
                 ImGui::Text("An image:");
                 // The logo texture is big, show show it at half size
-                (*image)(image->width / 2.0f, image->height / 2.0f);
+
+                ImGui::Image(image->getTextureID(rt.deviceID()), ImVec2(image->width / 2.0f, image->height / 2.0f));
+
                 // We could make another component class for ImageButton, but we will take a short cut
                 // and reuse the descriptor set from our existing image.
                 //
                 // Make a small square button
-                if (ImGui::ImageButton("Button", image->getTextureID(),
+                if (ImGui::ImageButton("Button", image->getTextureID(rt.deviceID()  ),
                                     ImVec2(32.0f, 32.0f),
                                     ImVec2(0.0f, 0.0f),
                                     squareUV))
@@ -262,7 +266,7 @@ int main(int argc, char** argv)
         // Create the ImGui node and add it to the renderGraph
         auto params = Params::create();
         auto texData = vsg::read_cast<vsg::Data>("textures/VSGlogo.png", options);
-        auto imageComponent = vsgImGui::ImageComponent::create_if(texData, window, texData);
+        auto imageComponent = vsgImGui::ImageComponent::create_if(texData, texData);
         auto renderImGui = vsgImGui::RenderImGui::create(window, MyGuiComponent(params, imageComponent));
         if (imageComponent) renderImGui->addChild(imageComponent);
         renderGraph->addChild(renderImGui);
