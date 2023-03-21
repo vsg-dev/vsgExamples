@@ -129,7 +129,7 @@ int main(int argc, char** argv)
         if (model)
         {
             scene->addChild(model);
-            ellipsoidModel = model->getObject<vsg::EllipsoidModel>("EllipsoidModel");
+            ellipsoidModel = model->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
         }
     }
 
