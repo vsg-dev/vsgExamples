@@ -25,16 +25,25 @@ struct Params : public vsg::Inherit<vsg::Object, Params>
     float dist = 0.f;
 };
 
-class MyGuiComponent
+class MyGui : public vsg::Inherit<vsg::Command, MyGui>
 {
 public:
-    MyGuiComponent(vsg::ref_ptr<Params> params, vsg::ref_ptr<vsgImGui::ImageComponent> in_image) :
+    vsg::ref_ptr<vsgImGui::ImageComponent> image;
+    vsg::ref_ptr<Params> _params;
+
+    MyGui(vsg::ref_ptr<Params> params, vsg::ref_ptr<vsgImGui::ImageComponent> in_image) :
         image(in_image), _params(params)
     {
     }
 
+    // we need to compile textures before we can use them for rendering
+    void compile(vsg::Context& context) override
+    {
+        if (image) image->compile(context);
+    }
+
     // Example here taken from the Dear imgui comments (mostly)
-    void operator()(vsg::RecordTraversal& rt)
+    void record(vsg::CommandBuffer& cb) const override
     {
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         if (_params->showGui)
@@ -109,7 +118,7 @@ public:
 
                 // Display a square from the VSG logo
                 const float size = 128.0f;
-                ImGui::Image(image->getTextureID(rt.deviceID()), ImVec2(size, size), ImVec2(0.0f, 0.0f), squareUV);
+                ImGui::Image(image->getTextureID(cb.deviceID), ImVec2(size, size), ImVec2(0.0f, 0.0f), squareUV);
 
                 ImGui::End();
                 ImGui::PopStyleVar();
@@ -121,13 +130,13 @@ public:
                 ImGui::Text("An image:");
                 // The logo texture is big, show show it at half size
 
-                ImGui::Image(image->getTextureID(rt.deviceID()), ImVec2(image->width / 2.0f, image->height / 2.0f));
+                ImGui::Image(image->getTextureID(cb.deviceID), ImVec2(image->width / 2.0f, image->height / 2.0f));
 
                 // We could make another component class for ImageButton, but we will take a short cut
                 // and reuse the descriptor set from our existing image.
                 //
                 // Make a small square button
-                if (ImGui::ImageButton("Button", image->getTextureID(rt.deviceID()  ),
+                if (ImGui::ImageButton("Button", image->getTextureID(cb.deviceID),
                                     ImVec2(32.0f, 32.0f),
                                     ImVec2(0.0f, 0.0f),
                                     squareUV))
@@ -139,9 +148,6 @@ public:
             }
         }
     }
-    vsg::ref_ptr<vsgImGui::ImageComponent> image;
-private:
-    vsg::ref_ptr<Params> _params;
 };
 
 int main(int argc, char** argv)
@@ -267,8 +273,7 @@ int main(int argc, char** argv)
         auto params = Params::create();
         auto texData = vsg::read_cast<vsg::Data>("textures/VSGlogo.png", options);
         auto imageComponent = vsgImGui::ImageComponent::create_if(texData, texData);
-        auto renderImGui = vsgImGui::RenderImGui::create(window, MyGuiComponent(params, imageComponent));
-        if (imageComponent) renderImGui->addChild(imageComponent);
+        auto renderImGui = vsgImGui::RenderImGui::create(window, MyGui::create(params, imageComponent));
         renderGraph->addChild(renderImGui);
 
         // Add the ImGui event handler first to handle events early
