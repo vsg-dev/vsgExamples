@@ -119,6 +119,7 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
+    arguments.read("--samples", windowTraits->samples);
     auto numFrames = arguments.value(-1, "-f");
     auto fontFile = arguments.value<vsg::Path>({}, "--font");
     auto fontSize = arguments.value<float>(30.0f, "--font-size");
