@@ -1,6 +1,6 @@
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
-#include <vsgImGui/ImageComponent.h>
+#include <vsgImGui/Texture.h>
 #include <vsgImGui/imgui.h>
 #include <vsgImGui/implot.h>
 
@@ -28,20 +28,20 @@ struct Params : public vsg::Inherit<vsg::Object, Params>
 class MyGui : public vsg::Inherit<vsg::Command, MyGui>
 {
 public:
-    vsg::ref_ptr<vsgImGui::ImageComponent> image;
+    vsg::ref_ptr<vsgImGui::Texture> texture;
     vsg::ref_ptr<Params> params;
 
     MyGui(vsg::ref_ptr<Params> in_params, vsg::ref_ptr<vsg::Options> options = {}) :
         params(in_params)
     {
         auto texData = vsg::read_cast<vsg::Data>("textures/VSGlogo.png", options);
-        image = vsgImGui::ImageComponent::create_if(texData, texData);
+        texture = vsgImGui::Texture::create_if(texData, texData);
     }
 
     // we need to compile textures before we can use them for rendering
     void compile(vsg::Context& context) override
     {
-        if (image) image->compile(context);
+        if (texture) texture->compile(context);
     }
 
     // Example here taken from the Dear imgui comments (mostly)
@@ -56,7 +56,7 @@ public:
             ImGui::Checkbox("Demo Window", &params->showDemoWindow); // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &params->showSecondWindow);
             ImGui::Checkbox("ImPlot Demo Window", &params->showImPlotDemoWindow);
-            if (image)
+            if (texture)
             {
                 ImGui::Checkbox("Images Window", &params->showImagesWindow);
             }
@@ -94,10 +94,10 @@ public:
             ImPlot::ShowDemoWindow(&params->showImPlotDemoWindow);
         }
 
-        // UV for a squre in the logo image
-        if (image)
+        // UV for a squre in the logo texture
+        if (texture)
         {
-            ImVec2 squareUV(static_cast<float>(image->height) / image->width, 1.0f);
+            ImVec2 squareUV(static_cast<float>(texture->height) / texture->width, 1.0f);
 
             if (params->showLogoWindow)
             {
@@ -120,7 +120,7 @@ public:
 
                 // Display a square from the VSG logo
                 const float size = 128.0f;
-                ImGui::Image(image->getTextureID(cb.deviceID), ImVec2(size, size), ImVec2(0.0f, 0.0f), squareUV);
+                ImGui::Image(texture->id(cb.deviceID), ImVec2(size, size), ImVec2(0.0f, 0.0f), squareUV);
 
                 ImGui::End();
                 ImGui::PopStyleVar();
@@ -129,16 +129,16 @@ public:
             if (params->showImagesWindow)
             {
                 ImGui::Begin("Image Window", &params->showImagesWindow);
-                ImGui::Text("An image:");
+                ImGui::Text("An texture:");
                 // The logo texture is big, show show it at half size
 
-                ImGui::Image(image->getTextureID(cb.deviceID), ImVec2(image->width / 2.0f, image->height / 2.0f));
+                ImGui::Image(texture->id(cb.deviceID), ImVec2(texture->width / 2.0f, texture->height / 2.0f));
 
                 // We could make another component class for ImageButton, but we will take a short cut
-                // and reuse the descriptor set from our existing image.
+                // and reuse the descriptor set from our existing texture.
                 //
                 // Make a small square button
-                if (ImGui::ImageButton("Button", image->getTextureID(cb.deviceID),
+                if (ImGui::ImageButton("Button", texture->id(cb.deviceID),
                                     ImVec2(32.0f, 32.0f),
                                     ImVec2(0.0f, 0.0f),
                                     squareUV))
