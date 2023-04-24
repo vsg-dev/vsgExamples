@@ -40,6 +40,8 @@ layout(location = 2) in mat4 texgen;
 
 layout(location = 0) out vec4 outColor;
 
+vec4 accumulateSamples(vec4 fragColor, vec3 te, vec3 dt, float scale, float cutoff, float num_iterations,float AlphaFuncValue,float TransparencyValue);
+
 void main() {
     vec4 t0 = vertexPos;
     vec4 te = cameraPos;
@@ -79,37 +81,45 @@ void main() {
     const float min_iteratrions = 2.0;
     const float max_iteratrions = 2048.0;
 
-    float TransparencyValue = 0.8;
-    float AlphaFuncValue = 0.2;
+    float TransparencyValue = 0.4;
+    float AlphaFuncValue = 0.7;
     float SampleDensityValue = 10;
     
     float num_iterations = ceil(length((te-t0).xyz)/SampleDensityValue);
     if (num_iterations<min_iteratrions) num_iterations = min_iteratrions;
     else if (num_iterations>max_iteratrions) num_iterations = max_iteratrions;
 
-    vec3 deltaTexCoord=(t0-te).xyz/(num_iterations-1.0);
+    vec3 deltaTexCoord=(te-t0).xyz/(num_iterations-1.0);
     vec3 texcoord = t0.xyz;
 
     vec4 fragColor = vec4(0.0, 0.0, 0.0, 0.0);
-    while(num_iterations>0.0){
+    vec3 teloc = vec3(te[0],te[1],te[2]);
+    vec3 dx = vec3(deltaTexCoord[0],deltaTexCoord[1],deltaTexCoord[2]);
+    fragColor = accumulateSamples(fragColor,teloc,dx,1.0,0.1,num_iterations,AlphaFuncValue,TransparencyValue);
+    outColor = fragColor;
+}
+
+vec4 accumulateSamples(vec4 fragColor, vec3 te, vec3 dt, float scale, float cutoff, float num_iterations,float AlphaFuncValue,float TransparencyValue){
+    vec3 texcoord = te.xyz;
+    float transmittance = 1.0;
+    float t_cutoff = 1.0-cutoff;
+    while(num_iterations>0.0 && transmittance>=t_cutoff){
         vec4 color1 = texture( volume, texcoord);
-        vec4 color = vec4(0.1,0.1,0.1,color1.r);
-        float r = color[3]*TransparencyValue;
-        if (r>AlphaFuncValue)
-        {
-            fragColor.xyz =+ color.xyz*r;
-            fragColor.w += r;
+        vec4 color = vec4(color1[0],color1[0],color1[0],color1[0]);
+        if (color.a>=AlphaFuncValue){
+            float ca = clamp(color.a*TransparencyValue, 0.0, 1.0);
+            float new_transmitance = transmittance*pow(1.0-ca, scale);
+            float r = transmittance-new_transmitance;
+            fragColor.rgb += color.rgb*r;
+            transmittance = new_transmitance;
         }
-        if (fragColor.w<color.w){
-            fragColor = color;
-        }
-        texcoord += deltaTexCoord;
+        texcoord += dt;
         --num_iterations;
     }
-    fragColor.w *= TransparencyValue;
-    if (fragColor.w>1.0) fragColor.w = 1.0;
-    if (fragColor.w<AlphaFuncValue) discard;
-    outColor = fragColor;
+    fragColor.a = clamp(1.0-transmittance, 0.0, 1.0);
+    if (num_iterations>0) fragColor.a = 1.0;
+    return fragColor;
+}
 })";
 
 void updateBaseTexture3D(vsg::floatArray3D& image, float value)
@@ -248,10 +258,13 @@ int main(int argc, char** argv)
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
     };
 
+    auto rasterizationState = vsg::RasterizationState::create();
+    rasterizationState->cullMode = VK_CULL_MODE_FRONT_BIT;
+
     vsg::GraphicsPipelineStates pipelineStates{
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
+        rasterizationState,
         vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
         vsg::DepthStencilState::create()};
