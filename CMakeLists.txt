@@ -82,5 +82,6 @@ add_subdirectory(examples/meshshaders)
 add_subdirectory(examples/raytracing)
 add_subdirectory(examples/platform)
 add_subdirectory(examples/utils)
+add_subdirectory(examples/volume)
 
 vsg_add_feature_summary()
