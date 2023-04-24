@@ -1,5 +1,5 @@
 set(SOURCES
-    osg_reprodution.cpp
+    vsgvolume.cpp
 )
 
 add_executable(vsgvolume ${SOURCES})

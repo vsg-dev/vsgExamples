@@ -82,7 +82,7 @@ void main() {
     float TransparencyValue = 0.8;
     float AlphaFuncValue = 0.2;
     float SampleDensityValue = 10;
-    
+
     float num_iterations = ceil(length((te-t0).xyz)/SampleDensityValue);
     if (num_iterations<min_iteratrions) num_iterations = min_iteratrions;
     else if (num_iterations>max_iteratrions) num_iterations = max_iteratrions;

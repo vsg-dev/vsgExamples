@@ -1,1 +1,1 @@
-add_subdirectory(osg_reproduction)
+add_subdirectory(vsgvolume)
