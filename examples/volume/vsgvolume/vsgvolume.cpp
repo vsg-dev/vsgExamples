@@ -214,8 +214,8 @@ int main(int argc, char** argv)
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/volume.vert", options);
     auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/volume.frag", options);
 
-    // if (!vertexShader) vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", volume_vert);
-    // if (!fragmentShader) fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", volume_frag);
+    if (!vertexShader) vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", volume_vert);
+    if (!fragmentShader) fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", volume_frag);
 
     if (!vertexShader || !fragmentShader)
     {
@@ -254,10 +254,14 @@ int main(int argc, char** argv)
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
     };
 
+
+    auto rasterizationState = vsg::RasterizationState::create();
+    rasterizationState->cullMode = VK_CULL_MODE_FRONT_BIT;
+
     vsg::GraphicsPipelineStates pipelineStates{
         vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
         vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
+        rasterizationState,
         vsg::MultisampleState::create(),
         vsg::ColorBlendState::create(),
         vsg::DepthStencilState::create()};
