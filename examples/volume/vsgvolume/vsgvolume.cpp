@@ -201,6 +201,7 @@ int main(int argc, char** argv)
 
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+    options->add(vsgXchange::all::create());
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->debugLayer = true;
@@ -223,16 +224,29 @@ int main(int argc, char** argv)
         return {};
     }
 
-    // read texture image
-    auto textureData = vsg::floatArray3D::create(100, 100, 100);
-    textureData->properties.format = VK_FORMAT_R32_SFLOAT;
-    textureData->properties.dataVariance = vsg::DYNAMIC_DATA;
 
-    updateBaseTexture3D(*textureData, 1.0f);
+    vsg::ref_ptr<vsg::Data> textureData;
+    if (auto texturePath = arguments.value<vsg::Path>("", "-i"))
+    {
+        textureData = vsg::read_cast<vsg::Data>(texturePath, options);
+        std::cout<<"Reading "<<textureData<<" from "<<texturePath<<std::endl;
+    }
+
     if (!textureData)
     {
-        std::cout << "Could not read texture" << std::endl;
-        return {};
+        // read texture image
+        auto data = vsg::floatArray3D::create(100, 100, 100);
+        data->properties.format = VK_FORMAT_R32_SFLOAT;
+        data->properties.dataVariance = vsg::DYNAMIC_DATA;
+
+        updateBaseTexture3D(*data, 1.0f);
+        if (!data)
+        {
+            std::cout << "Could not create texture" << std::endl;
+            return {};
+        }
+
+        textureData = data;
     }
 
     // set up graphics pipeline
