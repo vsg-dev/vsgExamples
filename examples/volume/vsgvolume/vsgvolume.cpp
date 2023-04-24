@@ -199,6 +199,9 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
+    auto options = vsg::Options::create();
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->debugLayer = true;
     windowTraits->apiDumpLayer = false;
@@ -208,8 +211,11 @@ int main(int argc, char** argv)
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // load shaders
-    auto vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", volume_vert);
-    auto fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", volume_frag);
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/volume.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/volume.frag", options);
+
+    // if (!vertexShader) vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", volume_vert);
+    // if (!fragmentShader) fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", volume_frag);
 
     if (!vertexShader || !fragmentShader)
     {
