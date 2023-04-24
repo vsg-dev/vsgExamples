@@ -153,16 +153,7 @@ vsg::ref_ptr<vsg::Node> get_volume_rendering()
     vsg::vec3 v011(origin + dy + dz);
 
     vsg::ref_ptr<vsg::vec3Array> vertices;
-    vsg::ref_ptr<vsg::vec3Array> normals;
-    vsg::ref_ptr<vsg::vec2Array> texcoords;
     vsg::ref_ptr<vsg::ushortArray> indices;
-
-    vsg::vec3 n0 = normalize(cross(dx, dz));
-    vsg::vec3 n1 = normalize(cross(dy, dz));
-    vsg::vec3 n2 = -n0;
-    vsg::vec3 n3 = -n1;
-    vsg::vec3 n4 = normalize(cross(dy, dx));
-    vsg::vec3 n5 = -n4;
 
     // set up vertex and index arrays
     vertices = vsg::vec3Array::create(
@@ -183,7 +174,6 @@ vsg::ref_ptr<vsg::Node> get_volume_rendering()
 
     vsg::DataList arrays;
     arrays.push_back(vertices);
-    arrays.push_back(normals);
 
     auto vid = vsg::VertexIndexDraw::create();
     vid->assignArrays(arrays);
