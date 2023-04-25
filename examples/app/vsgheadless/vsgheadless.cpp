@@ -412,6 +412,38 @@ int main(int argc, char** argv)
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
 
+    auto createDescriptorImage = [](uint32_t dstBinding) -> auto {
+        auto data = vsg::ubvec4Array2D::create(
+            1, 1, vsg::ubvec4(0xff, 0x00, 0xff, 0xff), vsg::Data::Properties{ VK_FORMAT_R8G8B8A8_UNORM });
+        auto sampler = vsg::Sampler::create();
+        return vsg::DescriptorImage::create(sampler, data, dstBinding);
+    };
+    auto createDescriptorBuffer = [](uint32_t dstBinding) -> auto {
+        return vsg::DescriptorBuffer::create(vsg::intValue::create(), dstBinding);
+    };
+
+    auto layout1 = vsg::DescriptorSetLayout::create(vsg::DescriptorSetLayoutBindings{
+        { 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0 },
+        { 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0 } });
+
+    auto layout2 = vsg::DescriptorSetLayout::create(vsg::DescriptorSetLayoutBindings{
+        { 1/*0*/, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0 },
+        { 0/*1*/, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0 } });
+
+    auto context = vsg::Context::create(device);
+    layout1->compile(*context);
+    layout2->compile(*context);
+
+    auto set1 = vsg::DescriptorSet::create(layout1, vsg::Descriptors{ createDescriptorImage(0), createDescriptorBuffer(1) });
+    set1->compile(*context);
+    set1 = {};
+
+    auto invalid_recycle = vsg::DescriptorSet::create(layout2, vsg::Descriptors{ createDescriptorImage(1), createDescriptorBuffer(0) }); // Violates VUID-VkWriteDescriptorSet-descriptorType-00319 if written to recycled set1.
+
+    std::cout<< "invalid_recycle->compile(*context)" << std::endl;
+    invalid_recycle->compile(*context);
+    return 0;
+
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     vsg_scene->accept(computeBounds);
