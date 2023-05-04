@@ -28,6 +28,104 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
     return vsg::Camera::create(perspective, lookAt, viewportstate);
 }
 
+class UpdateGraphicsPipelines : public vsg::Inherit<vsg::Visitor, UpdateGraphicsPipelines>
+{
+public:
+
+    vsg::ref_ptr<vsg::Context> context;
+    std::set<std::pair<const vsg::Object*, uint32_t>> visited;
+
+    bool visit(const Object* object, uint32_t index)
+    {
+        decltype(visited)::value_type objectIndex(object, index);
+        if (visited.count(objectIndex) != 0) return false;
+        visited.insert(objectIndex);
+        return true;
+    }
+
+    void apply(vsg::Object& object) override
+    {
+        object.traverse(*this);
+    }
+
+    void apply(vsg::BindGraphicsPipeline& bindPipeline) override
+    {
+        if (!visit(&bindPipeline, context->viewID)) return;
+
+        auto pipeline = bindPipeline.pipeline;
+        if (pipeline)
+        {
+            pipeline->release(context->viewID);
+            pipeline->compile(*context);
+        }
+    }
+
+    void apply(vsg::StateGroup& sg) override
+    {
+        if (!visit(&sg, context->viewID)) return;
+
+        for (auto& command : sg.stateCommands)
+        {
+            command->accept(*this);
+        }
+        sg.traverse(*this);
+    }
+
+    void apply(vsg::View& view) override
+    {
+        if (!visit(&view, view.viewID)) return;
+
+        context->viewID = view.viewID;
+        context->defaultPipelineStates.emplace_back(view.camera->viewportState);
+
+        view.traverse(*this);
+
+        context->defaultPipelineStates.pop_back();
+    }
+};
+
+class ViewHandler : public vsg::Inherit<vsg::Visitor, ViewHandler>
+{
+public:
+
+    vsg::ref_ptr<vsg::RenderGraph> renderGraph;
+
+    ViewHandler(vsg::ref_ptr<vsg::RenderGraph> in_renderGrah) : renderGraph(in_renderGrah) {}
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (keyPress.keyBase == 's')
+        {
+            std::vector<std::pair<size_t, vsg::ref_ptr<vsg::View>>> views;
+            for(size_t i  = 0; i < renderGraph->children.size(); ++i)
+            {
+                if (auto view = renderGraph->children[i].cast<vsg::View>()) views.emplace_back(i, view);
+            }
+
+            if (views.size()>1)
+            {
+                // swap rendering order by swap the view entries in the renderGraph->children
+                std::swap(renderGraph->children[views[0].first], renderGraph->children[views[1].first]);
+                std::swap(views[0].second->camera->viewportState, views[1].second->camera->viewportState);
+            }
+
+            auto renderPass = renderGraph->getRenderPass();
+            if (!renderPass) return;
+
+
+            // wait until the device is idle to avoid changing state while it's being used.
+            vkDeviceWaitIdle(*(renderPass->device));
+
+            UpdateGraphicsPipelines updateGraphicsPipelines;
+
+            updateGraphicsPipelines.context = vsg::Context::create(renderPass->device);
+            updateGraphicsPipelines.context->renderPass = renderPass;
+
+            renderGraph->accept(updateGraphicsPipelines);
+        }
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -123,6 +221,9 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::CommandGraph::create(window);
     commandGraph->addChild(renderGraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+    // add the view handler for interactively changing the views
+    viewer->addEventHandler(ViewHandler::create(renderGraph));
 
     viewer->compile();
 
