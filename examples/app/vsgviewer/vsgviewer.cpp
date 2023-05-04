@@ -223,11 +223,11 @@ int main(int argc, char** argv)
         {
             vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
 
-            auto startTime = std::chrono::steady_clock::now();
+            auto startTime = vsg::clock::now();
 
             vsg_scene->accept(loadPagedLOD);
 
-            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
+            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(vsg::clock::now() - startTime).count();
             std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
@@ -235,6 +235,8 @@ int main(int argc, char** argv)
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         viewer->compile();
+
+        viewer->start_point() = vsg::clock::now();
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
@@ -252,7 +254,7 @@ int main(int argc, char** argv)
         if (reportAverageFrameRate)
         {
             auto fs = viewer->getFrameStamp();
-            double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(fs->time - viewer->start_point()).count();
+            double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
             std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
         }
     }
