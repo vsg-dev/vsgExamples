@@ -28,62 +28,6 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x,
     return vsg::Camera::create(perspective, lookAt, viewportstate);
 }
 
-class UpdateGraphicsPipelines : public vsg::Inherit<vsg::Visitor, UpdateGraphicsPipelines>
-{
-public:
-
-    vsg::ref_ptr<vsg::Context> context;
-    std::set<std::pair<const vsg::Object*, uint32_t>> visited;
-
-    bool visit(const Object* object, uint32_t index)
-    {
-        decltype(visited)::value_type objectIndex(object, index);
-        if (visited.count(objectIndex) != 0) return false;
-        visited.insert(objectIndex);
-        return true;
-    }
-
-    void apply(vsg::Object& object) override
-    {
-        object.traverse(*this);
-    }
-
-    void apply(vsg::BindGraphicsPipeline& bindPipeline) override
-    {
-        if (!visit(&bindPipeline, context->viewID)) return;
-
-        auto pipeline = bindPipeline.pipeline;
-        if (pipeline)
-        {
-            pipeline->release(context->viewID);
-            pipeline->compile(*context);
-        }
-    }
-
-    void apply(vsg::StateGroup& sg) override
-    {
-        if (!visit(&sg, context->viewID)) return;
-
-        for (auto& command : sg.stateCommands)
-        {
-            command->accept(*this);
-        }
-        sg.traverse(*this);
-    }
-
-    void apply(vsg::View& view) override
-    {
-        if (!visit(&view, view.viewID)) return;
-
-        context->viewID = view.viewID;
-        context->defaultPipelineStates.emplace_back(view.camera->viewportState);
-
-        view.traverse(*this);
-
-        context->defaultPipelineStates.pop_back();
-    }
-};
-
 class ViewHandler : public vsg::Inherit<vsg::Visitor, ViewHandler>
 {
 public:
@@ -126,7 +70,7 @@ public:
             // wait until the device is idle to avoid changing state while it's being used.
             vkDeviceWaitIdle(*(renderPass->device));
 
-            UpdateGraphicsPipelines updateGraphicsPipelines;
+            vsg::UpdateGraphicsPipelines updateGraphicsPipelines;
 
             updateGraphicsPipelines.context = vsg::Context::create(renderPass->device);
             updateGraphicsPipelines.context->renderPass = renderPass;
