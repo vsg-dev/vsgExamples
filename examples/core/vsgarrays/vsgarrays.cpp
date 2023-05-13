@@ -1,4 +1,6 @@
 #include <vsg/core/Array.h>
+#include <vsg/core/Visitor.h>
+#include <vsg/core/ConstVisitor.h>
 #include <vsg/io/stream.h>
 
 #include <iostream>
