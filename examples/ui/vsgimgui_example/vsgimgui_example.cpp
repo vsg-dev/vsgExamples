@@ -36,6 +36,7 @@ public:
     {
         auto texData = vsg::read_cast<vsg::Data>("textures/VSGlogo.png", options);
         texture = vsgImGui::Texture::create_if(texData, texData);
+        ImGui::StyleColorsDark();
     }
 
     // we need to compile textures before we can use them for rendering
@@ -52,7 +53,7 @@ public:
         {
             ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
-            ImGui::Text("Some useful message here.");                 // Display some text (you can use a format strings too)
+            ImGui::Text("Some useful message here.");                // Display some text (you can use a format strings too)
             ImGui::Checkbox("Demo Window", &params->showDemoWindow); // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &params->showSecondWindow);
             ImGui::Checkbox("ImPlot Demo Window", &params->showImPlotDemoWindow);
@@ -110,8 +111,8 @@ public:
                 ImVec2 window_pos, window_pos_pivot;
                 window_pos.x = work_pos.x + PAD;
                 window_pos.y = work_pos.y + work_size.y - PAD;
-                window_pos_pivot.x =  0.0f;
-                window_pos_pivot.y =  1.0f;
+                window_pos_pivot.x = 0.0f;
+                window_pos_pivot.y = 1.0f;
                 ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
                 window_flags |= ImGuiWindowFlags_NoMove;
                 ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background
@@ -139,9 +140,9 @@ public:
                 //
                 // Make a small square button
                 if (ImGui::ImageButton("Button", texture->id(cb.deviceID),
-                                    ImVec2(32.0f, 32.0f),
-                                    ImVec2(0.0f, 0.0f),
-                                    squareUV))
+                                       ImVec2(32.0f, 32.0f),
+                                       ImVec2(0.0f, 0.0f),
+                                       squareUV))
                     params->counter++;
 
                 ImGui::SameLine();
