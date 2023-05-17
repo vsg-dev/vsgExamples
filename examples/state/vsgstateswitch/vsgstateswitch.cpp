@@ -153,6 +153,9 @@ int main(int argc, char** argv)
         return 0;
     }
 
+    // enable wireframe polygon mode
+    auto requestFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+    requestFeatures->get().fillModeNonSolid = VK_TRUE;
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
