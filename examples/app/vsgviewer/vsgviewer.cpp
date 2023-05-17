@@ -101,6 +101,7 @@ int main(int argc, char** argv)
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
+        auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
@@ -235,6 +236,15 @@ int main(int argc, char** argv)
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         viewer->compile();
+
+        if (maxPagedLOD > 0)
+        {
+            // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
+            for(auto& task : viewer->recordAndSubmitTasks)
+            {
+                if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
+            }
+        }
 
         viewer->start_point() = vsg::clock::now();
 
