@@ -12,18 +12,18 @@
 class MyGui : public vsg::Inherit<vsg::Command, MyGui>
 {
 public:
-    float* lineWidth;
+    vsg::ref_ptr<vsg::SetLineWidth> setLineWidth;
 
-    MyGui(float* in_lineWidth) :
-        lineWidth(in_lineWidth)
+    MyGui(vsg::ref_ptr<vsg::SetLineWidth> in_setLineWidth) :
+        setLineWidth(in_setLineWidth)
     {
     }
 
     // Example here taken from the Dear imgui comments (mostly)
-    void record(vsg::CommandBuffer& cb) const override
+    void record(vsg::CommandBuffer&) const override
     {
         ImGui::Begin("vsg dynamic state");
-        ImGui::SliderFloat("Line Width", lineWidth, 1, 5);
+        ImGui::SliderFloat("Line Width", &(setLineWidth->lineWidth), 1, 5);
         ImGui::End();
     }
 };
@@ -176,8 +176,8 @@ int main(int argc, char** argv)
     drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
     drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
     // get the reference and bind it to ImGui slider
-    auto slwCmd = vsg::SetLineWidth::create(1.0f);
-    drawCommands->addChild(slwCmd);
+    auto setLineWidth = vsg::SetLineWidth::create(1.0f);
+    drawCommands->addChild(setLineWidth);
 
     if (sharedObjects)
     {
@@ -306,7 +306,7 @@ int main(int argc, char** argv)
     }
 
     // add vsgImGui to implement a slider to control line width
-    auto renderImGui = vsgImGui::RenderImGui::create(window, MyGui::create(&slwCmd->lineWidth));
+    auto renderImGui = vsgImGui::RenderImGui::create(window, MyGui::create(setLineWidth));
     renderGraph->addChild(renderImGui);
 
     // Add the ImGui event handler first to handle events early
