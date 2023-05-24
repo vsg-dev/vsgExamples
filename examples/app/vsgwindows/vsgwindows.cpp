@@ -42,6 +42,7 @@ int main(int argc, char** argv)
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     bool seperateDevices = arguments.read({"--no-shared-window", "-n"});
+    bool multiThreading = arguments.read("--mt");
 
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -93,6 +94,8 @@ int main(int argc, char** argv)
     windowTraits2->windowTitle = "second window";
     windowTraits2->debugLayer = windowTraits->debugLayer;
     windowTraits2->apiDumpLayer = windowTraits->apiDumpLayer;
+    windowTraits2->width = 640;
+    windowTraits2->height = 480;
     if (!seperateDevices)
     {
         windowTraits2->shareWindow = window1; // share the same vsg::Instance/vsg::Device as window1
@@ -112,15 +115,12 @@ int main(int argc, char** argv)
     viewer->addWindow(window1);
     viewer->addWindow(window2);
 
-    uint32_t width = window1->extent2D().width;
-    uint32_t height = window1->extent2D().height;
-
     // create the vsg::RenderGraph and associated vsg::View
-    auto main_camera = createCameraForScene(scenegraph, 0, 0, width, height);
+    auto main_camera = createCameraForScene(scenegraph, 0, 0, window1->extent2D().width, window1->extent2D().height);
     auto main_view = vsg::View::create(main_camera, scenegraph);
 
     // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
-    auto secondary_camera = createCameraForScene(scenegraph2, 0, 0, width, height);
+    auto secondary_camera = createCameraForScene(scenegraph2, 0, 0, window2->extent2D().width, window2->extent2D().height);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
 
     // add close handler to respond the close window button and pressing escape
@@ -147,6 +147,11 @@ int main(int argc, char** argv)
     commandGraph2->addChild(secondary_RenderGraph);
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph1, commandGraph2});
+
+    if (multiThreading)
+    {
+        viewer->setupThreading();
+    }
 
     viewer->compile();
 

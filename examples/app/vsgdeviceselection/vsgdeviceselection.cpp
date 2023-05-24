@@ -125,6 +125,15 @@ int main(int argc, char** argv)
                           << ", driverVersion = "<<properties.driverVersion
 #endif
                           << std::endl;
+
+
+                // list the queue properties
+                const auto& queueFamilyProperties = physicalDevice->getQueueFamilyProperties();
+                for(auto& queueProperties : queueFamilyProperties)
+                {
+                    std::cout<<"    queueFamilyProperties.queueFlags = "<<queueProperties.queueFlags<<", queueFamilyProperties.queueCount = "<<queueProperties.queueCount<<std::endl;
+                }
+                std::cout<<std::endl;
             }
             return 0;
         }
