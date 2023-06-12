@@ -352,6 +352,8 @@ int main(int argc, char** argv)
     auto resizeCadence = arguments.value(0, "--resize");
     auto useExecuteCommands = arguments.read("--use-ec");
     if (arguments.read("--st")) extent = VkExtent2D{192, 108};
+    bool above = arguments.read("--above");
+    bool enableGeometryShader = arguments.read("--gs");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -363,6 +365,7 @@ int main(int argc, char** argv)
 
     VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
     if (arguments.read("--msaa")) samples = VK_SAMPLE_COUNT_8_BIT;
+    bool useDepthBuffer = !arguments.read({"--no-depth", "--nd"});
 
     // if we are multisampling then to enable copying of the depth buffer we have to enable a depth buffer resolve extensions in vsg::RenderPass that requires a minim vulkan version of 1.2
     uint32_t vulkanVersion = VK_API_VERSION_1_0;
@@ -409,6 +412,7 @@ int main(int argc, char** argv)
 
     auto deviceFeatures = vsg::DeviceFeatures::create();
     deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+    deviceFeatures->get().geometryShader = enableGeometryShader;
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
 
@@ -420,7 +424,8 @@ int main(int argc, char** argv)
     double nearFarRatio = 0.001;
 
     // set up the camera
-    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 1.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto lookAt = (above) ? vsg::LookAt::create(centre + vsg::dvec3(0.0, 0.0, radius * 1.5), centre, vsg::dvec3(0.0, 1.0, 0.0)) :
+                            vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 1.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel"))
@@ -434,34 +439,65 @@ int main(int argc, char** argv)
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 
-    // set up the Rendergraph to manage the rendering
-    auto colorImageView = createColorImageView(device, extent, imageFormat, VK_SAMPLE_COUNT_1_BIT);
-    auto depthImageView = createDepthImageView(device, extent, depthFormat, VK_SAMPLE_COUNT_1_BIT);
+
     vsg::ref_ptr<vsg::Framebuffer> framebuffer;
-    if (samples == VK_SAMPLE_COUNT_1_BIT)
+    vsg::ref_ptr<vsg::ImageView> colorImageView;
+    vsg::ref_ptr<vsg::ImageView> depthImageView;
+    vsg::ref_ptr<vsg::Commands> colorBufferCapture;
+    vsg::ref_ptr<vsg::Image> copiedColorBuffer;
+    vsg::ref_ptr<vsg::Commands> depthBufferCapture;
+    vsg::ref_ptr<vsg::Buffer> copiedDepthBuffer;
+
+    // set up the Rendergraph to manage the rendering
+    if (useDepthBuffer)
     {
-        auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
-        framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView} , extent.width, extent.height, 1);
+        colorImageView = createColorImageView(device, extent, imageFormat, VK_SAMPLE_COUNT_1_BIT);
+        depthImageView = createDepthImageView(device, extent, depthFormat, VK_SAMPLE_COUNT_1_BIT);
+        if (samples == VK_SAMPLE_COUNT_1_BIT)
+        {
+            auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView} , extent.width, extent.height, 1);
+        }
+        else
+        {
+            auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
+            auto msaa_depthImageView = createDepthImageView(device, extent, depthFormat, samples);
+
+            auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView} , extent.width, extent.height, 1);
+        }
+
+        // create support for copying the color buffer
+        std::tie(colorBufferCapture, copiedColorBuffer) = createColorCapture(device, extent, colorImageView->image, imageFormat);
+        std::tie(depthBufferCapture, copiedDepthBuffer) = createDepthCapture(device, extent, depthImageView->image, depthFormat);
     }
     else
     {
-        auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
-        auto msaa_depthImageView = createDepthImageView(device, extent, depthFormat, samples);
+        colorImageView = createColorImageView(device, extent, imageFormat, VK_SAMPLE_COUNT_1_BIT);
+        if (samples == VK_SAMPLE_COUNT_1_BIT)
+        {
+            auto renderPass = vsg::createRenderPass(device, imageFormat);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView} , extent.width, extent.height, 1);
+        }
+        else
+        {
+            auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
 
-        auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
-        framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView} , extent.width, extent.height, 1);
+            auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, samples);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView} , extent.width, extent.height, 1);
+        }
+
+        // create support for copying the color buffer
+        std::tie(colorBufferCapture, copiedColorBuffer) = createColorCapture(device, extent, colorImageView->image, imageFormat);
     }
 
-    // create support for copying the color buffer
-    auto [colorBufferCapture, copiedColorBuffer] = createColorCapture(device, extent, colorImageView->image, imageFormat);
-    auto [depthBufferCapture, copiedDepthBuffer] = createDepthCapture(device, extent, depthImageView->image, depthFormat);
 
     auto renderGraph = vsg::RenderGraph::create();
 
     renderGraph->framebuffer = framebuffer;
     renderGraph->renderArea.offset = {0, 0};
     renderGraph->renderArea.extent = extent;
-    renderGraph->setClearValues({{0.2f, 0.2f, 0.4f, 1.0f}});
+    renderGraph->setClearValues({{1.0f, 1.0f, 0.0f, 0.0f}}, VkClearDepthStencilValue{0.0f, 0});
 
     auto view = vsg::View::create(camera, vsg_scene);
 
@@ -524,31 +560,6 @@ int main(int argc, char** argv)
 
             std::cout << "Resized to " << extent.width << ", " << extent.height << std::endl;
 
-            auto previous_colorBufferCapture = colorBufferCapture;
-            auto previous_depthBufferCapture = depthBufferCapture;
-
-            colorImageView = createColorImageView(device, extent, imageFormat, VK_SAMPLE_COUNT_1_BIT);
-            depthImageView = createDepthImageView(device, extent, depthFormat, VK_SAMPLE_COUNT_1_BIT);
-            if (samples == VK_SAMPLE_COUNT_1_BIT)
-            {
-                auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
-                framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView} , extent.width, extent.height, 1);
-            }
-            else
-            {
-                auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
-                auto msaa_depthImageView = createDepthImageView(device, extent, depthFormat, samples);
-
-                auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
-                framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView} , extent.width, extent.height, 1);
-            }
-
-            renderGraph->framebuffer = framebuffer;
-
-            // create new copy subgraphs
-            std::tie(colorBufferCapture, copiedColorBuffer) = createColorCapture(device, extent, colorImageView->image, imageFormat);
-            std::tie(depthBufferCapture, copiedDepthBuffer) = createDepthCapture(device, extent, depthImageView->image, depthFormat);
-
             auto replace_child = [](vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement) {
                 for (auto& child : group->children)
                 {
@@ -556,8 +567,62 @@ int main(int argc, char** argv)
                 }
             };
 
-            replace_child(commandGraph, previous_colorBufferCapture, colorBufferCapture);
-            replace_child(commandGraph, previous_depthBufferCapture, depthBufferCapture);
+            auto previous_colorBufferCapture = colorBufferCapture;
+            auto previous_depthBufferCapture = depthBufferCapture;
+
+            if (useDepthBuffer)
+            {
+                colorImageView = createColorImageView(device, extent, imageFormat, VK_SAMPLE_COUNT_1_BIT);
+                depthImageView = createDepthImageView(device, extent, depthFormat, VK_SAMPLE_COUNT_1_BIT);
+                if (samples == VK_SAMPLE_COUNT_1_BIT)
+                {
+                    auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
+                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView} , extent.width, extent.height, 1);
+                }
+                else
+                {
+                    auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
+                    auto msaa_depthImageView = createDepthImageView(device, extent, depthFormat, samples);
+
+                    auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
+                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView} , extent.width, extent.height, 1);
+                }
+
+                renderGraph->framebuffer = framebuffer;
+
+                // create new copy subgraphs
+                std::tie(colorBufferCapture, copiedColorBuffer) = createColorCapture(device, extent, colorImageView->image, imageFormat);
+                std::tie(depthBufferCapture, copiedDepthBuffer) = createDepthCapture(device, extent, depthImageView->image, depthFormat);
+
+                replace_child(commandGraph, previous_colorBufferCapture, colorBufferCapture);
+                replace_child(commandGraph, previous_depthBufferCapture, depthBufferCapture);
+            }
+            else
+            {
+                colorImageView = createColorImageView(device, extent, imageFormat, VK_SAMPLE_COUNT_1_BIT);
+                if (samples == VK_SAMPLE_COUNT_1_BIT)
+                {
+                    auto renderPass = vsg::createRenderPass(device, imageFormat);
+                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView} , extent.width, extent.height, 1);
+                }
+                else
+                {
+                    auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
+
+                    auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, samples);
+                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView} , extent.width, extent.height, 1);
+                }
+
+                renderGraph->framebuffer = framebuffer;
+
+                // create new copy subgraphs
+                std::tie(colorBufferCapture, copiedColorBuffer) = createColorCapture(device, extent, colorImageView->image, imageFormat);
+
+                replace_child(commandGraph, previous_colorBufferCapture, colorBufferCapture);
+                replace_child(commandGraph, previous_depthBufferCapture, depthBufferCapture);
+            }
+
+
         }
 
         // pass any events into EventHandlers assigned to the Viewer, this includes Frame events generated by the viewer each frame
