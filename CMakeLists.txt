@@ -6,7 +6,7 @@ project(vsgExamples
         LANGUAGES CXX C
 )
 
-SET(VSGEXAMPLES_RELEASE_CANDIDATE 1)
+SET(VSGEXAMPLES_RELEASE_CANDIDATE 0)
 
 # build all examples into the bin directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
