@@ -6,7 +6,7 @@ Example programs that test and illustrate how to use the [VulkanSceneGraph](http
 * [app](examples/app/) examples
 * [vk](examples/vk/) examples
 * [text](examples/text/) examples
-* [rtx](examples/rtx/) examples
+* [ray tracing](examples/raytracing/) examples
 * [state](examples/state/) examples
 * [commands](examples/commands/) examples
 * [io](examples/io/) examples
