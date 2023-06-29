@@ -205,7 +205,7 @@ int main(int argc, char** argv)
 
     auto traits2 = vsg::WindowTraits::create(*traits);
     traits2->windowTitle = "vsgexecutecommands window2";
-    traits2->shareWindow = window1;
+    traits2->device = window1->getOrCreateDevice();
 
     auto window2 = vsg::Window::create(traits2);
     if (!window2)
