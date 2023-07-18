@@ -143,7 +143,7 @@ int main(int argc, char** argv)
             directionalLight->color.set(1.0, 1.0, 1.0);
             directionalLight->intensity = 0.15;
             directionalLight->direction.set(0.0, -1.0, -1.0);
-            directionalLight->shadowMaps = numShadowMapsPerLight;
+            //directionalLight->shadowMaps = numShadowMapsPerLight;
             group->addChild(directionalLight);
         }
 
@@ -155,7 +155,7 @@ int main(int argc, char** argv)
             pointLight->color.set(1.0, 1.0, 0.0);
             pointLight->intensity = span*0.5;
             pointLight->position.set(bounds.min.x, bounds.min.y, bounds.max.z + span*0.3);
-            pointLight->shadowMaps = numShadowMapsPerLight;
+            //pointLight->shadowMaps = numShadowMapsPerLight;
 
             // enable culling of the point light by decorating with a CullGroup
             auto cullGroup = vsg::CullGroup::create();
@@ -178,7 +178,7 @@ int main(int argc, char** argv)
             spotLight->direction = (bounds.min+bounds.max)*0.5 - spotLight->position;
             spotLight->innerAngle = vsg::radians(8.0);
             spotLight->outerAngle = vsg::radians(9.0);
-            spotLight->shadowMaps = numShadowMapsPerLight;
+            //spotLight->shadowMaps = numShadowMapsPerLight;
 
             // enable culling of the spot light by decorating with a CullGroup
             auto cullGroup = vsg::CullGroup::create();
