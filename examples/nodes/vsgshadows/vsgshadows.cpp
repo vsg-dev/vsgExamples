@@ -79,7 +79,7 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
-    auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
+    // auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
 
     // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
 
