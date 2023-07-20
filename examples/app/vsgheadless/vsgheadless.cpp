@@ -542,6 +542,22 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
+    auto arrayData = vsg::ubvec4Array3D::create(256, 256, 32, vsg::ubvec4(), vsg::Data::Properties(VK_FORMAT_R8G8B8A8_UNORM));
+    arrayData->properties.imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+    auto sampler = vsg::Sampler::create();
+    sampler->maxLod = 4;
+    auto imageInfo = vsg::ImageInfo::create(sampler, arrayData);
+    imageInfo->computeNumMipMapLevels();
+    vsg::warn("mipLevels = " + std::to_string(imageInfo->imageView->image->mipLevels));
+
+    auto context = vsg::Context::create(device);
+    context->commandPool = vsg::CommandPool::create(device, queueFamily);
+    context->graphicsQueue = device->getQueue(queueFamily);
+    imageInfo->sampler->compile(*context);
+    imageInfo->imageView->compile(*context);
+    context->copy(arrayData, imageInfo);
+    context->record();
+
     uint64_t waitTimeout = 1999999999; // 1second in nanoseconds.
 
     // rendering main loop
