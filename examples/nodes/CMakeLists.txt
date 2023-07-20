@@ -1,6 +1,5 @@
 add_subdirectory(vsggroups)
 add_subdirectory(vsglights)
-add_subdirectory(vsgshadows)
 add_subdirectory(vsgtransform)
 
 if (vsgXchange_FOUND)
