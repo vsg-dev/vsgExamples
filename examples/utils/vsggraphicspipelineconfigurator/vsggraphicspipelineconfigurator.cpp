@@ -82,9 +82,6 @@ int main(int argc, char** argv)
         {
             auto graphicsPipelineConfig = vsg::GraphicsPipelineConfigurator::create(shaderSet);
 
-            // set up graphics pipeline
-            vsg::Descriptors descriptors;
-
             // read texture image
             if (textureFile)
             {
@@ -96,7 +93,7 @@ int main(int argc, char** argv)
                 }
 
                 // enable texturing
-                graphicsPipelineConfig->assignTexture(descriptors, "diffuseMap", textureData);
+                graphicsPipelineConfig->assignTexture("diffuseMap", textureData);
             }
 
             // set up pass of material
@@ -104,9 +101,7 @@ int main(int argc, char** argv)
             mat->value().diffuse.set(1.0f, 1.0f, 1.0f, 1.0f);
             mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f); // red specular highlight
 
-            graphicsPipelineConfig->assignUniform(descriptors, "material", mat);
-
-            if (sharedObjects) sharedObjects->share(descriptors);
+            graphicsPipelineConfig->assignUniform("material", mat);
 
             // set up vertex and index arrays
             auto vertices = vsg::vec3Array::create(
@@ -169,32 +164,14 @@ int main(int argc, char** argv)
                 sharedObjects->share(drawCommands);
             }
 
-            // register the ViewDescriptorSetLayout.
-            vsg::ref_ptr<vsg::ViewDescriptorSetLayout> vdsl;
-            if (sharedObjects)
-                vdsl = sharedObjects->shared_default<vsg::ViewDescriptorSetLayout>();
-            else
-                vdsl = vsg::ViewDescriptorSetLayout::create();
-            graphicsPipelineConfig->additionalDescriptorSetLayout = vdsl;
-
             // share the pipeline config and initilaize if it's unique
             if (sharedObjects) sharedObjects->share(graphicsPipelineConfig, [](auto gpc) { gpc->init(); });
             else graphicsPipelineConfig->init();
 
-            auto descriptorSet = vsg::DescriptorSet::create(graphicsPipelineConfig->descriptorSetLayout, descriptors);
-            if (sharedObjects) sharedObjects->share(descriptorSet);
-
-            auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineConfig->layout, 0, descriptorSet);
-            if (sharedObjects) sharedObjects->share(bindDescriptorSet);
-
-            auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelineConfig->layout, 1);
-            if (sharedObjects) sharedObjects->share(bindViewDescriptorSets);
-
             // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
             auto stateGroup = vsg::StateGroup::create();
-            stateGroup->add(graphicsPipelineConfig->bindGraphicsPipeline);
-            stateGroup->add(bindDescriptorSet);
-            stateGroup->add(bindViewDescriptorSets);
+
+            graphicsPipelineConfig->copyTo(stateGroup, sharedObjects);
 
             // set up model transformation node
             auto transform = vsg::MatrixTransform::create(vsg::translate(position + delta_row * static_cast<double>(r) + delta_column * static_cast<double>(c)));
