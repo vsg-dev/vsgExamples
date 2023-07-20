@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 
     auto outputFilename = arguments.value<std::string>("", "-o");
 
-    if (argc<1)
+    if (argc<=1)
     {
         std::cout<<"Please specify model to load on command line."<<std::endl;
         return 0;

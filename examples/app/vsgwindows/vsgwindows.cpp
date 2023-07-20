@@ -98,7 +98,7 @@ int main(int argc, char** argv)
     windowTraits2->height = 480;
     if (!seperateDevices)
     {
-        windowTraits2->shareWindow = window1; // share the same vsg::Instance/vsg::Device as window1
+        windowTraits2->device = window1->getOrCreateDevice(); // share the same vsg::Instance/vsg::Device as window1
         std::cout<<"Sharing vsg::Instance and vsg::Device between windows."<<std::endl;
     }
     else
