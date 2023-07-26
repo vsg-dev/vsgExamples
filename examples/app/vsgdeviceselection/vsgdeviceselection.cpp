@@ -128,11 +128,11 @@ int main(int argc, char** argv)
 
 
                 // list the queue properties
-                auto& queuFamilyProperties = physicalDevice->getQueueFamilyProperties();
-                std::cout<<"    QueueFamilyProperties "<<queuFamilyProperties.size()<<std::endl;
-                for(size_t qfp = 0; qfp < queuFamilyProperties.size(); ++qfp)
+                auto& queueFamilyProperties = physicalDevice->getQueueFamilyProperties();
+                std::cout<<"    QueueFamilyProperties "<<queueFamilyProperties.size()<<std::endl;
+                for(size_t qfp = 0; qfp < queueFamilyProperties.size(); ++qfp)
                 {
-                    auto& prop = queuFamilyProperties[qfp];
+                    auto& prop = queueFamilyProperties[qfp];
                     std::list<std::string> flags;
                     if ((prop.queueFlags & VK_QUEUE_GRAPHICS_BIT)) flags.push_back("GRAPHICS");
                     if ((prop.queueFlags & VK_QUEUE_COMPUTE_BIT)) flags.push_back("COMPUTE");
