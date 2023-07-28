@@ -125,6 +125,44 @@ int main(int argc, char** argv)
                           << ", driverVersion = "<<properties.driverVersion
 #endif
                           << std::endl;
+
+
+                // list the queue properties
+                auto& queueFamilyProperties = physicalDevice->getQueueFamilyProperties();
+                std::cout<<"    QueueFamilyProperties "<<queueFamilyProperties.size()<<std::endl;
+                for(size_t qfp = 0; qfp < queueFamilyProperties.size(); ++qfp)
+                {
+                    auto& prop = queueFamilyProperties[qfp];
+                    std::list<std::string> flags;
+                    if ((prop.queueFlags & VK_QUEUE_GRAPHICS_BIT)) flags.push_back("GRAPHICS");
+                    if ((prop.queueFlags & VK_QUEUE_COMPUTE_BIT)) flags.push_back("COMPUTE");
+                    if ((prop.queueFlags & VK_QUEUE_TRANSFER_BIT)) flags.push_back("TRANSFER");
+                    if ((prop.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT)) flags.push_back("PARSE_BINDING");
+                    if ((prop.queueFlags & VK_QUEUE_PROTECTED_BIT)) flags.push_back("PROTECTED");
+                    if ((prop.queueFlags & 0x00000020)) flags.push_back("VIDEO_DECODE");
+                    if ((prop.queueFlags & 0x00000040)) flags.push_back("VIDEO_ENCODE");
+                    if ((prop.queueFlags & 0x00000100)) flags.push_back("OPTICAL_FLOW");
+
+                    std::string combined;
+                    if (!flags.empty())
+                    {
+                        auto itr = flags.begin();
+                        combined = *itr++;
+                        for(; itr != flags.end(); ++itr)
+                        {
+                            combined.append(std::string(" | "));
+                            combined.append(*itr);
+                        }
+                    }
+
+                    std::cout<<"        VkQueueFamilyProperties["<<qfp<<"] queueFlags = "<<combined
+                             <<", queueCount = "<<prop.queueCount<<", timestampValidBits = "<<prop.timestampValidBits
+                             <<", minImageTransferGranularity = {"<<prop.minImageTransferGranularity.width
+                             <<", "<<prop.minImageTransferGranularity.height
+                             <<", "<<prop.minImageTransferGranularity.depth<<"}"<<std::endl;
+                }
+
+                std::cout<<std::endl;
             }
             return 0;
         }

@@ -122,6 +122,11 @@ int main(int argc, char** argv)
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
+        if (arguments.read("--so"))
+        {
+            options->sharedObjects = vsg::SharedObjects::create();
+            std::cout<<"Assigned vsg::SharedObjects "<<options->sharedObjects<<std::endl;
+        }
 
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
         if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 
 project(vsgExamples
-        VERSION 1.0.3
+        VERSION 1.0.6
         DESCRIPTION "Set of example programs that test and illustrate how to use the VulkanSceneGraph"
         LANGUAGES CXX C
 )
@@ -21,7 +21,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-find_package(vsg 1.0.3)
+find_package(vsg 1.0.8)
 
 vsg_setup_dir_vars()
 vsg_setup_build_vars()
@@ -57,7 +57,7 @@ vsg_add_target_uninstall()
 if (${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
 
     vsg_add_option_maintainer(
-        PREFIX vsgExamples
+        PREFIX v
         RCLEVEL ${VSGEXAMPLES_RELEASE_CANDIDATE}
     )
 
@@ -82,5 +82,6 @@ add_subdirectory(examples/meshshaders)
 add_subdirectory(examples/raytracing)
 add_subdirectory(examples/platform)
 add_subdirectory(examples/utils)
+add_subdirectory(examples/volume)
 
 vsg_add_feature_summary()

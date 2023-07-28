@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     }
 
     // create the logical device with specified queue, layers and extensions
-    vsg::QueueSettings queueSettings{vsg::QueueSetting{computeQueueFamily, {1.0}}};
+    vsg::QueueSettings queueSettings{vsg::QueueSetting{computeQueueFamily, {1.0, 0.0}}};
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions);
 
     // get the queue for the compute commands
@@ -83,10 +83,10 @@ int main(int argc, char** argv)
     commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
 
     // compile the Vulkan objects
-    auto compileTraversal = vsg::CompileTraversal::create(device);
+    auto compileTraversal = vsg::CompileTraversal::create();
+    compileTraversal->queueFlags = VK_QUEUE_COMPUTE_BIT;
+    compileTraversal->add(device);
     auto context = compileTraversal->contexts.front();
-    context->commandPool = vsg::CommandPool::create(device, computeQueueFamily);
-    // context->descriptorPool = vsg::DescriptorPool::create(device, 1, vsg::DescriptorPoolSizes{{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1}});
 
     commandGraph->accept(*compileTraversal);
 

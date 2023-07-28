@@ -336,8 +336,9 @@ void main()
     #endif
 
     #ifdef VSG_SPECULAR_MAP
-        vec3 specular = SRGBtoLINEAR(texture(specularMap, texCoord0)).rgb;
-        perceptualRoughness = 1.0 - texture(specularMap, texCoord0).a;
+        vec4 specular_texel = texture(specularMap, texCoord0);
+        vec3 specular = SRGBtoLINEAR(specular_texel).rgb;
+        perceptualRoughness = 1.0 - specular_texel.a;
     #else
         vec3 specular = vec3(0.0);
         perceptualRoughness = 0.0;
