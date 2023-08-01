@@ -116,7 +116,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    double timestampScaleToMilliseconds = 10e-6 * static_cast<double>(limits.timestampPeriod);
+    double timestampScaleToMilliseconds = 1e-6 * static_cast<double>(limits.timestampPeriod);
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
