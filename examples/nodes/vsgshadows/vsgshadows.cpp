@@ -81,9 +81,22 @@ int main(int argc, char** argv)
 
     auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
 
+    vsg::ref_ptr<vsg::ResourceHints> resourceHints;
+    if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
+    {
+        resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceHintsFilename, options);
+    }
+
+    if (auto outputResourceHintsFilename = arguments.value<vsg::Path>("", "--orh"))
+    {
+        if (!resourceHints) resourceHints = vsg::ResourceHints::create();
+        vsg::write(resourceHints, outputResourceHintsFilename, options);
+        return 0;
+    }
+
     // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
 
-    auto outputFilename = arguments.value<std::string>("", "-o");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     bool add_amient = true;
     bool add_directional = true;
@@ -259,7 +272,7 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-    viewer->compile();
+    viewer->compile(resourceHints);
 
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
