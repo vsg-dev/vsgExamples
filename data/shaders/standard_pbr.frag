@@ -414,6 +414,7 @@ void main()
         {
             vec4 lightColor = lightData.values[index++];
             vec3 direction = -lightData.values[index++].xyz;
+            vec4 shadowMapSettings = lightData.values[index++];
 
             vec3 l = direction;         // Vector from surface point to light
             vec3 h = normalize(l+v);    // Half vector between both l and v
@@ -430,6 +431,8 @@ void main()
         {
             vec4 lightColor = lightData.values[index++];
             vec3 position = lightData.values[index++].xyz;
+            vec4 shadowMapSettings = lightData.values[index++];
+
             vec3 delta = position - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
             vec3 direction = delta / sqrt(distance2);
@@ -450,6 +453,7 @@ void main()
             vec4 lightColor = lightData.values[index++];
             vec4 position_cosInnerAngle = lightData.values[index++];
             vec4 lightDirection_cosOuterAngle = lightData.values[index++];
+            vec4 shadowMapSettings = lightData.values[index++];
 
             vec3 delta = position_cosInnerAngle.xyz - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
