@@ -89,6 +89,7 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
 
             auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
             auto view = vsg::View::create(camera, node);
+            view->addChild(vsg::createHeadlight());
 
             auto renderGraph = vsg::RenderGraph::create(ref_window, view);
             renderGraph->setClearValues({{0.2f, 0.2f, 0.2f, 1.0f}});
