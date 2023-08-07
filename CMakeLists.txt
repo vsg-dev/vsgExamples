@@ -84,4 +84,6 @@ add_subdirectory(examples/platform)
 add_subdirectory(examples/utils)
 add_subdirectory(examples/volume)
 
+add_subdirectory(examples/bugs_repro)
+
 vsg_add_feature_summary()
