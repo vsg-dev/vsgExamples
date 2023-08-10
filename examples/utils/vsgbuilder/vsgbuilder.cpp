@@ -277,7 +277,7 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
-    // compute the bounds of the scene graph to help position camera
+    // compute the bounds of the scene graph to help position the camera
     //vsg::ComputeBounds computeBounds;
     //scene->accept(computeBounds);
     //vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;

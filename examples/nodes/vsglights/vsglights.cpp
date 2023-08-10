@@ -83,14 +83,14 @@ int main(int argc, char** argv)
 
     auto outputFilename = arguments.value<std::string>("", "-o");
 
-    bool add_amient = true;
+    bool add_ambient = true;
     bool add_directional = true;
     bool add_point = true;
     bool add_spotlight = true;
     bool add_headlight = arguments.read("--headlight");
     if (add_headlight || arguments.read({"--no-lights", "-n"}))
     {
-        add_amient = false;
+        add_ambient = false;
         add_directional = false;
         add_point = false;
         add_spotlight = false;
@@ -117,14 +117,14 @@ int main(int argc, char** argv)
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
 
-    if (add_amient || add_directional || add_point || add_spotlight || add_headlight)
+    if (add_ambient || add_directional || add_point || add_spotlight || add_headlight)
     {
         auto span = vsg::length(bounds.max - bounds.min);
         auto group = vsg::Group::create();
         group->addChild(scene);
 
         // ambient light
-        if (add_amient)
+        if (add_ambient)
         {
             auto ambientLight = vsg::AmbientLight::create();
             ambientLight->name = "ambient";
@@ -246,7 +246,7 @@ int main(int argc, char** argv)
     view->camera = camera;
     view->addChild(scene);
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and to pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
