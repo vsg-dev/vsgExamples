@@ -156,6 +156,11 @@ int main(int argc, char** argv)
 
         // create a Group to contain all the nodes
         auto vsg_scene = vsg::read_cast<vsg::Node>("models/teapot.vsgt", options);
+        if (!vsg_scene)
+        {
+            std::cout << "Unable to load file " << "models/teapot.vsgt" << std::endl;
+            return 1;
+        }
 
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
