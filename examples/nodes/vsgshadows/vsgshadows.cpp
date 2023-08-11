@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
+vsg::ref_ptr<vsg::Node> createSmallScene(vsg::ref_ptr<vsg::Options> options)
 {
     auto builder = vsg::Builder::create();
     builder->options = options;

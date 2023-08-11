@@ -38,7 +38,7 @@ layout(set = 1, binding = 0) uniform LightData
     vec4 values[64];
 } lightData;
 
-layout(set = 1, binding = 1) uniform sampler2DArray shadowMaps;
+layout(set = 1, binding = 2) uniform sampler2DArray shadowMaps;
 
 
 layout(location = 0) in vec3 eyePos;
@@ -103,8 +103,11 @@ vec3 computeLighting(vec3 ambientColor, vec3 diffuseColor, vec3 specularColor, v
     return result;
 }
 
+
 void main()
 {
+    float brightnessCutoff = 0.001;
+
 #ifdef VSG_POINT_SPRITE
     vec2 texCoord0 = gl_PointCoord.xy;
 #endif
@@ -174,15 +177,27 @@ void main()
             vec3 direction = -lightData.values[index++].xyz;
             vec4 shadowMapSettings = lightData.values[index++];
 
+            float brightness = lightColor.a;
+
+            // checked shadow maps
+            while (shadowMapSettings.r > 0.0 && brightness > brightnessCutoff)
+            {
+                brightness *= 0.5;
+                shadowMapSettings.r -= 1.0;
+            }
+
+            // if light is too dim/shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
             float unclamped_LdotN = dot(direction, nd);
 
             float diff = max(unclamped_LdotN, 0.0);
-            color.rgb += (diffuseColor.rgb * lightColor.rgb) * (diff * lightColor.a);
+            color.rgb += (diffuseColor.rgb * lightColor.rgb) * (diff * brightness);
 
             if (shininess > 0.0 && diff > 0.0)
             {
                 vec3 halfDir = normalize(direction + vd);
-                color.rgb += specularColor.rgb * (pow(max(dot(halfDir, nd), 0.0), shininess) * lightColor.a);
+                color.rgb += specularColor.rgb * (pow(max(dot(halfDir, nd), 0.0), shininess) * brightness);
             }
         }
     }
@@ -196,10 +211,33 @@ void main()
             vec3 position = lightData.values[index++].xyz;
             vec4 shadowMapSettings = lightData.values[index++];
 
+            float brightness = lightColor.a * 2.0;
+
+            // checked shadow maps
+            while (shadowMapSettings.r > 0.0 && brightness > brightnessCutoff)
+            {
+                brightness *= 0.5;
+                shadowMapSettings.r -= 1.0;
+
+                mat4 texMatrix =  mat4(
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                );
+
+                vec4 shadowCoord = texMatrix * vec4(eyePos, 1.0);
+                //color.rgb = vec3(1.0, 1.0, 0.0);
+                color.rgb = shadowCoord.rgb;
+            }
+
+            // if light is too dim/shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
             vec3 delta = position - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
             vec3 direction = delta / sqrt(distance2);
-            float scale = lightColor.a / distance2;
+            float scale = brightness / distance2;
 
             float unclamped_LdotN = dot(direction, nd);
 
@@ -224,12 +262,24 @@ void main()
             vec4 lightDirection_cosOuterAngle = lightData.values[index++];
             vec4 shadowMapSettings = lightData.values[index++];
 
+            float brightness = lightColor.a;
+
+            // checked shadow maps
+            while (shadowMapSettings.r > 0.0 && brightness > brightnessCutoff)
+            {
+                brightness *= 0.5;
+                shadowMapSettings.r -= 1.0;
+            }
+
+            // if light is too dim/shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
             vec3 delta = position_cosInnerAngle.xyz - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
             vec3 direction = delta / sqrt(distance2);
 
             float dot_lightdirection = dot(lightDirection_cosOuterAngle.xyz, -direction);
-            float scale = (lightColor.a  * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
+            float scale = (brightness  * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
 
             float unclamped_LdotN = dot(direction, nd);
 
@@ -242,6 +292,7 @@ void main()
             }
         }
     }
+
 
     outColor.rgb = (color * ambientOcclusion) + emissiveColor.rgb;
     outColor.a = diffuseColor.a;

@@ -49,7 +49,7 @@ layout(set = 1, binding = 0) uniform LightData
     vec4 values[64];
 } lightData;
 
-layout(set = 1, binding = 1) uniform sampler2DArray shadowMaps;
+layout(set = 1, binding = 2) uniform sampler2DArray shadowMaps;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
