@@ -34,7 +34,7 @@ public:
 
     vsg::ref_ptr<vsg::RenderGraph> renderGraph;
 
-    ViewHandler(vsg::ref_ptr<vsg::RenderGraph> in_renderGrah) : renderGraph(in_renderGrah) {}
+    ViewHandler(vsg::ref_ptr<vsg::RenderGraph> in_renderGraph) : renderGraph(in_renderGraph) {}
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
     auto secondary_camera = createCameraForScene(scenegraph2, (width * 3) / 4, 0, width / 4, height / 4);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
 
-    // add close handler to respond to the close window button and pressing escape
+    // add close handler to respond to the close window button and to pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     // add event handlers, in the order we wish events to be handled.
