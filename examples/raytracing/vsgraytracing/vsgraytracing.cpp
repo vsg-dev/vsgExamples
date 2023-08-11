@@ -11,11 +11,7 @@ struct RayTracingUniform
     vsg::mat4 projInverse;
 };
 
-class RayTracingUniformValue : public vsg::Inherit<vsg::Value<RayTracingUniform>, RayTracingUniformValue>
-{
-public:
-    RayTracingUniformValue() {}
-};
+using RayTracingUniformValue = vsg::Value<RayTracingUniform>;
 
 int main(int argc, char** argv)
 {
@@ -202,11 +198,11 @@ int main(int argc, char** argv)
 
         auto storageImageInfo = vsg::ImageInfo::create(vsg::ref_ptr<vsg::Sampler>{}, createImageView(*context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT), VK_IMAGE_LAYOUT_GENERAL);
 
-        auto raytracingUniformValues = new RayTracingUniformValue();
-        raytracingUniformValues->value().projInverse = perspective->inverse();
-        raytracingUniformValues->value().viewInverse = lookAt->inverse();
+        vsg::ref_ptr<RayTracingUniformValue> raytracingUniform = RayTracingUniformValue::create();
+        raytracingUniform->properties.dataVariance = vsg::DataVariance::DYNAMIC_DATA;
+        raytracingUniform->value().projInverse = perspective->inverse();
+        raytracingUniform->value().viewInverse = lookAt->inverse();
 
-        vsg::ref_ptr<RayTracingUniformValue> raytracingUniform(raytracingUniformValues);
 
         // set up graphics pipeline
         vsg::DescriptorSetLayoutBindings descriptorBindings{
@@ -222,7 +218,6 @@ int main(int argc, char** argv)
         auto storageImageDescriptor = vsg::DescriptorImage::create(storageImageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
         auto raytracingUniformDescriptor = vsg::DescriptorBuffer::create(raytracingUniform, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        raytracingUniformDescriptor->copyDataListToBuffers();
 
         auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
         auto raytracingPipeline = vsg::RayTracingPipeline::create(pipelineLayout, shaderStages, shaderGroups);
@@ -275,8 +270,8 @@ int main(int argc, char** argv)
             viewer->handleEvents();
 
             //update camera matrix
-            raytracingUniformValues->value().viewInverse = lookAt->inverse();
-            raytracingUniformDescriptor->copyDataListToBuffers();
+            raytracingUniform->value().viewInverse = lookAt->inverse();
+            raytracingUniform->dirty();
 
             viewer->update();
 
