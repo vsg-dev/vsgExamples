@@ -17,13 +17,13 @@ Windows:
 	set VSG_FILE_PATH drive:\path\to\vsgExamples\data
 	set PATH drive:\path\to\vsgExamples\bin
 
-*vsgdraw* can be run without command line options, and will create a window with two textured quad rotating on screen.  Press Escape to close the window.
+*vsgdraw* can be run without command line options, and will create a window with two textured quads rotating on screen.  Press Escape to close the window.
 
 	vsgdraw
 
 *vsgdraw* also supports a set of command line options:
 
 	-d or --debug        # enable the Vulkan debug layer, outputs to console
-	-a or --api          # enable Vulkan API dump layer, outputs all vulkan
+	-a or --api          # enable Vulkan API dump layer, outputs all vulkan calls
 	-f                   # specify the number of frames to render before exit
 	-w or --window <width> <height> # specify the dimension of the window to open

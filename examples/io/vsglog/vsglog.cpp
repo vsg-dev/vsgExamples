@@ -46,7 +46,7 @@ int main(int argc, char** argv)
     // you can override the message verbosity by setting the minimum level that will be printed.
     vsg::Logger::instance()->level = level;
 
-    // simplist form of messaging gets passed to the vsg::Logger::instance().
+    // simplest form of messaging gets passed to the vsg::Logger::instance().
     vsg::debug("debug string");
     vsg::info("info cstring");
     vsg::warn("warn cstring");
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 
     std::cout<<std::endl;
 
-    // override the default Logger with out our locally implemented Logger
+    // override the default Logger with our locally implemented Logger
     vsg::Logger::instance() = CustomLogger::create();
     vsg::Logger::instance()->level = level;
 
@@ -74,7 +74,7 @@ int main(int argc, char** argv)
     vsg::error("error string");
     vsg::info("here ", std::string("is a"), " matrix  = {", vsg::dmat4{}, "}");
 
-    // alternative to calling vsg::debyg/info/warn/error(..) you can call vsg::log(msg_level, ..)
+    // as an alternative to calling vsg::debug/info/warn/error(..) you can call vsg::log(msg_level, ..)
     vsg::log(vsg::Logger::LOGGER_DEBUG, std::string("string log debug"));
     vsg::log(vsg::Logger::LOGGER_DEBUG, "cstring log debug");
     vsg::log(vsg::Logger::LOGGER_INFO, "log info");
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
     if (count > 0)
     {
         std::cout<<std::endl;
-        // lets do some performance tesing
+        // let's do some performance tesing
 
         auto tick1 = vsg::clock::now();
         for(size_t i=0; i<count; ++i)
@@ -120,7 +120,7 @@ int main(int argc, char** argv)
         auto time3 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick5 - tick4).count();
         auto time4 = std::chrono::duration<double, std::chrono::milliseconds::period>(tick6 - tick5).count();
 
-        // To view the results will assign the StdLogger
+        // To view the results we'll assign the StdLogger
         vsg::Logger::instance() = vsg::StdLogger::create();
         vsg::Logger::instance()->level = vsg::Logger::LOGGER_ALL;
 

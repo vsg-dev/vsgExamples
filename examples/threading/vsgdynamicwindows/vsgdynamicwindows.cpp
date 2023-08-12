@@ -143,7 +143,7 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->sharedObjects = vsg::SharedObjects::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -179,7 +179,7 @@ int main(int argc, char** argv)
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
@@ -192,8 +192,7 @@ int main(int argc, char** argv)
         vsg::dvec3 primary(2.0, 0.0, 0.0);
         vsg::dvec3 secondary(0.0, 2.0, 0.0);
 
-        // compute the bounds of the scene graph to help position camera
-        // compute the bounds of the scene graph to help position camera
+        // compute the bounds of the scene graph to help position the camera
         vsg::ComputeBounds computeBounds;
         vsg_scene->accept(computeBounds);
         vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
@@ -215,11 +214,10 @@ int main(int argc, char** argv)
             perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
         }
 
-        // set up the camera
         auto viewportState = vsg::ViewportState::create(window->extent2D());
         auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
 
-        // add close handler to respond the close window button and pressing escape
+        // add close handler to respond to the close window button and to pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
         auto trackball = vsg::Trackball::create(camera);
@@ -237,7 +235,7 @@ int main(int argc, char** argv)
             resourceHints->descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256});
         }
 
-        // configure the viewers rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
+        // configure the viewer's rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
         viewer->compile(resourceHints);
 
         // create threads to load models and views in background
@@ -245,7 +243,7 @@ int main(int argc, char** argv)
 
         auto postPresentOperationQueue = vsg::OperationQueue::create(viewer->status);
 
-        // assign the LoadViewOperation that will do the load in the background and once loaded and compiled merged then via Merge operation that is assigned to updateOperations and called from viewer.update()
+        // assign the LoadWindowOperation that will do the load in the background and once loaded and compiled, merge via Merge operation that is assigned to updateOperations and called from viewer.update()
         vsg::observer_ptr<vsg::Viewer> observer_viewer(viewer);
         loadThreads->add(LoadWindowOperation::create(postPresentOperationQueue, observer_viewer, window, 50, 50, 512, 480, "models/lz.vsgt", options));
         loadThreads->add(LoadWindowOperation::create(postPresentOperationQueue, observer_viewer, window, 500, 50, 512, 480, "models/openstreetmap.vsgt", options));

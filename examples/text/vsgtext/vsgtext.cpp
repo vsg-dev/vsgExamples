@@ -75,13 +75,13 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -114,7 +114,7 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
 
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSets);
@@ -138,7 +138,7 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
          {1.0f, 1.0f, 1.0f},
          {1.0f, 1.0f, 1.0f}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
-    bool top_left = textureData->properties.origin == vsg::TOP_LEFT; // in Vulkan the origin is by default top left.
+    bool top_left = textureData->properties.origin == vsg::TOP_LEFT; // in Vulkan the origin is in the top left corner by default.
     float left = 0.0f;
     float right = 1.0f;
     float top = top_left ? 0.0f : 1.0f;
@@ -197,13 +197,13 @@ int main(int argc, char** argv)
 
     if (!font)
     {
-        std::cout << "Failing to read font : " << font_filename << std::endl;
+        std::cout << "Failed to read font : " << font_filename << std::endl;
         return 1;
     }
 
     if (disableDepthTest)
     {
-        // assign a custom StateSet to options->shaderSets so that subsequent TextGroup::setup(0, options) call will pass in our custom ShaderSet.
+        // assign a custom ShaderSet to options->shaderSets so that subsequent Text::setup(0, options) call will pass in our custom ShaderSet.
         auto shaderSet = options->shaderSets["text"] = vsg::createTextShaderSet(options);
 
         // create a DepthStencilState, disable depth test and add this to the ShaderSet::defaultGraphicsPipelineStates container so it's used when setting up the TextGroup subgraph
@@ -230,8 +230,8 @@ int main(int argc, char** argv)
         }
 
         size_t num_glyphs = characters.size();
-        size_t row_lenghth = static_cast<size_t>(ceil(sqrt(float(num_glyphs))));
-        size_t num_rows = num_glyphs / row_lenghth;
+        size_t row_length = static_cast<size_t>(ceil(sqrt(float(num_glyphs))));
+        size_t num_rows = num_glyphs / row_length;
         if ((num_glyphs % num_rows) != 0) ++num_rows;
 
         // use an uintArray to store the text string as the full font charcodes can go up to very large values.
@@ -248,7 +248,7 @@ int main(int argc, char** argv)
 
             (*text_itr++) = c;
 
-            if (column >= row_lenghth)
+            if (column >= row_length)
             {
                 (*text_itr++) = '\n';
                 column = 0;
@@ -532,7 +532,7 @@ int main(int argc, char** argv)
     auto dynamic_text_layout = vsg::StandardLayout::create();
     auto dynamic_text = vsg::Text::create();
     {
-        // currently vsg::GpuLayoutTechnique is the only technique that supports dynamic update of the text parameters
+        // currently vsg::GpuLayoutTechnique is the only technique that supports dynamic updating of the text parameters
         dynamic_text->technique = vsg::GpuLayoutTechnique::create();
 
         dynamic_text_layout->billboard = true;
@@ -592,7 +592,7 @@ int main(int argc, char** argv)
     // assign Trackball
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     // main frame loop

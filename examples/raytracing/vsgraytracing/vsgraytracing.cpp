@@ -76,7 +76,7 @@ int main(int argc, char** argv)
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
@@ -210,7 +210,7 @@ int main(int argc, char** argv)
 
         // set up graphics pipeline
         vsg::DescriptorSetLayoutBindings descriptorBindings{
-            {0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr}, // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+            {0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr}, // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
             {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr},
             {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr}};
 
@@ -251,10 +251,10 @@ int main(int argc, char** argv)
         auto viewport = vsg::ViewportState::create(0, 0, windowTraits->width, windowTraits->height);
         auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
-        // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+        // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
         viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-        // set up commandGraph to rendering viewport
+        // set up commandGraph with rendering viewport
         auto commandGraph = vsg::CommandGraph::create(window);
 
         auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageInfo->imageView, window);
