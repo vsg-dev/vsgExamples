@@ -47,13 +47,13 @@ public:
 
             if (keyPress.keyModifier == vsg::MODKEY_Control)
             {
-                // when we press the ctrl key we want to enable billboard of the created shapes
+                // when we press the ctrl key we want to enable billboarding of the created shapes
                 state.billboard = true;
 
-                // when billboard the position is pivot point in local cooridnates
+                // when billboarding the position is the pivot point in local coordinates
                 geom.position.set(0.0f, 0.0f, 0.0f);
 
-                // the position is set by positions data, in this case just one poistion so use a vec4Value, but we can if need use a array of positions
+                // the position is set by positions data, in this case just one position so use a vec4Value, but if needed we can use an array of positions
                 auto pos = vsg::vec3(lastIntersection->worldIntersection);
                 geom.positions = vsg::vec4Value::create(vsg::vec4(pos.x, pos.y, pos.z, scale*5.0)); // x,y,z and scaleDistance
             }
@@ -124,7 +124,7 @@ public:
 
         if (intersector->intersections.empty()) return;
 
-        // sort the intersectors front to back
+        // sort the intersections front to back
         std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto& lhs, auto& rhs) { return lhs->ratio < rhs->ratio; });
 
         for (auto& intersection : intersector->intersections)
@@ -178,13 +178,12 @@ protected:
 
 int main(int argc, char** argv)
 {
-    // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsginteresction";
+    windowTraits->windowTitle = "vsgintersection";
 
     auto builder = vsg::Builder::create();
     builder->options = options;
@@ -242,7 +241,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -301,7 +300,7 @@ int main(int argc, char** argv)
     auto commandGraph = createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
@@ -311,7 +310,7 @@ int main(int argc, char** argv)
     viewer->addEventHandler(intersectionHandler);
 
     // assign a CompileTraversal to the Builder that will compile for all the views assigned to the viewer,
-    // must be done after Viewer.assignRecordAndSubmitTasksAndPresentations();
+    // must be done after viewer.assignRecordAndSubmitTaskAndPresentation(...);
     builder->assignCompileTraversal(vsg::CompileTraversal::create(*viewer));
 
     viewer->compile();

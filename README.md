@@ -1,19 +1,22 @@
 # vsgExamples
-Example programs that test and illustrate how to use the [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraphPrototype/) and optional add-on libraries. The example programs are grouped according to the type of features they illustrate their dependencies.
+Example programs that test and illustrate how to use the [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraph/) and optional add-on libraries. The example programs are grouped according to the type of features they illustrate and their dependencies.
 
 * [core](examples/core/) examples
+* [nodes](examples/nodes/) examples
 * [maths](examples/maths/) examples
 * [app](examples/app/) examples
 * [vk](examples/vk/) examples
 * [text](examples/text/) examples
-* [ray tracing](examples/raytracing/) examples
+* [raytracing](examples/raytracing/) examples
 * [state](examples/state/) examples
 * [commands](examples/commands/) examples
 * [io](examples/io/) examples
 * [ui](examples/ui/) examples
-* [traversals](examples/traversals/) examples
 * [platform](examples/platform/) examples
 * [utils](examples/utils/) examples
+* [threading](examples/threading/) examples
+* [volume](examples/volume/) examples
+* [meshshaders](examples/meshshaders/) examples
 
 ## Quick Guide to Building the vsgExamples
 
@@ -35,7 +38,7 @@ To build and install in source, with all dependencies installed in standard syst
     cmake .
     make -j 8
 
-Full details on how to build of the VSG can be found in the [INSTALL.md](INSTALL.md) file.
+Full details on how to build the vsgExamples can be found in the [INSTALL.md](INSTALL.md) file.
 
 ## Running examples
 

@@ -82,7 +82,7 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->sharedObjects = vsg::SharedObjects::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 
         if (argc <= 1)
         {
-            std::cout << "Please specify a 3d models on the command line." << std::endl;
+            std::cout << "Please specify at least one 3d model on the command line." << std::endl;
             return 1;
         }
 
@@ -124,7 +124,7 @@ int main(int argc, char** argv)
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 
         viewer->addWindow(window);
 
-        // set up the grid dimensions to place the loaded models on.
+        // set up the grid dimensions to place the loaded model(s) on.
         vsg::dvec3 origin(0.0, 0.0, 0.0);
         vsg::dvec3 primary(2.0, 0.0, 0.0);
         vsg::dvec3 secondary(0.0, 2.0, 0.0);
@@ -143,7 +143,7 @@ int main(int argc, char** argv)
         int numColumns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(numModels))));
         int numRows = static_cast<int>(std::ceil(static_cast<float>(numModels) / static_cast<float>(numColumns)));
 
-        // compute the bounds of the scene graph to help position camera
+        // compute the bounds of the scene graph to help position the camera
         vsg::dvec3 centre = origin + primary * (static_cast<double>(numColumns - 1) * 0.5) + secondary * (static_cast<double>(numRows - 1) * 0.5);
         double viewingDistance = std::sqrt(static_cast<float>(numModels)) * 3.0;
         double nearFarRatio = 0.001;
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
         auto viewportState = vsg::ViewportState::create(window->extent2D());
         auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
 
-        // add close handler to respond the close window button and pressing escape
+        // add close handler to respond to the close window button and to pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
         viewer->addEventHandler(vsg::Trackball::create(camera));
@@ -170,12 +170,12 @@ int main(int argc, char** argv)
             resourceHints->descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256});
         }
 
-        // configure the viewers rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
+        // configure the viewer's rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
         viewer->compile(resourceHints);
 
         auto loadThreads = vsg::OperationThreads::create(numThreads, viewer->status);
 
-        // assign the LoadOperation that will do the load in the background and once loaded and compiled merged then via Merge operation that is assigned to updateOperations and called from viewer.update()
+        // assign the LoadOperation that will do the load in the background and once loaded and compiled, merge via Merge operation that is assigned to updateOperations and called from viewer.update()
         vsg::observer_ptr<vsg::Viewer> observer_viewer(viewer);
         for (int i = 1; i < argc; ++i)
         {

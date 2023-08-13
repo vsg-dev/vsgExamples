@@ -69,7 +69,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     VkFormat targetImageFormat = sourceImageFormat;
 
     //
-    // 1) Check to see of Blit is supported.
+    // 1) Check to see if Blit is supported.
     //
     VkFormatProperties srcFormatProperties;
     vkGetPhysicalDeviceFormatProperties(*(physicalDevice), sourceImageFormat, &srcFormatProperties);
@@ -151,7 +151,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
 
     if (supportsBlit)
     {
-        // 3.c.1) if blit using VkCmdBliImage
+        // 3.c.1) if blit using vkCmdBlitImage
         VkImageBlit region{};
         region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         region.srcSubresource.layerCount = 1;
@@ -174,7 +174,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     }
     else
     {
-        // 3.c.2) else use VkVmdCopyImage
+        // 3.c.2) else use vkCmdCopyImage
 
         VkImageCopy region{};
         region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -195,7 +195,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
         commands->addChild(copyImage);
     }
 
-    // 3.d) transition destinate image from transfer destination layout to general layout to enable mapping to image DeviceMemory
+    // 3.d) transition destination image from transfer destination layout to general layout to enable mapping to image DeviceMemory
     auto transitionDestinationImageToMemoryReadBarrier = vsg::ImageMemoryBarrier::create(
         VK_ACCESS_TRANSFER_WRITE_BIT,                                  // srcAccessMask
         VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
@@ -367,7 +367,7 @@ int main(int argc, char** argv)
     if (arguments.read("--msaa")) samples = VK_SAMPLE_COUNT_8_BIT;
     bool useDepthBuffer = !arguments.read({"--no-depth", "--nd"});
 
-    // if we are multisampling then to enable copying of the depth buffer we have to enable a depth buffer resolve extensions in vsg::RenderPass that requires a minim vulkan version of 1.2
+    // if we are multisampling then to enable copying of the depth buffer we have to enable a depth buffer resolve extension for vsg::RenderPass or require a minimum vulkan version of 1.2
     uint32_t vulkanVersion = VK_API_VERSION_1_0;
     if (samples != VK_SAMPLE_COUNT_1_BIT) vulkanVersion = VK_API_VERSION_1_2;
 
@@ -448,7 +448,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::Commands> depthBufferCapture;
     vsg::ref_ptr<vsg::Buffer> copiedDepthBuffer;
 
-    // set up the Rendergraph to manage the rendering
+    // set up the RenderGraph to manage the rendering
     if (useDepthBuffer)
     {
         colorImageView = createColorImageView(device, extent, imageFormat, VK_SAMPLE_COUNT_1_BIT);

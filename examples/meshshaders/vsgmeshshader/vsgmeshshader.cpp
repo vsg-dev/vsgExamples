@@ -58,7 +58,7 @@ int main(int argc, char** argv)
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
@@ -77,13 +77,13 @@ int main(int argc, char** argv)
         auto barycentric_features = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR>();
         std::cout << "barycentric_features.fragmentShaderBarycentric = " << barycentric_features.fragmentShaderBarycentric << std::endl;
 
-        auto mesh_properites = window->getOrCreatePhysicalDevice()->getProperties<VkPhysicalDeviceMeshShaderPropertiesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT>();
-        std::cout << "mesh_properites.maxTaskWorkGroupTotalCount = " << mesh_properites.maxTaskWorkGroupTotalCount << std::endl;
-        std::cout << "mesh_properites.maxMeshSharedMemorySize = " << mesh_properites.maxMeshSharedMemorySize << std::endl;
-        std::cout << "mesh_properites.maxMeshPayloadAndSharedMemorySize = " << mesh_properites.maxMeshPayloadAndSharedMemorySize << std::endl;
-        std::cout << "mesh_properites.maxMeshOutputMemorySize = " << mesh_properites.maxMeshOutputMemorySize << std::endl;
-        std::cout << "mesh_properites.maxMeshOutputVertices = " << mesh_properites.maxMeshOutputVertices << std::endl;
-        std::cout << "mesh_properites.maxMeshOutputPrimitives = " << mesh_properites.maxMeshOutputPrimitives << std::endl;
+        auto mesh_properties = window->getOrCreatePhysicalDevice()->getProperties<VkPhysicalDeviceMeshShaderPropertiesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT>();
+        std::cout << "mesh_properties.maxTaskWorkGroupTotalCount = " << mesh_properties.maxTaskWorkGroupTotalCount << std::endl;
+        std::cout << "mesh_properties.maxMeshSharedMemorySize = " << mesh_properties.maxMeshSharedMemorySize << std::endl;
+        std::cout << "mesh_properties.maxMeshPayloadAndSharedMemorySize = " << mesh_properties.maxMeshPayloadAndSharedMemorySize << std::endl;
+        std::cout << "mesh_properties.maxMeshOutputMemorySize = " << mesh_properties.maxMeshOutputMemorySize << std::endl;
+        std::cout << "mesh_properties.maxMeshOutputVertices = " << mesh_properties.maxMeshOutputVertices << std::endl;
+        std::cout << "mesh_properties.maxMeshOutputPrimitives = " << mesh_properties.maxMeshOutputPrimitives << std::endl;
 
         auto meshShaderPath = "shaders/meshshader.mesh";
         auto fragShaderPath = barycentric ? "shaders/barycentric.frag" : "shaders/meshshader.frag";
@@ -101,7 +101,7 @@ int main(int argc, char** argv)
         auto shaderStages = vsg::ShaderStages{meshShader, fragmentShader};
 
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_MESH_BIT_EXT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_MESH_BIT_EXT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
         };
 
         // set up graphics pipeline
@@ -157,7 +157,7 @@ int main(int argc, char** argv)
         auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 2.0, -5.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-        // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+        // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
         viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
         viewer->addEventHandler(vsg::Trackball::create(camera));
 

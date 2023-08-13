@@ -76,16 +76,16 @@ void main() {
     t0 = t0 * texgen;
     te = te * texgen;
 
-    const float min_iteratrions = 2.0;
-    const float max_iteratrions = 2048.0;
+    const float min_iterations = 2.0;
+    const float max_iterations = 2048.0;
 
     float TransparencyValue = 0.2;
     float AlphaFuncValue = 0.1;
     float SampleDensityValue = 0.005; // 0.5 / texture_sample_count
 
     float num_iterations = ceil(length((te-t0).xyz)/SampleDensityValue);
-    if (num_iterations<min_iteratrions) num_iterations = min_iteratrions;
-    else if (num_iterations>max_iteratrions) num_iterations = max_iteratrions;
+    if (num_iterations<min_iterations) num_iterations = min_iterations;
+    else if (num_iterations>max_iterations) num_iterations = max_iterations;
 
     vec3 deltaTexCoord=(te-t0).xyz/(num_iterations-1.0);
     vec3 texcoord = t0.xyz;
@@ -244,13 +244,13 @@ int main(int argc, char** argv)
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -287,7 +287,7 @@ int main(int argc, char** argv)
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
 
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSet);
@@ -307,7 +307,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -325,7 +325,7 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
 

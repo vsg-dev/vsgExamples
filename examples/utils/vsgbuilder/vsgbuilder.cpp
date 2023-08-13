@@ -8,7 +8,6 @@
 
 int main(int argc, char** argv)
 {
-    // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
@@ -269,7 +268,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -277,7 +276,7 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
-    // compute the bounds of the scene graph to help position camera
+    // compute the bounds of the scene graph to help position the camera
     //vsg::ComputeBounds computeBounds;
     //scene->accept(computeBounds);
     //vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
@@ -294,7 +293,7 @@ int main(int argc, char** argv)
     // set up the compilation support in builder to allow us to interactively create and compile subgraphs from within the IntersectionHandler
     // builder->setup(window, camera->viewportState);
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     viewer->addEventHandler(vsg::Trackball::create(camera));

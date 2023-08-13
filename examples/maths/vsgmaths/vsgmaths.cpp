@@ -98,7 +98,7 @@ int main(int /*argc*/, char** /*argv*/)
     constexpr auto  scale = vsg::scale(vsg::vec3(1.0f, 2.0f, 3.0f));
     std::cout << "scale = {" << scale << "}" << std::endl;
 
-    // note VSG and OSG multiplication order reversed.
+    // note VSG and OSG matrix multiplication order is reversed.
     auto  result = scale * trans * rot;
     std::cout << "result = {" << result << "}" << std::endl;
 

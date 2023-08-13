@@ -225,20 +225,20 @@ int main(int argc, char** argv)
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numTiles, VK_SHADER_STAGE_VERTEX_BIT, nullptr},  // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
-        {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numTiles, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numTiles, VK_SHADER_STAGE_VERTEX_BIT, nullptr},  // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
+        {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numTiles, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::DescriptorSetLayoutBindings tileSettingsDescriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto tileSettingsDescriptorSetLayout = vsg::DescriptorSetLayout::create(tileSettingsDescriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -297,7 +297,7 @@ int main(int argc, char** argv)
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{heightFieldDescriptorImage, baseDescriptorImage});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
 
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSet);
@@ -318,8 +318,8 @@ int main(int argc, char** argv)
             auto uniformValue = vsg::uintValue::create(tileIndex);
             auto uniformBuffer = vsg::DescriptorBuffer::create(uniformValue, 0);
 
-            auto uniformDscriptorSet = vsg::DescriptorSet::create(tileSettingsDescriptorSetLayout, vsg::Descriptors{uniformBuffer});
-            auto uniformBindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, uniformDscriptorSet);
+            auto uniformDescriptorSet = vsg::DescriptorSet::create(tileSettingsDescriptorSetLayout, vsg::Descriptors{uniformBuffer});
+            auto uniformBindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, uniformDescriptorSet);
 
 #if 1
             // assign the tileIndex uniform directly to the transform group before the geometry
@@ -332,7 +332,7 @@ int main(int argc, char** argv)
             scenegraph->addChild(transform);
 #else
 
-            // use a StateGrpi to assign the tileIndex
+            // use a StateGroup to assign the tileIndex
             auto tileSettingsGroup = vsg::StateGroup::create();
             tileSettingsGroup->add(uniformBindDescriptorSet);
             tileSettingsGroup->addChild(transform);
@@ -353,7 +353,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -382,7 +382,7 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
-    // texture has been filled in so it's now safe to get the ImageData that holds the handles to the texture's
+    // texture has been filled in so it's now safe to get the ImageData that holds the handles to the textures
 
     // create a context to manage the DeviceMemoryPool for us when we need to copy data to a staging buffer
     vsg::Context context(window->getOrCreateDevice());

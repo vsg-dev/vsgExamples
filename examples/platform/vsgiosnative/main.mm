@@ -72,7 +72,7 @@ using namespace vsg;
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     vsgViewer->addEventHandler(vsg::CloseHandler::create(vsgViewer));
 
     if (pathFilename.empty())

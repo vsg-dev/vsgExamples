@@ -14,13 +14,13 @@
 #include <memory>
 #include <vector>
 
-class SharerdPtrAuxilary : public std::enable_shared_from_this<SharerdPtrAuxilary>
+class SharedPtrAuxiliary : public std::enable_shared_from_this<SharedPtrAuxiliary>
 {
 public:
-    SharerdPtrAuxilary() {}
+    SharedPtrAuxiliary() {}
 
 protected:
-    virtual ~SharerdPtrAuxilary() {}
+    virtual ~SharedPtrAuxiliary() {}
 };
 
 class SharedPtrNode : public std::enable_shared_from_this<SharedPtrNode>
@@ -31,7 +31,7 @@ public:
 protected:
     virtual ~SharedPtrNode() {}
 
-    std::shared_ptr<SharerdPtrAuxilary> _auxilary;
+    std::shared_ptr<SharedPtrAuxiliary> _auxilary;
 };
 
 class SharedPtrQuadGroup : public SharedPtrNode
@@ -59,7 +59,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << "sizeof(atomic_uint)=" << sizeof(std::atomic_uint) << std::endl;
     std::cout << "sizeof(atomic_ushort)=" << sizeof(std::atomic_ushort) << std::endl;
     std::cout << "sizeof(Auxiliary)=" << sizeof(vsg::Auxiliary) << std::endl;
-    std::cout << "size_of(vsg::ref_ptr)=" << sizeof(ref_node) << ", sizeof(QuadGroup)=" << sizeof(vsg::QuadGroup) << std::endl;
+    std::cout << "sizeof(vsg::ref_ptr)=" << sizeof(ref_node) << ", sizeof(QuadGroup)=" << sizeof(vsg::QuadGroup) << std::endl;
 
 #if 1
     std::shared_ptr<SharedPtrQuadGroup> shared_node(new SharedPtrQuadGroup);
@@ -69,7 +69,7 @@ int main(int /*argc*/, char** /*argv*/)
     requested
 #endif
 
-    std::cout << "size_of(std::shared_ptr)=" << sizeof(shared_node) << ", sizeof(SharedPtrQuadGroup)=" << sizeof(SharedPtrQuadGroup) << std::endl;
+    std::cout << "sizeof(std::shared_ptr)=" << sizeof(shared_node) << ", sizeof(SharedPtrQuadGroup)=" << sizeof(SharedPtrQuadGroup) << std::endl;
 
     std::cout << std::endl
               << "Alignment int " << alignof(int) << std::endl;

@@ -73,7 +73,7 @@ static int vsg_init(struct AppData* appData)
     }
     if (!window)
     {
-        LOGW("Error: Could not create window a VSG window.");
+        LOGW("Error: Could not create a VSG window.");
         return 1;
     }
 
