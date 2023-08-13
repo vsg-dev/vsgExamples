@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     auto mt_logger = vsg::ThreadLogger::create();
     vsg::Logger::instance() = mt_logger;
 
-    // set thread main thread prefix
+    // set main thread prefix
     mt_logger->setThreadPrefix(std::this_thread::get_id(), "main | ");
 
     vsg::CommandLine arguments(&argc, argv);
@@ -49,8 +49,8 @@ int main(int argc, char** argv)
     vsg::info("Adding ", count, " MyOperations.");
 
     // add operations to the OperationThreads queue.
-    // note, as the threads are already running they can immediately pull these operations of the queue as we add them,
-    // so by the end this loop many will already have been processed.
+    // note, as the threads are already running they can immediately pull these operations off the queue as we add them,
+    // so by the end of this loop many will already have been processed.
     for(size_t i=0; i<count; ++i)
     {
         operationThreads->add(MyOperation::create(i));

@@ -57,7 +57,7 @@ public:
 };
 
 
-struct SceneStatstics : public vsg::Inherit<vsg::ConstVisitor, SceneStatstics>
+struct SceneStatistics : public vsg::Inherit<vsg::ConstVisitor, SceneStatistics>
 {
     std::map<const char*, size_t> objectCounts;
 
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 
     try
     {
-        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -181,7 +181,7 @@ int main(int argc, char** argv)
 
         if (argc <= 1)
         {
-            std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
+            std::cout << "Please specify a 3d model on the command line." << std::endl;
             return 1;
         }
 
@@ -223,7 +223,7 @@ int main(int argc, char** argv)
         {
             auto startOfStats = vsg::clock::now();
 
-            auto sceneStatistics = SceneStatstics::create();
+            auto sceneStatistics = SceneStatistics::create();
 
             for(size_t i=0; i<stats; ++i)
             {
@@ -245,7 +245,7 @@ int main(int argc, char** argv)
             auto window = vsg::Window::create(windowTraits);
             if (!window)
             {
-                std::cout << "Could not create windows." << std::endl;
+                std::cout << "Could not create window." << std::endl;
                 return 1;
             }
 
@@ -274,7 +274,7 @@ int main(int argc, char** argv)
 
             auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-            // add close handler to respond the close window button and pressing escape
+            // add close handler to respond to the close window button and pressing escape
             viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
             if (pathFilename.empty())
@@ -349,7 +349,7 @@ int main(int argc, char** argv)
             }
         }
 
-        std::cout<<"\nBefore end of Viewer scoped."<<std::endl;
+        std::cout<<"\nBefore end of Viewer scope."<<std::endl;
         vsg::Allocator::instance()->report(std::cout);
 
         // record the end of viewer scope
@@ -367,12 +367,12 @@ int main(int argc, char** argv)
 
     double releaseDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - endOfViewerScope).count();
 
-    std::cout<<"\nAfter end of Viewer scoped."<<std::endl;
+    std::cout<<"\nAfter end of Viewer scope."<<std::endl;
     vsg::Allocator::instance()->report(std::cout);
 
-    // Optional call to delete any empty memory blocks, this won't normally be reqired in a VSG application, but if your memory usage goes an duwn and down regularly and you want to free up memory
+    // Optional call to delete any empty memory blocks, this won't normally be required in a VSG application, but if your memory usage goes up and down regularly and you want to free up memory
     // for use elsewhere then you can call vsg::Allocator::instance()->deleteEmptyMemoryBlocks() after you delete scene graph nodes, data and objects to make sure any memory blocks that may now be empty can be
-    // released back to the OS. If you don't call deleteEmptyMemoryBlocks() the vsg::Allocator destructor will do all the clean up you on exit from the application.
+    // released back to the OS. If you don't call deleteEmptyMemoryBlocks() the vsg::Allocator destructor will do all the clean up for you on exit from the application.
     auto beforeDelete = vsg::clock::now();
     auto memoryDeleted = vsg::Allocator::instance()->deleteEmptyMemoryBlocks();
     double deleteDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - beforeDelete).count();

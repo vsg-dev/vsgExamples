@@ -63,7 +63,7 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // set up vsg::Options to pass in filepaths, ReaderWriter's and other IO related options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -120,7 +120,7 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        // visit the scene graph to collect all the vertex arrays;
+        // visit the scene graph to collect all the vertex arrays
         size_t numVertices = 0;
         auto verticesList = vsg::visit<FindVertexData>(vsg_scene).getVerticesList();
         if (dynamic)
@@ -142,7 +142,7 @@ int main(int argc, char** argv)
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 

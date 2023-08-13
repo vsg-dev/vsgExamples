@@ -8,7 +8,7 @@
 
 namespace vsg
 {
-    /// make a VK_API_VERSION value from a version string, i,e, a string of "1,2" maps to VK_API_VERSION_1_2
+    /// make a VK_API_VERSION value from a version string, i.e. a string of "1,2" maps to VK_API_VERSION_1_2
     uint32_t makeVulkanApiVersion(const std::string& versionStr)
     {
         char c;
@@ -34,7 +34,7 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -45,7 +45,7 @@ int main(int argc, char** argv)
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgdeviceslection";
+        windowTraits->windowTitle = "vsgdeviceselection";
         arguments.read("--screen", windowTraits->screenNum);
         arguments.read("--display", windowTraits->display);
 
@@ -63,8 +63,8 @@ int main(int argc, char** argv)
             }
         }
 
-        bool print_extensiions = arguments.read({"--extensions", "-e"});
-        if (print_extensiions)
+        bool print_extensions = arguments.read({"--extensions", "-e"});
+        if (print_extensions)
         {
             std::cout<<"vsg::enumerateInstanceExtensionProperties()"<<std::endl;
             auto extensions = vsg::enumerateInstanceExtensionProperties();
@@ -248,7 +248,7 @@ int main(int argc, char** argv)
             std::cout << "Using vsg::Window default behavior to create the required vsg::Device." << std::endl;
         }
 
-        if (print_extensiions)
+        if (print_extensions)
         {
             std::cout<<"PhysicalDevice::enumerateDeviceExtensionProperties()"<<std::endl;
             auto physicalDevice = window->getOrCreatePhysicalDevice();
@@ -289,7 +289,7 @@ int main(int argc, char** argv)
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-        // add close handler to respond the close window button and pressing escape
+        // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
         // add trackball to control the Camera

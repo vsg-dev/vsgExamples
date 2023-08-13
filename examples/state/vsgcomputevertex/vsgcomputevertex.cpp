@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -85,8 +85,8 @@ int main(int argc, char** argv)
         auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
         computeCommandGraph->addChild(bindPipeline);
 
-        auto stroageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        auto descriptorSet = vsg::DescriptorSet::create( descriptorSetLayout, vsg::Descriptors{stroageBuffer, computeScaleBuffer});
+        auto storageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto descriptorSet = vsg::DescriptorSet::create( descriptorSetLayout, vsg::Descriptors{storageBuffer, computeScaleBuffer});
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
 
         computeCommandGraph->addChild(bindDescriptorSet);
@@ -95,11 +95,11 @@ int main(int argc, char** argv)
     }
 
     // set up graphics subgraph to render the computed vertices
-    auto graphicCommandGraph = vsg::CommandGraph::create(window);
+    auto graphicsCommandGraph = vsg::CommandGraph::create(window);
     {
         // set up graphics pipeline
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -123,12 +123,12 @@ int main(int argc, char** argv)
         auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
         auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
-        // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+        // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
         auto scenegraph = vsg::StateGroup::create();
         scenegraph->add(bindGraphicsPipeline);
 
         auto renderGraph = vsg::createRenderGraphForView(window, camera, scenegraph);
-        graphicCommandGraph->addChild(renderGraph);
+        graphicsCommandGraph->addChild(renderGraph);
 
         // setup geometry
         auto drawCommands = vsg::Commands::create();
@@ -143,15 +143,15 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
     viewer->addWindow(window);
-    // viewer->assignRecordAndSubmitTaskAndPresentation({graphicCommandGraph, computeCommandGraph});
-    viewer->assignRecordAndSubmitTaskAndPresentation({computeCommandGraph, graphicCommandGraph});
+    // viewer->assignRecordAndSubmitTaskAndPresentation({graphicsCommandGraph, computeCommandGraph});
+    viewer->assignRecordAndSubmitTaskAndPresentation({computeCommandGraph, graphicsCommandGraph});
 
     // compile the Vulkan objects
     viewer->compile();
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     // main frame loop
