@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgcamera - Multiple Views with different ways of configurating/tracking Cameras";
+    windowTraits->windowTitle = "vsgcameras - Multiple Views with different ways of configuring/tracking Cameras";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 
     if (scene_cameras.empty())
     {
-        // no camera are present in the scene graph so add them
+        // no cameras are present in the scene graph so add them
         auto root = vsg::Group::create();
         root->addChild(scenegraph);
 
@@ -164,19 +164,19 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
     viewer->addWindow(window);
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     uint32_t width = window->extent2D().width;
     uint32_t height = window->extent2D().height;
 
-    // CommandGraph to hold the different RenderGraph used to render each view
+    // CommandGraph to hold the different RenderGraphs used to render each view
     auto commandGraph = vsg::CommandGraph::create(window);
 
     // set up main interactive view
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
 
     for(auto& [nodePath, camera] : scene_cameras)
     {
-        // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
+        // create a RenderGraph to add a secondary vsg::View on the top right part of the window.
         auto projectionMatrix = camera->projectionMatrix;
         auto viewMatrix = vsg::TrackingViewMatrix::create(nodePath);
         auto viewportState = vsg::ViewportState::create(x, y, secondary_width, secondary_height);

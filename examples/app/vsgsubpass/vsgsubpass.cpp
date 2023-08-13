@@ -19,7 +19,7 @@ vsg::ref_ptr<vsg::RenderPass> createRenderPass(vsg::Device* device)
     VkFormat imageFormat = VK_FORMAT_B8G8R8A8_UNORM;
     VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
-    // VkAttachmentDescriptiom
+    // VkAttachmentDescription
     // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkAttachmentDescription.html
 
     vsg::AttachmentDescription colorAttachment = {};
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
     }
 
     vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
     {
         // set up graphics pipeline
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
     {
         // set up graphics pipeline
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -191,7 +191,7 @@ int main(int argc, char** argv)
     auto bindDescriptorSets1 = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelinepass1->layout, 0, vsg::DescriptorSets{descriptorSet});
     auto bindDescriptorSets2 = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelinepass2->layout, 0, vsg::DescriptorSets{descriptorSet});
 
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
 
     auto scenegraph1 = vsg::StateGroup::create();
@@ -321,7 +321,7 @@ int main(int argc, char** argv)
     // compile the Vulkan objects
     viewer->compile();
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     // main frame loop

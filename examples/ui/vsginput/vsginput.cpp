@@ -84,14 +84,14 @@ public:
 
     void apply(vsg::CloseWindowEvent& closeWindow) override
     {
-        // closeWindow.window is a vsg::oberserver_ptr<> so to access the pointer we first have to take a ref_ptr<> to avoid threading related lifetime issues
+        // closeWindow.window is a vsg::observer_ptr<> so to access the pointer we first have to take a ref_ptr<> to avoid threading related lifetime issues
         vsg::ref_ptr<vsg::Window> window = closeWindow.window;
         assign(*window_text, vsg::make_string(closeWindow.className(), ", window =", window));
     }
 
     void apply(vsg::FrameEvent& frame) override
     {
-        // closeWindow.window is a vsg::oberserver_ptr<> so to access the pointer we first have to take a ref_ptr<> to avoid threading related lifetime issues
+        // closeWindow.window is a vsg::observer_ptr<> so to access the pointer we first have to take a ref_ptr<> to avoid threading related lifetime issues
         assign(*frame_text, vsg::make_string(frame.className(), ", frameStamp->frameCount = ", frame.frameStamp->frameCount));
     }
 
@@ -116,7 +116,7 @@ public:
 
     void apply(vsg::FrameEvent& event) override
     {
-        output << "vsg::FameEvent previousFrameDuration = " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count() << "ms"
+        output << "vsg::FrameEvent previousFrameDuration = " << std::chrono::duration<double, std::chrono::milliseconds::period>(event.time - start_point).count() << "ms"
                << ", frameCount = " << event.frameStamp->frameCount << std::endl;
 
         start_point = event.time;
@@ -300,7 +300,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -335,7 +335,7 @@ int main(int argc, char** argv)
         }
     }
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     // assign Input handler

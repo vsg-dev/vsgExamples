@@ -9,7 +9,7 @@
 
 vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, int32_t x, int32_t y, uint32_t width, uint32_t height)
 {
-    // compute the bounds of the scene graph to help position camera
+    // compute the bounds of the scene graph to help position the camera
     vsg::ComputeBounds computeBounds;
     scenegraph->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
@@ -34,7 +34,7 @@ public:
 
     vsg::ref_ptr<vsg::RenderGraph> renderGraph;
 
-    ViewHandler(vsg::ref_ptr<vsg::RenderGraph> in_renderGrah) : renderGraph(in_renderGrah) {}
+    ViewHandler(vsg::ref_ptr<vsg::RenderGraph> in_renderGraph) : renderGraph(in_renderGraph) {}
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
@@ -59,11 +59,11 @@ public:
             auto viewport1 = view1->camera->getViewport();
             VkExtent2D extent1{ static_cast<uint32_t>(viewport1.width), static_cast<uint32_t>(viewport1.height)};
 
-            // swap rendering order by swap the view entries in the renderGraph->children
+            // swap rendering order by swapping the view entries in the renderGraph->children
             std::swap(renderGraph->children[views[0].first], renderGraph->children[views[1].first]);
             std::swap(views[0].second->camera->viewportState, views[1].second->camera->viewportState);
 
-            // change the aspect ratios of the projection matrices to fit the new diemensions.
+            // change the aspect ratios of the projection matrices to fit the new dimensions.
             view0->camera->projectionMatrix->changeExtent(extent0, extent1);
             view1->camera->projectionMatrix->changeExtent(extent1, extent0);
 
@@ -127,7 +127,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -140,14 +140,14 @@ int main(int argc, char** argv)
     auto main_camera = createCameraForScene(scenegraph, 0, 0, width, height);
     auto main_view = vsg::View::create(main_camera, scenegraph);
 
-    // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
+    // create another RenderGraph to add a secondary vsg::View on the top right part of the window.
     auto secondary_camera = createCameraForScene(scenegraph2, (width * 3) / 4, 0, width / 4, height / 4);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and to pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    // add event handlers, in the order we wish event to be handled.
+    // add event handlers, in the order we wish events to be handled.
     viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
     viewer->addEventHandler(vsg::Trackball::create(main_camera));
 

@@ -85,7 +85,7 @@ void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
     out<<"variants.size() = "<<shaderSet.variants.size()<<std::endl;
     for(auto& [shaderCompileSettings, shaderStages] : shaderSet.variants)
     {
-        out<<"  Varient {"<<std::endl;
+        out<<"  Variant {"<<std::endl;
 
         out<<"    shaderCompileSettings = "<<shaderCompileSettings<<" : defines ";
         for(auto& define : shaderCompileSettings->defines) out<<define<<" ";
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    // read any command line options that the ReaderWrite support
+    // read any command line options that the ReaderWriters support
     arguments.read(options);
     if (argc <= 1) return 0;
 
@@ -193,7 +193,7 @@ int main(int argc, char** argv)
     std::string str;
     while(arguments.read({"-v", "--variant"}, str))
     {
-        std::cout<<"varient : "<<str<<std::endl;
+        std::cout<<"variant : "<<str<<std::endl;
         auto scs = vsg::ShaderCompileSettings::create();
 
         std::cout<<"   ";
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
         std::cout<<std::endl;
     }
 
-    // load remain command line parameters as models to help fill out the required ShaderSet variants
+    // load remaining command line parameters as models to help fill out the required ShaderSet variants
     for(int i = 1; i<argc; ++i)
     {
         vsg::Path filename(argv[i]);

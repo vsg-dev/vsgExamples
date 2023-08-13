@@ -26,10 +26,10 @@ find_package(vsg 1.0.8)
 vsg_setup_dir_vars()
 vsg_setup_build_vars()
 
-# find the optional vsgExamples that can be used for reading and range of image and 3d model formats and shader compilation
+# find the optional vsgXchange that can be used for reading a range of image and 3d model formats and shader compilation
 find_package(vsgXchange 1.0.2 QUIET)
 
-# find the optional vsgImGui that can be used for GUI elements added into graphics window.
+# find the optional vsgImGui that can be used for GUI elements added into graphics windows.
 find_package(vsgImGui QUIET)
 
 # set the use of C++17 globally as all examples require it

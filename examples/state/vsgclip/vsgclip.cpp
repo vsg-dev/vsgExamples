@@ -5,7 +5,7 @@
 #    include <vsgXchange/all.h>
 #endif
 
-// Example that uses gl_ClipDistancep[] to do GPU clipping of primitives
+// Example that uses gl_ClipDistances[] to do GPU clipping of primitives
 // https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/gl_ClipDistance.xhtml
 // https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/gl_CullDistance.xhtml
 
@@ -41,7 +41,7 @@ public:
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::Node> scenegraph;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
-    vsg::ref_ptr<vsg::vec4Array> world_ClipSetttings;
+    vsg::ref_ptr<vsg::vec4Array> world_clipSettings;
     double scale;
 
     IntersectionHandler(vsg::ref_ptr<vsg::Camera> in_camera, vsg::ref_ptr<vsg::Node> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel, double in_scale) :
@@ -69,8 +69,8 @@ public:
     {
         scrollWheel.handled = true;
         scale *= (1.0 + scrollWheel.delta.y * 0.1);
-        world_ClipSetttings->at(0).w = scale;
-        world_ClipSetttings->dirty();
+        world_clipSettings->at(0).w = scale;
+        world_clipSettings->dirty();
     }
 
     void intersection(vsg::PointerEvent& pointerEvent)
@@ -80,12 +80,12 @@ public:
 
         if (intersector->intersections.empty()) return;
 
-        // sort the intersectors front to back
+        // sort the intersections front to back
         std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto lhs, auto rhs) { return lhs->ratio < rhs->ratio; });
 
         auto& intersection = *intersector->intersections.front();
-        world_ClipSetttings->at(0) = vsg::vec4(intersection.worldIntersection.x, intersection.worldIntersection.y, intersection.worldIntersection.z, scale);
-        world_ClipSetttings->dirty();
+        world_clipSettings->at(0) = vsg::vec4(intersection.worldIntersection.x, intersection.worldIntersection.y, intersection.worldIntersection.z, scale);
+        world_clipSettings->dirty();
     }
 
 protected:
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -176,7 +176,7 @@ int main(int argc, char** argv)
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
@@ -201,7 +201,7 @@ int main(int argc, char** argv)
 
         // set up graphics pipeline
         vsg::DescriptorSetLayoutBindings baseTexture_descriptorBindings{
-            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
         };
 
         auto baseTexture_descriptorSetLayout = vsg::DescriptorSetLayout::create(baseTexture_descriptorBindings);
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
         auto clipSettings_descriptorSetLayout = vsg::DescriptorSetLayout::create(clipSettings_descriptorBindings);
 
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -291,13 +291,13 @@ int main(int argc, char** argv)
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-        // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+        // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
         // add intersection handler to track the mouse position
         auto intersectionHandler = IntersectionHandler::create(camera, vsg_scene, ellipsoidModel, radius * 0.3);
         viewer->addEventHandler(intersectionHandler);
-        intersectionHandler->world_ClipSetttings = worldClipSettings;
+        intersectionHandler->world_clipSettings = worldClipSettings;
 
         // add trackball to control the Camera
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));

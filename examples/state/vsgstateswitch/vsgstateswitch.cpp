@@ -52,11 +52,11 @@ public:
 
     vsg::ref_ptr<vsg::GraphicsPipeline> createAlternate(vsg::GraphicsPipeline& pipeline)
     {
-        auto alternatve_pipeline = vsg::GraphicsPipeline::create();
+        auto alternative_pipeline = vsg::GraphicsPipeline::create();
 
-        *alternatve_pipeline = pipeline;
+        *alternative_pipeline = pipeline;
 
-        for(auto& pipelineState : alternatve_pipeline->pipelineStates)
+        for(auto& pipelineState : alternative_pipeline->pipelineStates)
         {
             if (auto rasterizationState = pipelineState.cast<vsg::RasterizationState>())
             {
@@ -66,7 +66,7 @@ public:
                 pipelineState = alternate_rasterizationState;
             }
         }
-        return alternatve_pipeline;
+        return alternative_pipeline;
     }
 
     void apply(vsg::StateGroup& sg) override
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
 
     // insert StateSwitch in place of BindGraphicsPipeline,
     // with each StateSwitch having one child associated with view_1 that is the original Bind/GraphicsPipeline
-    // and a second child associated with view_2 that duplicate the original Bind/GraphicsPipeline to create one with wireframe enabled
+    // and a second child associated with view_2 that duplicates the original Bind/GraphicsPipeline to create one with wireframe enabled
     if (insertStateSwitch)
     {
         InsertStateSwitch rgp;
@@ -162,7 +162,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -176,15 +176,15 @@ int main(int argc, char** argv)
     auto main_view = vsg::View::create(main_camera, scenegraph);
     main_view->mask = mask_1;
 
-    // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
+    // create a RenderGraph to add a secondary vsg::View on the top right part of the window.
     auto secondary_camera = createCameraForScene(scenegraph, width/2, 0, width/2, height);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph);
     secondary_view->mask = mask_2;
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    // add event handlers, in the order we wish event to be handled.
+    // add event handlers, in the order we wish events to be handled.
     viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
     viewer->addEventHandler(vsg::Trackball::create(main_camera));
 
@@ -203,7 +203,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout << "Using a single RenderGraph, with both Views separated by a ClearAttachemnts" << std::endl;
+        std::cout << "Using a single RenderGraph, with both Views separated by a ClearAttachments" << std::endl;
         auto renderGraph = vsg::RenderGraph::create(window);
 
         renderGraph->addChild(main_view);

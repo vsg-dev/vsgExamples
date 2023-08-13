@@ -124,7 +124,7 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->sharedObjects = vsg::SharedObjects::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -138,7 +138,7 @@ int main(int argc, char** argv)
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgdynamicload";
+        windowTraits->windowTitle = "vsgdynamicviews";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
@@ -156,11 +156,16 @@ int main(int argc, char** argv)
 
         // create a Group to contain all the nodes
         auto vsg_scene = vsg::read_cast<vsg::Node>("models/teapot.vsgt", options);
+        if (!vsg_scene)
+        {
+            std::cout << "Unable to load file " << "models/teapot.vsgt" << std::endl;
+            return 1;
+        }
 
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
@@ -175,8 +180,7 @@ int main(int argc, char** argv)
         vsg::dvec3 primary(2.0, 0.0, 0.0);
         vsg::dvec3 secondary(0.0, 2.0, 0.0);
 
-        // compute the bounds of the scene graph to help position camera
-        // compute the bounds of the scene graph to help position camera
+        // compute the bounds of the scene graph to help position the camera
         vsg::ComputeBounds computeBounds;
         vsg_scene->accept(computeBounds);
         vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
@@ -202,7 +206,7 @@ int main(int argc, char** argv)
         auto viewportState = vsg::ViewportState::create(window->extent2D());
         auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
 
-        // add close handler to respond the close window button and pressing escape
+        // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
         viewer->addEventHandler(vsg::Trackball::create(camera));
@@ -218,13 +222,13 @@ int main(int argc, char** argv)
             resourceHints->descriptorPoolSizes.push_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256});
         }
 
-        // configure the viewers rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
+        // configure the viewer's rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
         viewer->compile(resourceHints);
 
         // create threads to load models and views in background
         auto loadThreads = vsg::OperationThreads::create(numThreads, viewer->status);
 
-        // assign the LoadViewOperation that will do the load in the background and once loaded and compiled merged then via Merge operation that is assigned to updateOperations and called from viewer.update()
+        // assign the LoadViewOperation that will do the load in the background and once loaded and compiled, merge via Merge operation that is assigned to updateOperations and called from viewer.update()
         vsg::observer_ptr<vsg::Viewer> observer_viewer(viewer);
         loadThreads->add(LoadViewOperation::create(observer_viewer, window, 50, 50, 512, 480, commandGraph, "models/openstreetmap.vsgt", options));
         loadThreads->add(LoadViewOperation::create(observer_viewer, window, 600, 50, 512, 480, commandGraph, "models/lz.vsgt", options));

@@ -117,13 +117,13 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::vec3& origin, const vsg::ve
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -158,7 +158,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::vec3& origin, const vsg::ve
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSets = vsg::BindDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, vsg::DescriptorSets{descriptorSet});
 
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSets);
@@ -321,15 +321,15 @@ int main(int argc, char** argv)
     auto left_relative_view = vsg::RelativeViewMatrix::create(vsg::translate(-0.5 * eyeSeperation, 0.0, 0.0), lookAt);
     auto left_camera = vsg::Camera::create(left_relative_perspective, left_relative_view, vsg::ViewportState::create(window->extent2D()));
 
-    // create the left eye camera
+    // create the right eye camera
     auto right_relative_perspective = vsg::RelativeProjection::create(vsg::translate(shear, 0.0, 0.0), perspective);
     auto right_relative_view = vsg::RelativeViewMatrix::create(vsg::translate(0.5 * eyeSeperation, 0.0, 0.0), lookAt);
     auto right_camera = vsg::Camera::create(right_relative_perspective, right_relative_view, vsg::ViewportState::create(window->extent2D()));
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    // add event handlers, in the order we wish event to be handled.
+    // add event handlers, in the order we wish events to be handled.
     viewer->addEventHandler(vsg::Trackball::create(master_camera, ellipsoidModel));
 
     auto renderGraph = vsg::RenderGraph::create(window);

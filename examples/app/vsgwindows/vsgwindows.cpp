@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 
     if (seperateDevices && VSG_MAX_DEVICES<2)
     {
-        std::cout<<"VulkanSceneGraph built with VSG_MAX_DEVICES = "<<VSG_MAX_DEVICES<<", so using a two windows, with a vsg::Device per vsg::Window is not supported."<<std::endl;
+        std::cout<<"VulkanSceneGraph built with VSG_MAX_DEVICES = "<<VSG_MAX_DEVICES<<", so using two windows, with a vsg::Device per vsg::Window is not supported."<<std::endl;
         return 1;
     }
 
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout<<"Each window to use it's own vsg::Instance and vsg::Device."<<std::endl;
+        std::cout<<"Each window to use its own vsg::Instance and vsg::Device."<<std::endl;
     }
     auto window2 = vsg::Window::create(windowTraits2);
     if (!window2)
@@ -119,14 +119,14 @@ int main(int argc, char** argv)
     auto main_camera = createCameraForScene(scenegraph, 0, 0, window1->extent2D().width, window1->extent2D().height);
     auto main_view = vsg::View::create(main_camera, scenegraph);
 
-    // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
+    // create a RenderGraph to add a secondary vsg::View on the top right part of the window.
     auto secondary_camera = createCameraForScene(scenegraph2, 0, 0, window2->extent2D().width, window2->extent2D().height);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    // add event handlers, in the order we wish event to be handled.
+    // add event handlers, in the order we wish events to be handled.
 
     auto main_trackball = vsg::Trackball::create(main_camera);
     main_trackball->addWindow(window1);

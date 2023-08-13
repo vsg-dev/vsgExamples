@@ -12,7 +12,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+    // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
     auto options = vsg::Options::create();
     options->sharedObjects = vsg::SharedObjects::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     arguments.read(options);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgviewer";
+    windowTraits->windowTitle = "vsgocclusionquery";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (int mt = 0; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
@@ -93,7 +93,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     if (pathFilename.empty())
@@ -145,7 +145,7 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::CommandGraph::create(window);
 
-    // create the query pool to to collect occlusion query info
+    // create the query pool to collect occlusion query info
     auto query_pool = vsg::QueryPool::create();
     query_pool->queryType = VK_QUERY_TYPE_OCCLUSION;
     query_pool->queryCount = 1;

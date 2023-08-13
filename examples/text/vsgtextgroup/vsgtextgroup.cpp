@@ -44,13 +44,13 @@ int main(int argc, char** argv)
 
     if (!font)
     {
-        std::cout << "Failing to read font : " << font_filename << std::endl;
+        std::cout << "Failed to read font : " << font_filename << std::endl;
         return 1;
     }
 
     if (disableDepthTest)
     {
-        // assign a custom StateSet to options->shaderSets so that subsequent TextGroup::setup(0, options) call will pass in our custom ShaderSet.
+        // assign a custom ShaderSet to options->shaderSets so that subsequent TextGroup::setup(0, options) call will pass in our custom ShaderSet.
         auto shaderSet = options->shaderSets["text"] = vsg::createTextShaderSet(options);
 
         // create a DepthStencilState, disable depth test and add this to the ShaderSet::defaultGraphicsPipelineStates container so it's used when setting up the TextGroup subgraph
@@ -356,7 +356,7 @@ int main(int argc, char** argv)
     // assign Trackball
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     auto startTime = vsg::clock::now();

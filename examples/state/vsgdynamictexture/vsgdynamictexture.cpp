@@ -121,7 +121,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -149,21 +149,21 @@ int main(int argc, char** argv)
         textureData->properties.format = VK_FORMAT_R32_SFLOAT;
         break;
     case (USE_RGB):
-        // note, RGB image data has to be converted to RGBA when copying to a vkImage,
-        // the VSG will do this automatically do the RGB to RGBA conversion for you each time the data is copied
+        // note, RGB image data has to be converted to RGBA when copying to a VkImage,
+        // while VSG will do this automatically for you each time the data is copied
         // this makes RGB substantially slower than using RGBA data.
         // one approach, illustrated in the vsgdynamictexture_cs example, for avoiding this conversion overhead is to use a compute shader to map the RGB data to RGBA.
         textureData = vsg::vec3Array2D::create(image_size, image_size);
         textureData->properties.format = VK_FORMAT_R32G32B32_SFLOAT;
         break;
     case (USE_RGBA):
-        // R, RG and RGBA data can be copied to vkImage without any conversion so is efficient, while RGB requires conversion, see below explanation
+        // R, RG and RGBA data can be copied to VkImage without any conversion so is efficient, while RGB requires conversion, see above explanation
         textureData = vsg::vec4Array2D::create(image_size, image_size);
         textureData->properties.format = VK_FORMAT_R32G32B32A32_SFLOAT;
         break;
     }
 
-    // set the dynmaic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
+    // set the dynamic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
     textureData->properties.dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
 
     // initialize the image
@@ -177,7 +177,7 @@ int main(int argc, char** argv)
 
     if (heightfield)
     {
-        // create height field use the texture data as a displacementMap
+        // create height field using the texture data as a displacementMap
         stateInfo.displacementMap = textureData;
         scenegraph->addChild(builder.createHeightField(geomInfo, stateInfo));
     }

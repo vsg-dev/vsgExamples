@@ -33,7 +33,6 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
@@ -109,7 +108,7 @@ int main(int argc, char** argv)
         graphicsPipelineConfig->assignTexture("diffuseMap", textureData);
     }
 
-    // set up pass of material
+    // set up passing of material
     auto mat = vsg::PhongMaterialValue::create();
     mat->value().diffuse.set(1.0f, 1.0f, 1.0f, 1.0f);
     mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f); // red specular highlight
@@ -180,13 +179,13 @@ int main(int argc, char** argv)
         sharedObjects->share(drawCommands);
     }
 
-    // share the pipeline config and initilaize if it's unique
+    // share the pipeline config and initialize it if it's unique
     if (sharedObjects)
         sharedObjects->share(graphicsPipelineConfig, [](auto gpc) { gpc->init(); });
     else
         graphicsPipelineConfig->init();
 
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
     auto stateGroup = vsg::StateGroup::create();
 
     graphicsPipelineConfig->copyTo(stateGroup, sharedObjects);
@@ -239,7 +238,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -289,7 +288,7 @@ int main(int argc, char** argv)
     // Add the ImGui event handler first to handle events early
     viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
 
-    // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+    // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
     viewer->addEventHandler(vsg::Trackball::create(camera));

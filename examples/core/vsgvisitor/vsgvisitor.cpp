@@ -64,7 +64,7 @@ int main(int argc, char** argv)
         }
     };
 
-    // explicitly create vistor and call accept on the scene
+    // explicitly create visitor and call accept on the scene
     MyVisitor myVisitor;
     scene->accept(myVisitor);
     std::cout << "MyVisitor() object types s=" << myVisitor.objectCounts.size()<< std::endl;
@@ -73,7 +73,7 @@ int main(int argc, char** argv)
         std::cout<<"    "<<className<<" : "<<count<<std::endl;
     }
 
-    // same functionality but using the vsg::vist<> template conviniencefunction to construct the visitor, call accept and then return the visitor.
+    // same functionality but using the vsg::visit<> template convenience function to construct the visitor, call accept and then return the visitor.
     auto objectCounts = vsg::visit<MyVisitor>(scene).objectCounts;
     std::cout << "\nUsing vsg::visit<>() object types s=" << myVisitor.objectCounts.size()<< std::endl;
     for(const auto [className, count] : objectCounts)

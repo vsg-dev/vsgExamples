@@ -47,12 +47,12 @@ public:
     // Example here taken from the Dear imgui comments (mostly)
     void record(vsg::CommandBuffer& cb) const override
     {
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         if (params->showGui)
         {
             ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
-            ImGui::Text("Some useful message here.");                 // Display some text (you can use a format strings too)
+            ImGui::Text("Some useful message here.");                 // Display some text (you can use format strings too)
             ImGui::Checkbox("Demo Window", &params->showDemoWindow); // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &params->showSecondWindow);
             ImGui::Checkbox("ImPlot Demo Window", &params->showImPlotDemoWindow);
@@ -77,7 +77,7 @@ public:
         // 3. Show another simple window.
         if (params->showSecondWindow)
         {
-            ImGui::Begin("Another Window", &params->showSecondWindow); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Begin("Another Window", &params->showSecondWindow); // Pass a pointer to our bool variable (the window will have a close button that will clear the bool when clicked)
             ImGui::Text("Hello from another window!");
             if (ImGui::Button("Close Me"))
                 params->showSecondWindow = false;
@@ -94,7 +94,7 @@ public:
             ImPlot::ShowDemoWindow(&params->showImPlotDemoWindow);
         }
 
-        // UV for a squre in the logo texture
+        // UV for a square in the logo texture
         if (texture)
         {
             ImVec2 squareUV(static_cast<float>(texture->height) / texture->width, 1.0f);
@@ -130,7 +130,7 @@ public:
             {
                 ImGui::Begin("Image Window", &params->showImagesWindow);
                 ImGui::Text("An texture:");
-                // The logo texture is big, show show it at half size
+                // The logo texture is big, show it at half size
 
                 ImGui::Image(texture->id(cb.deviceID), ImVec2(texture->width / 2.0f, texture->height / 2.0f));
 
@@ -154,7 +154,6 @@ public:
 
 int main(int argc, char** argv)
 {
-    // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->sharedObjects = vsg::SharedObjects::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -207,7 +206,7 @@ int main(int argc, char** argv)
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
@@ -237,7 +236,7 @@ int main(int argc, char** argv)
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-        // The commandGraph will contain a 2 stage renderGraph 1) 3D scene 2) ImGui (by default also includes clear depth buffers)
+        // The commandGraph will contain a 2 stage renderGraph: 1) 3D scene 2) ImGui (by default also includes clearing of depth buffers)
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
         commandGraph->addChild(renderGraph);
@@ -254,10 +253,10 @@ int main(int argc, char** argv)
             auto foundFontFile = vsg::findFile(fontFile, options);
             if (foundFontFile)
             {
-                // convert native filename to UTF8 string that is compatible with ImuGUi.
+                // convert native filename to UTF8 string that is compatible with ImGui.
                 std::string c_fontFile = foundFontFile.string();
 
-                // initiaze ImGui
+                // initialize ImGui
                 ImGui::CreateContext();
 
                 // read the font via ImGui, which will then be current when vsgImGui::RenderImGui initializes the rest of ImGui/Vulkan below
@@ -279,7 +278,7 @@ int main(int argc, char** argv)
         // Add the ImGui event handler first to handle events early
         viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
 
-        // add close handler to respond the close window button and pressing escape
+        // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));

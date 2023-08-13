@@ -1,8 +1,8 @@
 # VSG Native Activity Example for Android
 
-This example demonstates how to create a window, load assests and render a scene within a Native Activity application. It uses Gradle and CMake and is compatible with Android Studio. 
+This example demonstrates how to create a window, load assets and render a scene within a Native Activity application. It uses Gradle and CMake and is compatible with Android Studio.
 
-Note: that this example focuses on VSG usage, and doesn't use the latest Android API versions or similar
+Note: this example focuses on VSG usage, and doesn't use the latest Android API versions or similar
 
 ## Prerequisites
 
