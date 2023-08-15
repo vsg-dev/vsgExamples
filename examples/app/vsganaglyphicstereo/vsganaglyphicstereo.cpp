@@ -7,30 +7,16 @@
 #    include <vsgXchange/all.h>
 #endif
 
-namespace vsg
-{
-    class PerViewGraphicsPipelineState : public Inherit<GraphicsPipelineState, PerViewGraphicsPipelineState>
-    {
-    public:
-        PerViewGraphicsPipelineState() {}
-
-        std::vector<ref_ptr<GraphicsPipelineState>> graphicsPipesStates;
-
-        virtual void apply(Context& context, VkGraphicsPipelineCreateInfo& pipelineInfo) const
-        {
-            auto viewID = context.viewID;
-            if (viewID < graphicsPipesStates.size()) graphicsPipesStates[viewID]->apply(context, pipelineInfo);
-        }
-
-    protected:
-        virtual ~PerViewGraphicsPipelineState() {}
-    };
-    VSG_type_name(vsg::PerViewGraphicsPipelineState);
-} // namespace vsg
-
 class ReplaceColorBlendState : public vsg::Visitor
 {
 public:
+
+    ReplaceColorBlendState(vsg::Mask in_leftMask, vsg::Mask in_rightMask) :
+        leftMask(in_leftMask),
+        rightMask(in_rightMask) {}
+
+    vsg::Mask leftMask;
+    vsg::Mask rightMask;
     std::set<vsg::GraphicsPipeline*> visited;
 
     void apply(vsg::Node& node) override
@@ -61,7 +47,9 @@ public:
             if ((*itr)->is_compatible(typeid(vsg::ColorBlendState)))
             {
                 auto colorBlendState = (*itr)->cast<vsg::ColorBlendState>();
-                auto perViewGraphicsPipelineState = vsg::PerViewGraphicsPipelineState::create();
+
+                // remove original ColorBlendState
+                gp->pipelineStates.erase(itr);
 
                 VkPipelineColorBlendAttachmentState left_colorBlendAttachment = {
                     VK_FALSE,                                                                                                     // blendEnable
@@ -86,15 +74,18 @@ public:
                 };
 
                 auto left_colorBlendState = vsg::ColorBlendState::create(*colorBlendState);
+                left_colorBlendState->mask = leftMask;
                 left_colorBlendState->attachments = {left_colorBlendAttachment};
 
                 auto right_colorBlendState = vsg::ColorBlendState::create(*colorBlendState);
+                right_colorBlendState->mask = rightMask;
                 right_colorBlendState->attachments = {right_colorBlendAttachment};
 
-                perViewGraphicsPipelineState->graphicsPipesStates.push_back(left_colorBlendState);
-                perViewGraphicsPipelineState->graphicsPipesStates.push_back(right_colorBlendState);
+                gp->pipelineStates.push_back(left_colorBlendState);
+                gp->pipelineStates.push_back(right_colorBlendState);
 
-                *itr = perViewGraphicsPipelineState;
+                // finish loop
+                return;
             }
         }
     }
@@ -220,6 +211,7 @@ int main(int argc, char** argv)
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
+    auto outputFile = arguments.value<vsg::Path>("", "-o");
 
     vsg::vec3 offset(0.0f, 0.0f, 0.0f);
     arguments.read("--offset", offset.x, offset.z);
@@ -277,8 +269,14 @@ int main(int argc, char** argv)
     }
 
     // ColorBlendState needs to be overridden per View, so remove existing instances in the scene graph
-    ReplaceColorBlendState removeColorBlendState;
-    vsg_scene->accept(removeColorBlendState);
+    ReplaceColorBlendState replaceColorBlendState(leftMask, rightMask);
+    vsg_scene->accept(replaceColorBlendState);
+
+    if (outputFile)
+    {
+        vsg::write(vsg_scene, outputFile, options);
+        return 1;
+    }
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
