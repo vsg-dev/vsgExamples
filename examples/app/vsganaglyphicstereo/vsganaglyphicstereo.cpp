@@ -193,6 +193,53 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::vec3& origin, const vsg::ve
     return scenegraph;
 }
 
+void enableCustomShaderSets(vsg::Mask leftMask, vsg::Mask rightMask, vsg::ref_ptr<vsg::Options> options)
+{
+    VkPipelineColorBlendAttachmentState left_colorBlendAttachment = {
+        VK_FALSE,                                                                                                     // blendEnable
+        VK_BLEND_FACTOR_ZERO,                                                                                         // srcColorBlendFactor
+        VK_BLEND_FACTOR_ZERO,                                                                                         // dstColorBlendFactor
+        VK_BLEND_OP_ADD,                                                                                              // colorBlendOp
+        VK_BLEND_FACTOR_ZERO,                                                                                         // srcAlphaBlendFactor
+        VK_BLEND_FACTOR_ZERO,                                                                                         // dstAlphaBlendFactor
+        VK_BLEND_OP_ADD,                                                                                              // alphaBlendOp
+        VK_COLOR_COMPONENT_R_BIT /*| VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT*/ | VK_COLOR_COMPONENT_A_BIT // colorWriteMask
+    };
+
+    VkPipelineColorBlendAttachmentState right_colorBlendAttachment = {
+        VK_FALSE,                                                                                                      // blendEnable
+        VK_BLEND_FACTOR_ZERO,                                                                                          // srcColorBlendFactor
+        VK_BLEND_FACTOR_ZERO,                                                                                          // dstColorBlendFactor
+        VK_BLEND_OP_ADD,                                                                                               // colorBlendOp
+        VK_BLEND_FACTOR_ZERO,                                                                                          // srcAlphaBlendFactor
+        VK_BLEND_FACTOR_ZERO,                                                                                          // dstAlphaBlendFactor
+        VK_BLEND_OP_ADD,                                                                                               // alphaBlendOp
+        /*VK_COLOR_COMPONENT_R_BIT | */ VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT // colorWriteMask
+    };
+
+    auto left_colorBlendState = vsg::ColorBlendState::create();
+    left_colorBlendState->mask = leftMask;
+    left_colorBlendState->attachments = {left_colorBlendAttachment};
+
+    auto right_colorBlendState = vsg::ColorBlendState::create();
+    right_colorBlendState->mask = rightMask;
+    right_colorBlendState->attachments = {right_colorBlendAttachment};
+
+    vsg::GraphicsPipelineStates pipelineStates{left_colorBlendState, right_colorBlendState};
+
+    auto& text = options->shaderSets["text"] = vsg::createTextShaderSet(options);
+    text->defaultGraphicsPipelineStates = pipelineStates;
+
+    auto& flat = options->shaderSets["flat"] = vsg::createFlatShadedShaderSet(options);
+    flat->defaultGraphicsPipelineStates = pipelineStates;
+
+    auto& phong = options->shaderSets["phong"] = vsg::createPhongShaderSet(options);
+    phong->defaultGraphicsPipelineStates = pipelineStates;
+
+    auto& pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
+    pbr->defaultGraphicsPipelineStates = pipelineStates;
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -213,6 +260,8 @@ int main(int argc, char** argv)
     arguments.read("--display", windowTraits->display);
     auto outputFile = arguments.value<vsg::Path>("", "-o");
 
+    bool replacePipelineStates = !arguments.value<bool>(false, "--no-replace");
+
     vsg::vec3 offset(0.0f, 0.0f, 0.0f);
     arguments.read("--offset", offset.x, offset.z);
 
@@ -231,6 +280,8 @@ int main(int argc, char** argv)
 
     vsg::Mask leftMask = 0x1;
     vsg::Mask rightMask = 0x2;
+
+    if (!replacePipelineStates) enableCustomShaderSets(leftMask, rightMask, options);
 
     vsg::ref_ptr<vsg::Node> vsg_scene;
     if (leftImageFilename && rightImageFilename)
@@ -269,8 +320,11 @@ int main(int argc, char** argv)
     }
 
     // ColorBlendState needs to be overridden per View, so remove existing instances in the scene graph
-    ReplaceColorBlendState replaceColorBlendState(leftMask, rightMask);
-    vsg_scene->accept(replaceColorBlendState);
+    if (replacePipelineStates)
+    {
+        ReplaceColorBlendState replaceColorBlendState(leftMask, rightMask);
+        vsg_scene->accept(replaceColorBlendState);
+    }
 
     if (outputFile)
     {
