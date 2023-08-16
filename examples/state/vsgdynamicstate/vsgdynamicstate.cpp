@@ -91,8 +91,9 @@ int main(int argc, char** argv)
     auto graphicsPipelineConfig = vsg::GraphicsPipelineConfigurator::create(shaderSet);
 
     // instantiate dynamicstate and add the state
-    graphicsPipelineConfig->dynamicState = vsg::DynamicState::create();
-    graphicsPipelineConfig->dynamicState->dynamicStates.emplace_back(VK_DYNAMIC_STATE_LINE_WIDTH);
+    auto dynamicState = vsg::DynamicState::create();
+    dynamicState->dynamicStates.emplace_back(VK_DYNAMIC_STATE_LINE_WIDTH);
+    graphicsPipelineConfig->pipelineStates.push_back(dynamicState);
 
     // read texture image
     if (textureFile)

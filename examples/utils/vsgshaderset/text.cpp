@@ -15,6 +15,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/io/read.h>
 #include <vsg/io/write.h>
 #include <vsg/state/DescriptorImage.h>
+#include <vsg/state/RasterizationState.h>
+#include <vsg/state/ColorBlendState.h>
 #include <vsg/text/CpuLayoutTechnique.h>
 #include <vsg/text/GpuLayoutTechnique.h>
 #include <vsg/text/StandardLayout.h>
@@ -59,6 +61,28 @@ vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
     shaderSet->addUniformBinding("glyphMetrics", "GPU_LAYOUT", 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::vec4Array2D::create(1, 1));
     shaderSet->addUniformBinding("textLayout", "GPU_LAYOUT", 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::TextLayoutValue::create());
     shaderSet->addUniformBinding("text", "GPU_LAYOUT", 1, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::uivec4Array2D::create(1, 1));
+
+    auto rasterizationState = vsg::RasterizationState::create();
+    rasterizationState->cullMode = VK_CULL_MODE_NONE;
+    shaderSet->defaultGraphicsPipelineStates.push_back(rasterizationState);
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+    colorBlendAttachment.blendEnable = VK_TRUE;
+    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                                            VK_COLOR_COMPONENT_G_BIT |
+                                            VK_COLOR_COMPONENT_B_BIT |
+                                            VK_COLOR_COMPONENT_A_BIT;
+
+    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+    auto colorBlendState = vsg::ColorBlendState::create();
+    colorBlendState->attachments.push_back(colorBlendAttachment);
+    shaderSet->defaultGraphicsPipelineStates.push_back(colorBlendState);
 
     return shaderSet;
 }

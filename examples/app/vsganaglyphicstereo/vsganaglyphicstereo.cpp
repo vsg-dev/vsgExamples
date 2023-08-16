@@ -46,40 +46,18 @@ public:
         {
             if ((*itr)->is_compatible(typeid(vsg::ColorBlendState)))
             {
-                auto colorBlendState = (*itr)->cast<vsg::ColorBlendState>();
+                auto colorBlendState = itr->cast<vsg::ColorBlendState>();
 
                 // remove original ColorBlendState
                 gp->pipelineStates.erase(itr);
 
-                VkPipelineColorBlendAttachmentState left_colorBlendAttachment = {
-                    VK_FALSE,                                                                                                     // blendEnable
-                    VK_BLEND_FACTOR_ZERO,                                                                                         // srcColorBlendFactor
-                    VK_BLEND_FACTOR_ZERO,                                                                                         // dstColorBlendFactor
-                    VK_BLEND_OP_ADD,                                                                                              // colorBlendOp
-                    VK_BLEND_FACTOR_ZERO,                                                                                         // srcAlphaBlendFactor
-                    VK_BLEND_FACTOR_ZERO,                                                                                         // dstAlphaBlendFactor
-                    VK_BLEND_OP_ADD,                                                                                              // alphaBlendOp
-                    VK_COLOR_COMPONENT_R_BIT /*| VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT*/ | VK_COLOR_COMPONENT_A_BIT // colorWriteMask
-                };
-
-                VkPipelineColorBlendAttachmentState right_colorBlendAttachment = {
-                    VK_FALSE,                                                                                                      // blendEnable
-                    VK_BLEND_FACTOR_ZERO,                                                                                          // srcColorBlendFactor
-                    VK_BLEND_FACTOR_ZERO,                                                                                          // dstColorBlendFactor
-                    VK_BLEND_OP_ADD,                                                                                               // colorBlendOp
-                    VK_BLEND_FACTOR_ZERO,                                                                                          // srcAlphaBlendFactor
-                    VK_BLEND_FACTOR_ZERO,                                                                                          // dstAlphaBlendFactor
-                    VK_BLEND_OP_ADD,                                                                                               // alphaBlendOp
-                    /*VK_COLOR_COMPONENT_R_BIT | */ VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT // colorWriteMask
-                };
-
                 auto left_colorBlendState = vsg::ColorBlendState::create(*colorBlendState);
                 left_colorBlendState->mask = leftMask;
-                left_colorBlendState->attachments = {left_colorBlendAttachment};
+                left_colorBlendState->attachments[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_A_BIT;
 
                 auto right_colorBlendState = vsg::ColorBlendState::create(*colorBlendState);
                 right_colorBlendState->mask = rightMask;
-                right_colorBlendState->attachments = {right_colorBlendAttachment};
+                right_colorBlendState->attachments[0].colorWriteMask = VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
                 gp->pipelineStates.push_back(left_colorBlendState);
                 gp->pipelineStates.push_back(right_colorBlendState);
@@ -386,8 +364,11 @@ int main(int argc, char** argv)
 
     auto renderGraph = vsg::RenderGraph::create(window);
 
+    auto headlight = vsg::createHeadlight();
+
     auto left_view = vsg::View::create(left_camera, vsg_scene);
     left_view->mask = leftMask;
+    left_view->addChild(headlight);
     renderGraph->addChild(left_view);
 
     // clear the depth buffer before view2 gets rendered
@@ -400,6 +381,7 @@ int main(int argc, char** argv)
 
     auto right_view = vsg::View::create(right_camera, vsg_scene);
     right_view->mask = rightMask;
+    right_view->addChild(headlight);
     renderGraph->addChild(right_view);
 
     auto commandGraph = vsg::CommandGraph::create(window);
