@@ -158,7 +158,7 @@ int main(int argc, char** argv)
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);
     if (!font)
     {
-        std::cerr<<"Warning: font file '"<<font_filename<<"' not found."<<std::endl;
+        std::cout << "Failed to read font : " << font_filename << std::endl;
         return 1;
     }
 

@@ -41,7 +41,6 @@ int main(int argc, char** argv)
 #endif
 
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);
-
     if (!font)
     {
         std::cout << "Failed to read font : " << font_filename << std::endl;
