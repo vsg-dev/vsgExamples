@@ -357,7 +357,7 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    if (argc <= 1)
+    if (0)//argc <= 1)
     {
         std::cout << "Please specify model to load on command line" << std::endl;
         return 1;
@@ -379,7 +379,7 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    auto vsg_scene = vsg::read_cast<vsg::Node>(argv[1], options);
+    auto vsg_scene = vsg::Group::create();//vsg::read_cast<vsg::Node>(argv[1], options);
     if (!vsg_scene)
     {
         std::cout << "No command graph created." << std::endl;
@@ -415,6 +415,65 @@ int main(int argc, char** argv)
     deviceFeatures->get().geometryShader = enableGeometryShader;
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
+
+    // test1
+    {
+        auto sampler = vsg::Sampler::create();
+        sampler->maxLod = VK_LOD_CLAMP_NONE;
+
+        // uncompressed data
+        auto textureData1 = vsg::ubvec4Array2D::create(32, 32, vsg::Data::Properties(VK_FORMAT_R8G8B8A8_UNORM));
+        // compressed data
+        auto textureData2 = vsg::block64Array2D::create(32, 32, vsg::Data::Properties(VK_FORMAT_BC4_UNORM_BLOCK));
+        textureData2->properties.blockWidth = 8;
+        textureData2->properties.blockHeight = 8;
+
+        auto imageInfo1 = vsg::ImageInfo::create(sampler, textureData1);
+        auto imageInfo2 = vsg::ImageInfo::create(sampler, textureData2);
+
+        if (imageInfo1->sampler->maxLod != VK_LOD_CLAMP_NONE)
+            vsg::warn("test1 failed: shared sampler has been changed");
+        else
+            vsg::info("test1 passed");
+
+        // test compile(..) and copy(..) implementations
+        auto descriptorImage1 = vsg::DescriptorImage::create(imageInfo1);
+        auto descriptorImage2 = vsg::DescriptorImage::create(imageInfo2);
+        auto context = vsg::Context::create(device);
+        context->commandPool = vsg::CommandPool::create(device, queueFamily);
+        context->graphicsQueue = device->getQueue(queueFamily);
+        descriptorImage1->compile(*context);
+        descriptorImage2->compile(*context);
+        context->record();
+    }
+    // test2
+    {
+        auto textureData = vsg::block64Array2D::create(32, 32, vsg::Data::Properties(VK_FORMAT_BC4_UNORM_BLOCK));
+
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(*(device->getPhysicalDevice()), textureData->properties.format, &props);
+        const bool isBlitPossible = (props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) > 0 && (props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) > 0;
+        if (isBlitPossible)
+        {
+            vsg::warn("unable to proceed with test2: no format without blit support found.");
+            return 0;
+        }
+
+        // simulates an uncompressed format without blit support (hard to come by, but Vulkan allows it)
+        textureData->properties.blockWidth = 1;
+        textureData->properties.blockHeight = 1;
+        auto sampler = vsg::Sampler::create();
+        sampler->maxLod = VK_LOD_CLAMP_NONE;
+
+        auto imageInfo = vsg::ImageInfo::create(sampler, textureData);
+        if (imageInfo->imageView->image->mipLevels > 1)
+        {
+            vsg::warn("test2 failed: image will be created with ", imageInfo->imageView->image->mipLevels, " mipLevels, but we have no way to fill them in.");
+        }
+        else
+            vsg::info("test2 passed");
+    }
+    return 0;
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
