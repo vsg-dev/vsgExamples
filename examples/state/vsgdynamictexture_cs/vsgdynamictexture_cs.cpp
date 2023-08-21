@@ -112,7 +112,7 @@ int main(int argc, char** argv)
 
     // add event handlers
     viewer->addEventHandler(vsg::Trackball::create(camera));
-    viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
+    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     // setup texture source image data
     vsg::ref_ptr<vsg::Data> textureData = vsg::vec3Array2D::create(256, 256);
