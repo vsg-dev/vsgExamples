@@ -26,7 +26,7 @@ public:
     Cameras cameras;
     int currentCameraIndex = 0;
 
-    void apply(vsg::ButtonPressEvent &buttonPress) override
+    void apply(vsg::ButtonPressEvent& buttonPress) override
     {
         if (cameras.empty()) return;
 
