@@ -45,7 +45,7 @@ public:
             geom.dy.set(0.0f, scale, 0.0f);
             geom.dz.set(0.0f, 0.0f, scale);
 
-            if (keyPress.keyModifier == vsg::MODKEY_Control)
+            if (keyPress.keyModifier & vsg::MODKEY_Control)
             {
                 // when we press the ctrl key we want to enable billboarding of the created shapes
                 state.billboard = true;
