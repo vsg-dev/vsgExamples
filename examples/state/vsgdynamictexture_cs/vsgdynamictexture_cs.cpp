@@ -313,7 +313,7 @@ int main(int argc, char** argv)
 
         if (nestedCommandGraph)
         {
-            std::cout<<"Using nested CommandGraphs, with the compute CommandGraph added as a child of the graphics CommandGraph"<<std::endl;
+            std::cout<<"Using nested CommandGraphs, with the compute CommandGraph added as a child of the graphics CommandGraph."<<std::endl;
             compute_commandGraph->submitOrder = -1; // make sure the compute_commandGraph is placed before the graphics_commandGraph when it's submitted to the vkQueue.
             graphics_commandGraph->addChild(compute_commandGraph);
             viewer->assignRecordAndSubmitTaskAndPresentation({graphics_commandGraph});
