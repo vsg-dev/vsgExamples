@@ -62,6 +62,10 @@ src/vsg/vsg.dir/
 *.pdb
 *.tlog
 *.log
+*.ilk
+*.dll.recipe
+*.exe.recipe
+*.lib.recipe
 
 # Xcode
 DerivedData/
