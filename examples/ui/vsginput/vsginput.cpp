@@ -156,6 +156,11 @@ int main(int argc, char** argv)
     auto scenegraph = vsg::Group::create();
 
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);
+    if (!font)
+    {
+        std::cout << "Failed to read font : " << font_filename << std::endl;
+        return 1;
+    }
 
     double aspectRatio = double(windowTraits->width) / double(windowTraits->height);
     double projectionHeight = 25.0;

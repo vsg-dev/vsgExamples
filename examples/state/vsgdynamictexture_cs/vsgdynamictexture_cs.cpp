@@ -74,6 +74,7 @@ int main(int argc, char** argv)
     }
     auto numFrames = arguments.value(-1, "-f");
     auto workgroupSize = arguments.value(32, "-w");
+    auto nestedCommandGraph = arguments.read({"-n", "--nested"});
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -112,7 +113,7 @@ int main(int argc, char** argv)
 
     // add event handlers
     viewer->addEventHandler(vsg::Trackball::create(camera));
-    viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
+    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     // setup texture source image data
     vsg::ref_ptr<vsg::Data> textureData = vsg::vec3Array2D::create(256, 256);
@@ -286,7 +287,7 @@ int main(int argc, char** argv)
         postCopyBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
         postCopyBarrier->dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         postCopyBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        postCopyBarrier->newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        postCopyBarrier->newLayout = VK_IMAGE_LAYOUT_GENERAL;
         postCopyBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         postCopyBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         postCopyBarrier->image = image;
@@ -296,7 +297,7 @@ int main(int argc, char** argv)
         postCopyBarrier->subresourceRange.levelCount = 1;
         postCopyBarrier->subresourceRange.baseMipLevel = 0;
 
-        auto postCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, postCopyBarrier);
+        auto postCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, postCopyBarrier);
 
         int computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
         auto compute_commandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
@@ -310,7 +311,17 @@ int main(int argc, char** argv)
         auto graphics_commandGraph = vsg::CommandGraph::create(window);
         graphics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, graphics_commandGraph});
+        if (nestedCommandGraph)
+        {
+            std::cout<<"Using nested CommandGraphs, with the compute CommandGraph added as a child of the graphics CommandGraph."<<std::endl;
+            compute_commandGraph->submitOrder = -1; // make sure the compute_commandGraph is placed before the graphics_commandGraph when it's submitted to the vkQueue.
+            graphics_commandGraph->addChild(compute_commandGraph);
+            viewer->assignRecordAndSubmitTaskAndPresentation({graphics_commandGraph});
+        }
+        else
+        {
+            viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, graphics_commandGraph});
+        }
     }
 
     // compile the Vulkan objects

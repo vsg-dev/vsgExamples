@@ -24,6 +24,29 @@ public:
     vsg::ref_ptr<vsg::Camera> main_camera;
     vsg::ref_ptr<vsg::LookAt> original_viewMatrix;
     Cameras cameras;
+    int currentCameraIndex = 0;
+
+    void apply(vsg::ButtonPressEvent& buttonPress) override
+    {
+        if (cameras.empty()) return;
+
+        if (buttonPress.button == 4)
+        {
+             // next camera
+            currentCameraIndex++;
+            currentCameraIndex %= cameras.size();
+
+            selectCameraByIndex(currentCameraIndex);
+        }
+        else if (buttonPress.button == 5)
+        {
+            // previous camera
+            currentCameraIndex--;
+            currentCameraIndex %= cameras.size();
+
+            selectCameraByIndex(currentCameraIndex);
+        }
+    }
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
@@ -40,31 +63,39 @@ public:
         }
         else if ((keyPress.keyBase >= '1') && (keyPress.keyBase <= '9'))
         {
-            uint16_t keyForCamera{'1'};
-            for(auto& [nodePath, camera] : cameras)
+            currentCameraIndex = keyPress.keyBase - '1';
+
+            selectCameraByIndex(currentCameraIndex);
+        }
+    }
+
+private:
+    void selectCameraByIndex(int index)
+    {
+        int cameraIndex = 0;
+        for(auto& [nodePath, camera] : cameras)
+        {
+            if (cameraIndex == index)
             {
-                if (keyForCamera == keyPress.keyBase)
+                auto begin = nodePath.begin();
+                auto end = nodePath.end();
+                if (begin != end) --end;
+
+                // auto matrix = vsg::computeTransform(nodePath);
+                auto matrix = vsg::visit<vsg::ComputeTransform>(begin, end).matrix;
+
+                std::cout<<"Matched: "<<camera->name<<" "<<matrix<<std::endl;
+
+                auto selected_lookAt = camera->viewMatrix.cast<vsg::LookAt>();
+                auto main_lookAt = main_camera->viewMatrix.cast<vsg::LookAt>();
+                if (main_lookAt)
                 {
-                    auto begin = nodePath.begin();
-                    auto end = nodePath.end();
-                    if (begin != end) --end;
-
-                    // auto matrix = vsg::computeTransform(nodePath);
-                    auto matrix = vsg::visit<vsg::ComputeTransform>(begin, end).matrix;
-
-                    std::cout<<"Matched: "<<camera->name<<" "<<matrix<<std::endl;
-
-                    auto selected_lookAt = camera->viewMatrix.cast<vsg::LookAt>();
-                    auto main_lookAt = main_camera->viewMatrix.cast<vsg::LookAt>();
-                    if (main_lookAt)
-                    {
-                        *main_lookAt = *selected_lookAt;
-                        main_lookAt->transform(matrix);
-                    }
-                    break;
+                    *main_lookAt = *selected_lookAt;
+                    main_lookAt->transform(matrix);
                 }
-                ++keyForCamera;
+                break;
             }
+            ++cameraIndex;
         }
     }
 };
