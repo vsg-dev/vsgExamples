@@ -74,6 +74,7 @@ int main(int argc, char** argv)
     }
     auto numFrames = arguments.value(-1, "-f");
     auto workgroupSize = arguments.value(32, "-w");
+    auto nestedCommandGraph = arguments.read({"-n", "--nested"});
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -308,10 +309,19 @@ int main(int argc, char** argv)
         compute_commandGraph->addChild(postCopyBarrierCmd);
 
         auto graphics_commandGraph = vsg::CommandGraph::create(window);
-        //graphics_commandGraph->addChild(postCopyBarrierCmd);
         graphics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, graphics_commandGraph});
+        if (nestedCommandGraph)
+        {
+            std::cout<<"Using nested CommandGraphs, with the compute CommandGraph added as a child of the graphics CommandGraph."<<std::endl;
+            compute_commandGraph->submitOrder = -1; // make sure the compute_commandGraph is placed before the graphics_commandGraph when it's submitted to the vkQueue.
+            graphics_commandGraph->addChild(compute_commandGraph);
+            viewer->assignRecordAndSubmitTaskAndPresentation({graphics_commandGraph});
+        }
+        else
+        {
+            viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, graphics_commandGraph});
+        }
     }
 
     // compile the Vulkan objects
