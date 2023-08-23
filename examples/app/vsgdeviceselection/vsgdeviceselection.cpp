@@ -252,7 +252,7 @@ int main(int argc, char** argv)
         {
             std::cout<<"PhysicalDevice::enumerateDeviceExtensionProperties()"<<std::endl;
             auto physicalDevice = window->getOrCreatePhysicalDevice();
-            for(auto extension : physicalDevice->enumerateDeviceExtensionProperties())
+            for(const auto &extension : physicalDevice->enumerateDeviceExtensionProperties())
             {
                 std::cout<<"    extensionName = "<<extension.extensionName<<", spec = "<<extension.specVersion<<std::endl;
             }
