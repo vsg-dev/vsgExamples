@@ -27,7 +27,7 @@ vsg_setup_dir_vars()
 vsg_setup_build_vars()
 
 # find the optional vsgXchange that can be used for reading a range of image and 3d model formats and shader compilation
-find_package(vsgXchange 1.0.2 QUIET)
+find_package(vsgXchange 1.0.5 QUIET)
 
 # find the optional vsgImGui that can be used for GUI elements added into graphics windows.
 find_package(vsgImGui QUIET)
