@@ -8,13 +8,13 @@ namespace experimental
 
     class SharedPtrVisitor;
 
-    class SharerdPtrAuxilary : public std::enable_shared_from_this<SharerdPtrAuxilary>
+    class SharedPtrAuxiliary : public std::enable_shared_from_this<SharedPtrAuxiliary>
     {
     public:
-        SharerdPtrAuxilary() {}
+        SharedPtrAuxiliary() {}
 
     protected:
-        virtual ~SharerdPtrAuxilary() {}
+        virtual ~SharedPtrAuxiliary() {}
     };
 
     class SharedPtrNode : public std::enable_shared_from_this<SharedPtrNode>
@@ -28,7 +28,7 @@ namespace experimental
         virtual ~SharedPtrNode() {}
 
     protected:
-        std::shared_ptr<SharerdPtrAuxilary> _auxilary;
+        std::shared_ptr<SharedPtrAuxiliary> _auxiliary;
     };
 
     class SharedPtrQuadGroup;

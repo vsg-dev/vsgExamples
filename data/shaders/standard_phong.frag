@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING)
 
 #ifdef VSG_DIFFUSE_MAP
 layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
@@ -108,7 +108,7 @@ void main()
 
     vec4 diffuseColor = vertexColor * material.diffuseColor;
 #ifdef VSG_DIFFUSE_MAP
-    #ifdef VSG_GREYSACLE_DIFFUSE_MAP
+    #ifdef VSG_GREYSCALE_DIFFUSE_MAP
         float v = texture(diffuseMap, texCoord0.st).s;
         diffuseColor *= vec4(v, v, v, 1.0);
     #else

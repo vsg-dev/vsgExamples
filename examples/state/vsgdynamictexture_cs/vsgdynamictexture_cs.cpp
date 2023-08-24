@@ -74,6 +74,7 @@ int main(int argc, char** argv)
     }
     auto numFrames = arguments.value(-1, "-f");
     auto workgroupSize = arguments.value(32, "-w");
+    auto nestedCommandGraph = arguments.read({"-n", "--nested"});
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -96,7 +97,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -112,7 +113,7 @@ int main(int argc, char** argv)
 
     // add event handlers
     viewer->addEventHandler(vsg::Trackball::create(camera));
-    viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
+    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     // setup texture source image data
     vsg::ref_ptr<vsg::Data> textureData = vsg::vec3Array2D::create(256, 256);
@@ -143,13 +144,13 @@ int main(int argc, char** argv)
     {
         // set up graphics pipeline
         vsg::DescriptorSetLayoutBindings descriptorBindings{
-            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
         };
 
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -179,7 +180,7 @@ int main(int argc, char** argv)
         auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
 
-        // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+        // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
         scenegraph->add(bindGraphicsPipeline);
         scenegraph->add(bindDescriptorSet);
 
@@ -247,7 +248,7 @@ int main(int argc, char** argv)
         // set up DescriptorSetLayout, DecriptorSet and BindDescriptorSets
         vsg::DescriptorSetLayoutBindings descriptorBindings{
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+            {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
         };
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
@@ -286,7 +287,7 @@ int main(int argc, char** argv)
         postCopyBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
         postCopyBarrier->dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         postCopyBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        postCopyBarrier->newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        postCopyBarrier->newLayout = VK_IMAGE_LAYOUT_GENERAL;
         postCopyBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         postCopyBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         postCopyBarrier->image = image;
@@ -296,7 +297,7 @@ int main(int argc, char** argv)
         postCopyBarrier->subresourceRange.levelCount = 1;
         postCopyBarrier->subresourceRange.baseMipLevel = 0;
 
-        auto postCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, postCopyBarrier);
+        auto postCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, postCopyBarrier);
 
         int computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
         auto compute_commandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
@@ -307,10 +308,20 @@ int main(int argc, char** argv)
         compute_commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
         compute_commandGraph->addChild(postCopyBarrierCmd);
 
-        auto grahics_commandGraph = vsg::CommandGraph::create(window);
-        grahics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
+        auto graphics_commandGraph = vsg::CommandGraph::create(window);
+        graphics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, grahics_commandGraph});
+        if (nestedCommandGraph)
+        {
+            std::cout<<"Using nested CommandGraphs, with the compute CommandGraph added as a child of the graphics CommandGraph."<<std::endl;
+            compute_commandGraph->submitOrder = -1; // make sure the compute_commandGraph is placed before the graphics_commandGraph when it's submitted to the vkQueue.
+            graphics_commandGraph->addChild(compute_commandGraph);
+            viewer->assignRecordAndSubmitTaskAndPresentation({graphics_commandGraph});
+        }
+        else
+        {
+            viewer->assignRecordAndSubmitTaskAndPresentation({compute_commandGraph, graphics_commandGraph});
+        }
     }
 
     // compile the Vulkan objects

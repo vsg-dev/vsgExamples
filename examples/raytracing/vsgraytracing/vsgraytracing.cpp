@@ -11,11 +11,7 @@ struct RayTracingUniform
     vsg::mat4 projInverse;
 };
 
-class RayTracingUniformValue : public vsg::Inherit<vsg::Value<RayTracingUniform>, RayTracingUniformValue>
-{
-public:
-    RayTracingUniformValue() {}
-};
+using RayTracingUniformValue = vsg::Value<RayTracingUniform>;
 
 int main(int argc, char** argv)
 {
@@ -76,7 +72,7 @@ int main(int argc, char** argv)
         auto window = vsg::Window::create(windowTraits);
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
@@ -202,15 +198,15 @@ int main(int argc, char** argv)
 
         auto storageImageInfo = vsg::ImageInfo::create(vsg::ref_ptr<vsg::Sampler>{}, createImageView(*context, storageImage, VK_IMAGE_ASPECT_COLOR_BIT), VK_IMAGE_LAYOUT_GENERAL);
 
-        auto raytracingUniformValues = new RayTracingUniformValue();
-        raytracingUniformValues->value().projInverse = perspective->inverse();
-        raytracingUniformValues->value().viewInverse = lookAt->inverse();
+        vsg::ref_ptr<RayTracingUniformValue> raytracingUniform = RayTracingUniformValue::create();
+        raytracingUniform->properties.dataVariance = vsg::DataVariance::DYNAMIC_DATA;
+        raytracingUniform->value().projInverse = perspective->inverse();
+        raytracingUniform->value().viewInverse = lookAt->inverse();
 
-        vsg::ref_ptr<RayTracingUniformValue> raytracingUniform(raytracingUniformValues);
 
         // set up graphics pipeline
         vsg::DescriptorSetLayoutBindings descriptorBindings{
-            {0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr}, // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+            {0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr}, // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
             {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr},
             {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr}};
 
@@ -222,7 +218,6 @@ int main(int argc, char** argv)
         auto storageImageDescriptor = vsg::DescriptorImage::create(storageImageInfo, 1, 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
         auto raytracingUniformDescriptor = vsg::DescriptorBuffer::create(raytracingUniform, 2, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        raytracingUniformDescriptor->copyDataListToBuffers();
 
         auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
         auto raytracingPipeline = vsg::RayTracingPipeline::create(pipelineLayout, shaderStages, shaderGroups);
@@ -251,10 +246,10 @@ int main(int argc, char** argv)
         auto viewport = vsg::ViewportState::create(0, 0, windowTraits->width, windowTraits->height);
         auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
-        // assign a CloseHandler to the Viewer to respond to pressing Escape or press the window close button
+        // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
         viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-        // set up commandGraph to rendering viewport
+        // set up commandGraph with rendering viewport
         auto commandGraph = vsg::CommandGraph::create(window);
 
         auto copyImageViewToWindow = vsg::CopyImageViewToWindow::create(storageImageInfo->imageView, window);
@@ -275,8 +270,8 @@ int main(int argc, char** argv)
             viewer->handleEvents();
 
             //update camera matrix
-            raytracingUniformValues->value().viewInverse = lookAt->inverse();
-            raytracingUniformDescriptor->copyDataListToBuffers();
+            raytracingUniform->value().viewInverse = lookAt->inverse();
+            raytracingUniform->dirty();
 
             viewer->update();
 

@@ -15,12 +15,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <vsg/all.h>
 
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
+#endif
+
 #include <chrono>
 #include <iostream>
 #include <thread>
 
 // Render a scene to an image, then use the image as a texture on the
-// faces of quads. This is based on Sascha William's offscreenrender
+// faces of quads. This is based on Sascha Willems' offscreenrender
 // example.
 //
 // In VSG / Vulkan terms, we first create a frame buffer that uses
@@ -34,7 +38,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 // dependencies of the offscreen RenderPass / RenderGraph need to be
 // set up so that the second RenderGraph can sample the output.
 
-// Rendergraph for rendering to image
+// RenderGraph for rendering to image
 
 vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context, const VkExtent2D& extent,
                                                           vsg::ImageInfo& colorImageInfo, vsg::ImageInfo& depthImageInfo)
@@ -128,7 +132,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     vsg::RenderPass::Dependencies dependencies(2);
 
     // XXX This dependency is copied from the offscreenrender.cpp
-    // example. I don't completely understand it, but I think it's
+    // example. I don't completely understand it, but I think its
     // purpose is to create a barrier if some earlier render pass was
     // using this framebuffer's attachment as a texture.
     dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -184,13 +188,13 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ref_ptr<vsg::ImageInfo> colorImage)
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
     vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection view, and model matrices, actual push constant calls automatically provided by the VSG's DispatchTraversal
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
     };
 
     vsg::VertexInputState::Bindings vertexBindingsDescriptions{
@@ -223,7 +227,7 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ref_ptr<vsg::ImageInfo> colorImage)
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
 
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsProgram, and binding of Descriptors to decorate the whole graph
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
     auto scenegraph = vsg::StateGroup::create();
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSet);
@@ -315,6 +319,7 @@ int main(int argc, char** argv)
     windowTraits->synchronizationLayer = arguments.read("--sync");
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
+    bool nestedCommandGraph = arguments.read({"-n", "--nested"});
     bool separateCommandGraph = arguments.read("-s");
     bool multiThreading = arguments.read("--mt");
 
@@ -329,6 +334,11 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
 
     // read any vsg files
     for (int i = 1; i < argc; ++i)
@@ -362,7 +372,7 @@ int main(int argc, char** argv)
 
     if (!vsg_scene)
     {
-        std::cout << "No command graph created." << std::endl;
+        std::cout << "No valid model files specified." << std::endl;
         return 1;
     }
 
@@ -383,7 +393,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -405,14 +415,29 @@ int main(int argc, char** argv)
     auto camera = createCameraForScene(planes, window->extent2D());
     auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, planes);
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
-    if (separateCommandGraph)
+    if (nestedCommandGraph)
     {
+        std::cout<<"Nested CommandGraph, with nested RTT CommandGraph as a child on the main CommandGraph. "<<std::endl;
         auto rtt_commandGraph = vsg::CommandGraph::create(window);
+        rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
+        rtt_commandGraph->addChild(rtt_RenderGraph);
+
+        auto main_commandGraph = vsg::CommandGraph::create(window);
+        main_commandGraph->addChild(main_RenderGraph);
+        main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph ndested within main CommandGraph
+
+        viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph});
+    }
+    else if (separateCommandGraph)
+    {
+        std::cout<<"Seperate CommandGraph with RTT CommandGraph first, then main CommandGraph second."<<std::endl;
+        auto rtt_commandGraph = vsg::CommandGraph::create(window);
+        rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
         rtt_commandGraph->addChild(rtt_RenderGraph);
 
         auto main_commandGraph = vsg::CommandGraph::create(window);
@@ -422,6 +447,7 @@ int main(int argc, char** argv)
     }
     else
     {
+        std::cout<<"Single CommandGraph containing by the RTT and main RenderGraphs"<<std::endl;
         // Place the offscreen RenderGraph before the plane geometry RenderGraph
         auto commandGraph = vsg::CommandGraph::create(window);
         commandGraph->addChild(rtt_RenderGraph);
@@ -434,6 +460,7 @@ int main(int argc, char** argv)
 
     if (multiThreading)
     {
+        std::cout<<"Enabled multi-threading"<<std::endl;
         viewer->setupThreading();
     }
 

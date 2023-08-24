@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
     auto view2 = vsg::View::create(secondary_camera, scenegraph2);
     renderGraph->addChild(view2);
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     viewer->addEventHandler(vsg::Trackball::create(camera));

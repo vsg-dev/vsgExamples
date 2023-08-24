@@ -24,6 +24,29 @@ public:
     vsg::ref_ptr<vsg::Camera> main_camera;
     vsg::ref_ptr<vsg::LookAt> original_viewMatrix;
     Cameras cameras;
+    int currentCameraIndex = 0;
+
+    void apply(vsg::ButtonPressEvent& buttonPress) override
+    {
+        if (cameras.empty()) return;
+
+        if (buttonPress.button == 4)
+        {
+             // next camera
+            currentCameraIndex++;
+            currentCameraIndex %= cameras.size();
+
+            selectCameraByIndex(currentCameraIndex);
+        }
+        else if (buttonPress.button == 5)
+        {
+            // previous camera
+            currentCameraIndex--;
+            currentCameraIndex %= cameras.size();
+
+            selectCameraByIndex(currentCameraIndex);
+        }
+    }
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
@@ -40,31 +63,39 @@ public:
         }
         else if ((keyPress.keyBase >= '1') && (keyPress.keyBase <= '9'))
         {
-            uint16_t keyForCamera{'1'};
-            for(auto& [nodePath, camera] : cameras)
+            currentCameraIndex = keyPress.keyBase - '1';
+
+            selectCameraByIndex(currentCameraIndex);
+        }
+    }
+
+private:
+    void selectCameraByIndex(int index)
+    {
+        int cameraIndex = 0;
+        for(auto& [nodePath, camera] : cameras)
+        {
+            if (cameraIndex == index)
             {
-                if (keyForCamera == keyPress.keyBase)
+                auto begin = nodePath.begin();
+                auto end = nodePath.end();
+                if (begin != end) --end;
+
+                // auto matrix = vsg::computeTransform(nodePath);
+                auto matrix = vsg::visit<vsg::ComputeTransform>(begin, end).matrix;
+
+                std::cout<<"Matched: "<<camera->name<<" "<<matrix<<std::endl;
+
+                auto selected_lookAt = camera->viewMatrix.cast<vsg::LookAt>();
+                auto main_lookAt = main_camera->viewMatrix.cast<vsg::LookAt>();
+                if (main_lookAt)
                 {
-                    auto begin = nodePath.begin();
-                    auto end = nodePath.end();
-                    if (begin != end) --end;
-
-                    // auto matrix = vsg::computeTransform(nodePath);
-                    auto matrix = vsg::visit<vsg::ComputeTransform>(begin, end).matrix;
-
-                    std::cout<<"Matched: "<<camera->name<<" "<<matrix<<std::endl;
-
-                    auto selected_lookAt = camera->viewMatrix.cast<vsg::LookAt>();
-                    auto main_lookAt = main_camera->viewMatrix.cast<vsg::LookAt>();
-                    if (main_lookAt)
-                    {
-                        *main_lookAt = *selected_lookAt;
-                        main_lookAt->transform(matrix);
-                    }
-                    break;
+                    *main_lookAt = *selected_lookAt;
+                    main_lookAt->transform(matrix);
                 }
-                ++keyForCamera;
+                break;
             }
+            ++cameraIndex;
         }
     }
 };
@@ -75,7 +106,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgcamera - Multiple Views with different ways of configurating/tracking Cameras";
+    windowTraits->windowTitle = "vsgcameras - Multiple Views with different ways of configuring/tracking Cameras";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
@@ -108,7 +139,7 @@ int main(int argc, char** argv)
 
     if (scene_cameras.empty())
     {
-        // no camera are present in the scene graph so add them
+        // no cameras are present in the scene graph so add them
         auto root = vsg::Group::create();
         root->addChild(scenegraph);
 
@@ -164,19 +195,19 @@ int main(int argc, char** argv)
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create window." << std::endl;
         return 1;
     }
 
     viewer->addWindow(window);
 
-    // add close handler to respond the close window button and pressing escape
+    // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     uint32_t width = window->extent2D().width;
     uint32_t height = window->extent2D().height;
 
-    // CommandGraph to hold the different RenderGraph used to render each view
+    // CommandGraph to hold the different RenderGraphs used to render each view
     auto commandGraph = vsg::CommandGraph::create(window);
 
     // set up main interactive view
@@ -213,7 +244,7 @@ int main(int argc, char** argv)
 
     for(auto& [nodePath, camera] : scene_cameras)
     {
-        // create an RenderinGraph to add an secondary vsg::View on the top right part of the window.
+        // create a RenderGraph to add a secondary vsg::View on the top right part of the window.
         auto projectionMatrix = camera->projectionMatrix;
         auto viewMatrix = vsg::TrackingViewMatrix::create(nodePath);
         auto viewportState = vsg::ViewportState::create(x, y, secondary_width, secondary_height);
