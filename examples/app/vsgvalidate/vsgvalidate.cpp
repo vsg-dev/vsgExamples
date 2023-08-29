@@ -26,7 +26,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
-    auto debugLayer = arguments.read({"--debug", "-d"});
+
+    bool debugLayer = true;
     auto apiDumpLayer = arguments.read({"--api", "-a"});
 
     VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
@@ -66,8 +67,10 @@ int main(int argc, char** argv)
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
 
-    // test1
+    // test 1
     {
+        vsg::info("---- Test 1 ----");
+
         auto sampler = vsg::Sampler::create();
         sampler->maxLod = VK_LOD_CLAMP_NONE;
 
@@ -82,9 +85,9 @@ int main(int argc, char** argv)
         auto imageInfo2 = vsg::ImageInfo::create(sampler, textureData2);
 
         if (imageInfo1->sampler->maxLod != VK_LOD_CLAMP_NONE)
-            vsg::warn("test1 failed: shared sampler has been changed");
+            vsg::warn("test 1 failed: shared sampler has been changed");
         else
-            vsg::info("test1 passed");
+            vsg::info("test 1 passed");
 
         // test compile(..) and copy(..) implementations
         auto descriptorImage1 = vsg::DescriptorImage::create(imageInfo1);
@@ -95,9 +98,14 @@ int main(int argc, char** argv)
         descriptorImage1->compile(*context);
         descriptorImage2->compile(*context);
         context->record();
+
+        vsg::info("End of test 1\n");
     }
+
     // test2
     {
+        vsg::info("---- Test 2 ----");
+
         auto textureData = vsg::block64Array2D::create(32, 32, vsg::Data::Properties(VK_FORMAT_BC4_UNORM_BLOCK));
 
         VkFormatProperties props;
@@ -122,6 +130,29 @@ int main(int argc, char** argv)
         }
         else
             vsg::info("test2 passed");
+
+        vsg::info("End of test 2\n");
     }
+
+    // test3
+    {
+        vsg::info("---- Test 3 ----");
+
+        auto context = vsg::Context::create(device);
+        vsg::ResourceRequirements requirements;
+        requirements.descriptorTypeMap[VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER] = 1;
+
+        vsg::info("Test 3, part 1");
+        requirements.externalNumDescriptorSets = 1;
+        context->reserve(requirements);
+
+        vsg::info("Test 3, part 2");
+        requirements.externalNumDescriptorSets = 2;
+        context->reserve(requirements);
+
+        // vkCreateDescriptorPool(): pCreateInfo->pPoolSizes[0].descriptorCount is not greater than 0. The Vulkan spec states: descriptorCount must be greater than 0 (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkDescriptorPoolSize-descriptorCount-00302)
+        vsg::info("End of test 3\n");
+    }
+
     return 0;
 }
