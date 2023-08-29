@@ -188,7 +188,7 @@ int main(int argc, char** argv)
             }
 
 
-            // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they area available.
+            // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they are available.
             auto physicalDevice = physicalDevices[pd_num];
             auto properties = physicalDevice->getProperties();
 
@@ -202,7 +202,7 @@ int main(int argc, char** argv)
             auto instance = window->getOrCreateInstance();
             auto surface = window->getOrCreateSurface();
 
-            // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they area available.
+            // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they are available.
             auto physicalDevice = instance->getPhysicalDevice(windowTraits->queueFlags, surface, {VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU});
 
             std::cout << "Created our own vsg::PhysicalDevice " << physicalDevice << std::endl;
