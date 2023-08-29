@@ -148,6 +148,7 @@ int main(int argc, char** argv)
 
         vsg::info("Test 3, part 2");
         requirements.externalNumDescriptorSets = 2;
+        requirements.descriptorTypeMap[VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER] = 2;
         context->reserve(requirements);
 
         // vkCreateDescriptorPool(): pCreateInfo->pPoolSizes[0].descriptorCount is not greater than 0. The Vulkan spec states: descriptorCount must be greater than 0 (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkDescriptorPoolSize-descriptorCount-00302)
