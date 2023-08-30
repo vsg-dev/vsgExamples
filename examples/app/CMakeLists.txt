@@ -12,6 +12,7 @@ add_subdirectory(vsgdeviceselection)
 add_subdirectory(vsganaglyphicstereo)
 add_subdirectory(vsgwindows)
 add_subdirectory(vsgcameras)
+add_subdirectory(vsgvalidate)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsghelloworld)
