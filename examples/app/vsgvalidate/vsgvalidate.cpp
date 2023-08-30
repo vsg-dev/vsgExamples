@@ -66,10 +66,13 @@ int main(int argc, char** argv)
     deviceFeatures->get().geometryShader = enableGeometryShader;
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
+    auto context = vsg::Context::create(device);
+    context->commandPool = vsg::CommandPool::create(device, queueFamily);
+    context->graphicsQueue = device->getQueue(queueFamily);
 
     // test 1
     {
-        vsg::info("---- Test 1 ----");
+        vsg::info("---- Test 1 : Sharing Sampler between ImageInfo/InmageView/Image instances ----");
 
         auto sampler = vsg::Sampler::create();
         sampler->maxLod = VK_LOD_CLAMP_NONE;
@@ -92,9 +95,11 @@ int main(int argc, char** argv)
         // test compile(..) and copy(..) implementations
         auto descriptorImage1 = vsg::DescriptorImage::create(imageInfo1);
         auto descriptorImage2 = vsg::DescriptorImage::create(imageInfo2);
-        auto context = vsg::Context::create(device);
-        context->commandPool = vsg::CommandPool::create(device, queueFamily);
-        context->graphicsQueue = device->getQueue(queueFamily);
+
+        vsg::CollectResourceRequirements collectResourceRequirements;
+        descriptorImage1->accept(collectResourceRequirements);
+        descriptorImage2->accept(collectResourceRequirements);
+
         descriptorImage1->compile(*context);
         descriptorImage2->compile(*context);
         context->record();
@@ -104,7 +109,7 @@ int main(int argc, char** argv)
 
     // test2
     {
-        vsg::info("---- Test 2 ----");
+        vsg::info("---- Test 2 : Automatic disabling of mipmapping when using compressed image formats. ----");
 
         auto textureData = vsg::block64Array2D::create(32, 32, vsg::Data::Properties(VK_FORMAT_BC4_UNORM_BLOCK));
 
@@ -124,6 +129,11 @@ int main(int argc, char** argv)
         sampler->maxLod = VK_LOD_CLAMP_NONE;
 
         auto imageInfo = vsg::ImageInfo::create(sampler, textureData);
+        auto descriptorImage = vsg::DescriptorImage::create(imageInfo);
+
+        vsg::CollectResourceRequirements collectResourceRequirements;
+        descriptorImage->accept(collectResourceRequirements);
+
         if (imageInfo->imageView->image->mipLevels > 1)
         {
             vsg::warn("test2 failed: image will be created with ", imageInfo->imageView->image->mipLevels, " mipLevels, but we have no way to fill them in.");
@@ -136,9 +146,8 @@ int main(int argc, char** argv)
 
     // test3
     {
-        vsg::info("---- Test 3 ----");
+        vsg::info("---- Test 3 : DescriptorPool reservation in vsg::Context ----");
 
-        auto context = vsg::Context::create(device);
         vsg::ResourceRequirements requirements;
         requirements.descriptorTypeMap[VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER] = 1;
 
