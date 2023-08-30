@@ -42,9 +42,16 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
+    // enable wireframe and line width setting.
+    auto deviceFeatures = vsg::DeviceFeatures::create();
+    deviceFeatures->get().fillModeNonSolid = VK_TRUE;
+    deviceFeatures->get().wideLines = VK_TRUE;
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+    windowTraits->deviceFeatures = deviceFeatures;
+
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
 
     vsg::ref_ptr<vsg::ShaderSet> shaderSet;
@@ -64,10 +71,8 @@ int main(int argc, char** argv)
 
     if (!shaderSet) shaderSet = vsg::createPhongShaderSet(options);
 
-    // enable wireframe mode to visualize line width
-    auto rasterizationState = vsg::RasterizationState::create();
-    rasterizationState->polygonMode = VK_POLYGON_MODE_LINE;
-    shaderSet->defaultGraphicsPipelineStates.push_back(rasterizationState);
+
+
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -89,6 +94,22 @@ int main(int argc, char** argv)
     auto scenegraph = vsg::Group::create();
 
     auto graphicsPipelineConfig = vsg::GraphicsPipelineConfigurator::create(shaderSet);
+
+    // enable wireframe mode to visualize line width of the mesh
+    struct SetPipelineStates : public vsg::Visitor
+    {
+        void apply(vsg::Object& object) override
+        {
+            object.traverse(*this);
+        }
+
+        void apply(vsg::RasterizationState& rs) override
+        {
+            rs.polygonMode = VK_POLYGON_MODE_LINE;
+        }
+    };
+
+    vsg::visit<SetPipelineStates>(graphicsPipelineConfig);
 
     // instantiate dynamicstate and add the state
     auto dynamicState = vsg::DynamicState::create();
@@ -167,12 +188,13 @@ int main(int argc, char** argv)
 
     // setup geometry
     auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(graphicsPipelineConfig->baseAttributeBinding, vertexArrays));
-    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
     // get the reference and bind it to ImGui slider
     auto setLineWidth = vsg::SetLineWidth::create(1.0f);
     drawCommands->addChild(setLineWidth);
+
+    drawCommands->addChild(vsg::BindVertexBuffers::create(graphicsPipelineConfig->baseAttributeBinding, vertexArrays));
+    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
 
     if (sharedObjects)
     {
