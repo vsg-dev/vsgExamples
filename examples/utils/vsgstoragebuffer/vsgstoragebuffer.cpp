@@ -17,60 +17,17 @@ layout(location = 0) out vec4 color;
 void main() { color = cellColors[gl_PrimitiveID]; }
 )"};
 
-/**
- * This replaces DescriptorConfigurator::assignUniform() to handle uniform buffers in
- * the ShaderSet that have descriptorType set to STORAGE_BUFFER
- *
- * This was copied out from VSG source and modified (see below) to demonstrate the
- * storage buffer use case.
- */
-bool assignUniform(
-    vsg::ref_ptr<vsg::DescriptorConfigurator> dc,
-    const std::string& name,
-    vsg::ref_ptr<vsg::Data> data,
-    uint32_t dstArrayElement = 0)
+
+int main(int argc, char** argv)
 {
-    if (auto& uniformBinding = dc->shaderSet->getUniformBinding(name))
-    {
-        dc->assigned.insert(name);
+    auto windowTraits = vsg::WindowTraits::create();
+    windowTraits->windowTitle = "vsgstoragebuffer";
 
-        // set up bindings
-        if (!uniformBinding.define.empty())
-            dc->defines.insert(uniformBinding.define);
+    // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
-        // create uniform and associated DescriptorSets and binding
-        return dc->assignDescriptor(
-            uniformBinding.set,
-            uniformBinding.binding,
-            uniformBinding.descriptorType,
-            uniformBinding.descriptorCount,
-            uniformBinding.stageFlags,
-            vsg::DescriptorBuffer::create(
-                data ? data : uniformBinding.data,
-                uniformBinding.binding,
-                dstArrayElement,
-                uniformBinding.descriptorType)); // this line is the only difference
-                                                 // from the original source
-    }
-    return false;
-}
-
-/**
- * This replaces GraphicsPipelineConfigurator::assignUniform() to handle uniform
- * buffers in the ShaderSet that have descriptorType set to STORAGE_BUFFER.
- */
-bool assignUniform(
-    vsg::ref_ptr<vsg::GraphicsPipelineConfigurator> gpc,
-    const std::string& name,
-    vsg::ref_ptr<vsg::Data> data)
-{
-    if (!gpc->descriptorConfigurator)
-        gpc->descriptorConfigurator = vsg::DescriptorConfigurator::create(gpc->shaderSet);
-    return assignUniform(gpc->descriptorConfigurator, name, data);
-}
-
-int main()
-{
     auto vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", VERT);
     auto fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", FRAG);
     auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
@@ -99,7 +56,9 @@ int main()
     });
 
     /// actually assigning a storage buffer (not a uniform buffer)
-    assignUniform(gpConf, "cellColors", cellColors);
+    // assignUniform(gpConf, "cellColors", cellColors);
+
+    gpConf->assignUniform("cellColors", cellColors);
 
     /// single quad
     auto vertices = vsg::vec3Array::create({
@@ -120,7 +79,7 @@ int main()
     gpConf->copyTo(stateGroup);
     sceneGraph->addChild(stateGroup);
 
-    auto window = vsg::Window::create(vsg::WindowTraits::create());
+    auto window = vsg::Window::create(windowTraits);
     auto lookAt = vsg::LookAt::create(
         vsg::dvec3{2,-5,-1},
         vsg::dvec3{0, 0, 0},
@@ -130,12 +89,15 @@ int main()
     auto viewportState = vsg::ViewportState::create(window->extent2D());
     auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
     auto viewer = vsg::Viewer::create();
+
     viewer->addWindow(window);
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
+
     auto commandGraph = vsg::createCommandGraphForView(window, camera, sceneGraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
     viewer->compile();
+
     while (viewer->advanceToNextFrame())
     {
         viewer->handleEvents();
