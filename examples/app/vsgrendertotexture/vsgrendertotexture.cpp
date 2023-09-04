@@ -429,7 +429,7 @@ int main(int argc, char** argv)
 
         auto main_commandGraph = vsg::CommandGraph::create(window);
         main_commandGraph->addChild(main_RenderGraph);
-        main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph ndested within main CommandGraph
+        main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
 
         viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph});
     }
