@@ -38,17 +38,17 @@ void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
     }
 
     out<<std::endl;
-    out<<"uniformBindings.size() = "<<shaderSet.uniformBindings.size()<<std::endl;
-    for(auto& ub : shaderSet.uniformBindings)
+    out<<"bufferBindings.size() = "<<shaderSet.bufferBindings.size()<<std::endl;
+    for(auto& bb : shaderSet.bufferBindings)
     {
-        out<<"  UniformBinding {"<<std::endl;
-        out<<"    name = "<<ub.name<<std::endl;
-        out<<"    define = "<<ub.define<<std::endl;
-        out<<"    set = "<<ub.set<<std::endl;
-        out<<"    binding = "<<ub.binding<<std::endl;
-        out<<"    descriptorType = "<<ub.descriptorType<<std::endl;
-        out<<"    stageFlags = "<<ub.stageFlags<<std::endl;
-        out<<"    data = "<<ub.data<<std::endl;
+        out<<"  BufferBinding {"<<std::endl;
+        out<<"    name = "<<bb.name<<std::endl;
+        out<<"    define = "<<bb.define<<std::endl;
+        out<<"    set = "<<bb.set<<std::endl;
+        out<<"    binding = "<<bb.binding<<std::endl;
+        out<<"    descriptorType = "<<bb.descriptorType<<std::endl;
+        out<<"    stageFlags = "<<bb.stageFlags<<std::endl;
+        out<<"    data = "<<bb.data<<std::endl;
         out<<"  }"<<std::endl;
     }
 
@@ -109,7 +109,7 @@ std::set<std::string> supportedDefines(const vsg::ShaderSet& shaderSet)
         if (!ab.define.empty()) defines.insert(ab.define);
     }
 
-    for(auto& ub : shaderSet.uniformBindings)
+    for(auto& ub : shaderSet.bufferBindings)
     {
         if (!ub.define.empty()) defines.insert(ub.define);
     }
@@ -313,7 +313,7 @@ int main(int argc, char** argv)
     {
         shaderSet->stages.clear();
         shaderSet->attributeBindings.clear();
-        shaderSet->uniformBindings.clear();
+        shaderSet->bufferBindings.clear();
         shaderSet->pushConstantRanges.clear();
         shaderSet->definesArrayStates.clear();
         shaderSet->optionalDefines.clear();

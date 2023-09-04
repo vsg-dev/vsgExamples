@@ -33,8 +33,7 @@ int main(int argc, char** argv)
     auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
     shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
 
-    /// (mis?)using addUniformBinding() to add a storage binding.
-    shaderSet->addUniformBinding("cellColors", "", 0, 0,
+    shaderSet->addBufferBinding("cellColors", "", 0, 0,
         VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
         vsg::vec4Array::create({{1,0,0,1}}));
 
@@ -54,11 +53,7 @@ int main(int argc, char** argv)
         {0.176, 0.408, 0.376, 1.0},  // Powderkeg Blue (triangle 0)
         {0.949, 0.663, 0.000, 1.0},  // Westwood Gold  (triangle 1)
     });
-
-    /// actually assigning a storage buffer (not a uniform buffer)
-    // assignUniform(gpConf, "cellColors", cellColors);
-
-    gpConf->assignUniform("cellColors", cellColors);
+    gpConf->assignBuffer("cellColors", cellColors);
 
     /// single quad
     auto vertices = vsg::vec3Array::create({
