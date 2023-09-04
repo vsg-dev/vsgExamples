@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 
     // test 1
     {
-        vsg::info("---- Test 1 : Sharing Sampler between ImageInfo/InmageView/Image instances ----");
+        vsg::info("---- Test 1 : Sharing Sampler between ImageInfo/ImageView/Image instances ----");
 
         auto sampler = vsg::Sampler::create();
         sampler->maxLod = VK_LOD_CLAMP_NONE;
@@ -159,5 +159,201 @@ int main(int argc, char** argv)
         vsg::info("End of test 3\n");
     }
 
+    // test4
+    {
+        vsg::info("---- Test 4 : Array data mipmaps ----");
+        uint8_t mipLevels = 3;
+        uint32_t width = 32;
+        uint32_t height = 32;
+        uint32_t layers = 32;
+        //size_t valueCount = vsg::Data::computeValueCountIncludingMipmaps(width, height, 1, mipLevels, layers);
+        size_t valueCount = vsg::Data::computeValueCountIncludingMipmaps(width, height, 1, mipLevels) * layers; // use deprecated function for compatibility with VSG 1.0.9 and below
+
+        std::unique_ptr<vsg::ubvec4> raw (new vsg::ubvec4[valueCount]);
+        auto value = vsg::ubvec4(0xff, 0xff, 0xff, 0xff);
+        for (size_t v = 0; v < valueCount; ++v)
+            raw.get()[v] = value;
+
+        vsg::Data::Properties properties(VK_FORMAT_R8G8B8A8_UNORM);
+        properties.maxNumMipmaps = mipLevels;
+        properties.imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        auto array = vsg::ubvec4Array3D::create(width, height, layers, reinterpret_cast<vsg::ubvec4*>(raw.release()), properties);
+
+        auto sampler = vsg::Sampler::create();
+        sampler->maxLod = VK_LOD_CLAMP_NONE;
+        auto imageInfo = vsg::ImageInfo::create(sampler, array);
+        imageInfo->imageView->image->usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+        // test compile(..) and copy(..) implementations
+        auto descriptorImage = vsg::DescriptorImage::create(imageInfo);
+        descriptorImage->compile(*context);
+        context->record();
+        context->waitForCompletion();
+
+        // take a screenshot of the last mip level and array layer to verify that the data has been uploaded completely
+        auto sourceImage = imageInfo->imageView->image;
+        auto targetImageFormat = properties.format;
+        uint32_t baseArrayLayer = layers-1;
+        uint32_t mipLevel = mipLevels-1;
+        width = width / (1 << mipLevel);
+        height = height / (1 << mipLevel);
+
+        // start of vsgscreenshot code
+        //
+        // 2) create image to write to
+        //
+        auto destinationImage = vsg::Image::create();
+        destinationImage->imageType = VK_IMAGE_TYPE_2D;
+        destinationImage->format = properties.format;
+        destinationImage->extent.width = width;
+        destinationImage->extent.height = height;
+        destinationImage->extent.depth = 1;
+        destinationImage->arrayLayers = 1;
+        destinationImage->mipLevels = 1;
+        destinationImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        destinationImage->samples = VK_SAMPLE_COUNT_1_BIT;
+        destinationImage->tiling = VK_IMAGE_TILING_LINEAR;
+        destinationImage->usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        destinationImage->compile(device);
+
+        auto deviceMemory = vsg::DeviceMemory::create(device, destinationImage->getMemoryRequirements(device->deviceID), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        destinationImage->bind(deviceMemory, 0);
+
+        //
+        // 3) create command buffer and submit to graphics queue
+        //
+        auto commands = vsg::Commands::create();
+        // 3.a) transition destinationImage to transfer destination initialLayout
+        auto transitionDestinationImageToDestinationLayoutBarrier = vsg::ImageMemoryBarrier::create(
+            0,                                                             // srcAccessMask
+            VK_ACCESS_TRANSFER_WRITE_BIT,                                  // dstAccessMask
+            VK_IMAGE_LAYOUT_UNDEFINED,                                     // oldLayout
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,                          // newLayout
+            VK_QUEUE_FAMILY_IGNORED,                                       // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED,                                       // dstQueueFamilyIndex
+            destinationImage,                                              // image
+            VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1} // subresourceRange
+        );
+
+        // 3.b) transition sourceImage to transfer source initialLayout
+        auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
+            VK_ACCESS_MEMORY_READ_BIT,                                     // srcAccessMask
+            VK_ACCESS_TRANSFER_READ_BIT,                                   // dstAccessMask
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,                               // oldLayout
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,                          // newLayout
+            VK_QUEUE_FAMILY_IGNORED,                                       // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED,                                       // dstQueueFamilyIndex
+            sourceImage,                                                   // image
+            VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, mipLevel, 1, baseArrayLayer, 1} // subresourceRange
+        );
+
+        auto cmd_transitionForTransferBarrier = vsg::PipelineBarrier::create(
+            VK_PIPELINE_STAGE_TRANSFER_BIT,                       // srcStageMask
+            VK_PIPELINE_STAGE_TRANSFER_BIT,                       // dstStageMask
+            0,                                                    // dependencyFlags
+            transitionDestinationImageToDestinationLayoutBarrier, // barrier
+            transitionSourceImageToTransferSourceLayoutBarrier    // barrier
+        );
+
+        commands->addChild(cmd_transitionForTransferBarrier);
+
+        //if (supportsBlit)
+        {
+            // 3.c.1) if blit using vkCmdBlitImage
+            VkImageBlit region{};
+            region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.srcSubresource.mipLevel = mipLevel;
+            region.srcSubresource.baseArrayLayer = baseArrayLayer;
+            region.srcSubresource.layerCount = 1;
+            region.srcOffsets[0] = VkOffset3D{0, 0, 0};
+            region.srcOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
+            region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.dstSubresource.layerCount = 1;
+            region.dstOffsets[0] = VkOffset3D{0, 0, 0};
+            region.dstOffsets[1] = VkOffset3D{static_cast<int32_t>(width), static_cast<int32_t>(height), 1};
+
+            auto blitImage = vsg::BlitImage::create();
+            blitImage->srcImage = sourceImage;
+            blitImage->srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            blitImage->dstImage = destinationImage;
+            blitImage->dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            blitImage->regions.push_back(region);
+            blitImage->filter = VK_FILTER_NEAREST;
+
+            commands->addChild(blitImage);
+        }
+ 
+        // 3.d) transition destination image from transfer destination layout to general layout to enable mapping to image DeviceMemory
+        auto transitionDestinationImageToMemoryReadBarrier = vsg::ImageMemoryBarrier::create(
+            VK_ACCESS_TRANSFER_WRITE_BIT,                                  // srcAccessMask
+            VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,                          // oldLayout
+            VK_IMAGE_LAYOUT_GENERAL,                                       // newLayout
+            VK_QUEUE_FAMILY_IGNORED,                                       // srcQueueFamilyIndex
+            VK_QUEUE_FAMILY_IGNORED,                                       // dstQueueFamilyIndex
+            destinationImage,                                              // image
+            VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1} // subresourceRange
+        );
+
+        auto cmd_transitionFromTransferBarrier = vsg::PipelineBarrier::create(
+            VK_PIPELINE_STAGE_TRANSFER_BIT,                // srcStageMask
+            VK_PIPELINE_STAGE_TRANSFER_BIT,                // dstStageMask
+            0,                                             // dependencyFlags
+            transitionDestinationImageToMemoryReadBarrier // barrier
+        );
+
+        commands->addChild(cmd_transitionFromTransferBarrier);
+
+        auto fence = vsg::Fence::create(device);
+        auto queueFamilyIndex = physicalDevice->getQueueFamily(VK_QUEUE_GRAPHICS_BIT);
+        auto commandPool = vsg::CommandPool::create(device, queueFamilyIndex);
+        auto queue = device->getQueue(queueFamilyIndex);
+
+        vsg::submitCommandsToQueue(commandPool, fence, 100000000000, queue, [&](vsg::CommandBuffer& commandBuffer) {
+            commands->record(commandBuffer);
+        });
+
+        //
+        // 4) map image and copy
+        //
+        VkImageSubresource subResource{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0};
+        VkSubresourceLayout subResourceLayout;
+        vkGetImageSubresourceLayout(*device, destinationImage->vk(device->deviceID), &subResource, &subResourceLayout);
+
+        size_t destRowWidth = width * sizeof(vsg::ubvec4);
+        vsg::ref_ptr<vsg::ubvec4Array2D> imageData;
+        if (destRowWidth == subResourceLayout.rowPitch)
+        {
+            imageData = vsg::MappedData<vsg::ubvec4Array2D>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{targetImageFormat}, width, height); // deviceMemory, offset, flags and dimensions
+        }
+        else
+        {
+            // Map the buffer memory and assign as a ubyteArray that will automatically unmap itself on destruction.
+            // A ubyteArray is used as the graphics buffer memory is not contiguous like vsg::Array2D, so map to a flat buffer first then copy to Array2D.
+            auto mappedData = vsg::MappedData<vsg::ubyteArray>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{targetImageFormat}, subResourceLayout.rowPitch*height);
+            imageData = vsg::ubvec4Array2D::create(width, height, vsg::Data::Properties{targetImageFormat});
+            for (uint32_t row = 0; row < height; ++row)
+            {
+                std::memcpy(imageData->dataPointer(row*width), mappedData->dataPointer(row * subResourceLayout.rowPitch), destRowWidth);
+            }
+        }
+        // end of vsgscreenshot code
+
+        for (uint32_t x=0; x<width; ++x)
+        {
+            for (uint32_t y=0; y<height; ++y)
+            {
+                if (imageData->at(x, y) != value)
+                {
+                    vsg::warn("array_data_mipmaps test failed: downloaded data at (", x, ",", y, ") does not match input data.");
+                    return 0;
+                }
+            }
+        }
+        vsg::info("array_data_mipmaps test passed");
+        vsg::info("End of test 4\n");
+    }
     return 0;
 }
