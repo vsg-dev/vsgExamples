@@ -30,12 +30,7 @@ int main(int argc, char** argv)
     bool debugLayer = true;
     auto apiDumpLayer = arguments.read({"--api", "-a"});
 
-    VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
-    if (arguments.read("--msaa")) samples = VK_SAMPLE_COUNT_8_BIT;
-    bool enableGeometryShader = arguments.read("--gs");
-
     uint32_t vulkanVersion = VK_API_VERSION_1_0;
-    if (samples != VK_SAMPLE_COUNT_1_BIT) vulkanVersion = VK_API_VERSION_1_2;
 
     // create instance
     vsg::Names instanceExtensions;
@@ -63,7 +58,6 @@ int main(int argc, char** argv)
 
     auto deviceFeatures = vsg::DeviceFeatures::create();
     deviceFeatures->get().samplerAnisotropy = VK_TRUE;
-    deviceFeatures->get().geometryShader = enableGeometryShader;
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
     auto context = vsg::Context::create(device);
