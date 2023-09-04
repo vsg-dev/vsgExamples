@@ -61,7 +61,7 @@ int main(int argc, char** argv)
 
     auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
     auto context = vsg::Context::create(device);
-    context->commandPool = vsg::CommandPool::create(device, queueFamily);
+    context->commandPool = vsg::CommandPool::create(device, queueFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     context->graphicsQueue = device->getQueue(queueFamily);
 
     // test 1
@@ -97,6 +97,7 @@ int main(int argc, char** argv)
         descriptorImage1->compile(*context);
         descriptorImage2->compile(*context);
         context->record();
+        context->waitForCompletion();
 
         vsg::info("End of test 1\n");
     }
