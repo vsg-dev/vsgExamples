@@ -196,7 +196,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     return rendergraph;
 }
 
-vsg::ref_ptr<vsg::Node> createPlanes(vsg::ref_ptr<vsg::ImageInfo> colorImage)
+vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& position, const vsg::vec2& size, vsg::ref_ptr<vsg::ImageInfo> colorImage)
 {
     // set up search paths to SPIRV shaders and textures
     vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -263,49 +263,37 @@ vsg::ref_ptr<vsg::Node> createPlanes(vsg::ref_ptr<vsg::ImageInfo> colorImage)
     scenegraph->addChild(transform);
 
     // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create(
-        {{-0.5f, -0.5f, 0.0f},
-         {0.5f, -0.5f, 0.0f},
-         {0.5f, 0.5f, 0.0f},
-         {-0.5f, 0.5f, 0.0f},
-         {-0.5f, -0.5f, -0.5f},
-         {0.5f, -0.5f, -0.5f},
-         {0.5f, 0.5f, -0.5},
-         {-0.5f, 0.5f, -0.5}}); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+    auto vertices = vsg::vec3Array::create({
+         position + vsg::vec3(0.0f, 0.0f, 0.0f),
+         position + vsg::vec3(size.x, 0.0f, 0.0f),
+         position + vsg::vec3(size.x, size.y, 0.0f),
+         position + vsg::vec3(0.0f, size.y, 0.0f)
+        }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto colors = vsg::vec3Array::create(
         {
-            {1.0f, 0.0f, 0.0f},
-            {0.0f, 1.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f},
             {1.0f, 1.0f, 1.0f},
-            {1.0f, 0.0f, 0.0f},
-            {0.0f, 1.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f},
             {1.0f, 1.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f}
         }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto texcoords = vsg::vec2Array::create(
         {{0.0f, 0.0f},
          {1.0f, 0.0f},
          {1.0f, 1.0f},
-         {0.0f, 1.0f},
-         {0.0f, 0.0f},
-         {1.0f, 0.0f},
-         {1.0f, 1.0f},
-         {0.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+         {0.0f, 1.0f}
+        }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     auto indices = vsg::ushortArray::create(
         {0, 1, 2,
-         2, 3, 0,
-         4, 5, 6,
-         6, 7, 4}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+         2, 3, 0}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
 
     // setup geometry
     auto drawCommands = vsg::Commands::create();
     drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
     drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(12, 1, 0, 0, 0));
+    drawCommands->addChild(vsg::DrawIndexed::create(6, 1, 0, 0, 0));
 
     // add drawCommands to transform
     transform->addChild(drawCommands);
@@ -422,10 +410,22 @@ int main(int argc, char** argv)
 
     rtt_RenderGraph->addChild(rtt_view);
 
+    vsg::vec3 position(0.0f, 0.0f, 0.0f);
+    vsg::vec2 size(1.0f, 1.0f);
+
+    auto quads = vsg::Group::create();
+
     // Planes geometry that uses the rendered scene as a texture map
-    vsg::ref_ptr<vsg::Node> planes = createPlanes(colorImage);
-    auto camera = createCameraForScene(planes, window->extent2D());
-    auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, planes);
+    quads->addChild( createQuad(position, size, colorImage) );
+
+    position.x += size.x * 1.1f;
+    quads->addChild( createQuad(position, size, colorImage) );
+
+    position.x += size.x * 1.1f;
+    quads->addChild( createQuad(position, size, colorImage) );
+
+    auto camera = createCameraForScene(quads, window->extent2D());
+    auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, quads);
 
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
