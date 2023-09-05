@@ -77,14 +77,36 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     colorImage->format = VK_FORMAT_R8G8B8A8_UNORM;
     colorImage->extent = attachmentExtent;
     colorImage->mipLevels = 1;
-    colorImage->arrayLayers = 1;
+    colorImage->arrayLayers = 16;
     colorImage->samples = VK_SAMPLE_COUNT_1_BIT;
     colorImage->tiling = VK_IMAGE_TILING_OPTIMAL;
     colorImage->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     colorImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorImage->flags = 0;
     colorImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+#if 1
+    // allocte memory
+    {
+        colorImage->compile(device);
+
+        // get memory requirements
+        VkMemoryRequirements memRequirements = colorImage->getMemoryRequirements(device->deviceID);
+
+        vsg::info("createOffscreenRendergraph() memRequirements.size = ", memRequirements.size);
+
+        // allocate memory with out export memory info extension
+        auto [deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        colorImage->bind(deviceMemory, offset);
+    }
+
+    auto colorImageView = vsg::ImageView::create(colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
+    colorImageView->subresourceRange.baseArrayLayer = 1;
+    colorImageView->subresourceRange.layerCount = 0;
+    colorImageView->compile(device);
+#else
     auto colorImageView = createImageView(context, colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
+#endif
 
     // Sampler for accessing attachment as a texture
     auto colorSampler = vsg::Sampler::create();
