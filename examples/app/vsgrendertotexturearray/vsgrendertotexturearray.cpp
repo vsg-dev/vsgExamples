@@ -79,7 +79,7 @@ vsg::ref_ptr<vsg::Image> createImage(vsg::Context& context, uint32_t width, uint
     image->flags = 0;
     image->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    // allocte memory
+    // allocte vkImage and required memory
     image->compile(context);
 
     return image;
