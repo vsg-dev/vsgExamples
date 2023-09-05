@@ -256,19 +256,13 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& position, const vsg::vec2& s
     scenegraph->add(bindGraphicsPipeline);
     scenegraph->add(bindDescriptorSet);
 
-    // set up model transformation node
-    auto transform = vsg::MatrixTransform::create(); // VK_SHADER_STAGE_VERTEX_BIT
-
-    // add transform to root of the scene graph
-    scenegraph->addChild(transform);
-
     // set up vertex and index arrays
     auto vertices = vsg::vec3Array::create({
          position + vsg::vec3(0.0f, 0.0f, 0.0f),
          position + vsg::vec3(size.x, 0.0f, 0.0f),
          position + vsg::vec3(size.x, size.y, 0.0f),
          position + vsg::vec3(0.0f, size.y, 0.0f)
-        }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        });
 
     auto colors = vsg::vec3Array::create(
         {
@@ -276,18 +270,18 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& position, const vsg::vec2& s
             {1.0f, 1.0f, 1.0f},
             {1.0f, 1.0f, 1.0f},
             {1.0f, 1.0f, 1.0f}
-        }); // VK_FORMAT_R32G32B32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+        });
 
     auto texcoords = vsg::vec2Array::create(
-        {{0.0f, 0.0f},
-         {1.0f, 0.0f},
+        {{0.0f, 1.0f},
          {1.0f, 1.0f},
-         {0.0f, 1.0f}
-        }); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+         {1.0f, 0.0f},
+         {0.0f, 0.0f}
+        });
 
     auto indices = vsg::ushortArray::create(
         {0, 1, 2,
-         2, 3, 0}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
+         2, 3, 0});
 
     // setup geometry
     auto drawCommands = vsg::Commands::create();
@@ -295,8 +289,7 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& position, const vsg::vec2& s
     drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
     drawCommands->addChild(vsg::DrawIndexed::create(6, 1, 0, 0, 0));
 
-    // add drawCommands to transform
-    transform->addChild(drawCommands);
+    scenegraph->addChild(drawCommands);
     return scenegraph;
 }
 
@@ -438,12 +431,10 @@ int main(int argc, char** argv)
 
     auto view3D = vsg::View::create(camera, vsg_scene);
 
-    vsg::vec3 position(0.0f, 0.0f, 0.0f);
-    vsg::vec2 size(1.0f, 1.0f);
-
-    auto quads = vsg::Group::create();
 
     auto context = vsg::Context::create(window->getOrCreateDevice());
+
+    std::vector<vsg::ref_ptr<vsg::ImageInfo>> imageInfos;
 
     // Framebuffer with attachments
     VkExtent2D targetExtent{512, 512};
@@ -451,6 +442,8 @@ int main(int argc, char** argv)
     auto colorImage = vsg::ImageInfo::create();
     auto depthImage = vsg::ImageInfo::create();
     auto rtt_RenderGraph = createOffscreenRendergraph(*context, targetExtent, *colorImage, *depthImage);
+
+    imageInfos.push_back(colorImage);
 
     auto tcon = vsg::TraverseChildrenOfNode::create(view3D);
     auto rtt_view = vsg::View::create(offscreenCamera, tcon);
@@ -471,14 +464,16 @@ int main(int argc, char** argv)
     main_commandGraph->addChild(main_RenderGraph);
 
 
-    // Planes geometry that uses the rendered scene as a texture map
-    quads->addChild( createQuad(position, size, colorImage) );
+    vsg::vec3 position(0.0f, 0.0f, 0.0f);
+    vsg::vec2 size(1.0f, 1.0f);
 
-    position.x += size.x * 1.1f;
-    quads->addChild( createQuad(position, size, colorImage) );
+    auto quads = vsg::Group::create();
 
-    position.x += size.x * 1.1f;
-    quads->addChild( createQuad(position, size, colorImage) );
+    for(auto& imageInfo : imageInfos)
+    {
+        quads->addChild( createQuad(position, size, imageInfo) );
+        position.x += size.x * 1.1f;
+    }
 
     auto quads_camera = createCameraForQuads(quads, debugWindow->extent2D());
     auto quads_view = vsg::View::create(quads_camera, quads);
