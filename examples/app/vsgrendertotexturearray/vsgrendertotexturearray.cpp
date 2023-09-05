@@ -85,14 +85,13 @@ vsg::ref_ptr<vsg::Image> createImage(vsg::Context& context, uint32_t width, uint
     return image;
 }
 
-vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context, const VkExtent2D& extent,
-                                                          vsg::ImageInfo& colorImageInfo, vsg::ImageInfo& depthImageInfo)
-{
-    auto colorImage = createImage(context, extent.width, extent.height, 16, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-    auto depthImage = createImage(context, extent.width, extent.height, 16, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
+vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context, const VkExtent2D& extent, uint32_t layer,
+                                                          vsg::ref_ptr<vsg::Image> colorImage, vsg::ImageInfo& colorImageInfo,
+                                                          vsg::ref_ptr<vsg::Image> depthImage, vsg::ImageInfo& depthImageInfo)
+{
     auto colorImageView = vsg::ImageView::create(colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
-    colorImageView->subresourceRange.baseArrayLayer = 0;
+    colorImageView->subresourceRange.baseArrayLayer = layer;
     colorImageView->subresourceRange.layerCount = 1;
     colorImageView->compile(context);
 
@@ -118,7 +117,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     // create depth buffer
 
     auto depthImageView = vsg::ImageView::create(depthImage, VK_IMAGE_ASPECT_DEPTH_BIT);
-    depthImageView->subresourceRange.baseArrayLayer = 0;
+    depthImageView->subresourceRange.baseArrayLayer = layer;
     depthImageView->subresourceRange.layerCount = 1;
     depthImageView->compile(context);
 
@@ -506,34 +505,46 @@ int main(int argc, char** argv)
 
     auto context = vsg::Context::create(window->getOrCreateDevice());
 
-    vsg::ImageInfoList imageInfos;
-
-    // Framebuffer with attachments
-    VkExtent2D targetExtent{512, 512};
-    auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
-    auto colorImage = vsg::ImageInfo::create();
-    auto depthImage = vsg::ImageInfo::create();
-    auto rtt_RenderGraph = createOffscreenRendergraph(*context, targetExtent, *colorImage, *depthImage);
-
-    imageInfos.push_back(colorImage);
-
-    auto tcon = vsg::TraverseChildrenOfNode::create(view3D);
-    auto rtt_view = vsg::View::create(offscreenCamera, tcon);
-
-    rtt_RenderGraph->addChild(rtt_view);
-
-
-    auto rtt_commandGraph = vsg::CommandGraph::create(window);
-    rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
-    rtt_commandGraph->addChild(rtt_RenderGraph);
-
     auto main_RenderGraph = vsg::RenderGraph::create(window);
     main_RenderGraph->addChild(view3D);
 
     auto main_commandGraph = vsg::CommandGraph::create(window);
     main_commandGraph->submitOrder = 0;
-    main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
     main_commandGraph->addChild(main_RenderGraph);
+
+
+    vsg::ImageInfoList imageInfos;
+    VkExtent2D targetExtent{512, 512};
+
+    uint32_t numLayers = 4;
+
+    // create the color and depth image 2D arrays to render to/read from.
+    auto colorImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+    auto depthImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+    // use the TraverseChildrenOfNode to decorate the main view3D so it's children can be travesed by the render to texture without invoking the view3D camera/ViewDependentState
+    auto tcon = vsg::TraverseChildrenOfNode::create(view3D);
+
+    // create render to texture
+    auto rtt_commandGraph = vsg::CommandGraph::create(window);
+    rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
+    main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
+    for(uint32_t layer = 0; layer < numLayers; ++layer)
+    {
+        // create RenderGraph for render to texture for specified layer
+        auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
+        auto colorImageInfo = vsg::ImageInfo::create();
+        auto depthImageInfo = vsg::ImageInfo::create();
+        auto rtt_RenderGraph = createOffscreenRendergraph(*context, targetExtent, layer, colorImage, *colorImageInfo, depthImage, *depthImageInfo);
+
+        imageInfos.push_back(colorImageInfo);
+
+        auto rtt_view = vsg::View::create(offscreenCamera, tcon);
+
+        rtt_RenderGraph->addChild(rtt_view);
+        rtt_commandGraph->addChild(rtt_RenderGraph);
+    }
+
 
     vsg::CommandGraphs commandGraphs;
     commandGraphs.push_back(main_commandGraph);
