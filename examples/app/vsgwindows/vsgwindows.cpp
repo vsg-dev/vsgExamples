@@ -34,14 +34,22 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "Multiple Views";
+    windowTraits->windowTitle = "Multiple Windows - first window";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    
+    auto windowTraits2 = vsg::WindowTraits::create();
+    windowTraits2->windowTitle = "Multiple Windows - second window";
+    windowTraits2->debugLayer = windowTraits->debugLayer;
+    windowTraits2->apiDumpLayer = windowTraits->apiDumpLayer;
+    windowTraits2->width = 640;
+    windowTraits2->height = 480;
+    if (arguments.read({"--window2", "-w2"}, windowTraits2->width, windowTraits2->height)) { windowTraits2->fullscreen = false; }
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    bool seperateDevices = arguments.read({"--no-shared-window", "-n"});
+    bool separateDevices = arguments.read({"--no-shared-window", "-n"});
     bool multiThreading = arguments.read("--mt");
 
     auto options = vsg::Options::create();
@@ -54,7 +62,7 @@ int main(int argc, char** argv)
 
     options->readOptions(arguments);
 
-    if (seperateDevices && VSG_MAX_DEVICES<2)
+    if (separateDevices && VSG_MAX_DEVICES<2)
     {
         std::cout<<"VulkanSceneGraph built with VSG_MAX_DEVICES = "<<VSG_MAX_DEVICES<<", so using two windows, with a vsg::Device per vsg::Window is not supported."<<std::endl;
         return 1;
@@ -90,13 +98,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto windowTraits2 = vsg::WindowTraits::create();
-    windowTraits2->windowTitle = "second window";
-    windowTraits2->debugLayer = windowTraits->debugLayer;
-    windowTraits2->apiDumpLayer = windowTraits->apiDumpLayer;
-    windowTraits2->width = 640;
-    windowTraits2->height = 480;
-    if (!seperateDevices)
+    if (!separateDevices)
     {
         windowTraits2->device = window1->getOrCreateDevice(); // share the same vsg::Instance/vsg::Device as window1
         std::cout<<"Sharing vsg::Instance and vsg::Device between windows."<<std::endl;
@@ -115,11 +117,11 @@ int main(int argc, char** argv)
     viewer->addWindow(window1);
     viewer->addWindow(window2);
 
-    // create the vsg::RenderGraph and associated vsg::View
+    // create the vsg::RenderGraph and associated vsg::View for the main window
     auto main_camera = createCameraForScene(scenegraph, 0, 0, window1->extent2D().width, window1->extent2D().height);
     auto main_view = vsg::View::create(main_camera, scenegraph);
 
-    // create a RenderGraph to add a secondary vsg::View on the top right part of the window.
+    // do the same for the secondary window
     auto secondary_camera = createCameraForScene(scenegraph2, 0, 0, window2->extent2D().width, window2->extent2D().height);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
 
