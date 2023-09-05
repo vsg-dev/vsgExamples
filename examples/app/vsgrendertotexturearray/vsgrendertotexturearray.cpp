@@ -344,7 +344,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "rendertotexture";
+    windowTraits->windowTitle = "render to texture 2d array";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     windowTraits->synchronizationLayer = arguments.read("--sync");
@@ -352,8 +352,6 @@ int main(int argc, char** argv)
 
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
-    bool nestedCommandGraph = arguments.read({"-n", "--nested"});
-    bool separateCommandGraph = arguments.read("-s");
     auto numFrames = arguments.value(-1, "-f");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -402,6 +400,12 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
+    auto debugWindowTraits = vsg::WindowTraits::create();
+    debugWindowTraits->width = windowTraits->width / 2;
+    debugWindowTraits->height = windowTraits->height / 2;
+    debugWindowTraits->windowTitle = "render to texture results";
+    debugWindowTraits->device = window->getOrCreateDevice();
+    auto debugWindow = vsg::Window::create(debugWindowTraits);
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
@@ -427,11 +431,12 @@ int main(int argc, char** argv)
 
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-    viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
+
+    auto main_trackball = vsg::Trackball::create(camera, ellipsoidModel);
+    main_trackball->addWindow(window);
+    viewer->addEventHandler(main_trackball);
 
     auto view3D = vsg::View::create(camera, vsg_scene);
-
-#if 1
 
     vsg::vec3 position(0.0f, 0.0f, 0.0f);
     vsg::vec2 size(1.0f, 1.0f);
@@ -452,6 +457,20 @@ int main(int argc, char** argv)
 
     rtt_RenderGraph->addChild(rtt_view);
 
+
+    auto rtt_commandGraph = vsg::CommandGraph::create(window);
+    rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
+    rtt_commandGraph->addChild(rtt_RenderGraph);
+
+    auto main_RenderGraph = vsg::RenderGraph::create(window);
+    main_RenderGraph->addChild(view3D);
+
+    auto main_commandGraph = vsg::CommandGraph::create(window);
+    main_commandGraph->submitOrder = 0;
+    main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
+    main_commandGraph->addChild(main_RenderGraph);
+
+
     // Planes geometry that uses the rendered scene as a texture map
     quads->addChild( createQuad(position, size, colorImage) );
 
@@ -461,25 +480,29 @@ int main(int argc, char** argv)
     position.x += size.x * 1.1f;
     quads->addChild( createQuad(position, size, colorImage) );
 
-    auto quads_camera = createCameraForQuads(quads, window->extent2D());
+    auto quads_camera = createCameraForQuads(quads, debugWindow->extent2D());
     auto quads_view = vsg::View::create(quads_camera, quads);
 
-    auto rtt_commandGraph = vsg::CommandGraph::create(window);
-    rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
-    rtt_commandGraph->addChild(rtt_RenderGraph);
+    auto debug_RenderGraph = vsg::RenderGraph::create(debugWindow);
+    debug_RenderGraph->addChild(quads_view);
 
-    auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, vsg_scene);
-    main_RenderGraph->addChild(quads_view);
+    auto debug_commandGraph = vsg::CommandGraph::create(debugWindow);
+    debug_commandGraph->submitOrder = 1;
+    debug_commandGraph->addChild(debug_RenderGraph);
 
-    auto main_commandGraph = vsg::CommandGraph::create(window);
-    main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
-    main_commandGraph->addChild(main_RenderGraph);
+    auto debug_trackball = vsg::Trackball::create(quads_camera);
+    debug_trackball->addWindow(debugWindow);
+    // disable the rotation of the trackball
+    debug_trackball->rotateButtonMask = vsg::BUTTON_MASK_OFF;
+    debug_trackball->turnLeftKey = vsg::KEY_Undefined;
+    debug_trackball->turnRightKey = vsg::KEY_Undefined;
+    debug_trackball->pitchUpKey = vsg::KEY_Undefined;
+    debug_trackball->pitchDownKey = vsg::KEY_Undefined;
+    debug_trackball->rollLeftKey = vsg::KEY_Undefined;
+    debug_trackball->rollRightKey = vsg::KEY_Undefined;
+    viewer->addEventHandler(debug_trackball);
 
-    viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph});
-#else
-    auto main_commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-    viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph});
-#endif
+    viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph, debug_commandGraph});
 
     viewer->compile();
 
