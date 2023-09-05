@@ -88,14 +88,13 @@ vsg::ref_ptr<vsg::Image> createImage(vsg::Context& context, uint32_t width, uint
 vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context, const VkExtent2D& extent,
                                                           vsg::ImageInfo& colorImageInfo, vsg::ImageInfo& depthImageInfo)
 {
-    auto device = context.device;
-
     auto colorImage = createImage(context, extent.width, extent.height, 16, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+    auto depthImage = createImage(context, extent.width, extent.height, 16, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
     auto colorImageView = vsg::ImageView::create(colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
     colorImageView->subresourceRange.baseArrayLayer = 0;
     colorImageView->subresourceRange.layerCount = 1;
-    colorImageView->compile(device);
+    colorImageView->compile(context);
 
     // Sampler for accessing attachment as a texture
     auto colorSampler = vsg::Sampler::create();
@@ -117,14 +116,11 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     colorImageInfo.sampler = colorSampler;
 
     // create depth buffer
-    VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
-
-    auto depthImage = createImage(context, extent.width, extent.height, 16, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
     auto depthImageView = vsg::ImageView::create(depthImage, VK_IMAGE_ASPECT_DEPTH_BIT);
     depthImageView->subresourceRange.baseArrayLayer = 0;
     depthImageView->subresourceRange.layerCount = 1;
-    depthImageView->compile(device);
+    depthImageView->compile(context);
 
     depthImageInfo.sampler = nullptr;
     depthImageInfo.imageView = depthImageView;
@@ -133,7 +129,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     // attachment descriptions
     vsg::RenderPass::Attachments attachments(2);
     // Color attachment
-    attachments[0].format = VK_FORMAT_R8G8B8A8_UNORM;
+    attachments[0].format = colorImage->format;
     attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
     attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -142,7 +138,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     attachments[0].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     // Depth attachment
-    attachments[1].format = depthFormat;
+    attachments[1].format = depthImage->format;
     attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
     attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -184,7 +180,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-    auto renderPass = vsg::RenderPass::create(device, attachments, subpassDescription, dependencies);
+    auto renderPass = vsg::RenderPass::create(context.device, attachments, subpassDescription, dependencies);
 
     // Framebuffer
     auto fbuf = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageInfo.imageView, depthImageInfo.imageView}, extent.width, extent.height, 1);
