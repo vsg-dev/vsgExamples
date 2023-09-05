@@ -331,6 +331,52 @@ vsg::ref_ptr<vsg::Camera> createCameraForQuads(vsg::Node* scenegraph, const VkEx
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
 
+vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> device, uint32_t width, uint32_t height, vsg::ImageInfoList& imageInfos)
+{
+    auto debugWindowTraits = vsg::WindowTraits::create();
+    debugWindowTraits->width = width;
+    debugWindowTraits->height = height;
+    debugWindowTraits->windowTitle = "render to texture results";
+    debugWindowTraits->device = device;
+    auto debugWindow = vsg::Window::create(debugWindowTraits);
+
+    vsg::vec3 position(0.0f, 0.0f, 0.0f);
+    vsg::vec2 size(1.0f, 1.0f);
+
+    auto quads = vsg::Group::create();
+
+    for(auto& imageInfo : imageInfos)
+    {
+        quads->addChild( createQuad(position, size, imageInfo) );
+        position.x += size.x * 1.1f;
+    }
+
+    auto quads_camera = createCameraForQuads(quads, debugWindow->extent2D());
+    auto quads_view = vsg::View::create(quads_camera, quads);
+
+    auto results_RenderGraph = vsg::RenderGraph::create(debugWindow);
+    results_RenderGraph->addChild(quads_view);
+
+    auto results_commandGraph = vsg::CommandGraph::create(debugWindow);
+    results_commandGraph->submitOrder = 1;
+    results_commandGraph->addChild(results_RenderGraph);
+
+#if 0
+    auto results_trackball = vsg::Trackball::create(quads_camera);
+    results_trackball->addWindow(debugWindow);
+    // disable the rotation of the trackball
+    results_trackball->rotateButtonMask = vsg::BUTTON_MASK_OFF;
+    results_trackball->turnLeftKey = vsg::KEY_Undefined;
+    results_trackball->turnRightKey = vsg::KEY_Undefined;
+    results_trackball->pitchUpKey = vsg::KEY_Undefined;
+    results_trackball->pitchDownKey = vsg::KEY_Undefined;
+    results_trackball->rollLeftKey = vsg::KEY_Undefined;
+    results_trackball->rollRightKey = vsg::KEY_Undefined;
+    viewer->addEventHandler(results_trackball);
+#endif
+    return results_commandGraph;
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -393,13 +439,6 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    auto debugWindowTraits = vsg::WindowTraits::create();
-    debugWindowTraits->width = windowTraits->width / 2;
-    debugWindowTraits->height = windowTraits->height / 2;
-    debugWindowTraits->windowTitle = "render to texture results";
-    debugWindowTraits->device = window->getOrCreateDevice();
-    auto debugWindow = vsg::Window::create(debugWindowTraits);
-
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     vsg_scene->accept(computeBounds);
@@ -434,7 +473,7 @@ int main(int argc, char** argv)
 
     auto context = vsg::Context::create(window->getOrCreateDevice());
 
-    std::vector<vsg::ref_ptr<vsg::ImageInfo>> imageInfos;
+    vsg::ImageInfoList imageInfos;
 
     // Framebuffer with attachments
     VkExtent2D targetExtent{512, 512};
@@ -463,41 +502,11 @@ int main(int argc, char** argv)
     main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
     main_commandGraph->addChild(main_RenderGraph);
 
+    vsg::CommandGraphs commandGraphs;
+    commandGraphs.push_back(main_commandGraph);
+    commandGraphs.push_back(createResultsWindow(window->getOrCreateDevice(), windowTraits->width / 2, windowTraits->height / 2, imageInfos));
 
-    vsg::vec3 position(0.0f, 0.0f, 0.0f);
-    vsg::vec2 size(1.0f, 1.0f);
-
-    auto quads = vsg::Group::create();
-
-    for(auto& imageInfo : imageInfos)
-    {
-        quads->addChild( createQuad(position, size, imageInfo) );
-        position.x += size.x * 1.1f;
-    }
-
-    auto quads_camera = createCameraForQuads(quads, debugWindow->extent2D());
-    auto quads_view = vsg::View::create(quads_camera, quads);
-
-    auto debug_RenderGraph = vsg::RenderGraph::create(debugWindow);
-    debug_RenderGraph->addChild(quads_view);
-
-    auto debug_commandGraph = vsg::CommandGraph::create(debugWindow);
-    debug_commandGraph->submitOrder = 1;
-    debug_commandGraph->addChild(debug_RenderGraph);
-
-    auto debug_trackball = vsg::Trackball::create(quads_camera);
-    debug_trackball->addWindow(debugWindow);
-    // disable the rotation of the trackball
-    debug_trackball->rotateButtonMask = vsg::BUTTON_MASK_OFF;
-    debug_trackball->turnLeftKey = vsg::KEY_Undefined;
-    debug_trackball->turnRightKey = vsg::KEY_Undefined;
-    debug_trackball->pitchUpKey = vsg::KEY_Undefined;
-    debug_trackball->pitchDownKey = vsg::KEY_Undefined;
-    debug_trackball->rollLeftKey = vsg::KEY_Undefined;
-    debug_trackball->rollRightKey = vsg::KEY_Undefined;
-    viewer->addEventHandler(debug_trackball);
-
-    viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph, debug_commandGraph});
+    viewer->assignRecordAndSubmitTaskAndPresentation(commandGraphs);
 
     viewer->compile();
 
