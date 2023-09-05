@@ -80,16 +80,7 @@ vsg::ref_ptr<vsg::Image> createImage(vsg::Context& context, uint32_t width, uint
     image->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     // allocte memory
-    image->compile(context.device);
-
-    // get memory requirements
-    VkMemoryRequirements memRequirements = image->getMemoryRequirements(context.deviceID);
-
-    vsg::info("createImage() memRequirements.size = ", memRequirements.size);
-
-    // allocate memory with out export memory info extension
-    auto [deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    image->bind(deviceMemory, offset);
+    image->compile(context);
 
     return image;
 }
