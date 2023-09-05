@@ -64,49 +64,47 @@ namespace vsg
     VSG_type_name(vsg::TraverseChildrenOfNode);
 }
 
+vsg::ref_ptr<vsg::Image> createImage(vsg::Context& context, uint32_t width, uint32_t height, uint32_t levels, VkFormat format, VkImageUsageFlags usage)
+{
+    auto image = vsg::Image::create();
+    image->imageType = VK_IMAGE_TYPE_2D;
+    image->format = format;
+    image->extent = VkExtent3D{width, height, 1};
+    image->mipLevels = 1;
+    image->arrayLayers = levels;
+    image->samples = VK_SAMPLE_COUNT_1_BIT;
+    image->tiling = VK_IMAGE_TILING_OPTIMAL;
+    image->usage = usage;
+    image->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    image->flags = 0;
+    image->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    // allocte memory
+    image->compile(context.device);
+
+    // get memory requirements
+    VkMemoryRequirements memRequirements = image->getMemoryRequirements(context.deviceID);
+
+    vsg::info("createImage() memRequirements.size = ", memRequirements.size);
+
+    // allocate memory with out export memory info extension
+    auto [deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    image->bind(deviceMemory, offset);
+
+    return image;
+}
+
 vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context, const VkExtent2D& extent,
                                                           vsg::ImageInfo& colorImageInfo, vsg::ImageInfo& depthImageInfo)
 {
     auto device = context.device;
 
-    VkExtent3D attachmentExtent{extent.width, extent.height, 1};
-    // Attachments
-    // create image for color attachment
-    auto colorImage = vsg::Image::create();
-    colorImage->imageType = VK_IMAGE_TYPE_2D;
-    colorImage->format = VK_FORMAT_R8G8B8A8_UNORM;
-    colorImage->extent = attachmentExtent;
-    colorImage->mipLevels = 1;
-    colorImage->arrayLayers = 16;
-    colorImage->samples = VK_SAMPLE_COUNT_1_BIT;
-    colorImage->tiling = VK_IMAGE_TILING_OPTIMAL;
-    colorImage->usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    colorImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorImage->flags = 0;
-    colorImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-#if 1
-    // allocte memory
-    {
-        colorImage->compile(device);
-
-        // get memory requirements
-        VkMemoryRequirements memRequirements = colorImage->getMemoryRequirements(device->deviceID);
-
-        vsg::info("createOffscreenRendergraph() memRequirements.size = ", memRequirements.size);
-
-        // allocate memory with out export memory info extension
-        auto [deviceMemory, offset] = context.deviceMemoryBufferPools->reserveMemory(memRequirements, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        colorImage->bind(deviceMemory, offset);
-    }
+    auto colorImage = createImage(context, extent.width, extent.height, 16, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
     auto colorImageView = vsg::ImageView::create(colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
-    colorImageView->subresourceRange.baseArrayLayer = 1;
-    colorImageView->subresourceRange.layerCount = 0;
+    colorImageView->subresourceRange.baseArrayLayer = 0;
+    colorImageView->subresourceRange.layerCount = 1;
     colorImageView->compile(device);
-#else
-    auto colorImageView = createImageView(context, colorImage, VK_IMAGE_ASPECT_COLOR_BIT);
-#endif
 
     // Sampler for accessing attachment as a texture
     auto colorSampler = vsg::Sampler::create();
@@ -129,22 +127,16 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
 
     // create depth buffer
     VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
-    auto depthImage = vsg::Image::create();
-    depthImage->imageType = VK_IMAGE_TYPE_2D;
-    depthImage->extent = attachmentExtent;
-    depthImage->mipLevels = 1;
-    depthImage->arrayLayers = 1;
-    depthImage->samples = VK_SAMPLE_COUNT_1_BIT;
-    depthImage->format = depthFormat;
-    depthImage->tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImage->usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    depthImage->initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthImage->flags = 0;
-    depthImage->sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    // XXX Does layout matter?
+    auto depthImage = createImage(context, extent.width, extent.height, 16, depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+    auto depthImageView = vsg::ImageView::create(depthImage, VK_IMAGE_ASPECT_DEPTH_BIT);
+    depthImageView->subresourceRange.baseArrayLayer = 0;
+    depthImageView->subresourceRange.layerCount = 1;
+    depthImageView->compile(device);
+
     depthImageInfo.sampler = nullptr;
-    depthImageInfo.imageView = vsg::createImageView(context, depthImage, VK_IMAGE_ASPECT_DEPTH_BIT);
+    depthImageInfo.imageView = depthImageView;
     depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     // attachment descriptions
