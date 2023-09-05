@@ -319,6 +319,25 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
 
+vsg::ref_ptr<vsg::Camera> createCameraForQuads(vsg::Node* scenegraph, const VkExtent2D& extent)
+{
+    // compute the bounds of the scene graph to help position camera
+    vsg::ComputeBounds computeBounds;
+    scenegraph->accept(computeBounds);
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+    double nearFarRatio = 0.001;
+
+    // set up the camera
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, 0.0, radius * 3.5),
+                                      centre, vsg::dvec3(0.0, 1.0, 0.0));
+
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(extent.width) / static_cast<double>(extent.height),
+                                                nearFarRatio * radius, radius * 4.5);
+
+    return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -331,9 +350,10 @@ int main(int argc, char** argv)
     windowTraits->synchronizationLayer = arguments.read("--sync");
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
+    auto horizonMountainHeight = arguments.value(0.0, "--hmh");
+    auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
     bool nestedCommandGraph = arguments.read({"-n", "--nested"});
     bool separateCommandGraph = arguments.read("-s");
-    bool multiThreading = arguments.read("--mt");
     auto numFrames = arguments.value(-1, "-f");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -352,16 +372,6 @@ int main(int argc, char** argv)
 
     auto vsg_scene = vsg::Group::create();
 
-    auto transform = vsg::MatrixTransform::create();
-    vsg_scene->addChild(transform);
-
-    // A hack for getting the example teapot into the correct orientation
-    auto group = vsg::MatrixTransform::create(vsg::dmat4(1.0, 0.0, 0.0, 0.0,
-                                                         0.0, 0.0, -1.0, 0.0,
-                                                         0.0, 1.0, 0.0, 0.0,
-                                                         0.0, 0.0, 0.0, 1.0));
-    transform->addChild(group);
-
     // read any vsg files
     for (int i = 1; i < argc; ++i)
     {
@@ -369,13 +379,13 @@ int main(int argc, char** argv)
         auto loaded_scene = vsg::read_cast<vsg::Node>(filename, options);
         if (loaded_scene)
         {
-            group->addChild(loaded_scene);
+            vsg_scene->addChild(loaded_scene);
             arguments.remove(i, 1);
             --i;
         }
     }
 
-    if (group->children.empty())
+    if (vsg_scene->children.empty())
     {
         std::cout << "No valid model files specified." << std::endl;
         return 1;
@@ -392,6 +402,42 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
+
+    // compute the bounds of the scene graph to help position camera
+    vsg::ComputeBounds computeBounds;
+    vsg_scene->accept(computeBounds);
+    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+
+    // set up the camera
+    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
+    if (ellipsoidModel)
+    {
+        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+    }
+    else
+    {
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+    }
+
+    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+
+    // add close handler to respond to the close window button and pressing escape
+    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+    viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
+
+    auto view3D = vsg::View::create(camera, vsg_scene);
+
+#if 1
+
+    vsg::vec3 position(0.0f, 0.0f, 0.0f);
+    vsg::vec2 size(1.0f, 1.0f);
+
+    auto quads = vsg::Group::create();
+
     auto context = vsg::Context::create(window->getOrCreateDevice());
 
     // Framebuffer with attachments
@@ -401,19 +447,10 @@ int main(int argc, char** argv)
     auto depthImage = vsg::ImageInfo::create();
     auto rtt_RenderGraph = createOffscreenRendergraph(*context, targetExtent, *colorImage, *depthImage);
 
-#if 1
-    auto tcon = vsg::TraverseChildrenOfNode::create(vsg_scene);
+    auto tcon = vsg::TraverseChildrenOfNode::create(view3D);
     auto rtt_view = vsg::View::create(offscreenCamera, tcon);
-#else
-    auto rtt_view = vsg::View::create(offscreenCamera, vsg_scene);
-#endif
 
     rtt_RenderGraph->addChild(rtt_view);
-
-    vsg::vec3 position(0.0f, 0.0f, 0.0f);
-    vsg::vec2 size(1.0f, 1.0f);
-
-    auto quads = vsg::Group::create();
 
     // Planes geometry that uses the rendered scene as a texture map
     quads->addChild( createQuad(position, size, colorImage) );
@@ -424,67 +461,33 @@ int main(int argc, char** argv)
     position.x += size.x * 1.1f;
     quads->addChild( createQuad(position, size, colorImage) );
 
-    auto camera = createCameraForScene(quads, window->extent2D());
-    auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, quads);
+    auto quads_camera = createCameraForQuads(quads, window->extent2D());
+    auto quads_view = vsg::View::create(quads_camera, quads);
 
-    // add close handler to respond to the close window button and pressing escape
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+    auto rtt_commandGraph = vsg::CommandGraph::create(window);
+    rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
+    rtt_commandGraph->addChild(rtt_RenderGraph);
 
-    viewer->addEventHandler(vsg::Trackball::create(camera));
+    auto main_RenderGraph = vsg::createRenderGraphForView(window, camera, vsg_scene);
+    main_RenderGraph->addChild(quads_view);
 
-    if (nestedCommandGraph)
-    {
-        std::cout<<"Nested CommandGraph, with nested RTT CommandGraph as a child on the main CommandGraph. "<<std::endl;
-        auto rtt_commandGraph = vsg::CommandGraph::create(window);
-        rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
-        rtt_commandGraph->addChild(rtt_RenderGraph);
+    auto main_commandGraph = vsg::CommandGraph::create(window);
+    main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
+    main_commandGraph->addChild(main_RenderGraph);
 
-        auto main_commandGraph = vsg::CommandGraph::create(window);
-        main_commandGraph->addChild(main_RenderGraph);
-        main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph ndested within main CommandGraph
-
-        viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph});
-    }
-    else if (separateCommandGraph)
-    {
-        std::cout<<"Seperate CommandGraph with RTT CommandGraph first, then main CommandGraph second."<<std::endl;
-        auto rtt_commandGraph = vsg::CommandGraph::create(window);
-        rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
-        rtt_commandGraph->addChild(rtt_RenderGraph);
-
-        auto main_commandGraph = vsg::CommandGraph::create(window);
-        main_commandGraph->addChild(main_RenderGraph);
-
-        viewer->assignRecordAndSubmitTaskAndPresentation({rtt_commandGraph, main_commandGraph});
-    }
-    else
-    {
-        std::cout<<"Single CommandGraph containing by the RTT and main RenderGraphs"<<std::endl;
-        // Place the offscreen RenderGraph before the plane geometry RenderGraph
-        auto commandGraph = vsg::CommandGraph::create(window);
-        commandGraph->addChild(rtt_RenderGraph);
-        commandGraph->addChild(main_RenderGraph);
-
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-    }
+    viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph});
+#else
+    auto main_commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+    viewer->assignRecordAndSubmitTaskAndPresentation({main_commandGraph});
+#endif
 
     viewer->compile();
-
-    if (multiThreading)
-    {
-        std::cout<<"Enabled multi-threading"<<std::endl;
-        viewer->setupThreading();
-    }
 
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
-
-        // animate the offscreen scenegraph
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->matrix = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
 
         viewer->update();
 
