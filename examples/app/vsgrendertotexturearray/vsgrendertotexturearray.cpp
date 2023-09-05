@@ -331,6 +331,38 @@ vsg::ref_ptr<vsg::Camera> createCameraForQuads(vsg::Node* scenegraph, const VkEx
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
 
+namespace vsg
+{
+    class EventNode : public vsg::Inherit<vsg::Node, EventNode>
+    {
+    public:
+        EventNode() {}
+        explicit EventNode(const EventHandlers& in_eventHandlers) : eventHandlers(in_eventHandlers) {}
+        explicit EventNode(ref_ptr<Visitor> eventHandler) { if (eventHandler) eventHandlers.push_back(eventHandler); }
+
+        EventHandlers eventHandlers;
+    };
+}
+
+struct AssignEventHandlers : public vsg::Visitor
+{
+    vsg::Viewer& viewer;
+    AssignEventHandlers(vsg::Viewer& in_viewer) : viewer(in_viewer) {}
+
+    void apply(vsg::Object& object) override { object.traverse(*this); }
+    void apply(vsg::Node& node) override
+    {
+        if (auto eventNode = node.cast<vsg::EventNode>())
+        {
+            viewer.addEventHandlers(eventNode->eventHandlers);
+        }
+        else
+        {
+            node.traverse(*this);
+        }
+    }
+};
+
 vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> device, uint32_t width, uint32_t height, vsg::ImageInfoList& imageInfos)
 {
     auto debugWindowTraits = vsg::WindowTraits::create();
@@ -361,7 +393,6 @@ vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> de
     results_commandGraph->submitOrder = 1;
     results_commandGraph->addChild(results_RenderGraph);
 
-#if 0
     auto results_trackball = vsg::Trackball::create(quads_camera);
     results_trackball->addWindow(debugWindow);
     // disable the rotation of the trackball
@@ -372,8 +403,9 @@ vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> de
     results_trackball->pitchDownKey = vsg::KEY_Undefined;
     results_trackball->rollLeftKey = vsg::KEY_Undefined;
     results_trackball->rollRightKey = vsg::KEY_Undefined;
-    viewer->addEventHandler(results_trackball);
-#endif
+
+    results_commandGraph->addChild(vsg::EventNode::create(results_trackball));
+
     return results_commandGraph;
 }
 
@@ -507,6 +539,10 @@ int main(int argc, char** argv)
     commandGraphs.push_back(createResultsWindow(window->getOrCreateDevice(), windowTraits->width / 2, windowTraits->height / 2, imageInfos));
 
     viewer->assignRecordAndSubmitTaskAndPresentation(commandGraphs);
+
+    // traverse the viewer's commandGraphs to add any event handlers specificied via the EventNode.
+    AssignEventHandlers aeh(*viewer);
+    for(auto cg : commandGraphs) cg->accept(aeh);
 
     viewer->compile();
 
