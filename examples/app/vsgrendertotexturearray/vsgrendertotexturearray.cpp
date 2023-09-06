@@ -1,9 +1,6 @@
 /* <editor-fold desc="MIT License">
 
-Copyright(c) 2018 Robert Osfield
-Copyright(c) 2020 Tim Moore
-
-Portions derived from code that is Copyright (C) Sascha Willems - www.saschawillems.de
+Copyright(c) 2023 Robert Osfield
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -22,23 +19,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <chrono>
 #include <iostream>
 #include <thread>
-
-// Render a scene to an image, then use the image as a texture on the
-// faces of quads. This is based on Sascha Willems' offscreenrender
-// example.
-//
-// In VSG / Vulkan terms, we first create a frame buffer that uses
-// the image as an attachment. Next, create a RenderGraph that uses that
-// frame buffer and the scene graph for the scene. Another RenderGraph
-// contains the scene graph for the quads. The quads use the rendered
-// image's descriptor. Finally, create the command graph that records those
-// two render graphs.
-//
-// In order for this to work correctly in Vulkan, the subpass
-// dependencies of the offscreen RenderPass / RenderGraph need to be
-// set up so that the second RenderGraph can sample the output.
-
-// RenderGraph for rendering to image
 
 
 namespace vsg
@@ -363,38 +343,53 @@ struct AssignEventHandlers : public vsg::Visitor
     }
 };
 
-vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> device, uint32_t width, uint32_t height, vsg::ImageInfoList& imageInfos)
+vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> device, uint32_t width, uint32_t height, vsg::ImageInfoList& imageInfos, VkPresentModeKHR presentMode)
 {
-    auto debugWindowTraits = vsg::WindowTraits::create();
-    debugWindowTraits->width = width;
-    debugWindowTraits->height = height;
-    debugWindowTraits->windowTitle = "render to texture results";
-    debugWindowTraits->device = device;
-    auto debugWindow = vsg::Window::create(debugWindowTraits);
+    auto resultsWindowTraits = vsg::WindowTraits::create();
+    resultsWindowTraits->width = width;
+    resultsWindowTraits->height = height;
+    resultsWindowTraits->windowTitle = "render to texture results";
+    resultsWindowTraits->device = device;
+    resultsWindowTraits->swapchainPreferences.presentMode = presentMode;
+    auto resultsWindow = vsg::Window::create(resultsWindowTraits);
 
     vsg::vec3 position(0.0f, 0.0f, 0.0f);
     vsg::vec2 size(1.0f, 1.0f);
 
+    float aspecRatio = static_cast<float>(width) / static_cast<float>(height);
+    uint32_t nx = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<float>(imageInfos.size()) * aspecRatio)));
+
     auto quads = vsg::Group::create();
 
+    uint32_t col = 0;
     for(auto& imageInfo : imageInfos)
     {
         quads->addChild( createQuad(position, size, imageInfo) );
-        position.x += size.x * 1.1f;
+        col++;
+        if (col < nx)
+        {
+            position.x += size.x * 1.1f;
+        }
+        else
+        {
+            col = 0;
+            position.x = 0.0f;
+            position.y += size.y * 1.1f;
+        }
     }
 
-    auto quads_camera = createCameraForQuads(quads, debugWindow->extent2D());
+    auto quads_camera = createCameraForQuads(quads, resultsWindow->extent2D());
     auto quads_view = vsg::View::create(quads_camera, quads);
 
-    auto results_RenderGraph = vsg::RenderGraph::create(debugWindow);
+    auto results_RenderGraph = vsg::RenderGraph::create(resultsWindow);
     results_RenderGraph->addChild(quads_view);
 
-    auto results_commandGraph = vsg::CommandGraph::create(debugWindow);
+    auto results_commandGraph = vsg::CommandGraph::create(resultsWindow);
     results_commandGraph->submitOrder = 1;
     results_commandGraph->addChild(results_RenderGraph);
 
     auto results_trackball = vsg::Trackball::create(quads_camera);
-    results_trackball->addWindow(debugWindow);
+    results_trackball->addWindow(resultsWindow);
     // disable the rotation of the trackball
     results_trackball->rotateButtonMask = vsg::BUTTON_MASK_OFF;
     results_trackball->turnLeftKey = vsg::KEY_Undefined;
@@ -408,6 +403,66 @@ vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> de
 
     return results_commandGraph;
 }
+
+struct CollectStats : public vsg::ConstVisitor
+{
+    std::map<const vsg::GraphicsPipeline*, uint32_t> pipelines;
+    std::map<const vsg::View*, uint32_t> views;
+
+    void apply(const vsg::Object& object) override
+    {
+        object.traverse(*this);
+    }
+
+    void apply(const vsg::StateGroup& sg) override
+    {
+        for(auto& sc : sg.stateCommands) sc->accept(*this);
+        sg.traverse(*this);
+    }
+
+    void apply(const vsg::BindGraphicsPipeline& bgp) override
+    {
+        ++pipelines[bgp.pipeline.get()];
+    }
+
+    void apply(const vsg::View& view) override
+    {
+        ++views[&view];
+        view.traverse(*this);
+    }
+
+    void print(std::ostream& out)
+    {
+        std::set<uint32_t> viewIDs;
+
+        out << "Views " << views.size() << std::endl;
+        for(auto& [view, count] : views)
+        {
+            out << "   view = " << view << ", viewID = "<< view->viewID<< ", count = " << count <<std::endl;
+            viewIDs.insert(view->viewID);
+        }
+
+        uint32_t numPipelines = 0;
+
+        out << "GraphicsPipelines " << pipelines.size() << std::endl;
+        for(auto& [pipeline, count] : pipelines)
+        {
+            out << "   pipeline = " << pipeline << ", count = " << count;
+            for(auto viewID : viewIDs)
+            {
+                if (pipeline->validated_vk(viewID) != 0)
+                {
+                    ++numPipelines;
+                    out<<" pipeline->vk("<<viewID<<") = "<<pipeline->validated_vk(viewID);
+                }
+            }
+            out<<std::endl;
+        }
+
+        out<<"numPipelines = "<<numPipelines<<std::endl;
+
+    }
+};
 
 int main(int argc, char** argv)
 {
@@ -424,6 +479,13 @@ int main(int argc, char** argv)
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
     auto numFrames = arguments.value(-1, "-f");
+    auto numLayers = arguments.value<uint32_t>(4, "--numLayers");
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
+    if (arguments.read({"-t", "--test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->fullscreen = true;
+    }
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -496,9 +558,25 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    auto main_trackball = vsg::Trackball::create(camera, ellipsoidModel);
-    main_trackball->addWindow(window);
-    viewer->addEventHandler(main_trackball);
+    if (pathFilename)
+    {
+        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
+        if (!animationPath)
+        {
+            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
+            return 1;
+        }
+
+        auto animationPathHandler = vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point());
+        animationPathHandler->printFrameStatsToConsole = true;
+        viewer->addEventHandler(animationPathHandler);
+    }
+    else
+    {
+        auto main_trackball = vsg::Trackball::create(camera, ellipsoidModel);
+        main_trackball->addWindow(window);
+        viewer->addEventHandler(main_trackball);
+    }
 
     auto view3D = vsg::View::create(camera, vsg_scene);
 
@@ -512,43 +590,43 @@ int main(int argc, char** argv)
     main_commandGraph->submitOrder = 0;
     main_commandGraph->addChild(main_RenderGraph);
 
-
-    vsg::ImageInfoList imageInfos;
-    VkExtent2D targetExtent{512, 512};
-
-    uint32_t numLayers = 4;
-
-    // create the color and depth image 2D arrays to render to/read from.
-    auto colorImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-    auto depthImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-    // use the TraverseChildrenOfNode to decorate the main view3D so it's children can be travesed by the render to texture without invoking the view3D camera/ViewDependentState
-    auto tcon = vsg::TraverseChildrenOfNode::create(view3D);
-
-    // create render to texture
-    auto rtt_commandGraph = vsg::CommandGraph::create(window);
-    rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
-    main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
-    for(uint32_t layer = 0; layer < numLayers; ++layer)
-    {
-        // create RenderGraph for render to texture for specified layer
-        auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
-        auto colorImageInfo = vsg::ImageInfo::create();
-        auto depthImageInfo = vsg::ImageInfo::create();
-        auto rtt_RenderGraph = createOffscreenRendergraph(*context, targetExtent, layer, colorImage, *colorImageInfo, depthImage, *depthImageInfo);
-
-        imageInfos.push_back(colorImageInfo);
-
-        auto rtt_view = vsg::View::create(offscreenCamera, tcon);
-
-        rtt_RenderGraph->addChild(rtt_view);
-        rtt_commandGraph->addChild(rtt_RenderGraph);
-    }
-
-
     vsg::CommandGraphs commandGraphs;
     commandGraphs.push_back(main_commandGraph);
-    commandGraphs.push_back(createResultsWindow(window->getOrCreateDevice(), windowTraits->width / 2, windowTraits->height / 2, imageInfos));
+
+    if (numLayers > 0)
+    {
+        vsg::ImageInfoList imageInfos;
+        VkExtent2D targetExtent{512, 512};
+
+        // create the color and depth image 2D arrays to render to/read from.
+        auto colorImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        auto depthImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+        // use the TraverseChildrenOfNode to decorate the main view3D so it's children can be travesed by the render to texture without invoking the view3D camera/ViewDependentState
+        auto tcon = vsg::TraverseChildrenOfNode::create(view3D);
+
+        // create render to textures
+        auto rtt_commandGraph = vsg::CommandGraph::create(window);
+        rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
+        main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
+        for(uint32_t layer = 0; layer < numLayers; ++layer)
+        {
+            // create RenderGraph for render to texture for specified layer
+            auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
+            auto colorImageInfo = vsg::ImageInfo::create();
+            auto depthImageInfo = vsg::ImageInfo::create();
+            auto rtt_RenderGraph = createOffscreenRendergraph(*context, targetExtent, layer, colorImage, *colorImageInfo, depthImage, *depthImageInfo);
+
+            imageInfos.push_back(colorImageInfo);
+
+            auto rtt_view = vsg::View::create(offscreenCamera, tcon);
+
+            rtt_RenderGraph->addChild(rtt_view);
+            rtt_commandGraph->addChild(rtt_RenderGraph);
+        }
+
+        commandGraphs.push_back(createResultsWindow(window->getOrCreateDevice(), windowTraits->width / 2, windowTraits->height / 2, imageInfos, windowTraits->swapchainPreferences.presentMode));
+    }
 
     viewer->assignRecordAndSubmitTaskAndPresentation(commandGraphs);
 
@@ -556,7 +634,13 @@ int main(int argc, char** argv)
     AssignEventHandlers aeh(*viewer);
     for(auto cg : commandGraphs) cg->accept(aeh);
 
+    // compile all the application and scene graph levels Vulkan objects and transfer data to GPU memory.
     viewer->compile();
+
+    // collect and print out scene graph stats
+    vsg::visit<CollectStats>(commandGraphs.begin(), commandGraphs.end()).print(std::cout);
+
+    viewer->start_point() = vsg::clock::now();
 
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
@@ -570,6 +654,10 @@ int main(int argc, char** argv)
 
         viewer->present();
     }
+
+    auto fs = viewer->getFrameStamp();
+    double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
+    std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;
