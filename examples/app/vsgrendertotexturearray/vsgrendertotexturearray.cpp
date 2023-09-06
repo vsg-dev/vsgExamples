@@ -486,6 +486,7 @@ int main(int argc, char** argv)
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         windowTraits->fullscreen = true;
     }
+    auto shareViewID = arguments.value(false, "-s");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -609,6 +610,7 @@ int main(int argc, char** argv)
         auto rtt_commandGraph = vsg::CommandGraph::create(window);
         rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
         main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
+        vsg::ref_ptr<vsg::View> first_rrt_view;
         for(uint32_t layer = 0; layer < numLayers; ++layer)
         {
             // create RenderGraph for render to texture for specified layer
@@ -619,7 +621,23 @@ int main(int argc, char** argv)
 
             imageInfos.push_back(colorImageInfo);
 
-            auto rtt_view = vsg::View::create(offscreenCamera, tcon);
+            vsg::ref_ptr<vsg::View> rtt_view;
+            if (shareViewID)
+            {
+                if (first_rrt_view)
+                {
+                    rtt_view = vsg::View::create(*first_rrt_view);
+                    rtt_view->camera = offscreenCamera;
+                }
+                else
+                {
+                    first_rrt_view = rtt_view = vsg::View::create(offscreenCamera, tcon);
+                }
+            }
+            else
+            {
+                rtt_view = vsg::View::create(offscreenCamera, tcon);
+            }
 
             rtt_RenderGraph->addChild(rtt_view);
             rtt_commandGraph->addChild(rtt_RenderGraph);
