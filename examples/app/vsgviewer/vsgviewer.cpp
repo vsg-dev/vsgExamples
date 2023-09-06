@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         arguments.read("--display", windowTraits->display);
         arguments.read("--samples", windowTraits->samples);
         auto numFrames = arguments.value(-1, "-f");
-        auto pathFilename = arguments.value(std::string(), "-p");
+        auto pathFilename = arguments.value<vsg::Path>("", "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
         auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
@@ -201,11 +201,7 @@ int main(int argc, char** argv)
         // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-        if (pathFilename.empty())
-        {
-            viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
-        }
-        else
+        if (pathFilename)
         {
             auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
             if (!animationPath)
@@ -217,6 +213,10 @@ int main(int argc, char** argv)
             auto animationPathHandler = vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point());
             animationPathHandler->printFrameStatsToConsole = true;
             viewer->addEventHandler(animationPathHandler);
+        }
+        else
+        {
+            viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
         }
 
         // if required preload specific number of PagedLOD levels.
