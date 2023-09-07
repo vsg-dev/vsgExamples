@@ -38,8 +38,8 @@ void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
     }
 
     out<<std::endl;
-    out<<"uniformBindings.size() = "<<shaderSet.uniformBindings.size()<<std::endl;
-    for(auto& ub : shaderSet.uniformBindings)
+    out<<"descriptorBindings.size() = "<<shaderSet.descriptorBindings.size()<<std::endl;
+    for(auto& ub : shaderSet.descriptorBindings)
     {
         out<<"  UniformBinding {"<<std::endl;
         out<<"    name = "<<ub.name<<std::endl;
@@ -109,7 +109,7 @@ std::set<std::string> supportedDefines(const vsg::ShaderSet& shaderSet)
         if (!ab.define.empty()) defines.insert(ab.define);
     }
 
-    for(auto& ub : shaderSet.uniformBindings)
+    for(auto& ub : shaderSet.descriptorBindings)
     {
         if (!ub.define.empty()) defines.insert(ub.define);
     }
@@ -313,7 +313,7 @@ int main(int argc, char** argv)
     {
         shaderSet->stages.clear();
         shaderSet->attributeBindings.clear();
-        shaderSet->uniformBindings.clear();
+        shaderSet->descriptorBindings.clear();
         shaderSet->pushConstantRanges.clear();
         shaderSet->definesArrayStates.clear();
         shaderSet->optionalDefines.clear();
