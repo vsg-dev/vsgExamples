@@ -47,7 +47,7 @@ vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
 
     // used for both CPU and GPU layouts
     shaderSet->addAttributeBinding("inPosition", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
-    shaderSet->addUniformBinding("textureAtlas", "", 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+    shaderSet->addDescriptorBinding("textureAtlas", "", 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
     shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
 
     // only used when using CPU Layout
@@ -58,9 +58,9 @@ vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
     shaderSet->addAttributeBinding("inCenterAndAutoScaleDistance", "BILLBOARD", 5, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
 
     // only used when using GPU Layout
-    shaderSet->addUniformBinding("glyphMetrics", "GPU_LAYOUT", 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::vec4Array2D::create(1, 1));
-    shaderSet->addUniformBinding("textLayout", "GPU_LAYOUT", 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::TextLayoutValue::create());
-    shaderSet->addUniformBinding("text", "GPU_LAYOUT", 1, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::uivec4Array2D::create(1, 1));
+    shaderSet->addDescriptorBinding("glyphMetrics", "GPU_LAYOUT", 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::vec4Array2D::create(1, 1));
+    shaderSet->addDescriptorBinding("textLayout", "GPU_LAYOUT", 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::TextLayoutValue::create());
+    shaderSet->addDescriptorBinding("text", "GPU_LAYOUT", 1, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::uivec4Array2D::create(1, 1));
 
     auto rasterizationState = vsg::RasterizationState::create();
     rasterizationState->cullMode = VK_CULL_MODE_NONE;

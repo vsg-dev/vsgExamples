@@ -176,102 +176,6 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     return rendergraph;
 }
 
-vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& position, const vsg::vec2& size, vsg::ref_ptr<vsg::ImageInfo> colorImage)
-{
-    // set up search paths to SPIRV shaders and textures
-    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
-
-    // load shaders
-    auto vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
-    auto fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
-    if (!vertexShader || !fragmentShader)
-    {
-        std::cout << "Could not create shaders." << std::endl;
-        return vsg::ref_ptr<vsg::Node>();
-    }
-
-    // set up graphics pipeline
-    vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
-    };
-
-    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-
-    vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
-    };
-
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
-        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-    };
-
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
-        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
-    };
-
-    vsg::GraphicsPipelineStates pipelineStates{
-        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
-        vsg::InputAssemblyState::create(),
-        vsg::RasterizationState::create(),
-        vsg::MultisampleState::create(),
-        vsg::ColorBlendState::create(),
-        vsg::DepthStencilState::create()};
-
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
-    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
-    auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
-
-    // create texture image and associated DescriptorSets and binding
-    auto texture = vsg::DescriptorImage::create(colorImage, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-
-    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
-    auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
-
-    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
-    auto scenegraph = vsg::StateGroup::create();
-    scenegraph->add(bindGraphicsPipeline);
-    scenegraph->add(bindDescriptorSet);
-
-    // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create({
-         position + vsg::vec3(0.0f, 0.0f, 0.0f),
-         position + vsg::vec3(size.x, 0.0f, 0.0f),
-         position + vsg::vec3(size.x, size.y, 0.0f),
-         position + vsg::vec3(0.0f, size.y, 0.0f)
-        });
-
-    auto colors = vsg::vec3Array::create(
-        {
-            {1.0f, 1.0f, 1.0f},
-            {1.0f, 1.0f, 1.0f},
-            {1.0f, 1.0f, 1.0f},
-            {1.0f, 1.0f, 1.0f}
-        });
-
-    auto texcoords = vsg::vec2Array::create(
-        {{0.0f, 1.0f},
-         {1.0f, 1.0f},
-         {1.0f, 0.0f},
-         {0.0f, 0.0f}
-        });
-
-    auto indices = vsg::ushortArray::create(
-        {0, 1, 2,
-         2, 3, 0});
-
-    // setup geometry
-    auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
-    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(6, 1, 0, 0, 0));
-
-    scenegraph->addChild(drawCommands);
-    return scenegraph;
-}
 
 vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkExtent2D& extent)
 {
@@ -343,8 +247,59 @@ struct AssignEventHandlers : public vsg::Visitor
     }
 };
 
+vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& position, const vsg::vec2& size)
+{
+    // set up vertex and index arrays
+    auto vertices = vsg::vec3Array::create({
+         position + vsg::vec3(0.0f, 0.0f, 0.0f),
+         position + vsg::vec3(size.x, 0.0f, 0.0f),
+         position + vsg::vec3(size.x, size.y, 0.0f),
+         position + vsg::vec3(0.0f, size.y, 0.0f)
+        });
+
+    auto colors = vsg::vec3Array::create(
+        {
+            {1.0f, 1.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+
+    auto texcoords = vsg::vec2Array::create(
+        {{0.0f, 1.0f},
+         {1.0f, 1.0f},
+         {1.0f, 0.0f},
+         {0.0f, 0.0f}
+        });
+
+    auto indices = vsg::ushortArray::create(
+        {0, 1, 2,
+         2, 3, 0});
+
+    // setup geometry
+    auto drawCommands = vsg::Commands::create();
+    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, colors, texcoords}));
+    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
+    drawCommands->addChild(vsg::DrawIndexed::create(6, 1, 0, 0, 0));
+    return drawCommands;
+}
+
 vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> device, uint32_t width, uint32_t height, vsg::ImageInfoList& imageInfos, VkPresentModeKHR presentMode)
 {
+    // set up search paths to SPIRV shaders and textures
+    vsg::Paths searchPaths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+    // load shaders
+    auto vertexShader = vsg::ShaderStage::read(VK_SHADER_STAGE_VERTEX_BIT, "main", vsg::findFile("shaders/vert_PushConstants.spv", searchPaths));
+    auto fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
+    if (!vertexShader || !fragmentShader)
+    {
+        std::cout << "Could not create shaders." << std::endl;
+        return {};
+    }
+
+
+    // create window
     auto resultsWindowTraits = vsg::WindowTraits::create();
     resultsWindowTraits->width = width;
     resultsWindowTraits->height = height;
@@ -353,18 +308,66 @@ vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> de
     resultsWindowTraits->swapchainPreferences.presentMode = presentMode;
     auto resultsWindow = vsg::Window::create(resultsWindowTraits);
 
+    // set up graphics pipeline
+    vsg::DescriptorSetLayoutBindings descriptorBindings{
+        {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
+    };
+
+    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+    vsg::PushConstantRanges pushConstantRanges{
+        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
+    };
+
+    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
+        VkVertexInputBindingDescription{0, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
+        VkVertexInputBindingDescription{1, sizeof(vsg::vec3), VK_VERTEX_INPUT_RATE_VERTEX}, // colour data
+        VkVertexInputBindingDescription{2, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
+    };
+
+    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
+        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
+        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0}, // colour data
+        VkVertexInputAttributeDescription{2, 2, VK_FORMAT_R32G32_SFLOAT, 0},    // tex coord data
+    };
+
+    vsg::GraphicsPipelineStates pipelineStates{
+        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
+        vsg::InputAssemblyState::create(),
+        vsg::RasterizationState::create(),
+        vsg::MultisampleState::create(),
+        vsg::ColorBlendState::create(),
+        vsg::DepthStencilState::create()};
+
+    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+    auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+    auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+
+    auto scenegraph = vsg::StateGroup::create();
+    scenegraph->add(bindGraphicsPipeline);
+
     vsg::vec3 position(0.0f, 0.0f, 0.0f);
     vsg::vec2 size(1.0f, 1.0f);
 
     float aspecRatio = static_cast<float>(width) / static_cast<float>(height);
     uint32_t nx = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<float>(imageInfos.size()) * aspecRatio)));
 
-    auto quads = vsg::Group::create();
-
     uint32_t col = 0;
     for(auto& imageInfo : imageInfos)
     {
-        quads->addChild( createQuad(position, size, imageInfo) );
+        // create texture image and associated DescriptorSets and binding
+        auto texture = vsg::DescriptorImage::create(imageInfo, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->layout, 0, descriptorSet);
+
+        // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
+        auto quadgroup = vsg::StateGroup::create();
+        quadgroup->add(bindDescriptorSet);
+        quadgroup->addChild( createQuad(position, size) );
+
+        scenegraph->addChild(quadgroup);
+
         col++;
         if (col < nx)
         {
@@ -378,8 +381,8 @@ vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> de
         }
     }
 
-    auto quads_camera = createCameraForQuads(quads, resultsWindow->extent2D());
-    auto quads_view = vsg::View::create(quads_camera, quads);
+    auto quads_camera = createCameraForQuads(scenegraph, resultsWindow->extent2D());
+    auto quads_view = vsg::View::create(quads_camera, scenegraph);
 
     auto results_RenderGraph = vsg::RenderGraph::create(resultsWindow);
     results_RenderGraph->addChild(quads_view);
@@ -435,7 +438,7 @@ struct CollectStats : public vsg::ConstVisitor
     {
         std::set<uint32_t> viewIDs;
 
-        out << "Views " << views.size() << std::endl;
+        out << "number of vsg::View " << views.size() << std::endl;
         for(auto& [view, count] : views)
         {
             out << "   view = " << view << ", viewID = "<< view->viewID<< ", count = " << count <<std::endl;
@@ -444,7 +447,7 @@ struct CollectStats : public vsg::ConstVisitor
 
         uint32_t numPipelines = 0;
 
-        out << "GraphicsPipelines " << pipelines.size() << std::endl;
+        out << "number of vsg::GraphicsPipelines " << pipelines.size() << std::endl;
         for(auto& [pipeline, count] : pipelines)
         {
             out << "   pipeline = " << pipeline << ", count = " << count;
@@ -459,7 +462,7 @@ struct CollectStats : public vsg::ConstVisitor
             out<<std::endl;
         }
 
-        out<<"numPipelines = "<<numPipelines<<std::endl;
+        out<<"number of vkPipelines = "<<numPipelines<<std::endl;
 
     }
 };
