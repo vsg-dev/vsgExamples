@@ -298,7 +298,6 @@ vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> de
         return {};
     }
 
-
     // create window
     auto resultsWindowTraits = vsg::WindowTraits::create();
     resultsWindowTraits->width = width;
