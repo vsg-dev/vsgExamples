@@ -33,8 +33,7 @@ int main(int argc, char** argv)
     auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
     shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
 
-    /// (mis?)using addUniformBinding() to add a storage binding.
-    shaderSet->addUniformBinding("cellColors", "", 0, 0,
+    shaderSet->addDescriptorBinding("cellColors", "", 0, 0,
         VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
         vsg::vec4Array::create({{1,0,0,1}}));
 

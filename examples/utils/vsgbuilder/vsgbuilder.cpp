@@ -61,7 +61,7 @@ int main(int argc, char** argv)
     if (stateInfo.lighting && (hasDiffuseColor || hasSpecularColor))
     {
         builder->shaderSet = vsg::createPhongShaderSet(options);
-        if (auto& materialBinding = builder->shaderSet->getUniformBinding("material"))
+        if (auto& materialBinding = builder->shaderSet->getDescriptorBinding("material"))
         {
             auto mat = vsg::PhongMaterialValue::create();
             if (hasSpecularColor)
