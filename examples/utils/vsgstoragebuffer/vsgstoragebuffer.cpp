@@ -55,9 +55,9 @@ int main(int argc, char** argv)
     });
 
     /// actually assigning a storage buffer (not a uniform buffer)
-    // assignUniform(gpConf, "cellColors", cellColors);
+    // assignDescriptor(gpConf, "cellColors", cellColors);
 
-    gpConf->assignUniform("cellColors", cellColors);
+    gpConf->assignDescriptor("cellColors", cellColors);
 
     /// single quad
     auto vertices = vsg::vec3Array::create({

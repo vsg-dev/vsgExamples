@@ -100,7 +100,7 @@ int main(int argc, char** argv)
             mat->value().diffuse.set(1.0f, 1.0f, 1.0f, 1.0f);
             mat->value().specular.set(1.0f, 0.0f, 0.0f, 1.0f); // red specular highlight
 
-            graphicsPipelineConfig->assignUniform("material", mat);
+            graphicsPipelineConfig->assignDescriptor("material", mat);
 
             // set up vertex and index arrays
             auto vertices = vsg::vec3Array::create(
