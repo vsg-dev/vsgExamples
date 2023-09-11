@@ -98,18 +98,6 @@ int main(int argc, char** argv)
 
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
-    bool add_amient = true;
-    bool add_directional = true;
-    bool add_point = true;
-    bool add_spotlight = true;
-    bool add_headlight = arguments.read("--headlight");
-    if (add_headlight || arguments.read({"--no-lights", "-n"}))
-    {
-        add_amient = false;
-        add_directional = false;
-        add_point = false;
-        add_spotlight = false;
-    }
 
     vsg::ref_ptr<vsg::Node> scene;
     if (argc>1)
@@ -132,99 +120,18 @@ int main(int argc, char** argv)
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
 
-    if (add_amient || add_directional || add_point || add_spotlight || add_headlight)
-    {
-        auto span = vsg::length(bounds.max - bounds.min);
-        auto group = vsg::Group::create();
-        group->addChild(scene);
+    //auto span = vsg::length(bounds.max - bounds.min);
+    auto group = vsg::Group::create();
+    group->addChild(scene);
+    auto directionalLight = vsg::DirectionalLight::create();
+    directionalLight->name = "directional";
+    directionalLight->color.set(1.0, 1.0, 1.0);
+    directionalLight->intensity = 1.0;
+    directionalLight->direction.set(0.0, 0.0, -1.0);
+    directionalLight->shadowMaps = numShadowMapsPerLight;
+    group->addChild(directionalLight);
 
-        // ambient light
-        if (add_amient)
-        {
-            auto ambientLight = vsg::AmbientLight::create();
-            ambientLight->name = "ambient";
-            ambientLight->color.set(1.0, 1.0, 1.0);
-            ambientLight->intensity = 0.01;
-            group->addChild(ambientLight);
-        }
-
-        // directional light
-        if (add_directional)
-        {
-            auto directionalLight = vsg::DirectionalLight::create();
-            directionalLight->name = "directional";
-            directionalLight->color.set(1.0, 1.0, 1.0);
-            directionalLight->intensity = 0.15;
-            directionalLight->direction.set(0.0, -1.0, -1.0);
-            directionalLight->shadowMaps = numShadowMapsPerLight;
-            group->addChild(directionalLight);
-        }
-
-        // point light
-        if (add_point)
-        {
-            auto pointLight = vsg::PointLight::create();
-            pointLight->name = "point";
-            pointLight->color.set(1.0, 1.0, 0.0);
-            pointLight->intensity = span*0.5;
-            pointLight->position.set(bounds.min.x, bounds.min.y, bounds.max.z + span*0.3);
-            pointLight->shadowMaps = numShadowMapsPerLight;
-
-            // enable culling of the point light by decorating with a CullGroup
-            auto cullGroup = vsg::CullGroup::create();
-            cullGroup->bound.center = pointLight->position;
-            cullGroup->bound.radius = span;
-
-            cullGroup->addChild(pointLight);
-
-            group->addChild(cullGroup);
-        }
-
-        // spot light
-        if (add_spotlight)
-        {
-            auto spotLight = vsg::SpotLight::create();
-            spotLight->name = "spot";
-            spotLight->color.set(0.0, 1.0, 1.0);
-            spotLight->intensity = span*0.5;
-            spotLight->position.set(bounds.max.x + span*0.1, bounds.min.y - span*0.1, bounds.max.z + span*0.3);
-            spotLight->direction = (bounds.min+bounds.max)*0.5 - spotLight->position;
-            spotLight->innerAngle = vsg::radians(8.0);
-            spotLight->outerAngle = vsg::radians(9.0);
-            spotLight->shadowMaps = numShadowMapsPerLight;
-
-            // enable culling of the spot light by decorating with a CullGroup
-            auto cullGroup = vsg::CullGroup::create();
-            cullGroup->bound.center = spotLight->position;
-            cullGroup->bound.radius = span;
-
-            cullGroup->addChild(spotLight);
-
-            group->addChild(cullGroup);
-        }
-
-        if (add_headlight)
-        {
-            auto ambientLight = vsg::AmbientLight::create();
-            ambientLight->name = "ambient";
-            ambientLight->color.set(1.0, 1.0, 1.0);
-            ambientLight->intensity = 0.1;
-
-            auto directionalLight = vsg::DirectionalLight::create();
-            directionalLight->name = "head light";
-            directionalLight->color.set(1.0, 1.0, 1.0);
-            directionalLight->intensity = 0.9;
-            directionalLight->direction.set(0.0, 0.0, -1.0);
-
-            auto absoluteTransform = vsg::AbsoluteTransform::create();
-            absoluteTransform->addChild(ambientLight);
-            absoluteTransform->addChild(directionalLight);
-
-            group->addChild(absoluteTransform);
-        }
-
-        scene = group;
-    }
+    scene = group;
 
     // write out scene if required
     if (!outputFilename.empty())
