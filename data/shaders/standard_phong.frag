@@ -38,8 +38,13 @@ layout(set = 1, binding = 0) uniform LightData
     vec4 values[64];
 } lightData;
 
-layout(set = 1, binding = 2) uniform sampler2DArray shadowMaps;
+#define HARDWARE_PCF 1
 
+#if HARDWARE_PCF == 1
+layout(set = 1, binding = 2) uniform sampler2DArrayShadow shadowMaps;
+#else
+layout(set = 1, binding = 2) uniform sampler2DArray shadowMaps;
+#endif
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -198,8 +203,14 @@ void main()
                 {
                     matched = true;
 
+#if HARDWARE_PCF == 1
+                    float coverage = texture(shadowMaps, vec4(sm_tc.st, si, sm_tc.z+shadowMapOffset)).r;
+                    brightness *= (1.0-coverage);
+#else
                     float dist = texture(shadowMaps, vec3(sm_tc.st, si)).r - shadowMapOffset;
                     if (dist > sm_tc.z) brightness = 0.0;
+#endif
+
 #if 0
                     if (si==0) color = vec3(1.0, 0.0, 0.0);
                     else if (si==1) color = vec3(0.0, 1.0, 0.0);
