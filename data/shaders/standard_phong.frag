@@ -168,6 +168,8 @@ void main()
         }
     }
 
+    float shadowMapOffset = 0.01;
+
     if (numDirectionalLights>0)
     {
         // directional lights
@@ -180,9 +182,33 @@ void main()
             float brightness = lightColor.a;
 
             // checked shadow maps
+            int si = 0;
             while (shadowMapSettings.r > 0.0 && brightness > brightnessCutoff)
             {
-                brightness *= 0.5;
+                mat4 sm_matrix = mat4(lightData.values[index++],
+                                      lightData.values[index++],
+                                      lightData.values[index++],
+                                      lightData.values[index++]);
+
+                vec4 sm_tc = (sm_matrix) * vec4(eyePos, 1.0);
+
+                if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0)
+                {
+#if 1
+                    float dist = texture(shadowMaps, vec3(sm_tc.st, si)).r - shadowMapOffset;
+                    if (dist > sm_tc.z) brightness = 0.0;
+#else
+                    brightness = 0.0;
+                    if (si==0) color = vec3(1.0, 0.0, 0.0);
+                    else if (si==1) color = vec3(0.0, 1.0, 0.0);
+                    else if (si==2) color = vec3(0.0, 0.0, 1.0);
+                    else if (si==3) color = vec3(1.0, 1.0, 0.0);
+                    else if (si==4) color = vec3(0.0, 1.0, 1.0);
+                    else color = vec3(1.0, 1.0, 1.0);
+#endif
+                }
+
+                ++si;
                 shadowMapSettings.r -= 1.0;
             }
 
