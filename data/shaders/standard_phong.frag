@@ -168,7 +168,7 @@ void main()
         }
     }
 
-    float shadowMapOffset = 0.02;
+    float shadowMapOffset = 0.01;
 
     int si = 0;
 
@@ -184,7 +184,8 @@ void main()
             float brightness = lightColor.a;
 
             // checked shadow maps
-            while (shadowMapSettings.r > 0.0 && brightness > brightnessCutoff)
+            bool matched = false;
+            while ((shadowMapSettings.r > 0.0 && brightness > brightnessCutoff) && !matched)
             {
                 mat4 sm_matrix = mat4(lightData.values[index++],
                                       lightData.values[index++],
@@ -195,11 +196,11 @@ void main()
 
                 if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0)
                 {
-#if 1
+                    matched = true;
+
                     float dist = texture(shadowMaps, vec3(sm_tc.st, si)).r - shadowMapOffset;
                     if (dist > sm_tc.z) brightness = 0.0;
-#else
-                    brightness = 0.0;
+#if 0
                     if (si==0) color = vec3(1.0, 0.0, 0.0);
                     else if (si==1) color = vec3(0.0, 1.0, 0.0);
                     else if (si==2) color = vec3(0.0, 0.0, 1.0);
