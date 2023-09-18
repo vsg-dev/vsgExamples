@@ -170,6 +170,8 @@ void main()
 
     float shadowMapOffset = 0.01;
 
+    int si = 0;
+
     if (numDirectionalLights>0)
     {
         // directional lights
@@ -182,7 +184,6 @@ void main()
             float brightness = lightColor.a;
 
             // checked shadow maps
-            int si = 0;
             while (shadowMapSettings.r > 0.0 && brightness > brightnessCutoff)
             {
                 mat4 sm_matrix = mat4(lightData.values[index++],

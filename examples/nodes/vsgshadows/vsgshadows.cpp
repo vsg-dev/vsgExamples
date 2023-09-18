@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
+vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {})
 {
     auto builder = vsg::Builder::create();
     builder->options = options;
@@ -15,6 +15,8 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
 
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
+
+    if (textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
 
     scene->addChild(builder->createBox(geomInfo, stateInfo));
     geomInfo.position += geomInfo.dx * 1.5f;
@@ -81,7 +83,10 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
+    vsg::Path textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
+
     auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
+    auto numLights = arguments.value<uint32_t>(1, "-n");
 
     vsg::ref_ptr<vsg::ResourceHints> resourceHints;
     if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
@@ -135,7 +140,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        scene = createTestScene(options);
+        scene = createTestScene(options, textureFile);
     }
 
     // compute the bounds of the scene graph to help position camera
@@ -145,24 +150,38 @@ int main(int argc, char** argv)
     auto group = vsg::Group::create();
     group->addChild(scene);
 
-#if 1
-    auto directionalLight = vsg::DirectionalLight::create();
-    directionalLight->name = "directional";
-    directionalLight->color.set(1.0, 1.0, 1.0);
-    directionalLight->intensity = 1.0;
-    directionalLight->direction.set(0.0, 0.0, -1.0);
-    directionalLight->shadowMaps = numShadowMapsPerLight;
-    group->addChild(directionalLight);
-#endif
-#if 0
-    auto pointLight = vsg::PointLight::create();
-    pointLight->name = "point";
-    pointLight->color.set(1.0, 1.0, 1.0);
-    pointLight->intensity = 1.0;
-    pointLight->position.set(0.0, 0.0, 1.0);
-    pointLight->shadowMaps = numShadowMapsPerLight;
-    group->addChild(pointLight);
-#endif
+
+    if (numLights >= 1)
+    {
+        auto directionalLight = vsg::DirectionalLight::create();
+        directionalLight->name = "directional";
+        directionalLight->color.set(1.0, 1.0, 1.0);
+        directionalLight->intensity = 0.9;
+        directionalLight->direction.set(0.0, 0.0, -1.0);
+        directionalLight->shadowMaps = numShadowMapsPerLight;
+        group->addChild(directionalLight);
+    }
+
+    if (numLights >= 2)
+    {
+        auto ambientLight = vsg::AmbientLight::create();
+        ambientLight->name = "ambient";
+        ambientLight->color.set(1.0, 1.0, 1.0);
+        ambientLight->intensity = 0.1;
+        group->addChild(ambientLight);
+    }
+
+    if (numLights >= 3)
+    {
+        auto directionalLight = vsg::DirectionalLight::create();
+        directionalLight->name = "2nd directional";
+        directionalLight->color.set(1.0, 1.0, 0.0);
+        directionalLight->intensity = 0.9;
+        directionalLight->direction.set(1.0, 1.0, -1.0);
+        directionalLight->shadowMaps = numShadowMapsPerLight;
+        group->addChild(directionalLight);
+    }
+
     scene = group;
 
     // write out scene if required
