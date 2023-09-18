@@ -37,6 +37,8 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
 
     scene->addChild(builder->createQuad(geomInfo, stateInfo));
 
+    vsg::info("createTestScene() extents = ", bounds);
+
     return scene;
 }
 
@@ -94,10 +96,29 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
+    if (arguments.read({"-c", "--custom"}))
+    {
+        auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+        auto phong_fragShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_phong.frag", options);
+        auto phong = vsg::createPhongShaderSet(options);
+        if (phong && phong_vertexShader && phong_fragShader)
+        {
+            // replace shaders
+            phong->stages.clear();
+            phong->stages.push_back(phong_vertexShader);
+            phong->stages.push_back(phong_fragShader);
 
+            // clear prebuilt variants
+            phong->variants.clear();
+
+            options->shaderSets["phong"] = phong;
+
+            std::cout<<"Replaced phong shader"<<std::endl;
+        }
+    }
+
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
-
 
     vsg::ref_ptr<vsg::Node> scene;
     if (argc>1)
@@ -123,6 +144,8 @@ int main(int argc, char** argv)
     //auto span = vsg::length(bounds.max - bounds.min);
     auto group = vsg::Group::create();
     group->addChild(scene);
+
+#if 1
     auto directionalLight = vsg::DirectionalLight::create();
     directionalLight->name = "directional";
     directionalLight->color.set(1.0, 1.0, 1.0);
@@ -130,7 +153,16 @@ int main(int argc, char** argv)
     directionalLight->direction.set(0.0, 0.0, -1.0);
     directionalLight->shadowMaps = numShadowMapsPerLight;
     group->addChild(directionalLight);
-
+#endif
+#if 0
+    auto pointLight = vsg::PointLight::create();
+    pointLight->name = "point";
+    pointLight->color.set(1.0, 1.0, 1.0);
+    pointLight->intensity = 1.0;
+    pointLight->position.set(0.0, 0.0, 1.0);
+    pointLight->shadowMaps = numShadowMapsPerLight;
+    group->addChild(pointLight);
+#endif
     scene = group;
 
     // write out scene if required
@@ -173,7 +205,23 @@ int main(int argc, char** argv)
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-    viewer->addEventHandler(vsg::Trackball::create(camera));
+    if (pathFilename)
+    {
+        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
+        if (!animationPath)
+        {
+            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
+            return 1;
+        }
+
+        auto animationPathHandler = vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point());
+        animationPathHandler->printFrameStatsToConsole = true;
+        viewer->addEventHandler(animationPathHandler);
+    }
+    else
+    {
+        viewer->addEventHandler(vsg::Trackball::create(camera));
+    }
 
     auto renderGraph = vsg::RenderGraph::create(window, view);
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
