@@ -156,6 +156,8 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
+    double maxShadowDistance = arguments.value<double>(1e8, "--sd");
+
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
     {
@@ -319,6 +321,7 @@ int main(int argc, char** argv)
     // add the camera and scene graph to View
     auto view = vsg::View::create();
     view->camera = camera;
+    view->viewDependentState->maxShadowDistance = maxShadowDistance;
     view->addChild(scene);
 
     // add close handler to respond the close window button and pressing escape

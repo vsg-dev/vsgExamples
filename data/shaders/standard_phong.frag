@@ -2,6 +2,9 @@
 #extension GL_ARB_separate_shader_objects : enable
 #pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING)
 
+#define HARDWARE_PCF 1
+#define SHADOWMAP_DEBUG 0
+
 #ifdef VSG_DIFFUSE_MAP
 layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
 #endif
@@ -38,7 +41,6 @@ layout(set = 1, binding = 0) uniform LightData
     vec4 values[2048];
 } lightData;
 
-#define HARDWARE_PCF 1
 
 #if HARDWARE_PCF == 1
 layout(set = 1, binding = 2) uniform sampler2DArrayShadow shadowMaps;
@@ -173,7 +175,7 @@ void main()
         }
     }
 
-    float shadowMapOffset = 0.002;
+    float shadowMapOffset = 0.01;
 
     int si = 0;
 
@@ -199,7 +201,7 @@ void main()
 
                 vec4 sm_tc = (sm_matrix) * vec4(eyePos, 1.0);
 
-                if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0)
+                if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 /* && sm_tc.z <= 1.0*/)
                 {
                     matched = true;
 
@@ -211,7 +213,7 @@ void main()
                     if (dist > sm_tc.z) brightness = 0.0;
 #endif
 
-#if 0
+#if SHADOWMAP_DEBUG
                     if (si==0) color = vec3(1.0, 0.0, 0.0);
                     else if (si==1) color = vec3(0.0, 1.0, 0.0);
                     else if (si==2) color = vec3(0.0, 0.0, 1.0);
