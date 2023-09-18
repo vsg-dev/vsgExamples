@@ -1,9 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, SHADOWMAP_DEBUG)
 
 #define HARDWARE_PCF 1
-#define SHADOWMAP_DEBUG 0
 
 #ifdef VSG_DIFFUSE_MAP
 layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
@@ -213,7 +212,7 @@ void main()
                     if (dist > sm_tc.z) brightness = 0.0;
 #endif
 
-#if SHADOWMAP_DEBUG
+#ifdef SHADOWMAP_DEBUG
                     if (si==0) color = vec3(1.0, 0.0, 0.0);
                     else if (si==1) color = vec3(0.0, 1.0, 0.0);
                     else if (si==2) color = vec3(0.0, 0.0, 1.0);

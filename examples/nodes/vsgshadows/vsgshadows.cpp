@@ -197,6 +197,13 @@ int main(int argc, char** argv)
             phong->stages.push_back(phong_vertexShader);
             phong->stages.push_back(phong_fragShader);
 
+            if (arguments.read("--shader-debug"))
+            {
+                phong->optionalDefines.insert("SHADOWMAP_DEBUG");
+                phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
+                phong->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
+            }
+
             if (depthClamp)
             {
                 auto rasterizationState = vsg::RasterizationState::create();
