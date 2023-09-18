@@ -35,7 +35,7 @@ layout(set = 0, binding = 10) uniform MaterialData
 
 layout(set = 1, binding = 0) uniform LightData
 {
-    vec4 values[64];
+    vec4 values[2048];
 } lightData;
 
 #define HARDWARE_PCF 1
@@ -173,7 +173,7 @@ void main()
         }
     }
 
-    float shadowMapOffset = 0.01;
+    float shadowMapOffset = 0.002;
 
     int si = 0;
 

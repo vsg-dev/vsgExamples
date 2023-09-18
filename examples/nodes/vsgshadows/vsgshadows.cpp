@@ -44,6 +44,79 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
     return scene;
 }
 
+vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {})
+{
+    auto builder = vsg::Builder::create();
+    builder->options = options;
+
+    auto scene = vsg::Group::create();
+
+    vsg::GeometryInfo geomInfo;
+    vsg::StateInfo stateInfo;
+
+    if (textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
+
+    vsg::box bounds(vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(1000.0f, 1000.0f, 20.0f));
+
+    uint32_t numBoxes = 400;
+    uint32_t numSpheres = 300;
+    uint32_t numCapsules = 300;
+
+    vsg::vec3 size = bounds.max - bounds.min;
+    auto assignRandomGeometryInfo = [&]()
+    {
+        vsg::vec3 offset(size.x * float(std::rand()) / float(RAND_MAX),
+                         size.y * float(std::rand()) / float(RAND_MAX),
+                         size.z * float(std::rand()) / float(RAND_MAX));
+        geomInfo.position = bounds.min + offset;
+        geomInfo.dx.set(10.0f, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, 10.0f, 0.0f);
+        geomInfo.dz.set(0.0f, 0.0f, 10.0f);
+
+        geomInfo.color.set(float(std::rand()) / float(RAND_MAX),
+                           float(std::rand()) / float(RAND_MAX),
+                           float(std::rand()) / float(RAND_MAX),
+                           1.0f);
+    };
+
+    for(uint32_t bi = 0; bi < numBoxes; ++bi)
+    {
+        assignRandomGeometryInfo();
+        auto model = builder->createBox(geomInfo, stateInfo);
+        vsg::info("BOX geomInfo.position = ", geomInfo.position, ", ", model);
+        scene->addChild(model);
+    }
+
+    for(uint32_t bi = 0; bi < numSpheres; ++bi)
+    {
+        assignRandomGeometryInfo();
+        auto model = builder->createSphere(geomInfo, stateInfo);
+        vsg::info("Sphere geomInfo.position = ", geomInfo.position, ", ", model);
+        scene->addChild(model);
+    }
+
+    for(uint32_t bi = 0; bi < numCapsules; ++bi)
+    {
+        assignRandomGeometryInfo();
+        auto model = builder->createCapsule(geomInfo, stateInfo);
+        vsg::info("Capsule geomInfo.position = ", geomInfo.position, ", ", model);
+        scene->addChild(model);
+    }
+
+    double diameter = vsg::length(bounds.max - bounds.min);
+    geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+    geomInfo.dx.set(diameter, 0.0, 0.0);
+    geomInfo.dy.set(0.0, diameter, 0.0);
+    geomInfo.dz.set(0.0, 0.0, 1.0);
+    geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+    scene->addChild(builder->createQuad(geomInfo, stateInfo));
+
+    vsg::info("createTestScene() extents = ", bounds);
+
+    return scene;
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -148,7 +221,11 @@ int main(int argc, char** argv)
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     vsg::ref_ptr<vsg::Node> scene;
-    if (argc>1)
+    if (arguments.read("--large"))
+    {
+        scene = createLargeTestScene(options, textureFile);
+    }
+    else if (argc>1)
     {
         vsg::Path filename = argv[1];
         auto model = vsg::read_cast<vsg::Node>(filename, options);
@@ -232,10 +309,10 @@ int main(int argc, char** argv)
     double radius = vsg::length(bounds.max - bounds.min) * 0.6;
 
     // set up the camera
-    lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 2.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     double nearFarRatio = 0.001;
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.0);
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 5.0);
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
