@@ -168,7 +168,7 @@ void main()
         }
     }
 
-    float shadowMapOffset = 0.01;
+    float shadowMapOffset = 0.02;
 
     int si = 0;
 

@@ -83,6 +83,15 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
+    bool depthClamp = arguments.read({"--dc", "--depthClamp"});
+    if (depthClamp)
+    {
+        std::cout<<"Enabled dpeth clamp."<<std::endl;
+        auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+        deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+        deviceFeatures->get().depthClamp = VK_TRUE;
+    }
+
     vsg::Path textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
 
     auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
@@ -112,6 +121,19 @@ int main(int argc, char** argv)
             phong->stages.clear();
             phong->stages.push_back(phong_vertexShader);
             phong->stages.push_back(phong_fragShader);
+
+            if (depthClamp)
+            {
+                auto rasterizationState = vsg::RasterizationState::create();
+                rasterizationState->depthClampEnable = VK_TRUE;
+                phong->defaultGraphicsPipelineStates.push_back(rasterizationState);
+            }
+
+            vsg::info("phong->defaultGraphicsPipelineStates.size() = ", phong->defaultGraphicsPipelineStates.size());
+            for(auto& ps: phong->defaultGraphicsPipelineStates)
+            {
+                vsg::info("   ", ps->className());
+            }
 
             // clear prebuilt variants
             phong->variants.clear();
@@ -177,7 +199,7 @@ int main(int argc, char** argv)
         directionalLight->name = "2nd directional";
         directionalLight->color.set(1.0, 1.0, 0.0);
         directionalLight->intensity = 0.9;
-        directionalLight->direction.set(1.0, 1.0, -1.0);
+        directionalLight->direction = vsg::normalize(vsg::vec3(1.0, 1.0, -1.0));
         directionalLight->shadowMaps = numShadowMapsPerLight;
         group->addChild(directionalLight);
     }
