@@ -190,8 +190,9 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (arguments.read({"-c", "--custom"}))
+    if (arguments.read({"-c", "--custom"}) || depthClamp)
     {
+        // customize the phong ShaderSet
         auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
         auto phong_fragShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_phong.frag", options);
         auto phong = vsg::createPhongShaderSet(options);
@@ -228,6 +229,45 @@ int main(int argc, char** argv)
             options->shaderSets["phong"] = phong;
 
             std::cout<<"Replaced phong shader"<<std::endl;
+        }
+
+        // customize the pbr ShaderSet
+        auto pbr_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+        auto pbr_fragShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_pbr.frag", options);
+        auto pbr = vsg::createPhongShaderSet(options);
+        if (pbr && pbr_vertexShader && pbr_fragShader)
+        {
+            // replace shaders
+            pbr->stages.clear();
+            pbr->stages.push_back(pbr_vertexShader);
+            pbr->stages.push_back(pbr_fragShader);
+
+            if (arguments.read("--shader-debug"))
+            {
+                pbr->optionalDefines.insert("SHADOWMAP_DEBUG");
+                pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
+                pbr->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
+            }
+
+            if (depthClamp)
+            {
+                auto rasterizationState = vsg::RasterizationState::create();
+                rasterizationState->depthClampEnable = VK_TRUE;
+                pbr->defaultGraphicsPipelineStates.push_back(rasterizationState);
+            }
+
+            vsg::info("pbr->defaultGraphicsPipelineStates.size() = ", pbr->defaultGraphicsPipelineStates.size());
+            for(auto& ps: pbr->defaultGraphicsPipelineStates)
+            {
+                vsg::info("   ", ps->className());
+            }
+
+            // clear prebuilt variants
+            pbr->variants.clear();
+
+            options->shaderSets["pbr"] = pbr;
+
+            std::cout<<"Replaced pbr shader"<<std::endl;
         }
     }
 

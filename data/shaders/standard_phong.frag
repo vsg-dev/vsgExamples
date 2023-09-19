@@ -174,7 +174,8 @@ void main()
         }
     }
 
-    int si = 0;
+    // index used to step through the shadowMaps array
+    int shadowMapIndex = 0;
 
     if (numDirectionalLights>0)
     {
@@ -203,24 +204,24 @@ void main()
                     matched = true;
 
 #if HARDWARE_PCF == 1
-                    float coverage = texture(shadowMaps, vec4(sm_tc.st, si, sm_tc.z)).r;
+                    float coverage = texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
                     brightness *= (1.0-coverage);
 #else
-                    float dist = texture(shadowMaps, vec3(sm_tc.st, si)).r - shadowMapOffset;
+                    float dist = texture(shadowMaps, vec3(sm_tc.st, shadowMapIndex)).r;
                     if (dist > sm_tc.z) brightness = 0.0;
 #endif
 
 #ifdef SHADOWMAP_DEBUG
-                    if (si==0) color = vec3(1.0, 0.0, 0.0);
-                    else if (si==1) color = vec3(0.0, 1.0, 0.0);
-                    else if (si==2) color = vec3(0.0, 0.0, 1.0);
-                    else if (si==3) color = vec3(1.0, 1.0, 0.0);
-                    else if (si==4) color = vec3(0.0, 1.0, 1.0);
+                    if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
+                    else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
+                    else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
+                    else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
+                    else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
                     else color = vec3(1.0, 1.0, 1.0);
 #endif
                 }
 
-                ++si;
+                ++shadowMapIndex;
                 shadowMapSettings.r -= 1.0;
             }
 
