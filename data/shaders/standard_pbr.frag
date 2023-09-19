@@ -431,7 +431,7 @@ void main()
             vec4 shadowMapSettings = lightData.values[index++];
 
             float brightness = lightColor.a;
-#if 0
+
             // checked shadow maps
             bool matched = false;
             while ((shadowMapSettings.r > 0.0 && brightness > brightnessCutoff) && !matched)
@@ -471,7 +471,7 @@ void main()
 
             // if light is too dim/shadowed to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;
-#endif
+
             vec3 l = direction;         // Vector from surface point to light
             vec3 h = normalize(l+v);    // Half vector between both l and v
             float scale = brightness;

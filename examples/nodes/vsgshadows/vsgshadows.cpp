@@ -163,6 +163,7 @@ int main(int argc, char** argv)
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
     double shadowMapBias = arguments.value<double>(0.001, "--sb");
 
+    bool shaderDebug = arguments.read("--shader-debug");
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
     {
@@ -203,7 +204,7 @@ int main(int argc, char** argv)
             phong->stages.push_back(phong_vertexShader);
             phong->stages.push_back(phong_fragShader);
 
-            if (arguments.read("--shader-debug"))
+            if (shaderDebug)
             {
                 phong->optionalDefines.insert("SHADOWMAP_DEBUG");
                 phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
@@ -217,12 +218,6 @@ int main(int argc, char** argv)
                 phong->defaultGraphicsPipelineStates.push_back(rasterizationState);
             }
 
-            vsg::info("phong->defaultGraphicsPipelineStates.size() = ", phong->defaultGraphicsPipelineStates.size());
-            for(auto& ps: phong->defaultGraphicsPipelineStates)
-            {
-                vsg::info("   ", ps->className());
-            }
-
             // clear prebuilt variants
             phong->variants.clear();
 
@@ -234,7 +229,7 @@ int main(int argc, char** argv)
         // customize the pbr ShaderSet
         auto pbr_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
         auto pbr_fragShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_pbr.frag", options);
-        auto pbr = vsg::createPhongShaderSet(options);
+        auto pbr = vsg::createPhysicsBasedRenderingShaderSet(options);
         if (pbr && pbr_vertexShader && pbr_fragShader)
         {
             // replace shaders
@@ -242,7 +237,7 @@ int main(int argc, char** argv)
             pbr->stages.push_back(pbr_vertexShader);
             pbr->stages.push_back(pbr_fragShader);
 
-            if (arguments.read("--shader-debug"))
+            if (shaderDebug)
             {
                 pbr->optionalDefines.insert("SHADOWMAP_DEBUG");
                 pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
@@ -254,12 +249,6 @@ int main(int argc, char** argv)
                 auto rasterizationState = vsg::RasterizationState::create();
                 rasterizationState->depthClampEnable = VK_TRUE;
                 pbr->defaultGraphicsPipelineStates.push_back(rasterizationState);
-            }
-
-            vsg::info("pbr->defaultGraphicsPipelineStates.size() = ", pbr->defaultGraphicsPipelineStates.size());
-            for(auto& ps: pbr->defaultGraphicsPipelineStates)
-            {
-                vsg::info("   ", ps->className());
             }
 
             // clear prebuilt variants
