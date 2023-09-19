@@ -174,8 +174,6 @@ void main()
         }
     }
 
-    float shadowMapOffset = 0.01;
-
     int si = 0;
 
     if (numDirectionalLights>0)
@@ -205,7 +203,7 @@ void main()
                     matched = true;
 
 #if HARDWARE_PCF == 1
-                    float coverage = texture(shadowMaps, vec4(sm_tc.st, si, sm_tc.z+shadowMapOffset)).r;
+                    float coverage = texture(shadowMaps, vec4(sm_tc.st, si, sm_tc.z)).r;
                     brightness *= (1.0-coverage);
 #else
                     float dist = texture(shadowMaps, vec3(sm_tc.st, si)).r - shadowMapOffset;
