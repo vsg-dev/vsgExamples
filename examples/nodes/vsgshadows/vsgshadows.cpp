@@ -18,17 +18,20 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
 
     if (textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
 
+    geomInfo.color.set(1.0f, 1.0f, 0.5f, 1.0f);
     scene->addChild(builder->createBox(geomInfo, stateInfo));
-    geomInfo.position += geomInfo.dx * 1.5f;
 
+    geomInfo.color.set(1.0f, 0.5f, 1.0f, 1.0f);
+    geomInfo.position += geomInfo.dx * 1.5f;
     scene->addChild(builder->createSphere(geomInfo, stateInfo));
-    geomInfo.position += geomInfo.dx * 1.5f;
 
+    geomInfo.color.set(0.0f, 1.0f, 1.0f, 1.0f);
+    geomInfo.position += geomInfo.dx * 1.5f;
     scene->addChild(builder->createCylinder(geomInfo, stateInfo));
-    geomInfo.position += geomInfo.dx * 1.5f;
 
-    scene->addChild(builder->createCapsule(geomInfo, stateInfo));
+    geomInfo.color.set(0.5f, 1.0f, 0.5f, 1.0f);
     geomInfo.position += geomInfo.dx * 1.5f;
+    scene->addChild(builder->createCapsule(geomInfo, stateInfo));
 
 
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
@@ -36,6 +39,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
     geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
     geomInfo.dx.set(diameter, 0.0, 0.0);
     geomInfo.dy.set(0.0, diameter, 0.0);
+    geomInfo.color.set(1.0f, 1.0f, 1.9f, 1.0f);
 
     scene->addChild(builder->createQuad(geomInfo, stateInfo));
 
@@ -157,6 +161,7 @@ int main(int argc, char** argv)
     }
 
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
+    double shadowMapBias = arguments.value<double>(0.001, "--sb");
 
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
@@ -329,6 +334,7 @@ int main(int argc, char** argv)
     auto view = vsg::View::create();
     view->camera = camera;
     view->viewDependentState->maxShadowDistance = maxShadowDistance;
+    view->viewDependentState->shadowMapBias = shadowMapBias;
     view->addChild(scene);
 
     // add close handler to respond the close window button and pressing escape
