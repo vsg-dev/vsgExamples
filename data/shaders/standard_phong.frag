@@ -247,27 +247,8 @@ void main()
         {
             vec4 lightColor = lightData.values[index++];
             vec3 position = lightData.values[index++].xyz;
-            vec4 shadowMapSettings = lightData.values[index++];
 
-            float brightness = lightColor.a * 2.0;
-
-            // checked shadow maps
-            while (shadowMapSettings.r > 0.0 && brightness > brightnessCutoff)
-            {
-                brightness *= 0.5;
-                shadowMapSettings.r -= 1.0;
-
-                mat4 texMatrix =  mat4(
-                    1.0, 0.0, 0.0, 0.0,
-                    0.0, 1.0, 0.0, 0.0,
-                    0.0, 0.0, 1.0, 0.0,
-                    0.0, 0.0, 0.0, 1.0
-                );
-
-                vec4 shadowCoord = texMatrix * vec4(eyePos, 1.0);
-                //color.rgb = vec3(1.0, 1.0, 0.0);
-                color.rgb = shadowCoord.rgb;
-            }
+            float brightness = lightColor.a;
 
             // if light is too dim/shadowed to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;
@@ -298,16 +279,8 @@ void main()
             vec4 lightColor = lightData.values[index++];
             vec4 position_cosInnerAngle = lightData.values[index++];
             vec4 lightDirection_cosOuterAngle = lightData.values[index++];
-            vec4 shadowMapSettings = lightData.values[index++];
 
             float brightness = lightColor.a;
-
-            // checked shadow maps
-            while (shadowMapSettings.r > 0.0 && brightness > brightnessCutoff)
-            {
-                brightness *= 0.5;
-                shadowMapSettings.r -= 1.0;
-            }
 
             // if light is too dim/shadowed to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;
