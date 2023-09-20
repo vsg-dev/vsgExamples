@@ -283,8 +283,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -305,8 +305,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -327,8 +327,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -349,8 +349,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -371,8 +371,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -393,8 +393,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -415,8 +415,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -438,8 +438,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -461,8 +461,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
@@ -484,8 +484,8 @@ int main(int argc, char** argv)
 
             if (enable_tests)
             {
-                auto quad = createQuad(layout->position, layout->horizontal, layout->vertical);
-                scenegraph->addChild(quad);
+                if (auto quad = createQuad(layout->position, layout->horizontal, layout->vertical))
+                    scenegraph->addChild(quad);
             }
         }
 
