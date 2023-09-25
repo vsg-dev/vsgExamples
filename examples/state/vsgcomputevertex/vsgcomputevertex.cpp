@@ -39,6 +39,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // enable the use of compute shader when we create the vsg::Device which will be done at Window creation time
+    windowTraits->queueFlags |= VK_QUEUE_COMPUTE_BIT;
+
     auto window = vsg::Window::create(windowTraits);
     if (!window)
     {
@@ -69,9 +72,14 @@ int main(int argc, char** argv)
 
     auto computeScaleBuffer = vsg::DescriptorBuffer::create(computeScale, 1);
 
+    auto graphicsCommandGraph = vsg::CommandGraph::create(window);
+
     // create the compute graph to compute the positions of the vertices
     auto physicalDevice = window->getOrCreatePhysicalDevice();
-    auto computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
+    // to use a different queue family, we need to use VK_SHARING_MODE_CONCURRENT with queueFamilyIndices for VkBuffer, or implement a queue family ownership transfer with a BufferMemoryBarrier
+    //auto computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
+    auto computeQueueFamily = graphicsCommandGraph->queueFamily;
+
     auto computeCommandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
     {
         vsg::DescriptorSetLayoutBindings descriptorBindings{
@@ -95,7 +103,6 @@ int main(int argc, char** argv)
     }
 
     // set up graphics subgraph to render the computed vertices
-    auto graphicsCommandGraph = vsg::CommandGraph::create(window);
     {
         // set up graphics pipeline
         vsg::PushConstantRanges pushConstantRanges{

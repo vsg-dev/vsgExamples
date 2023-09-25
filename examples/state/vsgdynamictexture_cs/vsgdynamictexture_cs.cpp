@@ -299,7 +299,12 @@ int main(int argc, char** argv)
 
         auto postCopyBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, postCopyBarrier);
 
-        int computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
+        auto graphics_commandGraph = vsg::CommandGraph::create(window);
+        graphics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
+
+        // to use a different queue family, we need to use VK_SHARING_MODE_CONCURRENT with queueFamilyIndices for VkImage, or implement a queue family ownership transfer with an ImageMemoryBarrier
+        //int computeQueueFamily = physicalDevice->getQueueFamily(VK_QUEUE_COMPUTE_BIT);
+        int computeQueueFamily = graphics_commandGraph->queueFamily;
         auto compute_commandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
 
         compute_commandGraph->addChild(preCopyBarrierCmd);
@@ -308,13 +313,10 @@ int main(int argc, char** argv)
         compute_commandGraph->addChild(vsg::Dispatch::create(uint32_t(ceil(float(width) / float(workgroupSize))), uint32_t(ceil(float(height) / float(workgroupSize))), 1));
         compute_commandGraph->addChild(postCopyBarrierCmd);
 
-        auto graphics_commandGraph = vsg::CommandGraph::create(window);
-        graphics_commandGraph->addChild(vsg::createRenderGraphForView(window, camera, scenegraph));
-
         if (nestedCommandGraph)
         {
             std::cout<<"Using nested CommandGraphs, with the compute CommandGraph added as a child of the graphics CommandGraph."<<std::endl;
-            compute_commandGraph->submitOrder = -1; // make sure the compute_commandGraph is placed before the graphics_commandGraph when it's submitted to the vkQueue.
+            compute_commandGraph->submitOrder = -1; // make sure the compute_commandGraph is placed before the graphics_commandGraph when it's submitted to the VkQueue.
             graphics_commandGraph->addChild(compute_commandGraph);
             viewer->assignRecordAndSubmitTaskAndPresentation({graphics_commandGraph});
         }
