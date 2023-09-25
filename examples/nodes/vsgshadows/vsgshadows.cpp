@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {})
+vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true)
 {
     auto builder = vsg::Builder::create();
     builder->options = options;
@@ -35,20 +35,22 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
 
 
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
-    double diameter = vsg::length(bounds.max - bounds.min);
-    geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-    geomInfo.dx.set(diameter, 0.0, 0.0);
-    geomInfo.dy.set(0.0, diameter, 0.0);
-    geomInfo.color.set(1.0f, 1.0f, 1.9f, 1.0f);
+    if (requiresBase)
+    {
+        double diameter = vsg::length(bounds.max - bounds.min);
+        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+        geomInfo.dx.set(diameter, 0.0, 0.0);
+        geomInfo.dy.set(0.0, diameter, 0.0);
+        geomInfo.color.set(1.0f, 1.0f, 1.9f, 1.0f);
 
-    scene->addChild(builder->createQuad(geomInfo, stateInfo));
-
+        scene->addChild(builder->createQuad(geomInfo, stateInfo));
+    }
     vsg::info("createTestScene() extents = ", bounds);
 
     return scene;
 }
 
-vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {})
+vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true)
 {
     auto builder = vsg::Builder::create();
     builder->options = options;
@@ -107,14 +109,17 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
         scene->addChild(model);
     }
 
-    double diameter = vsg::length(bounds.max - bounds.min);
-    geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-    geomInfo.dx.set(diameter, 0.0, 0.0);
-    geomInfo.dy.set(0.0, diameter, 0.0);
-    geomInfo.dz.set(0.0, 0.0, 1.0);
-    geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+    if (requiresBase)
+    {
+        double diameter = vsg::length(bounds.max - bounds.min);
+        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+        geomInfo.dx.set(diameter, 0.0, 0.0);
+        geomInfo.dy.set(0.0, diameter, 0.0);
+        geomInfo.dz.set(0.0, 0.0, 1.0);
+        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
 
-    scene->addChild(builder->createQuad(geomInfo, stateInfo));
+        scene->addChild(builder->createQuad(geomInfo, stateInfo));
+    }
 
     vsg::info("createTestScene() extents = ", bounds);
 
@@ -263,10 +268,26 @@ int main(int argc, char** argv)
     auto pathFilename = arguments.value<vsg::Path>("", "-p");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
+    bool requiresBase = true;
+    vsg::ref_ptr<vsg::Node> earthModel;
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
+    if (auto earthFilename = arguments.value<vsg::Path>("", "--earth"))
+    {
+        earthModel = vsg::read_cast<vsg::Node>(earthFilename, options);
+        if (earthModel)
+        {
+            ellipsoidModel = earthModel->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
+            requiresBase = false;
+        }
+    }
+
+    auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
+    auto scale = arguments.value<double>(1.0, "--scale");
+
     vsg::ref_ptr<vsg::Node> scene;
     if (arguments.read("--large"))
     {
-        scene = createLargeTestScene(options, textureFile);
+        scene = createLargeTestScene(options, textureFile, requiresBase);
     }
     else if (argc>1)
     {
@@ -282,7 +303,19 @@ int main(int argc, char** argv)
     }
     else
     {
-        scene = createTestScene(options, textureFile);
+        scene = createTestScene(options, textureFile, requiresBase);
+    }
+
+    if (earthModel && ellipsoidModel)
+    {
+        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale) );
+        transform->addChild(scene);
+
+        auto group = vsg::Group::create();
+        group->addChild(transform);
+        group->addChild(earthModel);
+
+        scene = group;
     }
 
     // compute the bounds of the scene graph to help position camera
@@ -355,7 +388,16 @@ int main(int argc, char** argv)
     lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 2.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     double nearFarRatio = 0.001;
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 5.0);
+    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    if (ellipsoidModel)
+    {
+        double horizonMountainHeight = 0.0;
+        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+    }
+    else
+    {
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+    }
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
@@ -383,7 +425,13 @@ int main(int argc, char** argv)
     }
     else
     {
-        viewer->addEventHandler(vsg::Trackball::create(camera));
+        auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
+        viewer->addEventHandler(trackball);
+
+        if (ellipsoidModel)
+        {
+            trackball->addKeyViewpoint(vsg::KeySymbol(' '), location[0], location[1], location[2] + scale * 3.0, 2.0);
+        }
     }
 
     auto renderGraph = vsg::RenderGraph::create(window, view);
