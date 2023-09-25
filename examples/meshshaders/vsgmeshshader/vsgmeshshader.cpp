@@ -71,7 +71,7 @@ int main(int argc, char** argv)
         if (!mesh_features.meshShader || !mesh_features.taskShader)
         {
             std::cout << "Mesh shaders not supported." << std::endl;
-            return 1;
+            //return 1;
         }
 
         auto barycentric_features = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR>();

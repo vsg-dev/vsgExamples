@@ -75,103 +75,136 @@ void main() { color = vec4(1, 0, 0, 1); }
 
 int main(int argc, char** argv)
 {
-    auto windowTraits = vsg::WindowTraits::create();
-    /// set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    windowTraits->windowTitle = "vsgextendstate";
-    auto window = vsg::Window::create(windowTraits);
-
-    auto physicalDevice = window->getOrCreatePhysicalDevice();
-    if (!physicalDevice->supportsDeviceExtension(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME))
+    try
     {
-        std::cout << "Line Rasterization Extension not supported.\n";
-        return 1;
+        auto windowTraits = vsg::WindowTraits::create();
+        /// set up defaults and read command line arguments to override them
+        vsg::CommandLine arguments(&argc, argv);
+        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        windowTraits->windowTitle = "vsgextendstate";
+
+        auto requestFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+
+        windowTraits->vulkanVersion = VK_API_VERSION_1_1;
+        windowTraits->deviceExtensionNames.push_back(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME);
+
+        /// enable wideLines feature
+        requestFeatures->get().wideLines = VK_TRUE;
+
+        /// enable stippled line extension feature
+        auto& requestedLineRasterizationFeatures = requestFeatures->get<VkPhysicalDeviceLineRasterizationFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT>();
+        requestedLineRasterizationFeatures.stippledRectangularLines = VK_TRUE;
+
+        // create window now we have configured the windowTraits to set up the required features
+        auto window = vsg::Window::create(windowTraits);
+        if (!window)
+        {
+            std::cout << "Unable to create window" << std::endl;
+            return 1;
+        }
+
+        auto physicalDevice = window->getOrCreatePhysicalDevice();
+        if (!physicalDevice->supportsDeviceExtension(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME))
+        {
+            std::cout << "Line Rasterization Extension not supported.\n";
+            return 1;
+        }
+
+        auto supportedLineRasterizationFeatures = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceLineRasterizationFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT>();
+        std::cout<<"LineRasterizationFeatures features supported: "<<std::endl;
+        std::cout<<"   rectangularLines : "<<supportedLineRasterizationFeatures.rectangularLines<<std::endl;
+        std::cout<<"   bresenhamLines : "<<supportedLineRasterizationFeatures.bresenhamLines<<std::endl;
+        std::cout<<"   smoothLines : "<<supportedLineRasterizationFeatures.smoothLines<<std::endl;
+        std::cout<<"   stippledRectangularLines : "<<supportedLineRasterizationFeatures.stippledRectangularLines<<std::endl;
+        std::cout<<"   stippledBresenhamLines : "<<supportedLineRasterizationFeatures.stippledBresenhamLines<<std::endl;
+        std::cout<<"   stippledSmoothLines : "<<supportedLineRasterizationFeatures.stippledSmoothLines<<std::endl;
+
+        if (!supportedLineRasterizationFeatures.stippledRectangularLines)
+        {
+            std::cout<<"No stippledRectangularLines support, so cannot complete example."<<std::endl;
+            return 1;
+        }
+
+        auto sceneGraph = vsg::Group::create();
+
+        auto vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", VERT);
+        auto fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", FRAG);
+        auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+        shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
+        shaderSet->addAttributeBinding("vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
+
+        auto stateGroup = vsg::StateGroup::create();
+        auto gpConf = vsg::GraphicsPipelineConfigurator::create(shaderSet);
+
+        auto vertices = vsg::vec3Array::create({
+            {0, 0, 0},
+            {1, 0, 0},
+            {0, 1, 0},
+            {0, 0, 1},
+        });
+        vsg::DataList vertexArrays;
+        gpConf->assignArray(vertexArrays, "vertex", VK_VERTEX_INPUT_RATE_VERTEX, vertices);
+        auto vertexDraw = vsg::VertexDraw::create();
+        vertexDraw->assignArrays(vertexArrays);
+        vertexDraw->vertexCount = vertices->width();
+        vertexDraw->instanceCount = 1;
+        stateGroup->addChild(vertexDraw);
+
+        struct SetPipelineStates : public vsg::Visitor
+        {
+            void apply(vsg::Object& object) { object.traverse(*this); }
+            void apply(vsg::RasterizationState& rs)
+            {
+                rs.lineWidth = 10.0f;
+                rs.cullMode = VK_CULL_MODE_NONE;
+            }
+            void apply(vsg::InputAssemblyState& ias)
+            {
+                ias.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+            }
+        } sps;
+
+        /// apply our custom RasterizationState to the GraphicsPipeline
+        auto rs = ExtendedRasterizationState::create();
+        gpConf->pipelineStates.push_back(rs);
+
+        gpConf->accept(sps);
+        gpConf->init();
+        gpConf->copyTo(stateGroup);
+        sceneGraph->addChild(stateGroup);
+
+        auto lookAt = vsg::LookAt::create(
+            vsg::dvec3{3, 2, 2},
+            vsg::dvec3{0.2, 0.2, 0.2},
+            vsg::dvec3{0, 0, 1}
+        );
+        auto perspective = vsg::Perspective::create();
+        auto viewportState = vsg::ViewportState::create(window->extent2D());
+        auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
+        auto viewer = vsg::Viewer::create();
+
+        viewer->addWindow(window);
+        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+        viewer->addEventHandler(vsg::Trackball::create(camera));
+
+        auto commandGraph = vsg::createCommandGraphForView(window, camera, sceneGraph);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+        viewer->compile();
+
+        while (viewer->advanceToNextFrame())
+        {
+            viewer->handleEvents();
+            viewer->update();
+            viewer->recordAndSubmit();
+            viewer->present();
+        }
     }
-
-    auto requestFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
-
-    /// enable wideLines feature
-    requestFeatures->get().wideLines = VK_TRUE;
-
-    /// enable stippled line extension feature
-    auto& lineRasterizationFeatures = requestFeatures->get<
-        VkPhysicalDeviceLineRasterizationFeaturesEXT,
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT>();
-    lineRasterizationFeatures.stippledRectangularLines = VK_TRUE;
-
-    auto sceneGraph = vsg::Group::create();
-
-    auto vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", VERT);
-    auto fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", FRAG);
-    auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
-    shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
-    shaderSet->addAttributeBinding("vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
-
-    auto stateGroup = vsg::StateGroup::create();
-    auto gpConf = vsg::GraphicsPipelineConfigurator::create(shaderSet);
-
-    auto vertices = vsg::vec3Array::create({
-        {0, 0, 0},
-        {1, 0, 0},
-        {0, 1, 0},
-        {0, 0, 1},
-    });
-    vsg::DataList vertexArrays;
-    gpConf->assignArray(vertexArrays, "vertex", VK_VERTEX_INPUT_RATE_VERTEX, vertices);
-    auto vertexDraw = vsg::VertexDraw::create();
-    vertexDraw->assignArrays(vertexArrays);
-    vertexDraw->vertexCount = vertices->width();
-    vertexDraw->instanceCount = 1;
-    stateGroup->addChild(vertexDraw);
-
-    struct SetPipelineStates : public vsg::Visitor
+    catch (const vsg::Exception& ve)
     {
-        void apply(vsg::Object& object) { object.traverse(*this); }
-        void apply(vsg::RasterizationState& rs)
-        {
-            rs.lineWidth = 10.0f;
-            rs.cullMode = VK_CULL_MODE_NONE;
-        }
-        void apply(vsg::InputAssemblyState& ias)
-        {
-            ias.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-        }
-    } sps;
-
-    /// apply our custom RasterizationState to the GraphicsPipeline
-    auto rs = ExtendedRasterizationState::create();
-    gpConf->pipelineStates.push_back(rs);
-
-    gpConf->accept(sps);
-    gpConf->init();
-    gpConf->copyTo(stateGroup);
-    sceneGraph->addChild(stateGroup);
-
-    auto lookAt = vsg::LookAt::create(
-        vsg::dvec3{3, 2, 2},
-        vsg::dvec3{0.2, 0.2, 0.2},
-        vsg::dvec3{0, 0, 1}
-    );
-    auto perspective = vsg::Perspective::create();
-    auto viewportState = vsg::ViewportState::create(window->extent2D());
-    auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
-    auto viewer = vsg::Viewer::create();
-
-    viewer->addWindow(window);
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-    viewer->addEventHandler(vsg::Trackball::create(camera));
-
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, sceneGraph);
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-    viewer->compile();
-
-    while (viewer->advanceToNextFrame())
-    {
-        viewer->handleEvents();
-        viewer->update();
-        viewer->recordAndSubmit();
-        viewer->present();
+        // details of VkResult values: https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkResult.html
+        for (int i = 0; i < argc; ++i) std::cerr << argv[i] << " ";
+        std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
+        return 1;
     }
 }
