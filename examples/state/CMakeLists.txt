@@ -5,6 +5,7 @@ add_subdirectory(vsgstateswitch)
 add_subdirectory(vsgcomputevertex)
 add_subdirectory(vsgdynamicvertex)
 add_subdirectory(vsgclip)
+add_subdirectory(vsgextendstate)
 
 if (vsgImGui_FOUND)
     add_subdirectory(vsgdynamicstate)
