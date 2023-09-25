@@ -12,32 +12,8 @@ public:
 
     void apply(vsg::Context& context, VkGraphicsPipelineCreateInfo& pipelineInfo) const override
     {
-        /**
-         * Calling the base class apply() method instantiates the
-         * VkPipelineRasterizationStateCreateInfo object and assigns it to a member of
-         * VkGraphicsPipelineCreateInfo. The members of this object are all const and
-         * so can not be changed after assignment without a const_cast.
-         * That is, we couldn't later attach anything to pNext. Therefore, we are
-         * forced here to repeat the code that sets the members of this class.
-         */
-        //RasterizationState::apply(context, pipelineInfo);
-
-        /// This is the same as RasterizationState::apply() up to the final assignment
-        /// to pipelineInfo.pRasterizationState
-        auto rasteratizationState = context.scratchMemory->allocate<VkPipelineRasterizationStateCreateInfo>();
-        rasteratizationState->sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasteratizationState->pNext = nullptr; /// this will get reassigned below
-        rasteratizationState->flags = 0;
-        rasteratizationState->depthClampEnable = depthClampEnable;
-        rasteratizationState->rasterizerDiscardEnable = rasterizerDiscardEnable;
-        rasteratizationState->polygonMode = polygonMode;
-        rasteratizationState->cullMode = cullMode;
-        rasteratizationState->frontFace = frontFace;
-        rasteratizationState->depthBiasEnable = depthBiasEnable;
-        rasteratizationState->depthBiasConstantFactor = depthBiasConstantFactor;
-        rasteratizationState->depthBiasClamp = depthBiasClamp;
-        rasteratizationState->depthBiasSlopeFactor = depthBiasSlopeFactor;
-        rasteratizationState->lineWidth = lineWidth;
+        // create and assign the VkPipelineRasterizationStateCreateInfo as usual using the base class that wil assign it to pipelineInfo.pRasterizationState
+        RasterizationState::apply(context, pipelineInfo);
 
         /// setup extension feature (stippling) for attachment to pNext below
         auto rastLineStateCreateInfo = context.scratchMemory->allocate<VkPipelineRasterizationLineStateCreateInfoEXT>(1);
@@ -48,9 +24,10 @@ public:
         rastLineStateCreateInfo->lineStippleFactor = 4;
         rastLineStateCreateInfo->lineStipplePattern = 0b1111111100000000;
 
-        rasteratizationState->pNext = rastLineStateCreateInfo; /// must be done before assignment to pRasterizationState
-
-        pipelineInfo.pRasterizationState = rasteratizationState;
+        // to assign rastLineStateCreateInfo to the pRasterizationState->pNext we have to cast away const first
+        // this is safe as these objects haven't been passed to Vulkan yet
+        auto pRasterizationState = const_cast<VkPipelineRasterizationStateCreateInfo*>(pipelineInfo.pRasterizationState);
+        pRasterizationState->pNext = rastLineStateCreateInfo;
     }
 
 protected:
@@ -92,10 +69,6 @@ int main(int argc, char** argv)
         /// enable wideLines feature
         requestFeatures->get().wideLines = VK_TRUE;
 
-        /// enable stippled line extension feature
-        auto& requestedLineRasterizationFeatures = requestFeatures->get<VkPhysicalDeviceLineRasterizationFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT>();
-        requestedLineRasterizationFeatures.stippledRectangularLines = VK_TRUE;
-
         // create window now we have configured the windowTraits to set up the required features
         auto window = vsg::Window::create(windowTraits);
         if (!window)
@@ -113,18 +86,17 @@ int main(int argc, char** argv)
 
         auto supportedLineRasterizationFeatures = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceLineRasterizationFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT>();
         std::cout<<"LineRasterizationFeatures features supported: "<<std::endl;
-        std::cout<<"   rectangularLines : "<<supportedLineRasterizationFeatures.rectangularLines<<std::endl;
-        std::cout<<"   bresenhamLines : "<<supportedLineRasterizationFeatures.bresenhamLines<<std::endl;
-        std::cout<<"   smoothLines : "<<supportedLineRasterizationFeatures.smoothLines<<std::endl;
-        std::cout<<"   stippledRectangularLines : "<<supportedLineRasterizationFeatures.stippledRectangularLines<<std::endl;
-        std::cout<<"   stippledBresenhamLines : "<<supportedLineRasterizationFeatures.stippledBresenhamLines<<std::endl;
-        std::cout<<"   stippledSmoothLines : "<<supportedLineRasterizationFeatures.stippledSmoothLines<<std::endl;
+        std::cout<<"    rectangularLines : "<<supportedLineRasterizationFeatures.rectangularLines<<std::endl;
+        std::cout<<"    bresenhamLines : "<<supportedLineRasterizationFeatures.bresenhamLines<<std::endl;
+        std::cout<<"    smoothLines : "<<supportedLineRasterizationFeatures.smoothLines<<std::endl;
+        std::cout<<"    stippledRectangularLines : "<<supportedLineRasterizationFeatures.stippledRectangularLines<<std::endl;
+        std::cout<<"    stippledBresenhamLines : "<<supportedLineRasterizationFeatures.stippledBresenhamLines<<std::endl;
+        std::cout<<"    stippledSmoothLines : "<<supportedLineRasterizationFeatures.stippledSmoothLines<<std::endl;
 
-        if (!supportedLineRasterizationFeatures.stippledRectangularLines)
-        {
-            std::cout<<"No stippledRectangularLines support, so cannot complete example."<<std::endl;
-            return 1;
-        }
+        /// enable stippled line extension features
+        auto& requestedLineRasterizationFeatures = requestFeatures->get<VkPhysicalDeviceLineRasterizationFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT>();
+        if (supportedLineRasterizationFeatures.stippledRectangularLines) requestedLineRasterizationFeatures.stippledRectangularLines = VK_TRUE;
+        if (supportedLineRasterizationFeatures.bresenhamLines) requestedLineRasterizationFeatures.bresenhamLines = VK_TRUE;
 
         auto sceneGraph = vsg::Group::create();
 
