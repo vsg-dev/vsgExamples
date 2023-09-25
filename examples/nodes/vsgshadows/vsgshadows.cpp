@@ -167,7 +167,7 @@ int main(int argc, char** argv)
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
     {
-        std::cout<<"Enabled dpeth clamp."<<std::endl;
+        std::cout<<"Enabled depth clamp."<<std::endl;
         auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
         deviceFeatures->get().samplerAnisotropy = VK_TRUE;
         deviceFeatures->get().depthClamp = VK_TRUE;
