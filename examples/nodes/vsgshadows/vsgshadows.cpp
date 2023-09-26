@@ -283,6 +283,7 @@ int main(int argc, char** argv)
 
     auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
+    double viewingDistance = scale;
 
     vsg::ref_ptr<vsg::Node> scene;
     if (arguments.read("--large"))
@@ -306,12 +307,14 @@ int main(int argc, char** argv)
         scene = createTestScene(options, textureFile, requiresBase);
     }
 
+    // compute the bounds of the scene graph to help position camera
+    auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+    viewingDistance = vsg::length(bounds.max - bounds.min) * 2.0;
+
     if (earthModel && ellipsoidModel)
     {
-        auto subgraph_bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
-
-        auto center = (subgraph_bounds.min + subgraph_bounds.max) * 0.5;
-        center.z = subgraph_bounds.min.z;
+        auto center = (bounds.min + bounds.max) * 0.5;
+        center.z = bounds.min.z;
 
         auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale) * vsg::translate(-center) );
         transform->addChild(scene);
@@ -321,10 +324,12 @@ int main(int argc, char** argv)
         group->addChild(earthModel);
 
         scene = group;
-    }
 
-    // compute the bounds of the scene graph to help position camera
-    auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+        viewingDistance *= scale;
+
+        // update bounds
+        bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+    }
 
     //auto span = vsg::length(bounds.max - bounds.min);
     auto group = vsg::Group::create();
@@ -435,7 +440,7 @@ int main(int argc, char** argv)
 
         if (ellipsoidModel)
         {
-            trackball->addKeyViewpoint(vsg::KeySymbol(' '), location[0], location[1], location[2] + scale * 3.0, 2.0);
+            trackball->addKeyViewpoint(vsg::KeySymbol(' '), location[0], location[1], location[2] + viewingDistance, 2.0);
         }
     }
 
