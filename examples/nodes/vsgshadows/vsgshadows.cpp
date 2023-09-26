@@ -308,7 +308,12 @@ int main(int argc, char** argv)
 
     if (earthModel && ellipsoidModel)
     {
-        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale) );
+        auto subgraph_bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+
+        auto center = (subgraph_bounds.min + subgraph_bounds.max) * 0.5;
+        center.z = subgraph_bounds.min.z;
+
+        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale) * vsg::translate(-center) );
         transform->addChild(scene);
 
         auto group = vsg::Group::create();
