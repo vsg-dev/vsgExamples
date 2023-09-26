@@ -311,6 +311,8 @@ int main(int argc, char** argv)
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
     viewingDistance = vsg::length(bounds.max - bounds.min) * 2.0;
 
+    vsg::ref_ptr<vsg::LookAt> lookAt;
+
     if (earthModel && ellipsoidModel)
     {
         auto center = (bounds.min + bounds.max) * 0.5;
@@ -327,8 +329,20 @@ int main(int argc, char** argv)
 
         viewingDistance *= scale;
 
+        // set up the camera
+        lookAt = vsg::LookAt::create(center + vsg::dvec3(0.0, 0.0, viewingDistance), center, vsg::dvec3(0.0, 1.0, 0.0));
+
+        lookAt->transform(transform->transform({}));
+
         // update bounds
         bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+    }
+    else
+    {
+        vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+
+        // set up the camera
+        lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -viewingDistance, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
     }
 
     //auto span = vsg::length(bounds.max - bounds.min);
@@ -389,13 +403,6 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    vsg::ref_ptr<vsg::LookAt> lookAt;
-
-    vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
-    double radius = vsg::length(bounds.max - bounds.min) * 0.6;
-
-    // set up the camera
-    lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 2.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     double nearFarRatio = 0.001;
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
@@ -406,7 +413,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * viewingDistance, viewingDistance * 1.3);
     }
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
@@ -437,11 +444,6 @@ int main(int argc, char** argv)
     {
         auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
         viewer->addEventHandler(trackball);
-
-        if (ellipsoidModel)
-        {
-            trackball->addKeyViewpoint(vsg::KeySymbol(' '), location[0], location[1], location[2] + viewingDistance, 2.0);
-        }
     }
 
     auto renderGraph = vsg::RenderGraph::create(window, view);
