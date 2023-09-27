@@ -167,6 +167,7 @@ int main(int argc, char** argv)
 
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
     double shadowMapBias = arguments.value<double>(0.001, "--sb");
+    double lambda = arguments.value<double>(0.5, "--lambda");
 
     bool shaderDebug = arguments.read("--shader-debug");
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
@@ -423,6 +424,7 @@ int main(int argc, char** argv)
     view->camera = camera;
     view->viewDependentState->maxShadowDistance = maxShadowDistance;
     view->viewDependentState->shadowMapBias = shadowMapBias;
+    view->viewDependentState->lambda = lambda;
     view->addChild(scene);
 
     // add close handler to respond the close window button and pressing escape
@@ -461,7 +463,9 @@ int main(int argc, char** argv)
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
         viewer->update();
+
         viewer->recordAndSubmit();
+
         viewer->present();
 
         numFramesCompleted += 1.0;
