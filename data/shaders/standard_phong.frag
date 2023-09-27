@@ -205,7 +205,7 @@ void main()
 
 #if HARDWARE_PCF == 1
                     float coverage = texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
-#if 0
+#if 1
                     brightness *= (1.0-coverage);
 #else
                     if (coverage >= 0.5) brightness = 0.0;
