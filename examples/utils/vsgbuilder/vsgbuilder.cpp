@@ -27,6 +27,7 @@ int main(int argc, char** argv)
     geomInfo.dx.set(1.0f, 0.0f, 0.0f);
     geomInfo.dy.set(0.0f, 1.0f, 0.0f);
     geomInfo.dz.set(0.0f, 0.0f, 1.0f);
+    geomInfo.cullNode = arguments.read("--cull");
 
     vsg::StateInfo stateInfo;
 

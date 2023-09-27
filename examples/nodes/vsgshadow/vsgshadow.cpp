@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true)
+vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true, bool insertCullNode = true)
 {
     auto builder = vsg::Builder::create();
     builder->options = options;
@@ -16,6 +16,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
 
+    geomInfo.cullNode = insertCullNode;
     if (textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
 
     geomInfo.color.set(1.0f, 1.0f, 0.5f, 1.0f);
@@ -50,7 +51,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
     return scene;
 }
 
-vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true)
+vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true, bool insertCullNode = true)
 {
     auto builder = vsg::Builder::create();
     builder->options = options;
@@ -60,8 +61,9 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
 
-    if (textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
+    geomInfo.cullNode = insertCullNode;
 
+    if (textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
     vsg::box bounds(vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(1000.0f, 1000.0f, 20.0f));
 
     uint32_t numBoxes = 400;
@@ -282,6 +284,7 @@ int main(int argc, char** argv)
         }
     }
 
+    auto insertCullNode = arguments.read("--cull");
     auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
     double viewingDistance = scale;
@@ -289,7 +292,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::Node> scene;
     if (arguments.read("--large"))
     {
-        scene = createLargeTestScene(options, textureFile, requiresBase);
+        scene = createLargeTestScene(options, textureFile, requiresBase, insertCullNode);
     }
     else if (argc>1)
     {
@@ -305,7 +308,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        scene = createTestScene(options, textureFile, requiresBase);
+        scene = createTestScene(options, textureFile, requiresBase, insertCullNode);
     }
 
     // compute the bounds of the scene graph to help position camera
