@@ -42,7 +42,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
         geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
         geomInfo.dx.set(diameter, 0.0, 0.0);
         geomInfo.dy.set(0.0, diameter, 0.0);
-        geomInfo.color.set(1.0f, 1.0f, 1.9f, 1.0f);
+        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
 
         scene->addChild(builder->createQuad(geomInfo, stateInfo));
     }
@@ -284,6 +284,7 @@ int main(int argc, char** argv)
         }
     }
 
+    auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
     auto insertCullNode = arguments.read("--cull");
     auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
@@ -360,7 +361,7 @@ int main(int argc, char** argv)
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
-        directionalLight->direction.set(0.0, 0.0, -1.0);
+        directionalLight->direction = direction;
         directionalLight->shadowMaps = numShadowMapsPerLight;
         group->addChild(directionalLight);
     }
@@ -370,7 +371,7 @@ int main(int argc, char** argv)
         auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.1;
+        ambientLight->intensity = 0.2;
         group->addChild(ambientLight);
     }
 
