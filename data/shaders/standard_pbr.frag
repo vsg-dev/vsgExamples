@@ -2,8 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, SHADOWMAP_DEBUG)
 
-#define HARDWARE_PCF 1
-
 const float PI = 3.14159265359;
 const float RECIPROCAL_PI = 0.31830988618;
 const float RECIPROCAL_PI2 = 0.15915494;
@@ -51,11 +49,7 @@ layout(set = 1, binding = 0) uniform LightData
     vec4 values[2048];
 } lightData;
 
-#if HARDWARE_PCF == 1
 layout(set = 1, binding = 2) uniform sampler2DArrayShadow shadowMaps;
-#else
-layout(set = 1, binding = 2) uniform sampler2DArray shadowMaps;
-#endif
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -447,13 +441,8 @@ void main()
                 {
                     matched = true;
 
-#if HARDWARE_PCF == 1
                     float coverage = texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
                     brightness *= (1.0-coverage);
-#else
-                    float dist = texture(shadowMaps, vec3(sm_tc.st, shadowMapIndex)).r;
-                    if (dist > sm_tc.z) brightness = 0.0;
-#endif
 
 #ifdef SHADOWMAP_DEBUG
                     if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
