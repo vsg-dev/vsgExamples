@@ -80,8 +80,7 @@ vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
     colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-    auto colorBlendState = vsg::ColorBlendState::create();
-    colorBlendState->attachments.push_back(colorBlendAttachment);
+    auto colorBlendState = vsg::ColorBlendState::create(vsg::ColorBlendState::ColorBlendAttachments{colorBlendAttachment});
     shaderSet->defaultGraphicsPipelineStates.push_back(colorBlendState);
 
     return shaderSet;
