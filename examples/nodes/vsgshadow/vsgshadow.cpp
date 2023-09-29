@@ -44,6 +44,8 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg:
         geomInfo.dy.set(0.0, diameter, 0.0);
         geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
 
+        stateInfo.two_sided = true;
+
         scene->addChild(builder->createQuad(geomInfo, stateInfo));
     }
     vsg::info("createTestScene() extents = ", bounds);
@@ -119,6 +121,8 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
         geomInfo.dy.set(0.0, diameter, 0.0);
         geomInfo.dz.set(0.0, 0.0, 1.0);
         geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+        stateInfo.two_sided = true;
 
         scene->addChild(builder->createQuad(geomInfo, stateInfo));
     }
@@ -433,24 +437,13 @@ int main(int argc, char** argv)
 
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-    if (pathFilename)
-    {
-        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
-        if (!animationPath)
-        {
-            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
-            return 1;
-        }
 
-        auto animationPathHandler = vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point());
-        animationPathHandler->printFrameStatsToConsole = true;
-        viewer->addEventHandler(animationPathHandler);
-    }
-    else
-    {
-        auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
-        viewer->addEventHandler(trackball);
-    }
+    auto animationPathHandler = vsg::RecordAnimationPathHandler::create(camera, pathFilename, options);
+    animationPathHandler->printFrameStatsToConsole = true;
+    viewer->addEventHandler(animationPathHandler);
+
+    auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
+    viewer->addEventHandler(trackball);
 
     auto renderGraph = vsg::RenderGraph::create(window, view);
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
