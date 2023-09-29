@@ -203,7 +203,7 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (arguments.read({"-c", "--custom"}) || depthClamp)
+    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug)
     {
         // customize the phong ShaderSet
         auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
