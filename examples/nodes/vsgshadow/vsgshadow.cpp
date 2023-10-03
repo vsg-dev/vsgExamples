@@ -174,6 +174,7 @@ int main(int argc, char** argv)
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
     double shadowMapBias = arguments.value<double>(0.001, "--sb");
     double lambda = arguments.value<double>(0.5, "--lambda");
+    double nearFarRatio = arguments.value<double>(0.001, "--nf");
 
     bool shaderDebug = arguments.read("--shader-debug");
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
@@ -359,9 +360,10 @@ int main(int argc, char** argv)
     group->addChild(scene);
 
 
+    vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
     if (numLights >= 1)
     {
-        auto directionalLight = vsg::DirectionalLight::create();
+        directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
@@ -370,9 +372,10 @@ int main(int argc, char** argv)
         group->addChild(directionalLight);
     }
 
+    vsg::ref_ptr<vsg::AmbientLight> ambientLight;
     if (numLights >= 2)
     {
-        auto ambientLight = vsg::AmbientLight::create();
+        ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
         ambientLight->intensity = 0.2;
@@ -381,13 +384,16 @@ int main(int argc, char** argv)
 
     if (numLights >= 3)
     {
-        auto directionalLight = vsg::DirectionalLight::create();
-        directionalLight->name = "2nd directional";
-        directionalLight->color.set(1.0, 1.0, 0.0);
-        directionalLight->intensity = 0.9;
-        directionalLight->direction = vsg::normalize(vsg::vec3(1.0, 1.0, -1.0));
-        directionalLight->shadowMaps = numShadowMapsPerLight;
-        group->addChild(directionalLight);
+        directionalLight->intensity = 0.7;
+        ambientLight->intensity = 0.1;
+
+        auto directionalLight2 = vsg::DirectionalLight::create();
+        directionalLight2->name = "2nd directional";
+        directionalLight2->color.set(1.0, 1.0, 0.0);
+        directionalLight2->intensity = 0.7;
+        directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
+        directionalLight2->shadowMaps = numShadowMapsPerLight;
+        group->addChild(directionalLight2);
     }
 
     scene = group;
@@ -413,7 +419,6 @@ int main(int argc, char** argv)
     viewer->addWindow(window);
 
 
-    double nearFarRatio = 0.001;
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (ellipsoidModel)
     {
