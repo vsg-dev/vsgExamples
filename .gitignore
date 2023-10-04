@@ -21,6 +21,7 @@ CMakeDoxygenDefaults.cmake
 Doxyfile.docs
 Doxyfile.docs-vsgExamples
 
+html/
 
 # Compiled Object files
 *.slo
