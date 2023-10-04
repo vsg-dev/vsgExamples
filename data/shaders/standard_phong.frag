@@ -182,7 +182,7 @@ void main()
 
             float brightness = lightColor.a;
 
-            // checked shadow maps
+            // check shadow maps if required
             bool matched = false;
             while ((shadowMapSettings.r > 0.0 && brightness > brightnessCutoff) && !matched)
             {
@@ -212,6 +212,14 @@ void main()
 
                 ++shadowMapIndex;
                 shadowMapSettings.r -= 1.0;
+            }
+
+            if (shadowMapSettings.r > 0.0)
+            {
+                // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
+                // so subsequent light pointions are correct.
+                index += 4 * int(shadowMapSettings.r);
+                shadowMapIndex += int(shadowMapSettings.r);
             }
 
             // if light is too dim/shadowed to effect the rendering skip it
