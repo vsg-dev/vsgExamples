@@ -197,6 +197,10 @@ int main(int argc, char** argv)
         resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceHintsFilename, options);
     }
 
+    if (!resourceHints) resourceHints = vsg::ResourceHints::create();
+
+    arguments.read("--shadowMapSize", resourceHints->shadowMapSize);
+
     if (auto outputResourceHintsFilename = arguments.value<vsg::Path>("", "--orh"))
     {
         if (!resourceHints) resourceHints = vsg::ResourceHints::create();
