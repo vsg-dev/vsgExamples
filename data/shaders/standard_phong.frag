@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, SHADOWMAP_DEBUG)
 
 #ifdef VSG_DIFFUSE_MAP
 layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
@@ -35,8 +35,11 @@ layout(set = 0, binding = 10) uniform MaterialData
 
 layout(set = 1, binding = 0) uniform LightData
 {
-    vec4 values[64];
+    vec4 values[2048];
 } lightData;
+
+
+layout(set = 1, binding = 2) uniform sampler2DArrayShadow shadowMaps;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -100,8 +103,11 @@ vec3 computeLighting(vec3 ambientColor, vec3 diffuseColor, vec3 specularColor, v
     return result;
 }
 
+
 void main()
 {
+    float brightnessCutoff = 0.001;
+
 #ifdef VSG_POINT_SPRITE
     vec2 texCoord0 = gl_PointCoord.xy;
 #endif
@@ -162,6 +168,9 @@ void main()
         }
     }
 
+    // index used to step through the shadowMaps array
+    int shadowMapIndex = 0;
+
     if (numDirectionalLights>0)
     {
         // directional lights
@@ -169,16 +178,62 @@ void main()
         {
             vec4 lightColor = lightData.values[index++];
             vec3 direction = -lightData.values[index++].xyz;
+            vec4 shadowMapSettings = lightData.values[index++];
+
+            float brightness = lightColor.a;
+
+            // check shadow maps if required
+            bool matched = false;
+            while ((shadowMapSettings.r > 0.0 && brightness > brightnessCutoff) && !matched)
+            {
+                mat4 sm_matrix = mat4(lightData.values[index++],
+                                      lightData.values[index++],
+                                      lightData.values[index++],
+                                      lightData.values[index++]);
+
+                vec4 sm_tc = (sm_matrix) * vec4(eyePos, 1.0);
+
+                if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 /* && sm_tc.z <= 1.0*/)
+                {
+                    matched = true;
+
+                    float coverage = texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                    brightness *= (1.0-coverage);
+
+#ifdef SHADOWMAP_DEBUG
+                    if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
+                    else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
+                    else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
+                    else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
+                    else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
+                    else color = vec3(1.0, 1.0, 1.0);
+#endif
+                }
+
+                ++shadowMapIndex;
+                shadowMapSettings.r -= 1.0;
+            }
+
+            if (shadowMapSettings.r > 0.0)
+            {
+                // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
+                // so subsequent light pointions are correct.
+                index += 4 * int(shadowMapSettings.r);
+                shadowMapIndex += int(shadowMapSettings.r);
+            }
+
+            // if light is too dim/shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
 
             float unclamped_LdotN = dot(direction, nd);
 
             float diff = max(unclamped_LdotN, 0.0);
-            color.rgb += (diffuseColor.rgb * lightColor.rgb) * (diff * lightColor.a);
+            color.rgb += (diffuseColor.rgb * lightColor.rgb) * (diff * brightness);
 
             if (shininess > 0.0 && diff > 0.0)
             {
                 vec3 halfDir = normalize(direction + vd);
-                color.rgb += specularColor.rgb * (pow(max(dot(halfDir, nd), 0.0), shininess) * lightColor.a);
+                color.rgb += specularColor.rgb * (pow(max(dot(halfDir, nd), 0.0), shininess) * brightness);
             }
         }
     }
@@ -190,10 +245,16 @@ void main()
         {
             vec4 lightColor = lightData.values[index++];
             vec3 position = lightData.values[index++].xyz;
+
+            float brightness = lightColor.a;
+
+            // if light is too dim/shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
             vec3 delta = position - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
             vec3 direction = delta / sqrt(distance2);
-            float scale = lightColor.a / distance2;
+            float scale = brightness / distance2;
 
             float unclamped_LdotN = dot(direction, nd);
 
@@ -217,12 +278,17 @@ void main()
             vec4 position_cosInnerAngle = lightData.values[index++];
             vec4 lightDirection_cosOuterAngle = lightData.values[index++];
 
+            float brightness = lightColor.a;
+
+            // if light is too dim/shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
             vec3 delta = position_cosInnerAngle.xyz - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
             vec3 direction = delta / sqrt(distance2);
 
             float dot_lightdirection = dot(lightDirection_cosOuterAngle.xyz, -direction);
-            float scale = (lightColor.a  * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
+            float scale = (brightness  * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
 
             float unclamped_LdotN = dot(direction, nd);
 
@@ -235,6 +301,7 @@ void main()
             }
         }
     }
+
 
     outColor.rgb = (color * ambientOcclusion) + emissiveColor.rgb;
     outColor.a = diffuseColor.a;

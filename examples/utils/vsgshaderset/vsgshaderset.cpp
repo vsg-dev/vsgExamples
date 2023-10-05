@@ -149,6 +149,7 @@ int main(int argc, char** argv)
     bool binary = arguments.read("--binary");
     bool vsgShaderSet = arguments.read("--vsg");
     bool stripShaderSetBeforeWrite = arguments.read({"-s", "--strip"});
+    bool compileShaders = !arguments.read({"--nc","--no-compile"});
 
     vsg::ref_ptr<vsg::ShaderSet> shaderSet;
     if (inputFilename)
@@ -239,74 +240,77 @@ int main(int argc, char** argv)
         std::cout<<"   "<<define<<std::endl;
     }
 
-    // keep track of all the ShaderStages and share any that are the same
-    std::vector<vsg::ref_ptr<vsg::ShaderStage>> existing_stages;
-
-    auto shaderCompiler = vsg::ShaderCompiler::create();
-    if (shaderCompiler->supported())
+    if (compileShaders)
     {
-        std::cout<<"\ncompiling shaderSet->variants.size() = "<<shaderSet->variants.size()<<std::endl;
-        std::cout<<"{"<<std::endl;
-        for(auto& [shaderCompileSetting, stagesToCompile] : shaderSet->variants)
+        // keep track of the all the ShaderStages and share any that are the same
+        std::vector<vsg::ref_ptr<vsg::ShaderStage>> existing_stages;
+
+        auto shaderCompiler = vsg::ShaderCompiler::create();
+        if (shaderCompiler->supported())
         {
-            std::cout<<"    "<<shaderCompileSetting<<" : ";
-            for(auto& define : shaderCompileSetting->defines) std::cout<<define<<" ";
-
-            size_t numShadersWithSource = 0;
-            for(auto& stage : stagesToCompile)
+            std::cout<<"\ncompiling shaderSet->variants.size() = "<<shaderSet->variants.size()<<std::endl;
+            std::cout<<"{"<<std::endl;
+            for(auto& [shaderCompileSetting, stagesToCompile] : shaderSet->variants)
             {
-                if (stage->module->code.empty() && !stage->module->source.empty()) ++numShadersWithSource;
-            }
+                std::cout<<"    "<<shaderCompileSetting<<" : ";
+                for(auto& define : shaderCompileSetting->defines) std::cout<<define<<" ";
 
-            // no need to compile so skip compilation
-            if (numShadersWithSource == stagesToCompile.size())
-            {
-                shaderCompiler->compile(stagesToCompile, {}, options);
-            }
-
-            for(auto& stage : stagesToCompile)
-            {
-                stage->module->source.clear();
-            }
-
-            for(auto& stage : stagesToCompile)
-            {
-                vsg::ref_ptr<vsg::ShaderStage> match;
-                for(auto& existing_stage : existing_stages)
+                size_t numShadersWithSource = 0;
+                for(auto& stage : stagesToCompile)
                 {
-                    bool module_matched = stage->module->code == existing_stage->module->code;
-                    if (module_matched)
-                    {
-                        // share the matched ShaderModule
-                        stage->module = existing_stage->module;
+                    if (stage->module->code.empty() && !stage->module->source.empty()) ++numShadersWithSource;
+                }
 
-                        if (vsg::compare_pointer(stage, existing_stage)==0)
+                // no need to compile so skip compilation
+                if (numShadersWithSource == stagesToCompile.size())
+                {
+                    shaderCompiler->compile(stagesToCompile, {}, options);
+                }
+
+                for(auto& stage : stagesToCompile)
+                {
+                    stage->module->source.clear();
+                }
+
+                for(auto& stage : stagesToCompile)
+                {
+                    vsg::ref_ptr<vsg::ShaderStage> match;
+                    for(auto& existing_stage : existing_stages)
+                    {
+                        bool module_matched = stage->module->code == existing_stage->module->code;
+                        if (module_matched)
                         {
-                            match = existing_stage;
+                            // share the matched ShaderModule
+                            stage->module = existing_stage->module;
+
+                            if (vsg::compare_pointer(stage, existing_stage)==0)
+                            {
+                                match = existing_stage;
+                            }
+                            break;
                         }
-                        break;
+                    }
+                    if (match)
+                    {
+                        // share the whole ShaderStage
+                        stage = match;
+                    }
+                    else
+                    {
+                        existing_stages.push_back(stage);
                     }
                 }
-                if (match)
-                {
-                    // share the whole ShaderStage
-                    stage = match;
-                }
-                else
-                {
-                    existing_stages.push_back(stage);
-                }
+
+                std::cout<<std::endl;
             }
-
-            std::cout<<std::endl;
+            std::cout<<"}"<<std::endl;
         }
-        std::cout<<"}"<<std::endl;
-    }
 
-    std::cout<<"stages.size() = "<<existing_stages.size()<<std::endl;
-    for(auto& stage : existing_stages)
-    {
-        std::cout<<"   "<<stage<<" "<<stage->module<<" "<<stage->module->code.size()<<std::endl;
+        std::cout<<"stages.size() = "<<existing_stages.size()<<std::endl;
+        for(auto& stage : existing_stages)
+        {
+            std::cout<<"   "<<stage<<" "<<stage->module<<" "<<stage->module->code.size()<<std::endl;
+        }
     }
 
     if (stripShaderSetBeforeWrite)

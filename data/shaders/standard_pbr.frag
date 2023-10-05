@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS)
+#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, SHADOWMAP_DEBUG)
 
 const float PI = 3.14159265359;
 const float RECIPROCAL_PI = 0.31830988618;
@@ -46,8 +46,10 @@ layout(binding = 10) uniform PbrData
 
 layout(set = 1, binding = 0) uniform LightData
 {
-    vec4 values[64];
+    vec4 values[2048];
 } lightData;
+
+layout(set = 1, binding = 2) uniform sampler2DArrayShadow shadowMaps;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -302,6 +304,8 @@ float convertMetallic(vec3 diffuse, vec3 specular, float maxSpecular)
 
 void main()
 {
+    float brightnessCutoff = 0.001;
+
     float perceptualRoughness = 0.0;
     float metallic;
     vec3 diffuseColor;
@@ -397,6 +401,7 @@ void main()
     int numPointLights = int(lightNums[2]);
     int numSpotLights = int(lightNums[3]);
     int index = 1;
+
     if (numAmbientLights>0)
     {
         // ambient lights
@@ -407,6 +412,9 @@ void main()
         }
     }
 
+    // index used to step through the shadowMaps array
+    int shadowMapIndex = 0;
+
     if (numDirectionalLights>0)
     {
         // directional lights
@@ -414,10 +422,56 @@ void main()
         {
             vec4 lightColor = lightData.values[index++];
             vec3 direction = -lightData.values[index++].xyz;
+            vec4 shadowMapSettings = lightData.values[index++];
+
+            float brightness = lightColor.a;
+
+            // check shadow maps if required
+            bool matched = false;
+            while ((shadowMapSettings.r > 0.0 && brightness > brightnessCutoff) && !matched)
+            {
+                mat4 sm_matrix = mat4(lightData.values[index++],
+                                      lightData.values[index++],
+                                      lightData.values[index++],
+                                      lightData.values[index++]);
+
+                vec4 sm_tc = (sm_matrix) * vec4(eyePos, 1.0);
+
+                if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 /* && sm_tc.z <= 1.0*/)
+                {
+                    matched = true;
+
+                    float coverage = texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                    brightness *= (1.0-coverage);
+
+#ifdef SHADOWMAP_DEBUG
+                    if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
+                    else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
+                    else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
+                    else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
+                    else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
+                    else color = vec3(1.0, 1.0, 1.0);
+#endif
+                }
+
+                ++shadowMapIndex;
+                shadowMapSettings.r -= 1.0;
+            }
+
+            if (shadowMapSettings.r > 0.0)
+            {
+                // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
+                // so subsequent light pointions are correct.
+                index += 4 * int(shadowMapSettings.r);
+                shadowMapIndex += int(shadowMapSettings.r);
+            }
+
+            // if light is too dim/shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
 
             vec3 l = direction;         // Vector from surface point to light
             vec3 h = normalize(l+v);    // Half vector between both l and v
-            float scale = lightColor.a;
+            float scale = brightness;
 
             color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
         }
@@ -430,6 +484,7 @@ void main()
         {
             vec4 lightColor = lightData.values[index++];
             vec3 position = lightData.values[index++].xyz;
+
             vec3 delta = position - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
             vec3 direction = delta / sqrt(distance2);
