@@ -279,7 +279,7 @@ int main(int argc, char** argv)
     // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-    if (pathFilename.empty())
+    if (!pathFilename)
     {
         viewer->addEventHandler(vsg::Trackball::create(camera));
     }

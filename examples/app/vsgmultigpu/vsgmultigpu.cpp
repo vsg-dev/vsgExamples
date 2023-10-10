@@ -329,7 +329,7 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    if (pathFilename.empty())
+    if (!pathFilename)
     {
         auto trackball = vsg::Trackball::create(master_camera);
 
