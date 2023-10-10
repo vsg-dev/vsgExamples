@@ -187,10 +187,9 @@ int main(int argc, char** argv)
     arguments.read("--display", windowTraits->display);
     arguments.read("--samples", windowTraits->samples);
     auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value(std::string(), "-p");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-    auto skyboxFilename = arguments.value(vsg::Path(), "--skybox");
-    auto outputFilename = arguments.value(vsg::Path(), "-o");
+    auto skyboxFilename = arguments.value<vsg::Path>("", "--skybox");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 

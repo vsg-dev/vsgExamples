@@ -48,7 +48,7 @@ int main(int argc, char** argv)
 
     if (arguments.read("--shared")) options->sharedObjects = vsg::SharedObjects::create();
 
-    auto outputFilename = arguments.value<std::string>("", "-o");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     bool floatColors = !arguments.read("--ubvec4-colors");
     stateInfo.wireframe = arguments.read("--wireframe");
@@ -257,7 +257,7 @@ int main(int argc, char** argv)
     }
 
     // write out scene if required
-    if (!outputFilename.empty())
+    if (outputFilename)
     {
         vsg::write(scene, outputFilename, options);
         return 0;
