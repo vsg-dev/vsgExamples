@@ -187,8 +187,8 @@ int main(int argc, char** argv)
     auto numTraversals = arguments.value(10u, {"-t", "--traversals"});
     auto type = arguments.value(std::string("vsg::Group"), "--type");
     auto quiet = arguments.read("-q");
-    auto inputFilename = arguments.value(std::string(""), "-i");
-    auto outputFilename = arguments.value(std::string(""), "-o");
+    auto inputFilename = arguments.value<vsg::Path>("", "-i");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
     vsg::ref_ptr<vsg::RecordTraversal> vsg_recordTraversal(arguments.read("-d") ? new vsg::RecordTraversal : nullptr);
     vsg::ref_ptr<VsgConstVisitor> vsg_ConstVisitor(arguments.read("-c") ? new VsgConstVisitor : nullptr);
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -202,7 +202,7 @@ int main(int argc, char** argv)
     unsigned int numNodes = 0;
     unsigned int numBytes = 0;
 
-    if (!inputFilename.empty())
+    if (inputFilename)
     {
         vsg_root = vsg::read_cast<vsg::Node>(inputFilename);
 
@@ -278,7 +278,7 @@ int main(int argc, char** argv)
 
     clock::time_point after_traversal = clock::now();
 
-    if (!outputFilename.empty())
+    if (outputFilename)
     {
         vsg::write(vsg_root, outputFilename);
     }

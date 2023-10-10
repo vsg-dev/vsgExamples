@@ -112,7 +112,7 @@ int main(int argc, char** argv)
 
     bool insertStateSwitch = !arguments.read("-n"); // no replacement of GraphicsPipeline, so assume loaded scene graph has required vsg::StateSwitch
     bool separateRenderGraph = arguments.read("-s");
-    auto outputFilename = arguments.value<std::string>("", "-o");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
         scenegraph->accept(rgp);
     }
 
-    if (!outputFilename.empty())
+    if (outputFilename)
     {
         vsg::write(scenegraph, outputFilename, options);
         return 0;

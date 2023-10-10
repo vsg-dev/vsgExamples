@@ -184,7 +184,7 @@ int main(int argc, char** argv)
     if (arguments.read("--or")) windowTraits->overrideRedirect = true;
     arguments.read("--display", windowTraits->display);
     auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value(std::string(), "-p");
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
     auto powerWall = arguments.read({"--power-wall", "--pw"});
     auto sharedScene = !arguments.read({"--no-shared"});
@@ -329,7 +329,7 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    if (pathFilename.empty())
+    if (!pathFilename)
     {
         auto trackball = vsg::Trackball::create(master_camera);
 

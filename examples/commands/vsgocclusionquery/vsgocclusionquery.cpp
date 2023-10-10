@@ -56,7 +56,7 @@ int main(int argc, char** argv)
     arguments.read("--display", windowTraits->display);
     arguments.read("--samples", windowTraits->samples);
     auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value(std::string(), "-p");
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
     if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
     if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
@@ -125,7 +125,7 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    if (pathFilename.empty())
+    if (!pathFilename)
     {
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
     }

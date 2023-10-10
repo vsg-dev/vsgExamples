@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     auto numLevels = arguments.value(4u, {"--levels", "-l"});
     auto useQuadGroup = arguments.read("-q");
     auto inputFilename = arguments.value(std::string(), "-i");
-    auto outputFilename = arguments.value(std::string(), "-o");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -106,15 +106,15 @@ int main(int argc, char** argv)
 
     if (object)
     {
-        if (outputFilename.empty())
+        if (outputFilename)
+        {
+            vsg::write(object, outputFilename);
+        }
+        else
         {
             // write graph to console
             vsg::VSG io;
             io.write(object, std::cout);
-        }
-        else
-        {
-            vsg::write(object, outputFilename);
         }
     }
 
