@@ -155,7 +155,7 @@ int main(int argc, char** argv)
         arguments.read("--samples", windowTraits->samples);
         bool reportAtEndOfAllFrames = arguments.read("--report");
         auto numFrames = arguments.value(-1, "-f");
-        auto pathFilename = arguments.value(std::string(), "-p");
+        auto pathFilename = arguments.value<vsg::Path>("", "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");

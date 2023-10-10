@@ -11,7 +11,7 @@ int main(int argc, char** argv)
     auto debugLayer = arguments.read({"--debug", "-d"});
     auto apiDumpLayer = arguments.read({"--api", "-a"});
     auto workgroupSize = arguments.value(32, "-w");
-    auto outputFilename = arguments.value<std::string>("", "-o");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
     auto outputAsFloat = arguments.read("-f");
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
     auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(std::chrono::steady_clock::now() - startTime).count();
     std::cout << "Time to run commands " << time << "ms" << std::endl;
 
-    if (!outputFilename.empty())
+    if (outputFilename)
     {
         // Map the buffer memory and assign as a vec4Array2D that will automatically unmap itself on destruction.
         auto image = vsg::MappedData<vsg::vec4Array2D>::create(bufferMemory, 0, 0, vsg::Data::Properties{VK_FORMAT_R32G32B32A32_SFLOAT}, width, height); // deviceMemory, offset, flags an d dimensions

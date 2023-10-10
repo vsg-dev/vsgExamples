@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 
     // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
 
-    auto outputFilename = arguments.value<std::string>("", "-o");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     bool add_ambient = true;
     bool add_directional = true;
@@ -208,7 +208,7 @@ int main(int argc, char** argv)
     }
 
     // write out scene if required
-    if (!outputFilename.empty())
+    if (outputFilename)
     {
         vsg::write(scene, outputFilename, options);
         return 0;

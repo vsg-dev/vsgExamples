@@ -168,7 +168,7 @@ int main(int argc, char** argv)
     bool multiThreading = arguments.read("--mt");
     bool useExecuteCommands = !arguments.read("--no-ec"); // by default use ExecuteCommands, but allow it to be disabled using --no-ec
     auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value(std::string(), "-p");
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 

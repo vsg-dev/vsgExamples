@@ -32,9 +32,9 @@ int main(int argc, char** argv)
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
     arguments.read("--samples", windowTraits->samples);
-    auto outputFilename = arguments.value(std::string(), "-o");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
     auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value(std::string(), "-p");
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
     auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
     auto loadLevels = arguments.value(0, "--load-levels");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
@@ -124,7 +124,7 @@ int main(int argc, char** argv)
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-    if (!outputFilename.empty())
+    if (outputFilename)
     {
         vsg::write(vsg_scene, outputFilename);
         return 0;
@@ -185,7 +185,7 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    if (pathFilename.empty())
+    if (pathFilename)
     {
         if (ellipsoidModel)
         {
