@@ -527,6 +527,17 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
     return vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
 }
 
+void replaceChild(vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement)
+{
+    for (auto& child : group->children)
+    {
+        if (child == previous)
+        {
+            child = replacement;
+        }
+    }
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -537,15 +548,13 @@ int main(int argc, char** argv)
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     windowTraits->synchronizationLayer = arguments.read("--sync");
-    arguments.read({"--window"}, windowTraits->width, windowTraits->height);
+    arguments.read({"--extent"}, windowTraits->width, windowTraits->height);
 
     bool nestedCommandGraph = arguments.read({"-n", "--nested"});
     bool separateCommandGraph = arguments.read("-s");
 
-    // offscreen capture size, super and multi sampling parameters
+    // offscreen capture super and multi sampling parameters
     auto captureFilename = arguments.value<vsg::Path>("screenshot.vsgt", {"--capture-file", "-f"});
-    VkExtent2D extent{windowTraits->width, windowTraits->height};
-    arguments.read({"--extent"}, extent.width, extent.height);
     unsigned short supersample = 1;
     arguments.read("--supersample", supersample);
     bool msaa = arguments.read("--msaa");
@@ -632,6 +641,7 @@ int main(int argc, char** argv)
     auto context = vsg::Context::create(window->getOrCreateDevice());
 
     VkFormat offscreenImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    VkExtent2D extent{windowTraits->width, windowTraits->height};
     VkExtent2D offscreenRenderExtent{supersample * extent.width, supersample * extent.height};
 
     auto transferImageView = createTransferImageView(context->device, offscreenImageFormat, offscreenRenderExtent, VK_SAMPLE_COUNT_1_BIT);
@@ -641,9 +651,10 @@ int main(int argc, char** argv)
 
     // link view matrix between display and offscreen render
     // the projection may be different (aspect ratio for example)
-    auto offscreenCamera = createCameraForScene(vsg_scene, extent);
-    offscreenCamera->viewMatrix = displayCamera->viewMatrix;
-    auto offscreenView = vsg::View::create(offscreenCamera, vsg_scene);
+    //auto offscreenCamera = createCameraForScene(vsg_scene, extent);
+    //offscreenCamera->viewMatrix = displayCamera->viewMatrix;
+    //auto offscreenView = vsg::View::create(offscreenCamera, vsg_scene);
+    auto offscreenView = vsg::View::create(displayCamera, vsg_scene);
     offscreenRenderGraph->addChild(offscreenView);
 
     auto offscreenSwitch = vsg::Switch::create();
@@ -657,10 +668,11 @@ int main(int argc, char** argv)
     auto screenshotHandler = ScreenshotHandler::create(captureImage, captureFilename, options);
     viewer->addEventHandler(screenshotHandler);
 
+    vsg::ref_ptr<vsg::CommandGraph> offscreenCommandGraph;
     if (nestedCommandGraph)
     {
         std::cout<<"Nested CommandGraph, with nested offscreenCommandGraph as a child on the displayCommandGraph. "<<std::endl;
-        auto offscreenCommandGraph = vsg::CommandGraph::create(window);
+        offscreenCommandGraph = vsg::CommandGraph::create(window);
         offscreenCommandGraph->submitOrder = -1; // render before the displayRenderGraph
         offscreenCommandGraph->addChild(offscreenSwitch);
         offscreenCommandGraph->addChild(captureCommands);
@@ -674,7 +686,7 @@ int main(int argc, char** argv)
     else if (separateCommandGraph)
     {
         std::cout<<"Seperate CommandGraph with offscreenCommandGraph first, then main CommandGraph second."<<std::endl;
-        auto offscreenCommandGraph = vsg::CommandGraph::create(window);
+        offscreenCommandGraph = vsg::CommandGraph::create(window);
         offscreenCommandGraph->submitOrder = -1; // render before the displayCommandGraph
         offscreenCommandGraph->addChild(offscreenSwitch);
         offscreenCommandGraph->addChild(captureCommands);
@@ -693,6 +705,9 @@ int main(int argc, char** argv)
         commandGraph->addChild(displayRenderGraph);
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+        // offscreenCommandGraph used to handle interactive resize
+        offscreenCommandGraph = commandGraph;
     }
 
     viewer->compile();
@@ -709,6 +724,23 @@ int main(int argc, char** argv)
 
         if (screenshotHandler->do_image_capture && !offscreenEnabled)
         {
+            VkExtent2D displayExtent = displayCamera->getRenderArea().extent;
+            if (extent.width != displayExtent.width || extent.height != displayExtent.height)
+            {
+                auto prevCaptureCommands = captureCommands;
+
+                extent = displayExtent;
+                offscreenRenderExtent = VkExtent2D{supersample * extent.width, supersample * extent.height};
+
+                transferImageView = createTransferImageView(context->device, offscreenImageFormat, offscreenRenderExtent, VK_SAMPLE_COUNT_1_BIT);
+                captureImage = createCaptureImage(context->device, offscreenImageFormat, extent);
+                captureCommands = createTransferCommands(transferImageView->image, captureImage);
+
+                replaceChild(offscreenCommandGraph, prevCaptureCommands, captureCommands);
+
+                screenshotHandler->image = captureImage;
+            }
+
             offscreenEnabled = true;
             offscreenSwitch->setAllChildren(offscreenEnabled);
         }
