@@ -19,6 +19,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #    include <vsgXchange/all.h>
 #endif
 
+#include <cassert>
 #include <chrono>
 #include <sstream>
 #include <iostream>
@@ -379,7 +380,7 @@ vsg::ref_ptr<vsg::RenderPass> createTransferRenderPass(
     return vsg::RenderPass::create(device, attachments, subpasses, dependencies);
 }
 
-vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(
+vsg::ref_ptr<vsg::Framebuffer> createOffscreenFramebuffer(
     vsg::ref_ptr<vsg::Device> device,
     vsg::ref_ptr<vsg::ImageView> transferImageView,
     VkSampleCountFlagBits const samples)
@@ -414,16 +415,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(
     auto renderPass = createTransferRenderPass(device, imageFormat, depthFormat, samples, requiresDepthRead);
     auto framebuffer = vsg::Framebuffer::create(renderPass, imageViews, extent.width, extent.height, 1);
 
-    auto renderGraph = vsg::RenderGraph::create();
-    renderGraph->renderArea.offset = VkOffset2D{0, 0};
-    renderGraph->renderArea.extent = framebuffer->extent2D();
-    renderGraph->framebuffer = framebuffer;
-
-    renderGraph->setClearValues(
-        VkClearColorValue{{0.0f, 0.0f, 0.0f, 0.0f}},
-        VkClearDepthStencilValue{0.0f, 0});
-
-    return renderGraph;
+    return framebuffer;
 }
 
 vsg::ref_ptr<vsg::Data> getImageData(vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::Image> image)
@@ -529,13 +521,17 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
 
 void replaceChild(vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement)
 {
+    bool replaced = false;
     for (auto& child : group->children)
     {
         if (child == previous)
         {
             child = replacement;
+            replaced = true;
         }
     }
+    assert(replaced);
+    vsg::info("commands replaced.");
 }
 
 int main(int argc, char** argv)
@@ -647,7 +643,13 @@ int main(int argc, char** argv)
     auto transferImageView = createTransferImageView(context->device, offscreenImageFormat, offscreenRenderExtent, VK_SAMPLE_COUNT_1_BIT);
     auto captureImage = createCaptureImage(context->device, offscreenImageFormat, extent);
     auto captureCommands = createTransferCommands(transferImageView->image, captureImage);
-    auto offscreenRenderGraph = createOffscreenRendergraph(context->device, transferImageView, samples);
+
+    auto offscreenRenderGraph = vsg::RenderGraph::create();
+    offscreenRenderGraph->framebuffer = createOffscreenFramebuffer(context->device, transferImageView, samples);
+    offscreenRenderGraph->renderArea.extent = offscreenRenderGraph->framebuffer->extent2D();
+    offscreenRenderGraph->setClearValues(
+        VkClearColorValue{{0.0f, 0.0f, 0.0f, 0.0f}},
+        VkClearDepthStencilValue{0.0f, 0});
 
     // link view matrix between display and offscreen render
     // the projection may be different (aspect ratio for example)
@@ -727,6 +729,7 @@ int main(int argc, char** argv)
             VkExtent2D displayExtent = displayCamera->getRenderArea().extent;
             if (extent.width != displayExtent.width || extent.height != displayExtent.height)
             {
+                vsg::info("display extent changed to ", displayExtent.width, "x", displayExtent.height);
                 auto prevCaptureCommands = captureCommands;
 
                 extent = displayExtent;
@@ -735,6 +738,8 @@ int main(int argc, char** argv)
                 transferImageView = createTransferImageView(context->device, offscreenImageFormat, offscreenRenderExtent, VK_SAMPLE_COUNT_1_BIT);
                 captureImage = createCaptureImage(context->device, offscreenImageFormat, extent);
                 captureCommands = createTransferCommands(transferImageView->image, captureImage);
+
+                offscreenRenderGraph->framebuffer = createOffscreenFramebuffer(context->device, transferImageView, samples);
 
                 replaceChild(offscreenCommandGraph, prevCaptureCommands, captureCommands);
 
