@@ -21,10 +21,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include <cassert>
 #include <chrono>
-#include <sstream>
 #include <iostream>
-#include <thread>
+#include <sstream>
 #include <stdexcept>
+#include <thread>
 
 bool supportsBlit(vsg::ref_ptr<vsg::Device> device, VkFormat format)
 {
@@ -68,15 +68,15 @@ VkImageUsageFlags computeUsageFlagsForFormat(VkFormat format)
 {
     switch (format)
     {
-        case VK_FORMAT_D16_UNORM_S8_UINT:
-        case VK_FORMAT_D24_UNORM_S8_UINT:
-        case VK_FORMAT_D32_SFLOAT_S8_UINT:
-        case VK_FORMAT_D16_UNORM:
-        case VK_FORMAT_D32_SFLOAT:
-        case VK_FORMAT_X8_D24_UNORM_PACK32:
-            return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        default:
-            return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    case VK_FORMAT_D16_UNORM_S8_UINT:
+    case VK_FORMAT_D24_UNORM_S8_UINT:
+    case VK_FORMAT_D32_SFLOAT_S8_UINT:
+    case VK_FORMAT_D16_UNORM:
+    case VK_FORMAT_D32_SFLOAT:
+    case VK_FORMAT_X8_D24_UNORM_PACK32:
+        return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    default:
+        return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     }
 }
 
@@ -115,10 +115,10 @@ vsg::ref_ptr<vsg::Commands> createTransferCommands(
     );
 
     auto cmd_transitionForTransferBarrier = vsg::PipelineBarrier::create(
-        VK_PIPELINE_STAGE_TRANSFER_BIT,                       // srcStageMask
-        VK_PIPELINE_STAGE_TRANSFER_BIT,                       // dstStageMask
-        0,                                                    // dependencyFlags
-        transitionDestinationImageToDestinationLayoutBarrier  // barrier
+        VK_PIPELINE_STAGE_TRANSFER_BIT,                      // srcStageMask
+        VK_PIPELINE_STAGE_TRANSFER_BIT,                      // dstStageMask
+        0,                                                   // dependencyFlags
+        transitionDestinationImageToDestinationLayoutBarrier // barrier
     );
 
     commands->addChild(cmd_transitionForTransferBarrier);
@@ -186,10 +186,10 @@ vsg::ref_ptr<vsg::Commands> createTransferCommands(
     );
 
     auto cmd_transitionFromTransferBarrier = vsg::PipelineBarrier::create(
-        VK_PIPELINE_STAGE_TRANSFER_BIT,                // srcStageMask
-        VK_PIPELINE_STAGE_TRANSFER_BIT,                // dstStageMask
-        0,                                             // dependencyFlags
-        transitionDestinationImageToMemoryReadBarrier  // barrier
+        VK_PIPELINE_STAGE_TRANSFER_BIT,               // srcStageMask
+        VK_PIPELINE_STAGE_TRANSFER_BIT,               // dstStageMask
+        0,                                            // dependencyFlags
+        transitionDestinationImageToMemoryReadBarrier // barrier
     );
 
     commands->addChild(cmd_transitionFromTransferBarrier);
@@ -382,8 +382,7 @@ vsg::ref_ptr<vsg::Framebuffer> createOffscreenFramebuffer(
 
     VkExtent2D const extent{
         transferImageView->image->extent.width,
-        transferImageView->image->extent.height
-    };
+        transferImageView->image->extent.height};
 
     vsg::ImageViews imageViews;
     if (samples == VK_SAMPLE_COUNT_1_BIT)
@@ -445,7 +444,7 @@ vsg::ref_ptr<vsg::Data> getImageData(vsg::ref_ptr<vsg::Device> device, vsg::ref_
         imageData = vsg::ubvec4Array2D::create(extent.width, extent.height, vsg::Data::Properties{image->format});
         for (uint32_t row = 0; row < extent.height; ++row)
         {
-            std::memcpy(imageData->dataPointer(row*extent.width), mappedData->dataPointer(row * subResourceLayout.rowPitch), destRowWidth);
+            std::memcpy(imageData->dataPointer(row * extent.width), mappedData->dataPointer(row * subResourceLayout.rowPitch), destRowWidth);
         }
     }
     return imageData;
@@ -462,11 +461,10 @@ public:
     ScreenshotHandler(
         vsg::ref_ptr<vsg::Image> in_image,
         vsg::Path const& in_filename,
-        vsg::ref_ptr<vsg::Options> in_options = {})
-    : image(in_image)
-    , filename(in_filename)
-    , options(in_options)
-    {}
+        vsg::ref_ptr<vsg::Options> in_options = {}) :
+        image(in_image), filename(in_filename), options(in_options)
+    {
+    }
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
@@ -655,7 +653,7 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::CommandGraph> offscreenCommandGraph;
     if (nestedCommandGraph)
     {
-        std::cout<<"Nested CommandGraph, with nested offscreenCommandGraph as a child on the displayCommandGraph. "<<std::endl;
+        std::cout << "Nested CommandGraph, with nested offscreenCommandGraph as a child on the displayCommandGraph. " << std::endl;
         offscreenCommandGraph = vsg::CommandGraph::create(window);
         offscreenCommandGraph->submitOrder = -1; // render before the displayRenderGraph
         offscreenCommandGraph->addChild(offscreenSwitch);
@@ -669,7 +667,7 @@ int main(int argc, char** argv)
     }
     else if (separateCommandGraph)
     {
-        std::cout<<"Seperate CommandGraph with offscreenCommandGraph first, then main CommandGraph second."<<std::endl;
+        std::cout << "Seperate CommandGraph with offscreenCommandGraph first, then main CommandGraph second." << std::endl;
         offscreenCommandGraph = vsg::CommandGraph::create(window);
         offscreenCommandGraph->submitOrder = -1; // render before the displayCommandGraph
         offscreenCommandGraph->addChild(offscreenSwitch);
@@ -682,7 +680,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout<<"Single CommandGraph containing by the offscreen and main RenderGraphs"<<std::endl;
+        std::cout << "Single CommandGraph containing by the offscreen and main RenderGraphs" << std::endl;
         auto commandGraph = vsg::CommandGraph::create(window);
         commandGraph->addChild(offscreenSwitch);
         commandGraph->addChild(captureCommands);
