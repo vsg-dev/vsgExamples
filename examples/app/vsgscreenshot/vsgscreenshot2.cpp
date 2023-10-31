@@ -98,18 +98,9 @@ vsg::ref_ptr<vsg::ImageView> createTransferImageView(
 
 vsg::ref_ptr<vsg::Commands> createTransferCommands(
     vsg::ref_ptr<vsg::Image> sourceImage,
-    vsg::ref_ptr<vsg::Image> destinationImage,
-    vsg::ref_ptr<vsg::Commands> commands = {})
+    vsg::ref_ptr<vsg::Image> destinationImage)
 {
-    // create or reset the commands
-    if (!commands)
-    {
-        commands = vsg::Commands::create();
-    }
-    else
-    {
-        commands->children.clear();
-    }
+    auto commands = vsg::Commands::create();
 
     // transition destinationImage to transfer destination initialLayout
     auto transitionDestinationImageToDestinationLayoutBarrier = vsg::ImageMemoryBarrier::create(
@@ -521,17 +512,13 @@ vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkEx
 
 void replaceChild(vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement)
 {
-    bool replaced = false;
     for (auto& child : group->children)
     {
         if (child == previous)
         {
             child = replacement;
-            replaced = true;
         }
     }
-    assert(replaced);
-    vsg::info("commands replaced.");
 }
 
 int main(int argc, char** argv)
@@ -540,7 +527,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "rendertotexture";
+    windowTraits->windowTitle = "screenshot2";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     windowTraits->synchronizationLayer = arguments.read("--sync");
@@ -651,11 +638,6 @@ int main(int argc, char** argv)
         VkClearColorValue{{0.0f, 0.0f, 0.0f, 0.0f}},
         VkClearDepthStencilValue{0.0f, 0});
 
-    // link view matrix between display and offscreen render
-    // the projection may be different (aspect ratio for example)
-    //auto offscreenCamera = createCameraForScene(vsg_scene, extent);
-    //offscreenCamera->viewMatrix = displayCamera->viewMatrix;
-    //auto offscreenView = vsg::View::create(offscreenCamera, vsg_scene);
     auto offscreenView = vsg::View::create(displayCamera, vsg_scene);
     offscreenRenderGraph->addChild(offscreenView);
 
@@ -714,9 +696,22 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
+    // ensure the offscreen renderGraph is connected
+    offscreenEnabled = true;
+    offscreenSwitch->setAllChildren(offscreenEnabled);
+    if (viewer->advanceToNextFrame())
+    {
+        viewer->update();
+        viewer->recordAndSubmit();
+    }
+    offscreenEnabled = false;
+    offscreenSwitch->setAllChildren(offscreenEnabled);
+
     // rendering main loop
     while (viewer->advanceToNextFrame())
     {
+        viewer->handleEvents();
+
         if (screenshotHandler->do_image_capture && !offscreenEnabled)
         {
             VkExtent2D displayExtent = displayCamera->getRenderArea().extent;
@@ -731,27 +726,25 @@ int main(int argc, char** argv)
                 transferImageView = createTransferImageView(context->device, offscreenImageFormat, offscreenRenderExtent, VK_SAMPLE_COUNT_1_BIT);
                 captureImage = createCaptureImage(context->device, offscreenImageFormat, extent);
                 captureCommands = createTransferCommands(transferImageView->image, captureImage);
-
-                offscreenRenderGraph->framebuffer = createOffscreenFramebuffer(context->device, transferImageView, samples);
-
                 replaceChild(offscreenCommandGraph, prevCaptureCommands, captureCommands);
+                offscreenRenderGraph->framebuffer = createOffscreenFramebuffer(context->device, transferImageView, samples);
+                offscreenRenderGraph->resized();
 
                 screenshotHandler->image = captureImage;
-
-                offscreenRenderGraph->resized();
             }
 
             offscreenEnabled = true;
             offscreenSwitch->setAllChildren(offscreenEnabled);
         }
 
-        viewer->handleEvents();
         viewer->update();
         viewer->recordAndSubmit();
         viewer->present();
 
         if (screenshotHandler->do_image_capture && offscreenEnabled)
         {
+            constexpr uint64_t waitTimeout = 1000000000; // 1 second
+            viewer->waitForFences(0, waitTimeout);
             screenshotHandler->screenshot_image(context->device);
             offscreenEnabled = false;
             offscreenSwitch->setAllChildren(offscreenEnabled);
