@@ -744,6 +744,8 @@ int main(int argc, char** argv)
                 replaceChild(offscreenCommandGraph, prevCaptureCommands, captureCommands);
 
                 screenshotHandler->image = captureImage;
+
+                offscreenRenderGraph->resized();
             }
 
             offscreenEnabled = true;
