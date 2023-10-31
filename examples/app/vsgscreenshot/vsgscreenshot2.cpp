@@ -717,13 +717,6 @@ int main(int argc, char** argv)
     // rendering main loop
     while (viewer->advanceToNextFrame())
     {
-        // pass any events into EventHandlers assigned to the Viewer
-        viewer->handleEvents();
-
-        // animate the offscreen scenegraph
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        transform->matrix = vsg::rotate(time * vsg::radians(90.0f), vsg::vec3(0.0f, 0.0, 1.0f));
-
         if (screenshotHandler->do_image_capture && !offscreenEnabled)
         {
             VkExtent2D displayExtent = displayCamera->getRenderArea().extent;
@@ -752,6 +745,7 @@ int main(int argc, char** argv)
             offscreenSwitch->setAllChildren(offscreenEnabled);
         }
 
+        viewer->handleEvents();
         viewer->update();
         viewer->recordAndSubmit();
         viewer->present();
