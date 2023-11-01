@@ -31,8 +31,8 @@ vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> opti
         return {};
     }
 
-    #define VIEW_DESCRIPTOR_SET 1
-    #define MATERIAL_DESCRIPTOR_SET 0
+    #define VIEW_DESCRIPTOR_SET 0
+    #define MATERIAL_DESCRIPTOR_SET 1
 
     auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
 

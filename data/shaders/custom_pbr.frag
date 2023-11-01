@@ -8,8 +8,8 @@ const float RECIPROCAL_PI2 = 0.15915494;
 const float EPSILON = 1e-6;
 const float c_MinRoughness = 0.04;
 
-#define VIEW_DESCRIPTOR_SET 1
-#define MATERIAL_DESCRIPTOR_SET 0
+#define VIEW_DESCRIPTOR_SET 0
+#define MATERIAL_DESCRIPTOR_SET 1
 
 #ifdef VSG_DIFFUSE_MAP
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
