@@ -53,17 +53,28 @@ int main(int argc, char** argv)
         vsg::write(shaderSet, outputShaderSetFilename, options);
     }
 
-    auto group = vsg::StateGroup::create();
+    auto vsg_scene = vsg::StateGroup::create();
     if (inheritState)
     {
-        uint32_t set = 0;
-        auto layout = shaderSet->createPipelineLayout({});
-        auto bvds = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set);
-        group->add(bvds);
+        auto layout = shaderSet->createPipelineLayout({}, {0, 2});
 
-        options->setObject("inherited", bvds);
+        uint32_t vds_set = 1;
+        vsg_scene->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, vds_set));
 
-        vsg::info("Added ", bvds, " to root node.");
+        uint32_t cm_set = 0;
+        auto colorModifier = vsg::vec4Value::create(1.0, 0.0, 1.0, 1.0);
+        auto cm_dsl = shaderSet->createDescriptorSetLayout({}, cm_set);
+        auto cm_db = vsg::DescriptorBuffer::create(colorModifier);
+        auto cm_ds = vsg::DescriptorSet::create(cm_dsl, vsg::Descriptors{cm_db});
+        auto cm_bds = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, cm_ds);
+        vsg_scene->add(cm_bds);
+
+        vsg::info("Added state to inherit ");
+
+        for(auto& sc : vsg_scene->stateCommands)
+        {
+            vsg::info("   ", sc);
+        }
     }
 
     vsg::Path path;
@@ -74,7 +85,7 @@ int main(int argc, char** argv)
         vsg::Path filename = arguments[i];
         if (auto node = vsg::read_cast<vsg::Node>(filename, options))
         {
-            group->addChild(node);
+            vsg_scene->addChild(node);
         }
         else
         {
@@ -82,16 +93,11 @@ int main(int argc, char** argv)
         }
     }
 
-    if (group->children.empty())
+    if (vsg_scene->children.empty())
     {
         return 1;
     }
 
-    vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (group->children.size() == 1)
-        vsg_scene = group->children[0];
-    else
-        vsg_scene = group;
 
     if (outputFilename)
     {
