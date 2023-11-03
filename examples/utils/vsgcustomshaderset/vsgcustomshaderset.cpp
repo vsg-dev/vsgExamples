@@ -36,6 +36,7 @@ int main(int argc, char** argv)
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
     bool reportAverageFrameRate = arguments.read("--fps");
+    bool inheritState = arguments.read("--inherit");
 
     vsg::ref_ptr<vsg::ShaderSet> shaderSet = pbr_ShaderSet(options);
     options->shaderSets["pbr"] = shaderSet;
@@ -52,7 +53,18 @@ int main(int argc, char** argv)
         vsg::write(shaderSet, outputShaderSetFilename, options);
     }
 
-    auto group = vsg::Group::create();
+    auto group = vsg::StateGroup::create();
+    if (inheritState)
+    {
+        uint32_t set = 0;
+        auto layout = shaderSet->createPipelineLayout({});
+        auto bvds = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, set);
+        group->add(bvds);
+
+        options->setObject("inherited", bvds);
+
+        vsg::info("Added ", bvds, " to root node.");
+    }
 
     vsg::Path path;
 

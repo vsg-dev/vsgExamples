@@ -10,6 +10,7 @@ const float c_MinRoughness = 0.04;
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
+#define CUSTOM_DESCRIPTOR_SET 4
 
 #ifdef VSG_DIFFUSE_MAP
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
@@ -47,12 +48,19 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform PbrData
     float alphaMaskCutoff;
 } pbr;
 
+// ViewDependentState
 layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 {
     vec4 values[2048];
 } lightData;
 
 layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform sampler2DArrayShadow shadowMaps;
+
+// Custom state
+layout(set = CUSTOM_DESCRIPTOR_SET, binding = 0) uniform ColorModulation
+{
+    vec4 value;
+} colorModulation;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -522,5 +530,5 @@ void main()
         }
     }
 
-    outColor = LINEARtoSRGB(vec4(color, baseColor.a));
+    outColor = LINEARtoSRGB(vec4(color, baseColor.a)) * colorModulation.value;
 }
