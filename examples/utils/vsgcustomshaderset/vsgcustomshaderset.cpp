@@ -71,8 +71,12 @@ int main(int argc, char** argv)
 
         vsg::info("Added state to inherit ");
 
+        auto objects = vsg::Objects::create();
+        options->setObject("inherited", objects);
+
         for(auto& sc : vsg_scene->stateCommands)
         {
+            objects->addChild(sc);
             vsg::info("   ", sc);
         }
     }
