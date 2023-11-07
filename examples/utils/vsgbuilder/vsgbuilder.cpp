@@ -93,6 +93,7 @@ int main(int argc, char** argv)
     bool sphere = arguments.read("--sphere");
     bool heightfield = arguments.read("--hf");
     bool billboard = arguments.read("--billboard");
+    bool inherit = arguments.read("--inherit");
 
     if (!(box || sphere || cone || capsule || quad || cylinder || disk || heightfield))
     {
@@ -198,9 +199,22 @@ int main(int argc, char** argv)
 
         if (box)
         {
-            scene->addChild(builder->createBox(geomInfo, stateInfo));
-            bound.add(geomInfo.position);
-            geomInfo.position += geomInfo.dx * 1.5f;
+            auto node = builder->createBox(geomInfo, stateInfo);
+            auto sg = node.cast<vsg::StateGroup>();
+
+            if (sg && inherit)
+            {
+                options->inheritedState = sg->stateCommands;
+                scene = sg;
+                vsg::info("assigned  = ", options->inheritedState.size());
+            }
+            else
+            {
+                scene->addChild(node);
+                bound.add(geomInfo.position);
+                geomInfo.position += geomInfo.dx * 1.5f;
+
+            }
         }
 
         if (sphere)
