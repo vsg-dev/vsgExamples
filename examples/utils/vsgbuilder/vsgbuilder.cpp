@@ -178,6 +178,7 @@ int main(int argc, char** argv)
             {
                 if (floatColors)
                 {
+                    stateInfo.instance_colors_vec4 = true;
                     auto colors = vsg::vec4Array::create(numVertices);
                     geomInfo.colors = colors;
                     for (auto& c : *(colors))
@@ -187,6 +188,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
+                    stateInfo.instance_colors_vec4 = false;
                     auto colors = vsg::ubvec4Array::create(numVertices);
                     geomInfo.colors = colors;
                     for (auto& c : *(colors))
@@ -200,9 +202,10 @@ int main(int argc, char** argv)
         if (box)
         {
             auto node = builder->createBox(geomInfo, stateInfo);
-            auto sg = node.cast<vsg::StateGroup>();
+            bound.add(geomInfo.position);
+            geomInfo.position += geomInfo.dx * 1.5f;
 
-            if (sg && inherit)
+            if (auto sg = node.cast<vsg::StateGroup>(); sg && inherit)
             {
                 options->inheritedState = sg->stateCommands;
                 scene = sg;
@@ -211,8 +214,6 @@ int main(int argc, char** argv)
             else
             {
                 scene->addChild(node);
-                bound.add(geomInfo.position);
-                geomInfo.position += geomInfo.dx * 1.5f;
 
             }
         }

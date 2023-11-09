@@ -295,11 +295,27 @@ int main(int argc, char** argv)
         }
     }
 
-    auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
     auto insertCullNode = arguments.read("--cull");
+    auto inherit = arguments.read("--inherit");
+    auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
     auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
     double viewingDistance = scale;
+
+    vsg::ref_ptr<vsg::StateGroup> stateGroup;
+    if (inherit)
+    {
+        auto shaderSet = vsg::createPhongShaderSet(options);
+        auto layout = shaderSet->createPipelineLayout({}, {0, 1});
+
+        stateGroup = vsg::StateGroup::create();
+
+        uint32_t vds_set = 0;
+        stateGroup->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, vds_set));
+
+        vsg::info("Added state to inherit ");
+        options->inheritedState = stateGroup->stateCommands;
+    }
 
     vsg::ref_ptr<vsg::Node> scene;
     if (arguments.read("--large"))
@@ -321,6 +337,13 @@ int main(int argc, char** argv)
     else
     {
         scene = createTestScene(options, textureFile, requiresBase, insertCullNode);
+    }
+
+    if (stateGroup)
+    {
+        // if setup place the StateGroup at the root of the scene graph
+        stateGroup->addChild(scene);
+        scene = stateGroup;
     }
 
     // compute the bounds of the scene graph to help position camera

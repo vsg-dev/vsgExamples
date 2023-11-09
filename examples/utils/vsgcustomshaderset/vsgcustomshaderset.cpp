@@ -36,7 +36,7 @@ int main(int argc, char** argv)
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
     bool reportAverageFrameRate = arguments.read("--fps");
-    bool inheritState = arguments.read("--inherit");
+    bool inherit = arguments.read("--inherit");
 
     vsg::ref_ptr<vsg::ShaderSet> shaderSet = pbr_ShaderSet(options);
     options->shaderSets["pbr"] = shaderSet;
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     }
 
     auto vsg_scene = vsg::StateGroup::create();
-    if (inheritState)
+    if (inherit)
     {
         auto layout = shaderSet->createPipelineLayout({}, {0, 2});
 
