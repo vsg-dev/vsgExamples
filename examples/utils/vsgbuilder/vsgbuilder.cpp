@@ -209,7 +209,6 @@ int main(int argc, char** argv)
             {
                 options->inheritedState = sg->stateCommands;
                 scene = sg;
-                vsg::info("assigned  = ", options->inheritedState.size());
             }
             else
             {
