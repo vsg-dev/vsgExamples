@@ -39,12 +39,30 @@ int main(int argc, char** argv)
 
     vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::pbr_ShaderSet(options);
     options->shaderSets["pbr"] = shaderSet;
-
-    std::cout<<"shaderSet = "<<shaderSet<<std::endl;
     if (!shaderSet)
     {
         std::cout<<"No vsg::ShaderSet to process."<<std::endl;
         return 1;
+    }
+
+    bool fogSet = false;
+    auto fogValue = custom::FogValue::create();
+    auto& fog = fogValue->value();
+    fogSet = arguments.read("--color", fog.color) | fogSet;
+    fogSet = arguments.read("--start", fog.start) | fogSet;
+    fogSet = arguments.read("--end", fog.end) | fogSet;
+    fogSet = arguments.read("--exponent", fog.exponent) | fogSet;
+    fogSet = arguments.read("--density", fog.density) | fogSet;
+
+    if (fogSet && !inherit)
+    {
+        // change the default data to the local fogValue we've been assigning values to
+        auto& fogBinding = shaderSet->getDescriptorBinding("Fog");
+        if (fogBinding.name == "Fog")
+        {
+            fogBinding.data = fogValue;
+            vsg::info("Setting default fog to ", fogValue);
+        }
     }
 
     if (outputShaderSetFilename)
@@ -52,21 +70,22 @@ int main(int argc, char** argv)
         vsg::write(shaderSet, outputShaderSetFilename, options);
     }
 
-    vsg::ref_ptr<custom::FogValue> fog;
-
     auto vsg_scene = vsg::StateGroup::create();
     if (inherit)
     {
+        //
+        // place the FogValue DescriptorSet at the root of the scene graph
+        // and tell the loader via vsg::Options::inheritedState that it doesn't need to assign
+        // it to subgraphs that loader will create
+        //
         auto layout = shaderSet->createPipelineLayout({}, {0, 2});
 
         uint32_t vds_set = 1;
         vsg_scene->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, vds_set));
 
         uint32_t cm_set = 0;
-        fog = custom::FogValue::create();
-        fog->value().color.set(1.0, 1.0, 0.0);
         auto cm_dsl = shaderSet->createDescriptorSetLayout({}, cm_set);
-        auto cm_db = vsg::DescriptorBuffer::create(fog);
+        auto cm_db = vsg::DescriptorBuffer::create(fogValue);
         auto cm_ds = vsg::DescriptorSet::create(cm_dsl, vsg::Descriptors{cm_db});
         auto cm_bds = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, cm_ds);
         vsg_scene->add(cm_bds);
@@ -117,6 +136,8 @@ int main(int argc, char** argv)
     auto bounds = vsg::visit<vsg::ComputeBounds>(vsg_scene).bounds;
     vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
     double radius = vsg::length(bounds.max - bounds.min) * 0.6;
+
+    vsg::info("scene bounds ", bounds);
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));

@@ -534,5 +534,30 @@ void main()
         }
     }
 
-    outColor = LINEARtoSRGB(vec4(color * fog.color, baseColor.a)) ;
+    if (fog.exponent != 0.0)
+    {
+        float fogCoord = -eyePos.z;
+        const float e = 2.71828;
+        float f = pow(e, -fog.density * pow(fogCoord, fog.exponent));
+        color = mix(fog.color, color, f);
+    }
+    else
+    {
+        // linear
+        float fogCoord = -eyePos.z;
+        if (fogCoord > fog.start)
+        {
+            if (fogCoord < fog.end)
+            {
+                float f = (fog.end - fogCoord) / (fog.end - fog.start);
+                color = mix(fog.color, color, f);
+            }
+            else
+            {
+                color = fog.color;
+            }
+        }
+    }
+
+    outColor = LINEARtoSRGB(vec4(color, baseColor.a)) ;
 }
