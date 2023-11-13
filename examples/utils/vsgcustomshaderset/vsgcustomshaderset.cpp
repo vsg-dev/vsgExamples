@@ -5,8 +5,7 @@
 #    include <vsgXchange/all.h>
 #endif
 
-extern vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
-
+#include "custom_pbr.h"
 
 int main(int argc, char** argv)
 {
@@ -38,7 +37,7 @@ int main(int argc, char** argv)
     bool reportAverageFrameRate = arguments.read("--fps");
     bool inherit = arguments.read("--inherit");
 
-    vsg::ref_ptr<vsg::ShaderSet> shaderSet = pbr_ShaderSet(options);
+    vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::pbr_ShaderSet(options);
     options->shaderSets["pbr"] = shaderSet;
 
     std::cout<<"shaderSet = "<<shaderSet<<std::endl;
@@ -53,6 +52,8 @@ int main(int argc, char** argv)
         vsg::write(shaderSet, outputShaderSetFilename, options);
     }
 
+    vsg::ref_ptr<custom::FogValue> fog;
+
     auto vsg_scene = vsg::StateGroup::create();
     if (inherit)
     {
@@ -62,9 +63,10 @@ int main(int argc, char** argv)
         vsg_scene->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, vds_set));
 
         uint32_t cm_set = 0;
-        auto colorModifier = vsg::vec4Value::create(1.0, 0.0, 1.0, 1.0);
+        fog = custom::FogValue::create();
+        fog->value().color.set(1.0, 1.0, 0.0);
         auto cm_dsl = shaderSet->createDescriptorSetLayout({}, cm_set);
-        auto cm_db = vsg::DescriptorBuffer::create(colorModifier);
+        auto cm_db = vsg::DescriptorBuffer::create(fog);
         auto cm_ds = vsg::DescriptorSet::create(cm_dsl, vsg::Descriptors{cm_db});
         auto cm_bds = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, cm_ds);
         vsg_scene->add(cm_bds);

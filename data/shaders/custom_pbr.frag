@@ -57,10 +57,14 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform sampler2DArrayShadow shadowMaps;
 
 // Custom state
-layout(set = CUSTOM_DESCRIPTOR_SET, binding = 0) uniform ColorModulation
+layout(set = CUSTOM_DESCRIPTOR_SET, binding = 0) uniform Fog
 {
-    vec4 value;
-} colorModulation;
+    vec3 color;
+    float density;
+    float start;
+    float end;
+    float exponent;
+} fog;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -530,5 +534,5 @@ void main()
         }
     }
 
-    outColor = LINEARtoSRGB(vec4(color, baseColor.a)) * colorModulation.value;
+    outColor = LINEARtoSRGB(vec4(color * fog.color, baseColor.a)) ;
 }

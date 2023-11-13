@@ -18,7 +18,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/state/material.h>
 #include <vsg/utils/ShaderSet.h>
 
-vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options)
+#include "custom_pbr.h"
+
+vsg::RegisterWithObjectFactoryProxy<custom::FogValue> s_Register_FogValue;
+
+vsg::ref_ptr<vsg::ShaderSet> custom::pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options)
 {
     vsg::info("Local pbr_ShaderSet(",options,")");
 
@@ -59,7 +63,7 @@ vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> opti
     shaderSet->addDescriptorBinding("shadowMaps", "", VIEW_DESCRIPTOR_SET, 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::floatArray3D::create(1, 1, 1, vsg::Data::Properties{VK_FORMAT_R32_SFLOAT}));
 
 #if 1
-    shaderSet->addDescriptorBinding("ColorModulation", "", CUSTOM_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Value::create(1.0, 1.0, 0.0, 1.0));
+    shaderSet->addDescriptorBinding("Fog", "", CUSTOM_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, custom::FogValue::create());
 #else
     shaderSet->addDescriptorBinding("ColorModulation", "", CUSTOM_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, {});
 #endif
