@@ -2,27 +2,30 @@
 #extension GL_ARB_separate_shader_objects : enable
 #pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, SHADOWMAP_DEBUG)
 
+#define VIEW_DESCRIPTOR_SET 0
+#define MATERIAL_DESCRIPTOR_SET 1
+
 #ifdef VSG_DIFFUSE_MAP
-layout(set = 0, binding = 0) uniform sampler2D diffuseMap;
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
 #endif
 
 #ifdef VSG_NORMAL_MAP
-layout(set = 0, binding = 2) uniform sampler2D normalMap;
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 2) uniform sampler2D normalMap;
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
-layout(set = 0, binding = 3) uniform sampler2D aoMap;
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 3) uniform sampler2D aoMap;
 #endif
 
 #ifdef VSG_EMISSIVE_MAP
-layout(set = 0, binding = 4) uniform sampler2D emissiveMap;
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 4) uniform sampler2D emissiveMap;
 #endif
 
 #ifdef VSG_SPECULAR_MAP
-layout(set = 0, binding = 5) uniform sampler2D specularMap;
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMap;
 #endif
 
-layout(set = 0, binding = 10) uniform MaterialData
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform MaterialData
 {
     vec4 ambientColor;
     vec4 diffuseColor;
@@ -33,13 +36,13 @@ layout(set = 0, binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
-layout(set = 1, binding = 0) uniform LightData
+layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 {
     vec4 values[2048];
 } lightData;
 
 
-layout(set = 1, binding = 2) uniform sampler2DArrayShadow shadowMaps;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform sampler2DArrayShadow shadowMaps;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;

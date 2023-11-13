@@ -2,17 +2,14 @@
 #extension GL_ARB_separate_shader_objects : enable
 #pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP)
 
+#define VIEW_DESCRIPTOR_SET 0
+#define MATERIAL_DESCRIPTOR_SET 1
+
 #ifdef VSG_DIFFUSE_MAP
-layout(binding = 0) uniform sampler2D diffuseMap;
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
 #endif
 
-layout(location = 2) in vec4 vertexColor;
-
-#ifndef VSG_POINT_SPRITE
-layout(location = 3) in vec2 texCoord0;
-#endif
-
-layout(binding = 10) uniform MaterialData
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform MaterialData
 {
     vec4 ambientColor;
     vec4 diffuseColor;
@@ -22,6 +19,11 @@ layout(binding = 10) uniform MaterialData
     float alphaMask;
     float alphaMaskCutoff;
 } material;
+
+layout(location = 2) in vec4 vertexColor;
+#ifndef VSG_POINT_SPRITE
+layout(location = 3) in vec2 texCoord0;
+#endif
 
 layout(location = 0) out vec4 outColor;
 

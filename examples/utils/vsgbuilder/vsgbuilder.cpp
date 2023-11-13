@@ -93,6 +93,7 @@ int main(int argc, char** argv)
     bool sphere = arguments.read("--sphere");
     bool heightfield = arguments.read("--hf");
     bool billboard = arguments.read("--billboard");
+    bool inherit = arguments.read("--inherit");
 
     if (!(box || sphere || cone || capsule || quad || cylinder || disk || heightfield))
     {
@@ -177,6 +178,7 @@ int main(int argc, char** argv)
             {
                 if (floatColors)
                 {
+                    stateInfo.instance_colors_vec4 = true;
                     auto colors = vsg::vec4Array::create(numVertices);
                     geomInfo.colors = colors;
                     for (auto& c : *(colors))
@@ -186,6 +188,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
+                    stateInfo.instance_colors_vec4 = false;
                     auto colors = vsg::ubvec4Array::create(numVertices);
                     geomInfo.colors = colors;
                     for (auto& c : *(colors))
@@ -198,9 +201,20 @@ int main(int argc, char** argv)
 
         if (box)
         {
-            scene->addChild(builder->createBox(geomInfo, stateInfo));
+            auto node = builder->createBox(geomInfo, stateInfo);
             bound.add(geomInfo.position);
             geomInfo.position += geomInfo.dx * 1.5f;
+
+            if (auto sg = node.cast<vsg::StateGroup>(); sg && inherit)
+            {
+                options->inheritedState = sg->stateCommands;
+                scene = sg;
+            }
+            else
+            {
+                scene->addChild(node);
+
+            }
         }
 
         if (sphere)

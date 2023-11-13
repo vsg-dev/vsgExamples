@@ -18,12 +18,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vsg/state/material.h>
 #include <vsg/utils/ShaderSet.h>
 
-vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options)
+#include "custom_pbr.h"
+
+vsg::RegisterWithObjectFactoryProxy<custom::FogValue> s_Register_FogValue;
+
+vsg::ref_ptr<vsg::ShaderSet> custom::pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options)
 {
     vsg::info("Local pbr_ShaderSet(",options,")");
 
-    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
-    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_pbr.frag", options);
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/custom_pbr.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/custom_pbr.frag", options);
 
     if (!vertexShader || !fragmentShader)
     {
@@ -31,10 +35,11 @@ vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> opti
         return {};
     }
 
-    auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+    #define VIEW_DESCRIPTOR_SET 1
+    #define MATERIAL_DESCRIPTOR_SET 2
+    #define CUSTOM_DESCRIPTOR_SET 0
 
-    #define VIEW_DESCRIPTOR_SET 0
-    #define MATERIAL_DESCRIPTOR_SET 1
+    auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
 
     shaderSet->addAttributeBinding("vsg_Vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
     shaderSet->addAttributeBinding("vsg_Normal", "", 1, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
@@ -56,6 +61,8 @@ vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> opti
     shaderSet->addDescriptorBinding("lightData", "", VIEW_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
     shaderSet->addDescriptorBinding("viewportData", "", VIEW_DESCRIPTOR_SET, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Value::create(0,0, 1280, 1024));
     shaderSet->addDescriptorBinding("shadowMaps", "", VIEW_DESCRIPTOR_SET, 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::floatArray3D::create(1, 1, 1, vsg::Data::Properties{VK_FORMAT_R32_SFLOAT}));
+
+    shaderSet->addDescriptorBinding("Fog", "", CUSTOM_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, custom::FogValue::create());
 
     // additional defines
     shaderSet->optionalDefines = {"VSG_GREYSCALE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_WORKFLOW_SPECGLOSS"};

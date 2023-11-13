@@ -2,8 +2,9 @@
 #extension GL_ARB_separate_shader_objects : enable
 #pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, SHADOWMAP_DEBUG)
 
-#define VIEW_DESCRIPTOR_SET 0
-#define MATERIAL_DESCRIPTOR_SET 1
+#define VIEW_DESCRIPTOR_SET 1
+#define MATERIAL_DESCRIPTOR_SET 2
+#define CUSTOM_DESCRIPTOR_SET 0
 
 const float PI = 3.14159265359;
 const float RECIPROCAL_PI = 0.31830988618;
@@ -54,6 +55,16 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 } lightData;
 
 layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform sampler2DArrayShadow shadowMaps;
+
+// Custom state
+layout(set = CUSTOM_DESCRIPTOR_SET, binding = 0) uniform Fog
+{
+    vec3 color;
+    float density;
+    float start;
+    float end;
+    float exponent;
+} fog;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -523,5 +534,30 @@ void main()
         }
     }
 
-    outColor = LINEARtoSRGB(vec4(color, baseColor.a));
+    if (fog.exponent != 0.0)
+    {
+        float fogCoord = -eyePos.z;
+        const float e = 2.71828;
+        float f = pow(e, -fog.density * pow(fogCoord, fog.exponent));
+        color = mix(fog.color, color, f);
+    }
+    else
+    {
+        // linear
+        float fogCoord = -eyePos.z;
+        if (fogCoord > fog.start)
+        {
+            if (fogCoord < fog.end)
+            {
+                float f = (fog.end - fogCoord) / (fog.end - fog.start);
+                color = mix(fog.color, color, f);
+            }
+            else
+            {
+                color = fog.color;
+            }
+        }
+    }
+
+    outColor = LINEARtoSRGB(vec4(color, baseColor.a)) ;
 }
