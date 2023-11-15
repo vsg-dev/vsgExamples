@@ -93,7 +93,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     {
         assignRandomGeometryInfo();
         auto model = builder->createBox(geomInfo, stateInfo);
-        vsg::info("BOX geomInfo.position = ", geomInfo.position, ", ", model);
+        // vsg::info("BOX geomInfo.position = ", geomInfo.position, ", ", model);
         scene->addChild(model);
     }
 
@@ -101,7 +101,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     {
         assignRandomGeometryInfo();
         auto model = builder->createSphere(geomInfo, stateInfo);
-        vsg::info("Sphere geomInfo.position = ", geomInfo.position, ", ", model);
+        // vsg::info("Sphere geomInfo.position = ", geomInfo.position, ", ", model);
         scene->addChild(model);
     }
 
@@ -109,7 +109,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     {
         assignRandomGeometryInfo();
         auto model = builder->createCapsule(geomInfo, stateInfo);
-        vsg::info("Capsule geomInfo.position = ", geomInfo.position, ", ", model);
+        // vsg::info("Capsule geomInfo.position = ", geomInfo.position, ", ", model);
         scene->addChild(model);
     }
 
