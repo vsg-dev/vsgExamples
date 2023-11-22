@@ -2,6 +2,7 @@ add_subdirectory(vsggroups)
 add_subdirectory(vsglights)
 add_subdirectory(vsgtransform)
 add_subdirectory(vsgshadow)
+add_subdirectory(vsgtextureprojection)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsgpagedlod)
