@@ -188,6 +188,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+    windowTraits->synchronizationLayer = arguments.read("--sync");
 
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
