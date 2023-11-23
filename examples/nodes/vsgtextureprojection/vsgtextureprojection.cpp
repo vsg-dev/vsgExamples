@@ -276,6 +276,8 @@ int main(int argc, char** argv)
 
     auto dronePath = vsg::AnimationPath::create();
 
+
+
     //
     // set up the main scene graph
     //
@@ -343,6 +345,9 @@ int main(int argc, char** argv)
         transform->addChild(scene);
 
         droneTransform->matrix = ellipsoidModel->computeLocalToWorldTransform(location);
+
+        // rotate the light direction to have the same location light direction as it would be on a flat model.
+        direction = direction * vsg::inverse_3x3(droneTransform->matrix);
 
         auto group = vsg::Group::create();
         group->addChild(transform);
