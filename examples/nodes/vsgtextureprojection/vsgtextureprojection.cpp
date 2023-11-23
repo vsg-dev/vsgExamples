@@ -153,6 +153,7 @@ vsg::ref_ptr<vsg::Node> createEarthModel(vsg::CommandLine& arguments, vsg::ref_p
         settings->noY = 1;
         settings->maxLevel = 10;
         settings->originTopLeft = false;
+        settings->lighting = true;
         settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
         // settings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
     }
@@ -166,7 +167,7 @@ vsg::ref_ptr<vsg::Node> createEarthModel(vsg::CommandLine& arguments, vsg::ref_p
         settings->noY = 1;
         settings->maxLevel = 17;
         settings->originTopLeft = true;
-        settings->lighting = false;
+        settings->lighting = true;
         settings->projection = "EPSG:3857";  // Spherical Mecator
         settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
     }
