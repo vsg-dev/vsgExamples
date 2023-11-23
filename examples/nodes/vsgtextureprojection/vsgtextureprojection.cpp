@@ -46,7 +46,6 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     {
         assignRandomGeometryInfo();
         auto model = builder->createBox(geomInfo, stateInfo);
-        vsg::info("BOX geomInfo.position = ", geomInfo.position, ", ", model);
         scene->addChild(model);
     }
 
@@ -54,7 +53,6 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     {
         assignRandomGeometryInfo();
         auto model = builder->createSphere(geomInfo, stateInfo);
-        vsg::info("Sphere geomInfo.position = ", geomInfo.position, ", ", model);
         scene->addChild(model);
     }
 
@@ -62,7 +60,6 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     {
         assignRandomGeometryInfo();
         auto model = builder->createCapsule(geomInfo, stateInfo);
-        vsg::info("Capsule geomInfo.position = ", geomInfo.position, ", ", model);
         scene->addChild(model);
     }
 
@@ -79,8 +76,6 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
 
         scene->addChild(builder->createQuad(geomInfo, stateInfo));
     }
-
-    vsg::info("createTestScene() extents = ", bounds);
 
     return scene;
 }
@@ -120,6 +115,74 @@ vsg::ref_ptr<vsg::Node> createDroneModel(vsg::ref_ptr<vsg::Options> options, flo
     droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
 
     return droneGroup;
+}
+
+vsg::ref_ptr<vsg::Node> createEarthModel(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options)
+{
+    if (auto earthFilename = arguments.value<vsg::Path>("", "--earth"))
+    {
+        return vsg::read_cast<vsg::Node>(earthFilename, options);
+    }
+    vsg::ref_ptr<vsg::TileDatabaseSettings> settings;
+
+    if (arguments.read("--bing-maps"))
+    {
+        // Bing Maps official documentation:
+        //    metadata (includes imagerySet details): https://learn.microsoft.com/en-us/bingmaps/rest-services/imagery/get-imagery-metadata
+        //    culture codes: https://learn.microsoft.com/en-us/bingmaps/rest-services/common-parameters-and-types/supported-culture-codes
+        //    api key: https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
+        auto imagerySet = arguments.value<std::string>("Aerial", "--imagery");
+        auto culture = arguments.value<std::string>("en-GB", "--culture");
+        auto key = arguments.value<std::string>("", "--key");
+        if (key.empty()) key = vsg::getEnv("VSG_BING_KEY");
+        if (key.empty()) key = vsg::getEnv("OSGEARTH_BING_KEY");
+
+        vsg::info("imagerySet = ", imagerySet);
+        vsg::info("culture = ", culture);
+        vsg::info("key = ", key);
+
+        settings = vsg::createBingMapsSettings(imagerySet, culture, key, options);
+    }
+
+    if (arguments.read("--rm"))
+    {
+        // setup ready map settings
+        settings = vsg::TileDatabaseSettings::create();
+        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings->noX = 2;
+        settings->noY = 1;
+        settings->maxLevel = 10;
+        settings->originTopLeft = false;
+        settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
+        // settings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+    }
+
+    if (arguments.read("--osm") || !settings)
+    {
+        // setup OpenStreetMap settings
+        settings = vsg::TileDatabaseSettings::create();
+        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings->noX = 1;
+        settings->noY = 1;
+        settings->maxLevel = 17;
+        settings->originTopLeft = true;
+        settings->lighting = false;
+        settings->projection = "EPSG:3857";  // Spherical Mecator
+        settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    }
+
+    if (settings)
+    {
+        arguments.read("-t", settings->lodTransitionScreenHeightRatio);
+        arguments.read("-m", settings->maxLevel);
+        auto earth = vsg::TileDatabase::create();
+        earth->settings = settings;
+        earth->readDatabase(options);
+
+        return earth;
+    }
+
+    return {};
 }
 
 int main(int argc, char** argv)
@@ -273,16 +336,13 @@ int main(int argc, char** argv)
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     bool requiresBase = true;
-    vsg::ref_ptr<vsg::Node> earthModel;
+    auto earthModel = createEarthModel(arguments, options);
+
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
-    if (auto earthFilename = arguments.value<vsg::Path>("", "--earth"))
+    if (earthModel)
     {
-        earthModel = vsg::read_cast<vsg::Node>(earthFilename, options);
-        if (earthModel)
-        {
-            ellipsoidModel = earthModel->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
-            requiresBase = false;
-        }
+        ellipsoidModel = earthModel->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
+        requiresBase = false;
     }
 
     //
