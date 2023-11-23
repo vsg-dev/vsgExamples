@@ -19,7 +19,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     geomInfo.cullNode = insertCullNode;
 
     if (textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
-    vsg::box bounds(vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(1000.0f, 1000.0f, 20.0f));
+    vsg::box bounds(vsg::vec3(-500.0f, -500.0f, 0.0f), vsg::vec3(500.0f, 500.0f, 20.0f));
 
     uint32_t numBoxes = 400;
     uint32_t numSpheres = 300;
@@ -248,6 +248,37 @@ int main(int argc, char** argv)
         }
     }
 
+    //
+    // set up the drone subgraph
+    //
+    vsg::ref_ptr<vsg::Node> droneModel;
+    if (auto droneFilename = arguments.value<vsg::Path>("", "--drone"))
+    {
+        droneModel = vsg::read_cast<vsg::Node>(droneFilename, options);
+    }
+
+    if (!droneModel)
+    {
+        vsg::GeometryInfo geomInfo;
+        vsg::StateInfo stateInfo;
+        vsg::Builder builder;
+        builder.options = options;
+
+        geomInfo.dx.set(10.0f, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, 10.0f, 0.0f);
+        geomInfo.dz.set(0.0f, 0.0f, 1.0f);
+
+        droneModel = builder.createBox(geomInfo, stateInfo);
+    }
+
+    auto droneTransform = vsg::MatrixTransform::create();
+    droneTransform->addChild(droneModel);
+
+    auto dronePath = vsg::AnimationPath::create();
+
+    //
+    // set up the main scene graph
+    //
     auto insertCullNode = arguments.read("--cull");
     auto inherit = arguments.read("--inherit");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
@@ -306,12 +337,17 @@ int main(int argc, char** argv)
         auto center = (bounds.min + bounds.max) * 0.5;
         center.z = bounds.min.z;
 
-        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale) * vsg::translate(-center) );
+        vsg::dvec3 model_location = { location.x, location.y, 0.0};
+
+        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(model_location) * vsg::translate(-center) );
         transform->addChild(scene);
+
+        droneTransform->matrix = ellipsoidModel->computeLocalToWorldTransform(location);
 
         auto group = vsg::Group::create();
         group->addChild(transform);
         group->addChild(earthModel);
+        group->addChild(droneTransform);
 
         scene = group;
 
@@ -328,6 +364,14 @@ int main(int argc, char** argv)
     else
     {
         vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+
+        auto group = vsg::Group::create();
+        group->addChild(scene);
+        group->addChild(droneTransform);
+
+        droneTransform->matrix = vsg::translate(location);
+
+        scene = group;
 
         // set up the camera
         lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -viewingDistance, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
