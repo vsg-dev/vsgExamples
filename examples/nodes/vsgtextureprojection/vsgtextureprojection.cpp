@@ -226,7 +226,7 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
-    double maxShadowDistance = arguments.value<double>(1e8, "--sd");
+    double maxShadowDistance = arguments.value<double>(2000.0, "--sd");
     double shadowMapBias = arguments.value<double>(0.005, "--sb");
     double lambda = arguments.value<double>(0.5, "--lambda");
     double nearFarRatio = arguments.value<double>(0.001, "--nf");
