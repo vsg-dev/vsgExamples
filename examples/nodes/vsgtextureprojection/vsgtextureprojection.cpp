@@ -6,53 +6,6 @@
 
 #include <iostream>
 
-vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true, bool insertCullNode = true)
-{
-    auto builder = vsg::Builder::create();
-    builder->options = options;
-
-    auto scene = vsg::Group::create();
-
-    vsg::GeometryInfo geomInfo;
-    vsg::StateInfo stateInfo;
-
-    geomInfo.cullNode = insertCullNode;
-    if (textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(textureFile, options);
-
-    geomInfo.color.set(1.0f, 1.0f, 0.5f, 1.0f);
-    scene->addChild(builder->createBox(geomInfo, stateInfo));
-
-    geomInfo.color.set(1.0f, 0.5f, 1.0f, 1.0f);
-    geomInfo.position += geomInfo.dx * 1.5f;
-    scene->addChild(builder->createSphere(geomInfo, stateInfo));
-
-    geomInfo.color.set(0.0f, 1.0f, 1.0f, 1.0f);
-    geomInfo.position += geomInfo.dx * 1.5f;
-    scene->addChild(builder->createCylinder(geomInfo, stateInfo));
-
-    geomInfo.color.set(0.5f, 1.0f, 0.5f, 1.0f);
-    geomInfo.position += geomInfo.dx * 1.5f;
-    scene->addChild(builder->createCapsule(geomInfo, stateInfo));
-
-
-    auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
-    if (requiresBase)
-    {
-        double diameter = vsg::length(bounds.max - bounds.min);
-        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-        geomInfo.dx.set(diameter, 0.0, 0.0);
-        geomInfo.dy.set(0.0, diameter, 0.0);
-        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
-
-        stateInfo.two_sided = true;
-
-        scene->addChild(builder->createQuad(geomInfo, stateInfo));
-    }
-    vsg::info("createTestScene() extents = ", bounds);
-
-    return scene;
-}
-
 vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true, bool insertCullNode = true)
 {
     auto builder = vsg::Builder::create();
@@ -145,7 +98,7 @@ int main(int argc, char** argv)
 #endif
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgshadows";
+    windowTraits->windowTitle = "vsgtextureprojection";
 
 
     // set up defaults and read command line arguments to override them
@@ -318,11 +271,7 @@ int main(int argc, char** argv)
     }
 
     vsg::ref_ptr<vsg::Node> scene;
-    if (arguments.read("--large"))
-    {
-        scene = createLargeTestScene(options, textureFile, requiresBase, insertCullNode);
-    }
-    else if (argc>1)
+    if (argc>1)
     {
         vsg::Path filename = argv[1];
         auto model = vsg::read_cast<vsg::Node>(filename, options);
@@ -336,7 +285,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        scene = createTestScene(options, textureFile, requiresBase, insertCullNode);
+        scene = createLargeTestScene(options, textureFile, requiresBase, insertCullNode);
     }
 
     if (stateGroup)
