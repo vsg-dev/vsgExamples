@@ -271,7 +271,9 @@ int main(int argc, char** argv)
         droneModel = builder.createBox(geomInfo, stateInfo);
     }
 
-    auto droneTransform = vsg::MatrixTransform::create();
+    auto droneLocation = vsg::MatrixTransform::create(); // transform into world coordinate frame
+    auto droneTransform = vsg::MatrixTransform::create(); // local position of the drone within this droneLocation
+    droneLocation->addChild(droneTransform);
     droneTransform->addChild(droneModel);
 
     auto dronePath = vsg::AnimationPath::create();
@@ -344,15 +346,15 @@ int main(int argc, char** argv)
         auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(model_location) * vsg::translate(-center) );
         transform->addChild(scene);
 
-        droneTransform->matrix = ellipsoidModel->computeLocalToWorldTransform(location);
+        droneLocation->matrix = ellipsoidModel->computeLocalToWorldTransform(location);
 
         // rotate the light direction to have the same location light direction as it would be on a flat model.
-        direction = direction * vsg::inverse_3x3(droneTransform->matrix);
+        direction = direction * vsg::inverse_3x3(droneLocation->matrix);
 
         auto group = vsg::Group::create();
         group->addChild(transform);
         group->addChild(earthModel);
-        group->addChild(droneTransform);
+        group->addChild(droneLocation);
 
         scene = group;
 
@@ -372,9 +374,9 @@ int main(int argc, char** argv)
 
         auto group = vsg::Group::create();
         group->addChild(scene);
-        group->addChild(droneTransform);
+        group->addChild(droneLocation);
 
-        droneTransform->matrix = vsg::translate(location);
+        droneLocation->matrix = vsg::translate(location);
 
         scene = group;
 
@@ -486,11 +488,19 @@ int main(int argc, char** argv)
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
 
+    double theta = 0.0;
+    double dtheta = 0.01 * 2.0 * vsg::PI / 360.0;
+    double flight_scale = 500.0;
+
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
+
+        droneTransform->matrix = vsg::translate(flight_scale * sin(theta), flight_scale * cos(theta), 0.0) * vsg::rotate(-0.5*vsg::PI-theta, vsg::dvec3(0.0, 0.0, 1.0));
+        theta += dtheta;
+
         viewer->update();
 
         viewer->recordAndSubmit();
