@@ -488,15 +488,16 @@ int main(int argc, char** argv)
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
 
-    double theta = 0.0;
-    double dtheta = 0.01 * 2.0 * vsg::PI / 360.0;
-    double flight_scale = 500.0;
+    double dtheta = 0.01 * 2.0 * vsg::PI;
+    double flight_scale = 400.0;
 
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
+
+        double theta = dtheta * std::chrono::duration<double, std::chrono::seconds::period>(viewer->getFrameStamp()->time - startTime).count();
 
         droneTransform->matrix = vsg::translate(flight_scale * sin(theta), flight_scale * cos(theta), 0.0) * vsg::rotate(-0.5*vsg::PI-theta, vsg::dvec3(0.0, 0.0, 1.0));
         theta += dtheta;
