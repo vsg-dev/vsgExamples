@@ -85,6 +85,43 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     return scene;
 }
 
+vsg::ref_ptr<vsg::Node> createDroneModel(vsg::ref_ptr<vsg::Options> options, float droneSize)
+{
+    vsg::GeometryInfo geomInfo;
+    vsg::StateInfo stateInfo;
+    vsg::Builder builder;
+    builder.options = options;
+
+    auto droneGroup = vsg::Group::create();
+
+    geomInfo.dx.set(droneSize * 0.5f, 0.0f, 0.0f);
+    geomInfo.dy.set(0.0f, droneSize, 0.0f);
+    geomInfo.dz.set(0.0f, 0.0f, droneSize * 0.2f);
+
+    // body
+    droneGroup->addChild(builder.createBox(geomInfo, stateInfo));
+
+    geomInfo.dx.set(droneSize*0.5f, 0.0f, 0.0f);
+    geomInfo.dy.set(0.0f, droneSize*0.5f, 0.0f);
+    geomInfo.dz.set(0.0f, 0.0f, droneSize*0.05f);
+    geomInfo.color.set(1.0f, 0.8f, 0.4f, 1.0f);
+
+    // rotors
+    geomInfo.position.set(-droneSize*0.5f, -droneSize*0.5f, 0.0f);
+    droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
+
+    geomInfo.position.set(droneSize*0.5f, -droneSize*0.5f, 0.0f);
+    droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
+
+    geomInfo.position.set(droneSize*0.5f, droneSize*0.5f, 0.0f);
+    droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
+
+    geomInfo.position.set(-droneSize*0.5f, droneSize*0.5f, 0.0f);
+    droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
+
+    return droneGroup;
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -256,29 +293,15 @@ int main(int argc, char** argv)
     {
         droneModel = vsg::read_cast<vsg::Node>(droneFilename, options);
     }
-
     if (!droneModel)
     {
-        vsg::GeometryInfo geomInfo;
-        vsg::StateInfo stateInfo;
-        vsg::Builder builder;
-        builder.options = options;
-
-        geomInfo.dx.set(10.0f, 0.0f, 0.0f);
-        geomInfo.dy.set(0.0f, 10.0f, 0.0f);
-        geomInfo.dz.set(0.0f, 0.0f, 1.0f);
-
-        droneModel = builder.createBox(geomInfo, stateInfo);
+        droneModel = createDroneModel(options, arguments.value(10.0f, "--drone-size"));
     }
 
     auto droneLocation = vsg::MatrixTransform::create(); // transform into world coordinate frame
     auto droneTransform = vsg::MatrixTransform::create(); // local position of the drone within this droneLocation
     droneLocation->addChild(droneTransform);
     droneTransform->addChild(droneModel);
-
-    auto dronePath = vsg::AnimationPath::create();
-
-
 
     //
     // set up the main scene graph
