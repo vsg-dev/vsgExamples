@@ -335,42 +335,85 @@ int main(int argc, char** argv)
     // set up the main scene graph
     //
     auto insertCullNode = arguments.read("--cull");
-    auto inherit = arguments.read("--inherit");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
     auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
     double viewingDistance = scale;
 
-    vsg::ref_ptr<vsg::StateGroup> stateGroup;
-    if (inherit)
+    // set up the state at the top of the scene graph that will be inherited
+    auto stateGroup = vsg::StateGroup::create();
+    auto textureCount = vsg::uintValue::create(0);
+    auto countDescriptor = vsg::DescriptorBuffer::create(textureCount);
+    auto texgenDescritor = vsg::DescriptorBuffer::create();
+    auto textureDescriptor = vsg::DescriptorImage::create();
     {
-        auto layout = shaderSet->createPipelineLayout({}, {0, 1});
+        //
+        // place the FogValue DescriptorSet at the root of the scene graph
+        // and tell the loader via vsg::Options::inheritedState that it doesn't need to assign
+        // it to subgraphs that loader will create
+        //
+        auto layout = shaderSet->createPipelineLayout({}, {0, 2});
 
-        stateGroup = vsg::StateGroup::create();
-
-        uint32_t vds_set = 0;
+        uint32_t vds_set = 1;
         stateGroup->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, vds_set));
+
+        auto fogValue = custom::FogValue::create();
+        fogValue->value().density = 0.1;
+
+        uint32_t cm_set = 0;
+
+        countDescriptor->dstBinding = 0;
+        texgenDescritor->dstBinding = 1;
+        textureDescriptor->dstBinding = 2;
+
+        auto cm_dsl = shaderSet->createDescriptorSetLayout({}, cm_set);
+        auto cm_db = vsg::DescriptorBuffer::create(fogValue);
+        auto cm_ds = vsg::DescriptorSet::create(cm_dsl, vsg::Descriptors{cm_db});
+        auto cm_bds = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, cm_ds);
+        stateGroup->add(cm_bds);
 
         vsg::info("Added state to inherit ");
         options->inheritedState = stateGroup->stateCommands;
     }
 
+    std::vector<vsg::ref_ptr<vsg::Data>> images;
     vsg::ref_ptr<vsg::Node> scene;
-    if (argc>1)
+    for(int i = 1; i< argc;  ++i)
     {
-        vsg::Path filename = argv[1];
-        auto model = vsg::read_cast<vsg::Node>(filename, options);
-        if (!model)
+        vsg::Path filename = argv[i];
+
+        auto object = vsg::read(filename, options);
+        if (!object)
         {
             std::cout<<"Faled to load "<<filename<<std::endl;
             return 1;
         }
-
-        scene = model;
+        else if (auto model = object.cast<vsg::Node>())
+        {
+            scene = model;
+        }
+        else if (auto data = object.cast<vsg::Data>())
+        {
+            images.push_back(data);
+        }
+        else if (object)
+        {
+            std::cout<<"File loaded: "<<filename<<" with unhandled type "<<object->className()<<std::endl;
+            return 1;
+        }
     }
-    else
+
+    if (!scene)
     {
         scene = createLargeTestScene(options, textureFile, requiresBase, insertCullNode);
+    }
+
+    auto sampler = vsg::Sampler::create();
+    auto& imageInfos = textureDescriptor->imageInfoList;
+    for(auto& data : images)
+    {
+        std::cout<<"data = "<< data<<", w = "<<data->width()<<", h = "<<data->height()<<", format = "<<data->properties.format<<std::endl;
+        imageInfos.push_back(vsg::ImageInfo::create(sampler, data));
     }
 
     if (stateGroup)
