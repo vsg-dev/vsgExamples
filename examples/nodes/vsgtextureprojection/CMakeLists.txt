@@ -1,4 +1,5 @@
 set(SOURCES
+    custom_phong.cpp
     vsgtextureprojection.cpp
 )
 

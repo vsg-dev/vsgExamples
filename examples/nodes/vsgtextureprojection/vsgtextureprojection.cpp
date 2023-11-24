@@ -4,6 +4,8 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#include "custom_phong.h"
+
 #include <iostream>
 
 vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options, vsg::Path textureFile = {}, bool requiresBase = true, bool insertCullNode = true)
@@ -264,73 +266,38 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug)
+    // replace phong shader only for simplicity of example - vsg::TileDataset and vsg::Builder use phong ShaderSet
+#if 0
+    vsg::ref_ptr<vsg::ShaderSet> shaderSet = vsg::createPhongShaderSet(options);
+#else
+    vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::phong_ShaderSet(options);
+#endif
+
+    options->shaderSets["phong"] = shaderSet;
+    if (!shaderSet)
     {
-        // customize the phong ShaderSet
-        auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
-        auto phong_fragShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_phong.frag", options);
-        auto phong = vsg::createPhongShaderSet(options);
-        if (phong && phong_vertexShader && phong_fragShader)
+        std::cout<<"No vsg::ShaderSet to process."<<std::endl;
+        return 1;
+    }
+
+    if (depthClamp || shaderDebug)
+    {
+        if (shaderDebug)
         {
-            // replace shaders
-            phong->stages.clear();
-            phong->stages.push_back(phong_vertexShader);
-            phong->stages.push_back(phong_fragShader);
-
-            if (shaderDebug)
-            {
-                phong->optionalDefines.insert("SHADOWMAP_DEBUG");
-                phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
-                phong->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
-            }
-
-            if (depthClamp)
-            {
-                auto rasterizationState = vsg::RasterizationState::create();
-                rasterizationState->depthClampEnable = VK_TRUE;
-                phong->defaultGraphicsPipelineStates.push_back(rasterizationState);
-            }
-
-            // clear prebuilt variants
-            phong->variants.clear();
-
-            options->shaderSets["phong"] = phong;
-
-            std::cout<<"Replaced phong shader"<<std::endl;
+            shaderSet->optionalDefines.insert("SHADOWMAP_DEBUG");
+            shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
+            shaderSet->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
         }
 
-        // customize the pbr ShaderSet
-        auto pbr_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
-        auto pbr_fragShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_pbr.frag", options);
-        auto pbr = vsg::createPhysicsBasedRenderingShaderSet(options);
-        if (pbr && pbr_vertexShader && pbr_fragShader)
+        if (depthClamp)
         {
-            // replace shaders
-            pbr->stages.clear();
-            pbr->stages.push_back(pbr_vertexShader);
-            pbr->stages.push_back(pbr_fragShader);
-
-            if (shaderDebug)
-            {
-                pbr->optionalDefines.insert("SHADOWMAP_DEBUG");
-                pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
-                pbr->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
-            }
-
-            if (depthClamp)
-            {
-                auto rasterizationState = vsg::RasterizationState::create();
-                rasterizationState->depthClampEnable = VK_TRUE;
-                pbr->defaultGraphicsPipelineStates.push_back(rasterizationState);
-            }
-
-            // clear prebuilt variants
-            pbr->variants.clear();
-
-            options->shaderSets["pbr"] = pbr;
-
-            std::cout<<"Replaced pbr shader"<<std::endl;
+            auto rasterizationState = vsg::RasterizationState::create();
+            rasterizationState->depthClampEnable = VK_TRUE;
+            shaderSet->defaultGraphicsPipelineStates.push_back(rasterizationState);
         }
+
+        // clear prebuilt variants
+        shaderSet->variants.clear();
     }
 
     auto pathFilename = arguments.value<vsg::Path>("", "-p");
@@ -377,7 +344,6 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::StateGroup> stateGroup;
     if (inherit)
     {
-        auto shaderSet = vsg::createPhongShaderSet(options);
         auto layout = shaderSet->createPipelineLayout({}, {0, 1});
 
         stateGroup = vsg::StateGroup::create();
