@@ -6,6 +6,8 @@
 #define MATERIAL_DESCRIPTOR_SET 2
 #define CUSTOM_DESCRIPTOR_SET 0
 
+#extension GL_EXT_nonuniform_qualifier : enable
+
 #ifdef VSG_DIFFUSE_MAP
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
 #endif
@@ -46,14 +48,18 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform sampler2DArrayShadow shadowMaps;
 
 // Custom state
-layout(set = CUSTOM_DESCRIPTOR_SET, binding = 0) uniform Fog
+layout(set = CUSTOM_DESCRIPTOR_SET, binding = 0) uniform TextureCount
 {
-    vec3 color;
-    float density;
-    float start;
-    float end;
-    float exponent;
-} fog;
+    uint value;
+} textureCount;
+
+layout(set = CUSTOM_DESCRIPTOR_SET, binding = 1) uniform TexGenMatrices
+{
+    mat4 matrix[128];
+} texgenMatrices;
+
+layout(set = CUSTOM_DESCRIPTOR_SET, binding = 2) uniform sampler2DArray projectedTextures;
+
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -135,6 +141,11 @@ void main()
         diffuseColor *= texture(diffuseMap, texCoord0.st);
     #endif
 #endif
+
+    if (textureCount.value > 0)
+    {
+        diffuseColor = texture(projectedTextures, vec3(texCoord0.st, (textureCount.value/100) % 8));
+    }
 
     vec4 ambientColor = diffuseColor * material.ambientColor * material.ambientColor.a;
     vec4 specularColor = material.specularColor;
@@ -316,37 +327,6 @@ void main()
         }
     }
 
-#if 1
-    color = (color * ambientOcclusion) + emissiveColor.rgb;
-    if (fog.exponent != 0.0)
-    {
-        float fogCoord = -eyePos.z;
-        const float e = 2.71828;
-        float f = pow(e, -fog.density * pow(fogCoord, fog.exponent));
-        color = mix(fog.color, color, f);
-    }
-    else
-    {
-        // linear
-        float fogCoord = -eyePos.z;
-        if (fogCoord > fog.start)
-        {
-            if (fogCoord < fog.end)
-            {
-                float f = (fog.end - fogCoord) / (fog.end - fog.start);
-                color = mix(fog.color, color, f);
-            }
-            else
-            {
-                color = fog.color;
-            }
-        }
-    }
-    // color = vec3(1.0, 0.0, 1.0);
-
-    outColor.rgb = color;
-#else
     outColor.rgb = (color * ambientOcclusion) + emissiveColor.rgb;
-#endif
     outColor.a = diffuseColor.a;
 }

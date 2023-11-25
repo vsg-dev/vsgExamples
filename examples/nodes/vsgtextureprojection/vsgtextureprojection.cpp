@@ -192,6 +192,7 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
 
@@ -234,17 +235,33 @@ int main(int argc, char** argv)
     double lambda = arguments.value<double>(0.5, "--lambda");
     double nearFarRatio = arguments.value<double>(0.001, "--nf");
 
+    auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+    deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+
+    /// Use if you want to enable GLSL texture arrays declared as [],
+    /// also requires the addition to the GLSL shader:
+    ///    #extension GL_EXT_nonuniform_qualifier : enable
+    // auto& decriptorIndexingFeatures = deviceFeatures->get<VkPhysicalDeviceDescriptorIndexingFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES>();
+    // decriptorIndexingFeatures.runtimeDescriptorArray = true;
+
     bool shaderDebug = arguments.read("--shader-debug");
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
     {
         std::cout<<"Enabled depth clamp."<<std::endl;
-        auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
-        deviceFeatures->get().samplerAnisotropy = VK_TRUE;
         deviceFeatures->get().depthClamp = VK_TRUE;
     }
 
-    vsg::Path textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
+
+    auto insertCullNode = arguments.read("--cull");
+    auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
+    auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
+    auto scale = arguments.value<double>(1.0, "--scale");
+    double viewingDistance = scale;
+
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
+    auto textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
 
     auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
     auto numLights = arguments.value<uint32_t>(1, "-n");
@@ -267,11 +284,7 @@ int main(int argc, char** argv)
     }
 
     // replace phong shader only for simplicity of example - vsg::TileDataset and vsg::Builder use phong ShaderSet
-#if 0
-    vsg::ref_ptr<vsg::ShaderSet> shaderSet = vsg::createPhongShaderSet(options);
-#else
     vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::phong_ShaderSet(options);
-#endif
 
     options->shaderSets["phong"] = shaderSet;
     if (!shaderSet)
@@ -300,8 +313,90 @@ int main(int argc, char** argv)
         shaderSet->variants.clear();
     }
 
-    auto pathFilename = arguments.value<vsg::Path>("", "-p");
-    auto outputFilename = arguments.value<vsg::Path>("", "-o");
+
+    std::vector<vsg::ref_ptr<vsg::Data>> images;
+    vsg::ref_ptr<vsg::Data> firstImage;
+    uint32_t depth = 0;
+    for(int i = 1; i< argc;  ++i)
+    {
+        vsg::Path filename = argv[i];
+        if (auto data = vsg::read_cast<vsg::Data>(filename, options))
+        {
+            if (data->properties.format == VK_FORMAT_R8G8B8A8_UNORM)
+            {
+                if (!firstImage)
+                {
+                    firstImage = data;
+                    depth += data->depth();
+                    images.push_back(data);
+                }
+                else if (firstImage->width() == data->width() && firstImage->height() == data->height())
+                {
+                    depth += data->depth();
+                    images.push_back(data);
+                }
+                else
+                {
+                    std::cout<<"Image file : "<<filename<<" loaded, but does not match required dimensions for first image."<<std::endl;
+                }
+            }
+            else
+            {
+                std::cout<<"Image file : "<<filename<<" loaded, but does not match required VK_FORMAT_R8G8B8A8_UNORM format."<<std::endl;
+            }
+        }
+        else
+        {
+            std::cout<<"Image file : "<<filename<<" not loaded."<<std::endl;
+            return 1;
+        }
+    }
+
+    if (images.empty())
+    {
+        std::cout<<"No images to project, please specify an image file on the command line."<<std::endl;
+        return 1;
+    }
+
+    // set up the state at the top of the scene graph that will be inherited
+    auto stateGroup = vsg::StateGroup::create();
+
+    auto textureCount = vsg::uintValue::create(0);
+    textureCount->properties.dataVariance = vsg::DYNAMIC_DATA;// _TRANSFER_AFTER_RECORD;
+
+    auto countDescriptor = vsg::DescriptorBuffer::create(textureCount);
+    auto texgenDescritor = vsg::DescriptorBuffer::create();
+    auto textureDescriptor = vsg::DescriptorImage::create();
+
+    {
+        auto& countDescriptorBinding = shaderSet->getDescriptorBinding("textureCount");
+        auto& texGenMatricesDescriptorBinding = shaderSet->getDescriptorBinding("texGenMatrices");
+        auto& projectedTexturesDescriptorBinding = shaderSet->getDescriptorBinding("projectedTextures");
+        //
+        // place the FogValue DescriptorSet at the root of the scene graph
+        // and tell the loader via vsg::Options::inheritedState that it doesn't need to assign
+        // it to subgraphs that loader will create
+        //
+        auto layout = shaderSet->createPipelineLayout({}, {0, 2});
+
+        uint32_t vds_set = 1;
+        stateGroup->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, vds_set));
+
+        uint32_t cm_set = 0;
+
+        countDescriptor->dstBinding = countDescriptorBinding.binding;
+        texgenDescritor->dstBinding = texGenMatricesDescriptorBinding.binding;
+        textureDescriptor->dstBinding = projectedTexturesDescriptorBinding.binding;
+
+        auto cm_dsl = shaderSet->createDescriptorSetLayout({}, cm_set);
+        auto cm_ds = vsg::DescriptorSet::create(cm_dsl, vsg::Descriptors{countDescriptor, texgenDescritor, textureDescriptor});
+
+        auto cm_bds = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, cm_ds);
+        stateGroup->add(cm_bds);
+
+        vsg::info("Added state to inherit ");
+        options->inheritedState = stateGroup->stateCommands;
+    }
 
     bool requiresBase = true;
     auto earthModel = createEarthModel(arguments, options);
@@ -334,86 +429,22 @@ int main(int argc, char** argv)
     //
     // set up the main scene graph
     //
-    auto insertCullNode = arguments.read("--cull");
-    auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
-    auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
-    auto scale = arguments.value<double>(1.0, "--scale");
-    double viewingDistance = scale;
 
-    // set up the state at the top of the scene graph that will be inherited
-    auto stateGroup = vsg::StateGroup::create();
-    auto textureCount = vsg::uintValue::create(0);
-    auto countDescriptor = vsg::DescriptorBuffer::create(textureCount);
-    auto texgenDescritor = vsg::DescriptorBuffer::create();
-    auto textureDescriptor = vsg::DescriptorImage::create();
-    {
-        //
-        // place the FogValue DescriptorSet at the root of the scene graph
-        // and tell the loader via vsg::Options::inheritedState that it doesn't need to assign
-        // it to subgraphs that loader will create
-        //
-        auto layout = shaderSet->createPipelineLayout({}, {0, 2});
-
-        uint32_t vds_set = 1;
-        stateGroup->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, vds_set));
-
-        auto fogValue = custom::FogValue::create();
-        fogValue->value().density = 0.1;
-
-        uint32_t cm_set = 0;
-
-        countDescriptor->dstBinding = 0;
-        texgenDescritor->dstBinding = 1;
-        textureDescriptor->dstBinding = 2;
-
-        auto cm_dsl = shaderSet->createDescriptorSetLayout({}, cm_set);
-        auto cm_db = vsg::DescriptorBuffer::create(fogValue);
-        auto cm_ds = vsg::DescriptorSet::create(cm_dsl, vsg::Descriptors{cm_db});
-        auto cm_bds = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, cm_ds);
-        stateGroup->add(cm_bds);
-
-        vsg::info("Added state to inherit ");
-        options->inheritedState = stateGroup->stateCommands;
-    }
-
-    std::vector<vsg::ref_ptr<vsg::Data>> images;
-    vsg::ref_ptr<vsg::Node> scene;
-    for(int i = 1; i< argc;  ++i)
-    {
-        vsg::Path filename = argv[i];
-
-        auto object = vsg::read(filename, options);
-        if (!object)
-        {
-            std::cout<<"Faled to load "<<filename<<std::endl;
-            return 1;
-        }
-        else if (auto model = object.cast<vsg::Node>())
-        {
-            scene = model;
-        }
-        else if (auto data = object.cast<vsg::Data>())
-        {
-            images.push_back(data);
-        }
-        else if (object)
-        {
-            std::cout<<"File loaded: "<<filename<<" with unhandled type "<<object->className()<<std::endl;
-            return 1;
-        }
-    }
-
-    if (!scene)
-    {
-        scene = createLargeTestScene(options, textureFile, requiresBase, insertCullNode);
-    }
+    vsg::ref_ptr<vsg::Node> scene = createLargeTestScene(options, textureFile, requiresBase, insertCullNode);
 
     auto sampler = vsg::Sampler::create();
-    auto& imageInfos = textureDescriptor->imageInfoList;
+    auto texgenMatrices = vsg::mat4Array::create(depth);
+    auto texture2DArray = vsg::ubvec4Array3D::create(firstImage->width(), firstImage->height(), depth, vsg::ubvec4(255, 255, 255, 255), vsg::Data::Properties{VK_FORMAT_R8G8B8A8_UNORM});
+    texture2DArray->properties.imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+
+    texgenDescritor->bufferInfoList.push_back(vsg::BufferInfo::create(texgenMatrices));
+    textureDescriptor->imageInfoList.push_back(vsg::ImageInfo::create(sampler, texture2DArray));
+
+    uint32_t layer = 0;
     for(auto& data : images)
     {
-        std::cout<<"data = "<< data<<", w = "<<data->width()<<", h = "<<data->height()<<", format = "<<data->properties.format<<std::endl;
-        imageInfos.push_back(vsg::ImageInfo::create(sampler, data));
+        std::memcpy(texture2DArray->dataPointer(texture2DArray->index(0, 0, layer)), data->dataPointer(), data->dataSize());
+        layer += data->depth();
     }
 
     if (stateGroup)
@@ -594,6 +625,9 @@ int main(int argc, char** argv)
 
         droneTransform->matrix = vsg::translate(flight_scale * sin(theta), flight_scale * cos(theta), 0.0) * vsg::rotate(-0.5*vsg::PI-theta, vsg::dvec3(0.0, 0.0, 1.0));
         theta += dtheta;
+
+        textureCount->value() += 1;
+        textureCount->dirty();
 
         viewer->update();
 
