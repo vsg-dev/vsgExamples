@@ -133,19 +133,31 @@ void main()
 #endif
 
     vec4 diffuseColor = vertexColor * material.diffuseColor;
+
+    bool matchedProjectedTexture = false;
+    for(int ti = 0; ti < textureCount.value; ++ti)
+    {
+        vec4 tc = texgenMatrices.matrix[ti] * vec4(eyePos, 1.0);
+        if (tc.x >= 0.0 && tc.x <= 1.0 && tc.y >= 0.0 && tc.y <= 1.0)
+        {
+            //matchedProjectedTexture = true;
+
+            diffuseColor *= texture(projectedTextures, vec3(tc.st, ti));
+            break;
+        }
+    }
+
 #ifdef VSG_DIFFUSE_MAP
+    if (!matchedProjectedTexture)
+    {
     #ifdef VSG_GREYSCALE_DIFFUSE_MAP
         float v = texture(diffuseMap, texCoord0.st).s;
         diffuseColor *= vec4(v, v, v, 1.0);
     #else
         diffuseColor *= texture(diffuseMap, texCoord0.st);
     #endif
-#endif
-
-    if (textureCount.value > 0)
-    {
-        diffuseColor = texture(projectedTextures, vec3(texCoord0.st, (textureCount.value/100) % 8));
     }
+#endif
 
     vec4 ambientColor = diffuseColor * material.ambientColor * material.ambientColor.a;
     vec4 specularColor = material.specularColor;

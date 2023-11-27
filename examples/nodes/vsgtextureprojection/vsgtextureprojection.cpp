@@ -188,6 +188,12 @@ vsg::ref_ptr<vsg::Node> createEarthModel(vsg::CommandLine& arguments, vsg::ref_p
     return {};
 }
 
+vsg::dmat4 computePosition(double ratio, double flight_scale)
+{
+    double theta = 2 * vsg::PI * ratio;
+    return vsg::translate(flight_scale * sin(theta), flight_scale * cos(theta), 0.0) * vsg::rotate(-0.5*vsg::PI-theta, vsg::dvec3(0.0, 0.0, 1.0));
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -255,7 +261,7 @@ int main(int argc, char** argv)
 
     auto insertCullNode = arguments.read("--cull");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
-    auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
+    auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 50.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
     double viewingDistance = scale;
 
@@ -264,7 +270,6 @@ int main(int argc, char** argv)
     auto textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
 
     auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
-    auto numLights = arguments.value<uint32_t>(1, "-n");
 
     vsg::ref_ptr<vsg::ResourceHints> resourceHints;
     if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
@@ -512,41 +517,21 @@ int main(int argc, char** argv)
     auto group = vsg::Group::create();
     group->addChild(scene);
 
-
-    vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
-    if (numLights >= 1)
+    // set up lighting
     {
-        directionalLight = vsg::DirectionalLight::create();
+        auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
         directionalLight->shadowMaps = numShadowMapsPerLight;
         group->addChild(directionalLight);
-    }
 
-    vsg::ref_ptr<vsg::AmbientLight> ambientLight;
-    if (numLights >= 2)
-    {
-        ambientLight = vsg::AmbientLight::create();
+        auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
         ambientLight->intensity = 0.2;
         group->addChild(ambientLight);
-    }
-
-    if (numLights >= 3)
-    {
-        directionalLight->intensity = 0.7;
-        ambientLight->intensity = 0.1;
-
-        auto directionalLight2 = vsg::DirectionalLight::create();
-        directionalLight2->name = "2nd directional";
-        directionalLight2->color.set(1.0, 1.0, 0.0);
-        directionalLight2->intensity = 0.7;
-        directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
-        directionalLight2->shadowMaps = numShadowMapsPerLight;
-        group->addChild(directionalLight2);
     }
 
     scene = group;
@@ -612,8 +597,8 @@ int main(int argc, char** argv)
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
 
-    double dtheta = 0.01 * 2.0 * vsg::PI;
     double flight_scale = 400.0;
+    double animationPeriod = 60.0;
 
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
@@ -621,10 +606,9 @@ int main(int argc, char** argv)
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
-        double theta = dtheta * std::chrono::duration<double, std::chrono::seconds::period>(viewer->getFrameStamp()->time - startTime).count();
+        double ratio = std::chrono::duration<double, std::chrono::seconds::period>(viewer->getFrameStamp()->time - startTime).count() / animationPeriod;
 
-        droneTransform->matrix = vsg::translate(flight_scale * sin(theta), flight_scale * cos(theta), 0.0) * vsg::rotate(-0.5*vsg::PI-theta, vsg::dvec3(0.0, 0.0, 1.0));
-        theta += dtheta;
+        droneTransform->matrix = computePosition(ratio, flight_scale);
 
         textureCount->value() += 1;
         textureCount->dirty();
