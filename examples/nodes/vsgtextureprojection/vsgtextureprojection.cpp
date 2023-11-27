@@ -188,11 +188,20 @@ vsg::ref_ptr<vsg::Node> createEarthModel(vsg::CommandLine& arguments, vsg::ref_p
     return {};
 }
 
-vsg::dmat4 computePosition(double ratio, double flight_scale)
+vsg::ref_ptr<vsg::AnimationPath> createAnimationPath(double flight_scale, double period)
 {
-    double theta = 2 * vsg::PI * ratio;
-    return vsg::translate(flight_scale * sin(theta), flight_scale * cos(theta), 0.0) * vsg::rotate(-0.5*vsg::PI-theta, vsg::dvec3(0.0, 0.0, 1.0));
-};
+    auto path = vsg::AnimationPath::create();
+    path->mode = vsg::AnimationPath::REPEAT;
+    double delta = period / 100.0;
+    for(double time = 0.0; time < period; time += delta)
+    {
+        double theta = 2 * vsg::PI * (time / period);
+        auto& location= path->locations[time];
+        location.position.set(flight_scale * sin(theta), flight_scale * cos(theta), 0.0);
+        location.orientation.set(-0.5*vsg::PI - theta, vsg::dvec3(0.0, 0.0, 1.0));
+    }
+    return path;
+}
 
 int main(int argc, char** argv)
 {
@@ -270,6 +279,7 @@ int main(int argc, char** argv)
     auto textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
 
     auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
+
 
     vsg::ref_ptr<vsg::ResourceHints> resourceHints;
     if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
@@ -543,7 +553,6 @@ int main(int argc, char** argv)
         return 0;
     }
 
-
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -600,18 +609,16 @@ int main(int argc, char** argv)
     double flight_scale = 400.0;
     double animationPeriod = 60.0;
 
+    auto dronePath = createAnimationPath(2.0 * flight_scale, animationPeriod);
+
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
 
-        double ratio = std::chrono::duration<double, std::chrono::seconds::period>(viewer->getFrameStamp()->time - startTime).count() / animationPeriod;
-
-        droneTransform->matrix = computePosition(ratio, flight_scale);
-
-        textureCount->value() += 1;
-        textureCount->dirty();
+        double time = std::chrono::duration<double,  std::chrono::seconds::period>(viewer->getFrameStamp()->time - startTime).count();
+        droneTransform->matrix = dronePath->computeMatrix(time);
 
         viewer->update();
 
