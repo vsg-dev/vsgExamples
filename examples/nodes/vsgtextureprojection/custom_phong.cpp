@@ -20,8 +20,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "custom_phong.h"
 
-vsg::RegisterWithObjectFactoryProxy<custom::FogValue> s_Register_FogValue;
-
 vsg::ref_ptr<vsg::ShaderSet> custom::phong_ShaderSet(vsg::ref_ptr<const vsg::Options> options)
 {
     vsg::info("Local phong_ShaderSet(",options,")");
