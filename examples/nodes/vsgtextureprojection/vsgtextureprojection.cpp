@@ -198,7 +198,7 @@ vsg::ref_ptr<vsg::AnimationPath> createAnimationPath(double flight_scale, double
         double theta = 2 * vsg::PI * (time / period);
         auto& location= path->locations[time];
         location.position.set(flight_scale * sin(theta), flight_scale * cos(theta), 0.0);
-        location.orientation.set(-0.5*vsg::PI - theta, vsg::dvec3(0.0, 0.0, 1.0));
+        location.orientation.set(- 0.5 * vsg::PI - theta, vsg::dvec3(0.0, 0.0, 1.0));
     }
     return path;
 }
@@ -376,9 +376,7 @@ int main(int argc, char** argv)
     // set up the state at the top of the scene graph that will be inherited
     auto stateGroup = vsg::StateGroup::create();
 
-    auto textureCount = vsg::uintValue::create(0);
-    textureCount->properties.dataVariance = vsg::DYNAMIC_DATA;// _TRANSFER_AFTER_RECORD;
-
+    auto textureCount = vsg::uintValue::create(depth);
     auto countDescriptor = vsg::DescriptorBuffer::create(textureCount);
     auto texgenDescritor = vsg::DescriptorBuffer::create();
     auto textureDescriptor = vsg::DescriptorImage::create();
@@ -449,18 +447,29 @@ int main(int argc, char** argv)
 
     auto sampler = vsg::Sampler::create();
     auto texgenMatrices = vsg::mat4Array::create(depth);
+    texgenMatrices->properties.dataVariance = vsg::DYNAMIC_DATA;
+
     auto texture2DArray = vsg::ubvec4Array3D::create(firstImage->width(), firstImage->height(), depth, vsg::ubvec4(255, 255, 255, 255), vsg::Data::Properties{VK_FORMAT_R8G8B8A8_UNORM});
     texture2DArray->properties.imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
     texgenDescritor->bufferInfoList.push_back(vsg::BufferInfo::create(texgenMatrices));
     textureDescriptor->imageInfoList.push_back(vsg::ImageInfo::create(sampler, texture2DArray));
 
+    double flight_scale = 400.0;
+    double animationPeriod = 60.0;
+
+    // create the path for the drone to follow, and to use for setting the texgen matrices to position the textures
+    auto dronePath = createAnimationPath(flight_scale, animationPeriod);
+
+
+    // copy loaded images to single texture2DArray
     uint32_t layer = 0;
     for(auto& data : images)
     {
         std::memcpy(texture2DArray->dataPointer(texture2DArray->index(0, 0, layer)), data->dataPointer(), data->dataSize());
         layer += data->depth();
     }
+
 
     if (stateGroup)
     {
@@ -521,6 +530,17 @@ int main(int argc, char** argv)
 
         // set up the camera
         lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -viewingDistance, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    }
+
+    // set up the texgen matrices
+    auto imageMatrices = vsg::dmat4Array::create(depth);
+    double aspectRatio = (static_cast<double>(texture2DArray->width())/static_cast<double>(texture2DArray->height()));
+    for(size_t i = 0; i < depth; ++i)
+    {
+        double time = dronePath->period() * (double(i) / double(depth));
+        auto mv = vsg::inverse(droneLocation->matrix * dronePath->computeMatrix(time));
+        auto p = vsg::perspective(vsg::radians(45.0), aspectRatio, 1.0, 100.0);
+        imageMatrices->set(i, p * mv );
     }
 
     //auto span = vsg::length(bounds.max - bounds.min);
@@ -606,10 +626,6 @@ int main(int argc, char** argv)
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
 
-    double flight_scale = 400.0;
-    double animationPeriod = 60.0;
-
-    auto dronePath = createAnimationPath(2.0 * flight_scale, animationPeriod);
 
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
@@ -621,6 +637,16 @@ int main(int argc, char** argv)
         droneTransform->matrix = dronePath->computeMatrix(time);
 
         viewer->update();
+
+        // update the eye line text
+        vsg::dmat4 inverse_viewMatrix = vsg::inverse(camera->viewMatrix->transform());
+        for(size_t i = 0; i < depth; ++i)
+        {
+            vsg::dmat4 texgenProjView = imageMatrices->at(i);
+            vsg::dmat4 texgenTM = texgenProjView * inverse_viewMatrix;
+            texgenMatrices->set(i, vsg::mat4(texgenTM));
+        }
+        texgenMatrices->dirty();
 
         viewer->recordAndSubmit();
 

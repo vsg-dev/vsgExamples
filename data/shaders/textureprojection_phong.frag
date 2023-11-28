@@ -135,14 +135,16 @@ void main()
     vec4 diffuseColor = vertexColor * material.diffuseColor;
 
     bool matchedProjectedTexture = false;
+
     for(int ti = 0; ti < textureCount.value; ++ti)
     {
         vec4 tc = texgenMatrices.matrix[ti] * vec4(eyePos, 1.0);
+        tc.xy = (tc.xy * (-0.5 / tc.w)) + vec2(0.5, 0.5);
         if (tc.x >= 0.0 && tc.x <= 1.0 && tc.y >= 0.0 && tc.y <= 1.0)
         {
-            //matchedProjectedTexture = true;
+            matchedProjectedTexture = true;
 
-            diffuseColor *= texture(projectedTextures, vec3(tc.st, ti));
+            diffuseColor *= texture(projectedTextures, vec3(tc.xy, ti));
             break;
         }
     }
