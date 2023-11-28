@@ -270,7 +270,7 @@ int main(int argc, char** argv)
 
     auto insertCullNode = arguments.read("--cull");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
-    auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 50.0}, "--location");
+    auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 100.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
     double viewingDistance = scale;
 
@@ -537,6 +537,8 @@ int main(int argc, char** argv)
     double aspectRatio = (static_cast<double>(texture2DArray->width())/static_cast<double>(texture2DArray->height()));
     for(size_t i = 0; i < depth; ++i)
     {
+        // drone has Y forward, X to the right, Z up, so without any further rotation the projected texture
+        // will poject down the negative Z axis, which in this setup is straight down towards the earth.
         double time = dronePath->period() * (double(i) / double(depth));
         auto mv = vsg::inverse(droneLocation->matrix * dronePath->computeMatrix(time));
         auto p = vsg::perspective(vsg::radians(45.0), aspectRatio, 1.0, 100.0);
