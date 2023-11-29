@@ -114,6 +114,8 @@ int main(int argc, char** argv)
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
+        // Use the VK_EXT_debug_utils extension, the point of this demo
+        windowTraits->debugUtils = true;
         windowTraits->windowTitle = "vsgviewer";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
@@ -164,6 +166,11 @@ int main(int argc, char** argv)
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
 
+        // For a sanity check that everything still works if we don't enable the extension.
+        if (arguments.read("--no-annotate"))
+        {
+            windowTraits->debugUtils = false;
+        }
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         if (argc <= 1)
@@ -171,8 +178,6 @@ int main(int argc, char** argv)
             std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
             return 1;
         }
-        // Use the VK_EXT_debug_utils extension, the point of this demo
-        windowTraits->debugUtils = true;
 
         std::vector<std::string> fileNames;
         std::vector<vsg::ref_ptr<vsg::Node>> nodes;

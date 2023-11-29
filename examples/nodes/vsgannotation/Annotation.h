@@ -31,16 +31,16 @@ namespace experimental
         {
             auto* commandBuffer = visitor.getCommandBuffer();
             auto* instance = commandBuffer->getDevice()->getInstance();
-            if (instance->vkCmdBeginDebugUtilsLabelEXT && !annotation.empty())
+            if (instance->getExtensions()->vkCmdBeginDebugUtilsLabelEXT && !annotation.empty())
             {
                 VkCommandBuffer cmdBuffer{*commandBuffer};
                 VkDebugUtilsLabelEXT markerInfo = {};
                 markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
                 markerInfo.pLabelName = annotation.c_str();
                 std::copy(&debugColor.value[0], &debugColor.value[4], &markerInfo.color[0]);
-                instance->vkCmdBeginDebugUtilsLabelEXT(cmdBuffer, &markerInfo);
+                instance->getExtensions()->vkCmdBeginDebugUtilsLabelEXT(cmdBuffer, &markerInfo);
                 ParentClass::accept(visitor);
-                instance->vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
+                instance->getExtensions()->vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
             }
             else
             {
