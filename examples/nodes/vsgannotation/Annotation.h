@@ -30,17 +30,20 @@ namespace experimental
         void accept(vsg::RecordTraversal& visitor) const override
         {
             auto* commandBuffer = visitor.getCommandBuffer();
-            auto* instance = commandBuffer->getDevice()->getInstance();
-            if (instance->getExtensions()->vkCmdBeginDebugUtilsLabelEXT && !annotation.empty())
+            auto extensions = commandBuffer->getDevice()->getInstance()->getExtensions();
+            if (extensions->vkCmdBeginDebugUtilsLabelEXT && !annotation.empty())
             {
                 VkCommandBuffer cmdBuffer{*commandBuffer};
                 VkDebugUtilsLabelEXT markerInfo = {};
                 markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
                 markerInfo.pLabelName = annotation.c_str();
                 std::copy(&debugColor.value[0], &debugColor.value[4], &markerInfo.color[0]);
-                instance->getExtensions()->vkCmdBeginDebugUtilsLabelEXT(cmdBuffer, &markerInfo);
+
+                extensions->vkCmdBeginDebugUtilsLabelEXT(cmdBuffer, &markerInfo);
+
                 ParentClass::accept(visitor);
-                instance->getExtensions()->vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
+
+                extensions->vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
             }
             else
             {
