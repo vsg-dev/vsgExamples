@@ -1,3 +1,4 @@
+add_subdirectory(vsgannotation)
 add_subdirectory(vsggroups)
 add_subdirectory(vsglights)
 add_subdirectory(vsgtransform)
