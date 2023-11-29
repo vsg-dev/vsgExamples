@@ -27,6 +27,8 @@ namespace experimental
         vsg::vec4 debugColor;
         std::string annotation;
 
+        using ParentClass::accept;
+
         void accept(vsg::RecordTraversal& visitor) const override
         {
             auto* commandBuffer = visitor.getCommandBuffer();
@@ -49,17 +51,6 @@ namespace experimental
             {
                 ParentClass::accept(visitor);
             }
-        }
-        // ParentClass::accept() is hidden by overriding accept(RecordTraversal&), so we need to
-        // reimplement the other variations too in order to be able to call them directly.
-        void accept(vsg::Visitor& visitor) override
-        {
-            ParentClass::accept(visitor);
-        }
-
-        void accept(vsg::ConstVisitor& visitor) const override
-        {
-            ParentClass::accept(visitor);
         }
     };
 }

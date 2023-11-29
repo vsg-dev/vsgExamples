@@ -24,31 +24,19 @@ using NamedTransform = experimental::Annotation<vsg::MatrixTransform>;
 class NamedGroup : public vsg::Inherit<experimental::Annotation<vsg::Group>, NamedGroup>
 {
 public:
-    void accept(vsg::RecordTraversal& visitor) const override
-    {
-        experimental::Annotation<vsg::Group>::accept(visitor);
-    }
-
-    // These aren't used in this example, but we need to define them if we want to call the accept()
-    // method with a visitor, e.g. to calculate the node's bounds.
-
-    void accept(vsg::Visitor& visitor) override
-    {
-        experimental::Annotation<vsg::Group>::accept(visitor);
-    }
-
-    void accept(vsg::ConstVisitor& visitor) const override
-    {
-        experimental::Annotation<vsg::Group>::accept(visitor);
-    }
-
-    
     NamedGroup()
     {
         debugColor = vsg::vec4(.8, .8, .8, 1.0);
     }
+
+    using experimental::Annotation<vsg::Group>::accept;
+
+    void accept(vsg::RecordTraversal& visitor) const override
+    {
+        experimental::Annotation<vsg::Group>::accept(visitor);
+    }
 };
-    
+
 // Lay out the loaded files on the X axis
 
 vsg::ref_ptr<NamedGroup> createAnnotatedScene(const std::vector<std::string>& names,
