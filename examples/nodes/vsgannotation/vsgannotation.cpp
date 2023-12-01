@@ -46,8 +46,7 @@ EVSG_type_name(experimental::NamedGroup);
 
 // Lay out the loaded files on the X axis
 
-vsg::ref_ptr<experimental::NamedGroup> createAnnotatedScene(const std::vector<std::string>& names,
-                                              const std::vector<vsg::ref_ptr<vsg::Node>>& nodes)
+vsg::ref_ptr<experimental::NamedGroup> createAnnotatedScene(const std::vector<std::string>& names, const vsg::Group::Children& nodes)
 {
     auto scene = experimental::NamedGroup::create();
     scene->annotation = "Scene";
@@ -211,11 +210,10 @@ int main(int argc, char** argv)
         arguments.read("--samples", windowTraits->samples);
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
-        auto loadLevels = arguments.value(0, "--load-levels");
-        auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
+        bool customRecordTraversal = arguments.read("--cr");
 
         if (arguments.read({"--shader-debug-info", "--sdi"}))
         {
@@ -239,7 +237,7 @@ int main(int argc, char** argv)
         }
 
         std::vector<std::string> fileNames;
-        std::vector<vsg::ref_ptr<vsg::Node>> nodes;
+        auto group = vsg::Group::create();
         // read any vsg files
         for (int i = 1; i < argc; ++i)
         {
@@ -250,7 +248,7 @@ int main(int argc, char** argv)
             if (auto node = object.cast<vsg::Node>())
             {
                 fileNames.push_back(path.string());
-                nodes.push_back(node);
+                group->addChild(node);
             }
             else if (object)
             {
@@ -262,12 +260,21 @@ int main(int argc, char** argv)
             }
         }
 
-        if (nodes.empty())
+        if (group->children.empty())
         {
             return 1;
         }
 
-        vsg::ref_ptr<vsg::Node> vsg_scene = createAnnotatedScene(fileNames, nodes);
+        vsg::ref_ptr<vsg::Node> vsg_scene;
+        if (!customRecordTraversal)
+        {
+            vsg_scene = createAnnotatedScene(fileNames, group->children);
+        }
+        else
+        {
+            if (group->children.size()) vsg_scene = group->children.front();
+            else vsg_scene = group;
+        }
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -308,39 +315,15 @@ int main(int argc, char** argv)
         auto animationPathHandler = vsg::RecordAnimationPathHandler::create(camera, pathFilename, options);
         animationPathHandler->printFrameStatsToConsole = true;
         viewer->addEventHandler(animationPathHandler);
-
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
-
-        // if required preload specific number of PagedLOD levels.
-        if (loadLevels > 0)
-        {
-            vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
-
-            auto startTime = vsg::clock::now();
-
-            vsg_scene->accept(loadPagedLOD);
-
-            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(vsg::clock::now() - startTime).count();
-            std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
-        }
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         #if VSG_virtual_RecordTraversal_apply
-        commandGraph->recordTraversal = CustomRecordTraversal::create();
+        if (customRecordTraversal) commandGraph->recordTraversal = CustomRecordTraversal::create();
         #endif
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-
         viewer->compile();
-
-        if (maxPagedLOD > 0)
-        {
-            // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-            for(auto& task : viewer->recordAndSubmitTasks)
-            {
-                if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
-            }
-        }
 
         viewer->start_point() = vsg::clock::now();
 
