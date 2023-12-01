@@ -81,6 +81,37 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     pbr->defaultShaderHints = shaderHints;
 }
 
+#if VSG_virtual_RecordTraversal_apply
+class CustomRecordTraversal : public vsg::Inherit<vsg::RecordTraversal, CustomRecordTraversal>
+{
+public:
+
+      void apply(const vsg::Group& group) override
+      {
+        auto* commandBuffer = getCommandBuffer();
+        auto extensions = commandBuffer->getDevice()->getInstance()->getExtensions();
+        if (extensions->vkCmdBeginDebugUtilsLabelEXT)
+        {
+            VkCommandBuffer cmdBuffer{*commandBuffer};
+            VkDebugUtilsLabelEXT markerInfo = {};
+            markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            markerInfo.pLabelName = "vsg::Group";
+
+            extensions->vkCmdBeginDebugUtilsLabelEXT(cmdBuffer, &markerInfo);
+
+            vsg::RecordTraversal::apply(group);
+
+            extensions->vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
+        }
+        else
+        {
+            vsg::RecordTraversal::apply(group);
+        }
+
+      }
+};
+#endif
+
 int main(int argc, char** argv)
 {
     try
@@ -254,7 +285,11 @@ int main(int argc, char** argv)
         }
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        #if VSG_virtual_RecordTraversal_apply
+        commandGraph->recordTraversal = CustomRecordTraversal::create();
+        #endif
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
 
         viewer->compile();
 
