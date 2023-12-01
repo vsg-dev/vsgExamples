@@ -13,14 +13,17 @@
 #include <iostream>
 #include <thread>
 
-// using NamedGroup = experimental::Annotation<vsg::Group>;
+
+
+namespace experimental
+{
+
 using NamedTransform = experimental::Annotation<vsg::MatrixTransform>;
 
 // Create a custom subclass with a different display color. This illustrates a gotcha with
 // vsg::Inherit and a custom accept(RecordTraversal&): Inherit::accept() calls
 // RecordTraveral::apply(), but that is not virtual and will end up doing the recording action for
 // vsg::Group, which would leave us without an annotation.
-
 class NamedGroup : public vsg::Inherit<experimental::Annotation<vsg::Group>, NamedGroup>
 {
 public:
@@ -36,13 +39,17 @@ public:
         experimental::Annotation<vsg::Group>::accept(visitor);
     }
 };
+}
+
+EVSG_type_name(experimental::NamedTransform);
+EVSG_type_name(experimental::NamedGroup);
 
 // Lay out the loaded files on the X axis
 
-vsg::ref_ptr<NamedGroup> createAnnotatedScene(const std::vector<std::string>& names,
+vsg::ref_ptr<experimental::NamedGroup> createAnnotatedScene(const std::vector<std::string>& names,
                                               const std::vector<vsg::ref_ptr<vsg::Node>>& nodes)
 {
-    auto scene = NamedGroup::create();
+    auto scene = experimental::NamedGroup::create();
     scene->annotation = "Scene";
     double xExtent = 0.0;
     auto nameItr = names.begin();
@@ -53,7 +60,7 @@ vsg::ref_ptr<NamedGroup> createAnnotatedScene(const std::vector<std::string>& na
         (*nodeItr)->accept(computeBounds);
         double width =  (computeBounds.bounds.max.x - computeBounds.bounds.min.x) * 1.1;
         vsg::dmat4 mat = vsg::translate(xExtent + width / 2, 0.0, 0.0);
-        auto matNode = NamedTransform::create(mat);
+        auto matNode = experimental::NamedTransform::create(mat);
         matNode->annotation = *nameItr;
         matNode->addChild(*nodeItr);
         scene->addChild(matNode);
@@ -86,8 +93,11 @@ class CustomRecordTraversal : public vsg::Inherit<vsg::RecordTraversal, CustomRe
 {
 public:
 
-      void apply(const vsg::Group& group) override
-      {
+    vsg::vec4 debugColor = {.8, .8, .8, 1.0};
+
+    template<class T>
+    void annotate(const T& object)
+    {
         auto* commandBuffer = getCommandBuffer();
         auto extensions = commandBuffer->getDevice()->getInstance()->getExtensions();
         if (extensions->vkCmdBeginDebugUtilsLabelEXT)
@@ -95,20 +105,50 @@ public:
             VkCommandBuffer cmdBuffer{*commandBuffer};
             VkDebugUtilsLabelEXT markerInfo = {};
             markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-            markerInfo.pLabelName = "vsg::Group";
+            markerInfo.pLabelName = object.className();
+            std::copy(&debugColor.value[0], &debugColor.value[4], &markerInfo.color[0]);
 
             extensions->vkCmdBeginDebugUtilsLabelEXT(cmdBuffer, &markerInfo);
 
-            vsg::RecordTraversal::apply(group);
+            vsg::RecordTraversal::apply(object);
 
             extensions->vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
         }
         else
         {
-            vsg::RecordTraversal::apply(group);
+            vsg::RecordTraversal::apply(object);
         }
+    }
 
-      }
+    void apply(const vsg::Object& object) override { annotate(object); }
+
+    // scene graph nodes
+    void apply(const vsg::Group& group) override { annotate(group); }
+    void apply(const vsg::QuadGroup& quadGroup) override { annotate(quadGroup); }
+    void apply(const vsg::LOD& lod) override { annotate(lod); }
+    void apply(const vsg::PagedLOD& pagedLOD) override { annotate(pagedLOD); }
+    void apply(const vsg::CullGroup& cullGroup) override { annotate(cullGroup); }
+    void apply(const vsg::CullNode& cullNode) override { annotate(cullNode); }
+    void apply(const vsg::DepthSorted& depthSorted) override { annotate(depthSorted); }
+    void apply(const vsg::Switch& sw) override { annotate(sw); }
+
+    // positional state
+    void apply(const vsg::Light& light) override { annotate(light); }
+    void apply(const vsg::AmbientLight& light) override { annotate(light); }
+    void apply(const vsg::DirectionalLight& light) override { annotate(light); }
+    void apply(const vsg::PointLight& light) override { annotate(light); }
+    void apply(const vsg::SpotLight& light) override { annotate(light); }
+
+    // Vulkan nodes
+    void apply(const vsg::Transform& transform) override { annotate(transform); }
+    void apply(const vsg::MatrixTransform& mt) override { annotate(mt); }
+    void apply(const vsg::StateGroup& sg) override { annotate(sg); }
+    void apply(const vsg::Commands& commands) override { annotate(commands); }
+    void apply(const vsg::Command& command) override { annotate(command); }
+
+    // Viewer level nodes
+    void apply(const vsg::View& view) override { annotate(view); }
+    void apply(const vsg::CommandGraph& commandGraph) override { annotate(commandGraph); }
 };
 #endif
 
