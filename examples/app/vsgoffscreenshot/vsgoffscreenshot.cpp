@@ -448,16 +448,13 @@ std::tuple<vsg::ref_ptr<vsg::Camera>, vsg::ref_ptr<vsg::Perspective>> createCame
 
 void replaceChild(vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement)
 {
-    bool replaced = false;
     for (auto& child : group->children)
     {
         if (child == previous)
         {
             child = replacement;
-            replaced = true;
         }
     }
-    assert(replaced);
 }
 
 
