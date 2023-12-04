@@ -728,18 +728,6 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
-#if 0
-    // ensure the offscreen renderGraph is connected
-    offscreenEnabled = true;
-    offscreenSwitch->setAllChildren(offscreenEnabled);
-    if (viewer->advanceToNextFrame())
-    {
-        viewer->update();
-        viewer->recordAndSubmit();
-    }
-    offscreenEnabled = false;
-#endif
-
     offscreenSwitch->setAllChildren(offscreenEnabled);
 
     // rendering main loop
