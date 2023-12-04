@@ -684,10 +684,11 @@ int main(int argc, char** argv)
 
     auto offscreenSwitch = vsg::Switch::create();
     bool offscreenEnabled = false;
+
     offscreenSwitch->addChild(offscreenEnabled, offscreenRenderGraph);
+    offscreenSwitch->addChild(offscreenEnabled, captureCommands);
 
     offscreenCommandGraph->addChild(offscreenSwitch);
-    offscreenCommandGraph->addChild(captureCommands);
 
     auto offscreenView = vsg::View::create(offscreenCamera, vsg_scene);
     offscreenRenderGraph->addChild(offscreenView);
@@ -717,7 +718,6 @@ int main(int argc, char** argv)
         vsg::info("Single CommandGraph containing by the offscreen and main RenderGraphs");
         auto commandGraph = vsg::CommandGraph::create(window);
         commandGraph->addChild(offscreenSwitch);
-        commandGraph->addChild(captureCommands);
         commandGraph->addChild(displayRenderGraph);
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
