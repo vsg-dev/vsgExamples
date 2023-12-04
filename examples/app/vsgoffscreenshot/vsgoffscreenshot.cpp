@@ -389,9 +389,9 @@ vsg::ref_ptr<vsg::Framebuffer> createOffscreenFramebuffer(
     vsg::ref_ptr<vsg::ImageView> transferImageView,
     VkSampleCountFlagBits const samples)
 {
-    constexpr VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    constexpr VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
-    constexpr bool requiresDepthRead = false;
+    VkFormat imageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
+    bool requiresDepthRead = false;
 
     VkExtent2D const extent{
         transferImageView->image->extent.width,
@@ -728,6 +728,7 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
+#if 0
     // ensure the offscreen renderGraph is connected
     offscreenEnabled = true;
     offscreenSwitch->setAllChildren(offscreenEnabled);
@@ -737,6 +738,8 @@ int main(int argc, char** argv)
         viewer->recordAndSubmit();
     }
     offscreenEnabled = false;
+#endif
+
     offscreenSwitch->setAllChildren(offscreenEnabled);
 
     // rendering main loop
@@ -759,6 +762,7 @@ int main(int argc, char** argv)
                 transferImageView = createTransferImageView(device, offscreenImageFormat, offscreenExtent, VK_SAMPLE_COUNT_1_BIT);
                 captureImage = createCaptureImage(device, offscreenImageFormat, offscreenExtent);
                 captureCommands = createTransferCommands(device, transferImageView->image, captureImage);
+
                 replaceChild(offscreenCommandGraph, prevCaptureCommands, captureCommands);
                 offscreenRenderGraph->framebuffer = createOffscreenFramebuffer(device, transferImageView, samples);
                 offscreenRenderGraph->resized();
