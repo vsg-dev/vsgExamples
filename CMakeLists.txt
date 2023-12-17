@@ -32,6 +32,8 @@ find_package(vsgXchange 1.0.5 QUIET)
 # find the optional vsgImGui that can be used for GUI elements added into graphics windows.
 find_package(vsgImGui QUIET)
 
+find_package(Tracy QUIET)
+
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
 

@@ -4,3 +4,7 @@ add_subdirectory(vsgshaderset)
 add_subdirectory(vsgintersection)
 add_subdirectory(vsgstoragebuffer)
 add_subdirectory(vsgcustomshaderset)
+
+if (Tracy_FOUND)
+    add_subdirectory(vsgtracyinstrumentation)
+endif()
