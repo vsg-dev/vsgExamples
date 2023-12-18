@@ -227,7 +227,8 @@ int main(int argc, char** argv)
 
         vsg::ref_ptr<vsg::TracyInstrumentation> instrumentation;
 
-#if 0
+#ifndef TRACY_ON_DEMAND
+        vsg::info("TRACY_ON_DEMAND not enabled so assigning TracyInstrumentation by default.");
         instrumentation = vsg::TracyInstrumentation::create();
         viewer->assignInstrumentation(instrumentation);
 #endif
@@ -248,12 +249,14 @@ int main(int argc, char** argv)
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
+#ifdef TRACY_ON_DEMAND
             if (!instrumentation && GetProfiler().IsConnected())
             {
-                vsg::info("Need to assign TracyInstrumentation on the fly");
+                vsg::info("Tracy profile is now connected, assigning TracyInstrumentation.");
                 instrumentation = vsg::TracyInstrumentation::create();
                 viewer->assignInstrumentation(instrumentation);
             }
+#endif
 
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
