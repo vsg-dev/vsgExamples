@@ -108,6 +108,11 @@ int main(int argc, char** argv)
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        // set TracyInstrumentation options
+        auto instrumentation = vsg::TracyInstrumentation::create();
+        arguments.read("--cpu", instrumentation->cpu_instumentation_level);
+        arguments.read("--gpu", instrumentation->gpu_instumentation_level);
+
         if (arguments.read({"--shader-debug-info", "--sdi"}))
         {
             enableGenerateDebugInfo(options);
@@ -225,11 +230,8 @@ int main(int argc, char** argv)
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-        vsg::ref_ptr<vsg::TracyInstrumentation> instrumentation;
-
 #ifndef TRACY_ON_DEMAND
         vsg::info("TRACY_ON_DEMAND not enabled so assigning TracyInstrumentation by default.");
-        instrumentation = vsg::TracyInstrumentation::create();
         viewer->assignInstrumentation(instrumentation);
 #endif
 
@@ -250,10 +252,9 @@ int main(int argc, char** argv)
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
 #ifdef TRACY_ON_DEMAND
-            if (!instrumentation && GetProfiler().IsConnected())
+            if (!viewer->instrumentation && GetProfiler().IsConnected())
             {
                 vsg::info("Tracy profile is now connected, assigning TracyInstrumentation.");
-                instrumentation = vsg::TracyInstrumentation::create();
                 viewer->assignInstrumentation(instrumentation);
             }
 #endif
