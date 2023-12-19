@@ -45,6 +45,37 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     pbr->defaultShaderHints = shaderHints;
 }
 
+class InstrumentationHandler : public vsg::Inherit<vsg::Visitor, InstrumentationHandler>
+{
+public:
+
+    vsg::ref_ptr<vsg::TracyInstrumentation> instrumentation;
+
+    InstrumentationHandler(vsg::ref_ptr<vsg::TracyInstrumentation> in_instrumentation) : instrumentation(in_instrumentation) {}
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (keyPress.keyModified == 'c')
+        {
+            if (instrumentation->cpu_instumentation_level > 0) --instrumentation->cpu_instumentation_level;
+        }
+        else if (keyPress.keyModified == 'C')
+        {
+            if (instrumentation->cpu_instumentation_level < 3) ++instrumentation->cpu_instumentation_level;
+        }
+        if (keyPress.keyModified == 'g')
+        {
+            if (instrumentation->gpu_instumentation_level > 0) --instrumentation->gpu_instumentation_level;
+        }
+        else if (keyPress.keyModified == 'G')
+        {
+            if (instrumentation->gpu_instumentation_level < 3) ++instrumentation->gpu_instumentation_level;
+        }
+    }
+};
+
+
+
 int main(int argc, char** argv)
 {
     try
@@ -213,6 +244,9 @@ int main(int argc, char** argv)
         viewer->addEventHandler(animationPathHandler);
 
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
+
+        // add event handler to control the cpu and gpu_instrumentation_level using the 'c', 'g' keys to reduce the cpu and gpu instruemntation level, and 'C' and 'G' to increase them respectively.
+        viewer->addEventHandler(InstrumentationHandler::create(instrumentation));
 
         // if required preload specific number of PagedLOD levels.
         if (loadLevels > 0)
