@@ -57,19 +57,19 @@ public:
     {
         if (keyPress.keyModified == 'c')
         {
-            if (instrumentation->cpu_instumentation_level > 0) --instrumentation->cpu_instumentation_level;
+            if (instrumentation->settings->cpu_instumentation_level > 0) --instrumentation->settings->cpu_instumentation_level;
         }
         else if (keyPress.keyModified == 'C')
         {
-            if (instrumentation->cpu_instumentation_level < 3) ++instrumentation->cpu_instumentation_level;
+            if (instrumentation->settings->cpu_instumentation_level < 3) ++instrumentation->settings->cpu_instumentation_level;
         }
         if (keyPress.keyModified == 'g')
         {
-            if (instrumentation->gpu_instumentation_level > 0) --instrumentation->gpu_instumentation_level;
+            if (instrumentation->settings->gpu_instumentation_level > 0) --instrumentation->settings->gpu_instumentation_level;
         }
         else if (keyPress.keyModified == 'G')
         {
-            if (instrumentation->gpu_instumentation_level < 3) ++instrumentation->gpu_instumentation_level;
+            if (instrumentation->settings->gpu_instumentation_level < 3) ++instrumentation->settings->gpu_instumentation_level;
         }
     }
 };
@@ -141,14 +141,18 @@ int main(int argc, char** argv)
 
         // set TracyInstrumentation options
         auto instrumentation = vsg::TracyInstrumentation::create();
-        arguments.read("--cpu", instrumentation->cpu_instumentation_level);
-        arguments.read("--gpu", instrumentation->gpu_instumentation_level);
+        arguments.read("--cpu", instrumentation->settings->cpu_instumentation_level);
+        arguments.read("--gpu", instrumentation->settings->gpu_instumentation_level);
 
         if (arguments.read({"--shader-debug-info", "--sdi"}))
         {
             enableGenerateDebugInfo(options);
             windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
         }
+
+        // TODO: need to check for VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME support?
+        // enable calibrated timestamps.
+        windowTraits->deviceExtensionNames.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
 
@@ -159,6 +163,10 @@ int main(int argc, char** argv)
             std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
             return 1;
         }
+
+        // assign instrumentation to vsg::Options to enable read/write functions to provide instrumentation
+        options->instrumentation = instrumentation;
+
 
         auto group = vsg::Group::create();
 
