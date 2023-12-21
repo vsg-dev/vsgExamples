@@ -118,7 +118,11 @@ int main(int argc, char** argv)
         if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
         {
             windowTraits->debugUtils = true;
-            instrumentation = vsg::GpuAnnotation::create();
+
+            auto gpu_instrumentation = vsg::GpuAnnotation::create();
+            if (arguments.read("--func")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
+
+            instrumentation = gpu_instrumentation;
         }
 
 
