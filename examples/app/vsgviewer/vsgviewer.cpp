@@ -114,6 +114,14 @@ int main(int argc, char** argv)
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
 
+        vsg::ref_ptr<vsg::Instrumentation> instrumentation;
+        if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+        {
+            windowTraits->debugUtils = true;
+            instrumentation = vsg::GpuAnnotation::create();
+        }
+
+
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         if (argc <= 1)
@@ -222,6 +230,8 @@ int main(int argc, char** argv)
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+        if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
         viewer->compile();
 
