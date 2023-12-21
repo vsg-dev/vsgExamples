@@ -227,6 +227,8 @@ int main(int argc, char** argv)
 #ifdef Tracy_FOUND
     else if (arguments.read("--tracy"))
     {
+        windowTraits->deviceExtensionNames.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+
         auto tracy_instrumentation = vsg::TracyInstrumentation::create();
         arguments.read("--cpu", tracy_instrumentation->settings->cpu_instumentation_level);
         arguments.read("--gpu", tracy_instrumentation->settings->gpu_instumentation_level);
