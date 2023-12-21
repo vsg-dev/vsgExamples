@@ -4,6 +4,10 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#ifdef Tracy_FOUND
+#    include <vsg/utils/TracyInstrumentation.h>
+#endif
+
 #include <iostream>
 
 struct ModelSettings
@@ -209,6 +213,26 @@ int main(int argc, char** argv)
         windowTraits->width = 192, windowTraits->height = 108;
         windowTraits->decoration = false;
     }
+
+    vsg::ref_ptr<vsg::Instrumentation> instrumentation;
+    if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+    {
+        windowTraits->debugUtils = true;
+
+        auto gpu_instrumentation = vsg::GpuAnnotation::create();
+        if (arguments.read("--func")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
+
+        instrumentation = gpu_instrumentation;
+    }
+#ifdef Tracy_FOUND
+    else if (arguments.read("--tracy"))
+    {
+        auto tracy_instrumentation = vsg::TracyInstrumentation::create();
+        arguments.read("--cpu", tracy_instrumentation->settings->cpu_instumentation_level);
+        arguments.read("--gpu", tracy_instrumentation->settings->gpu_instumentation_level);
+        instrumentation = tracy_instrumentation;
+    }
+#endif
 
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
     double shadowMapBias = arguments.value<double>(0.005, "--sb");
@@ -522,6 +546,8 @@ int main(int argc, char** argv)
     auto renderGraph = vsg::RenderGraph::create(window, view);
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+    if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
     viewer->compile(resourceHints);
 
