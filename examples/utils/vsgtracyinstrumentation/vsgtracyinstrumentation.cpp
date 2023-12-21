@@ -102,7 +102,7 @@ int main(int argc, char** argv)
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         windowTraits->synchronizationLayer = arguments.read("--sync");
         bool reportAverageFrameRate = arguments.read("--fps");
-        if (int mt = 0; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
+        bool multiThreading = arguments.read("--mt");
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
         if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
         if (arguments.read("--IMMEDIATE")) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; }
@@ -133,8 +133,6 @@ int main(int argc, char** argv)
         arguments.read("--samples", windowTraits->samples);
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
-        auto loadLevels = arguments.value(0, "--load-levels");
-        auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
@@ -149,6 +147,14 @@ int main(int argc, char** argv)
             enableGenerateDebugInfo(options);
             windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
         }
+
+#ifndef TRACY_ON_DEMAND
+        vsg::info("TRACY_ON_DEMAND not enabled so assigning TracyInstrumentation by default.");
+        bool assignInstrumentationBeforeMainLoop = true;
+#else
+        bool assignInstrumentationBeforeMainLoop = arguments.read("--always");
+#endif
+
 
         // TODO: need to check for VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME support?
         // enable calibrated timestamps.
@@ -256,44 +262,27 @@ int main(int argc, char** argv)
         // add event handler to control the cpu and gpu_instrumentation_level using the 'c', 'g' keys to reduce the cpu and gpu instruemntation level, and 'C' and 'G' to increase them respectively.
         viewer->addEventHandler(InstrumentationHandler::create(instrumentation));
 
-        // if required preload specific number of PagedLOD levels.
-        if (loadLevels > 0)
-        {
-            vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
-
-            auto startTime = vsg::clock::now();
-
-            vsg_scene->accept(loadPagedLOD);
-
-            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(vsg::clock::now() - startTime).count();
-            std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
-        }
-
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-#ifndef TRACY_ON_DEMAND
-        vsg::info("TRACY_ON_DEMAND not enabled so assigning TracyInstrumentation by default.");
-        viewer->assignInstrumentation(instrumentation);
-#endif
+        if (assignInstrumentationBeforeMainLoop)
+        {
+            viewer->assignInstrumentation(instrumentation);
+        }
+
+        if (multiThreading)
+        {
+            viewer->setupThreading();
+        }
 
         viewer->compile();
-
-        if (maxPagedLOD > 0)
-        {
-            // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-            for(auto& task : viewer->recordAndSubmitTasks)
-            {
-                if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
-            }
-        }
 
         viewer->start_point() = vsg::clock::now();
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
-#ifdef TRACY_ON_DEMAND
+#if defined(TRACY_ENABLE) && defined(TRACY_ON_DEMAND)
             if (!viewer->instrumentation && GetProfiler().IsConnected())
             {
                 vsg::info("Tracy profile is now connected, assigning TracyInstrumentation.");
