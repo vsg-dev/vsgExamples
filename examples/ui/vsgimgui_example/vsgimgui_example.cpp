@@ -248,6 +248,9 @@ int main(int argc, char** argv)
 
         renderGraph->addChild(view);
 
+        // initialize ImGui
+        ImGui::CreateContext();
+
         if (fontFile)
         {
             auto foundFontFile = vsg::findFile(fontFile, options);
@@ -255,9 +258,6 @@ int main(int argc, char** argv)
             {
                 // convert native filename to UTF8 string that is compatible with ImGui.
                 std::string c_fontFile = foundFontFile.string();
-
-                // initialize ImGui
-                ImGui::CreateContext();
 
                 // read the font via ImGui, which will then be current when vsgImGui::RenderImGui initializes the rest of ImGui/Vulkan below
                 ImGuiIO& io = ImGui::GetIO();
