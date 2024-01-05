@@ -137,10 +137,14 @@ int main(int argc, char** argv)
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        // set whether calibrated timestamp extension should be enabled.
+        bool calibrated = arguments.read("--calibrated");
+
         // set TracyInstrumentation options
         auto instrumentation = vsg::TracyInstrumentation::create();
         arguments.read("--cpu", instrumentation->settings->cpu_instumentation_level);
         arguments.read("--gpu", instrumentation->settings->gpu_instumentation_level);
+
 
         if (arguments.read({"--shader-debug-info", "--sdi"}))
         {
@@ -155,10 +159,21 @@ int main(int argc, char** argv)
         bool assignInstrumentationBeforeMainLoop = arguments.read("--always");
 #endif
 
+        auto window = vsg::Window::create(windowTraits);
+        if (!window)
+        {
+            std::cout << "Could not create window." << std::endl;
+            return 1;
+        }
 
-        // TODO: need to check for VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME support?
-        // enable calibrated timestamps.
-        windowTraits->deviceExtensionNames.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+        if (calibrated)
+        {
+            auto physicalDevice = window->getOrCreatePhysicalDevice();
+            if (physicalDevice->supportsDeviceExtension(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME))
+            {
+                windowTraits->deviceExtensionNames.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+            }
+        }
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
 
@@ -219,13 +234,6 @@ int main(int argc, char** argv)
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
-        auto window = vsg::Window::create(windowTraits);
-        if (!window)
-        {
-            std::cout << "Could not create window." << std::endl;
-            return 1;
-        }
-
         viewer->addWindow(window);
 
         // compute the bounds of the scene graph to help position camera
