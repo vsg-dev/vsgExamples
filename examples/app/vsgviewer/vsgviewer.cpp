@@ -124,7 +124,8 @@ int main(int argc, char** argv)
             windowTraits->debugUtils = true;
 
             auto gpu_instrumentation = vsg::GpuAnnotation::create();
-            if (arguments.read("--className")) gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
+            if (arguments.read("--name")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_name;
+            else if (arguments.read("--className")) gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
             else if (arguments.read("--func")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
 
             instrumentation = gpu_instrumentation;
