@@ -74,7 +74,16 @@ public:
     }
 };
 
+vsg::ref_ptr<vsg::Node> decorateWithInstrumentationNode(vsg::ref_ptr<vsg::Node> node, const std::string& name, vsg::uint_color color)
+{
+    auto instrumentationNode = vsg::InstrumentationNode::create(node);
+    instrumentationNode->setName(name);
+    instrumentationNode->setColor(color);
 
+    vsg::info("decorateWithInstrumentationNode(", node, ", ", name, ", {", int(color.r), ", ", int(color.g), ", ", int(color.b), ", ", int(color.a), "})");
+
+    return instrumentationNode;
+}
 
 int main(int argc, char** argv)
 {
@@ -133,12 +142,14 @@ int main(int argc, char** argv)
         arguments.read("--samples", windowTraits->samples);
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
+        auto outputFilename = arguments.value<vsg::Path>("", "-o");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
         // set whether calibrated timestamp extension should be enabled.
         bool calibrated = arguments.read("--calibrated");
+        bool decorate = arguments.read("--decorate");
 
         // set TracyInstrumentation options
         auto instrumentation = vsg::TracyInstrumentation::create();
@@ -202,13 +213,27 @@ int main(int argc, char** argv)
             auto object = vsg::read(filename, options);
             if (auto node = object.cast<vsg::Node>())
             {
-                group->addChild(node);
+                if (decorate)
+                {
+                    group->addChild(decorateWithInstrumentationNode(node, filename.string(), vsg::uint_color(255, 255, 64, 255)));
+                }
+                else
+                {
+                    group->addChild(node);
+                }
             }
             else if (auto data = object.cast<vsg::Data>())
             {
                 if (auto textureGeometry = createTextureQuad(data, options))
                 {
-                    group->addChild(textureGeometry);
+                    if (decorate)
+                    {
+                        group->addChild(decorateWithInstrumentationNode(textureGeometry, filename.string(), vsg::uint_color(255, 255, 64, 255)));
+                    }
+                    else
+                    {
+                        group->addChild(textureGeometry);
+                    }
                 }
             }
             else if (object)
@@ -231,6 +256,13 @@ int main(int argc, char** argv)
             vsg_scene = group->children[0];
         else
             vsg_scene = group;
+
+
+        if (outputFilename)
+        {
+            vsg::write(vsg_scene, outputFilename, options);
+            return 1;
+        }
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
