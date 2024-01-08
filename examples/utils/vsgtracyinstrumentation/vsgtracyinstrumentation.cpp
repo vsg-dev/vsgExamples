@@ -4,6 +4,8 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#include <vsg/utils/TracyInstrumentation.h>
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -43,6 +45,46 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     pbr->defaultShaderHints = shaderHints;
 }
 
+class InstrumentationHandler : public vsg::Inherit<vsg::Visitor, InstrumentationHandler>
+{
+public:
+
+    vsg::ref_ptr<vsg::TracyInstrumentation> instrumentation;
+
+    InstrumentationHandler(vsg::ref_ptr<vsg::TracyInstrumentation> in_instrumentation) : instrumentation(in_instrumentation) {}
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (keyPress.keyModified == 'c')
+        {
+            if (instrumentation->settings->cpu_instumentation_level > 0) --instrumentation->settings->cpu_instumentation_level;
+        }
+        else if (keyPress.keyModified == 'C')
+        {
+            if (instrumentation->settings->cpu_instumentation_level < 3) ++instrumentation->settings->cpu_instumentation_level;
+        }
+        if (keyPress.keyModified == 'g')
+        {
+            if (instrumentation->settings->gpu_instumentation_level > 0) --instrumentation->settings->gpu_instumentation_level;
+        }
+        else if (keyPress.keyModified == 'G')
+        {
+            if (instrumentation->settings->gpu_instumentation_level < 3) ++instrumentation->settings->gpu_instumentation_level;
+        }
+    }
+};
+
+vsg::ref_ptr<vsg::Node> decorateWithInstrumentationNode(vsg::ref_ptr<vsg::Node> node, const std::string& name, vsg::uint_color color)
+{
+    auto instrumentationNode = vsg::InstrumentationNode::create(node);
+    instrumentationNode->setName(name);
+    instrumentationNode->setColor(color);
+
+    vsg::info("decorateWithInstrumentationNode(", node, ", ", name, ", {", int(color.r), ", ", int(color.g), ", ", int(color.b), ", ", int(color.a), "})");
+
+    return instrumentationNode;
+}
+
 int main(int argc, char** argv)
 {
     try
@@ -64,12 +106,12 @@ int main(int argc, char** argv)
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgviewer";
+        windowTraits->windowTitle = "vsgtracyinstrumentation";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         windowTraits->synchronizationLayer = arguments.read("--sync");
         bool reportAverageFrameRate = arguments.read("--fps");
-        if (int mt = 0; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
+        bool multiThreading = arguments.read("--mt");
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
         if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
         if (arguments.read("--IMMEDIATE")) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; }
@@ -94,21 +136,26 @@ int main(int argc, char** argv)
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
         if (arguments.read("--or")) windowTraits->overrideRedirect = true;
-
         if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
-        if (arguments.read("--sRGB")) windowTraits->swapchainPreferences.surfaceFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-        if (arguments.read("--RGB")) windowTraits->swapchainPreferences.surfaceFormat = {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-
         arguments.read("--screen", windowTraits->screenNum);
         arguments.read("--display", windowTraits->display);
         arguments.read("--samples", windowTraits->samples);
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
-        auto loadLevels = arguments.value(0, "--load-levels");
-        auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
+        auto outputFilename = arguments.value<vsg::Path>("", "-o");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
+
+        // set whether calibrated timestamp extension should be enabled.
+        bool calibrated = arguments.read("--calibrated");
+        bool decorate = arguments.read("--decorate");
+
+        // set TracyInstrumentation options
+        auto instrumentation = vsg::TracyInstrumentation::create();
+        arguments.read("--cpu", instrumentation->settings->cpu_instumentation_level);
+        arguments.read("--gpu", instrumentation->settings->gpu_instumentation_level);
+
 
         if (arguments.read({"--shader-debug-info", "--sdi"}))
         {
@@ -116,21 +163,30 @@ int main(int argc, char** argv)
             windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
         }
 
-        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+#ifndef TRACY_ON_DEMAND
+        vsg::info("TRACY_ON_DEMAND not enabled so assigning TracyInstrumentation by default.");
+        bool assignInstrumentationBeforeMainLoop = true;
+#else
+        bool assignInstrumentationBeforeMainLoop = arguments.read("--always");
+#endif
 
-        vsg::ref_ptr<vsg::Instrumentation> instrumentation;
-        if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+        auto window = vsg::Window::create(windowTraits);
+        if (!window)
         {
-            windowTraits->debugUtils = true;
-
-            auto gpu_instrumentation = vsg::GpuAnnotation::create();
-            if (arguments.read("--name")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_name;
-            else if (arguments.read("--className")) gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
-            else if (arguments.read("--func")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
-
-            instrumentation = gpu_instrumentation;
+            std::cout << "Could not create window." << std::endl;
+            return 1;
         }
 
+        if (calibrated)
+        {
+            auto physicalDevice = window->getOrCreatePhysicalDevice();
+            if (physicalDevice->supportsDeviceExtension(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME))
+            {
+                windowTraits->deviceExtensionNames.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+            }
+        }
+
+        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -139,6 +195,10 @@ int main(int argc, char** argv)
             std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
             return 1;
         }
+
+        // assign instrumentation to vsg::Options to enable read/write functions to provide instrumentation
+        options->instrumentation = instrumentation;
+
 
         auto group = vsg::Group::create();
 
@@ -153,13 +213,27 @@ int main(int argc, char** argv)
             auto object = vsg::read(filename, options);
             if (auto node = object.cast<vsg::Node>())
             {
-                group->addChild(node);
+                if (decorate)
+                {
+                    group->addChild(decorateWithInstrumentationNode(node, filename.string(), vsg::uint_color(255, 255, 64, 255)));
+                }
+                else
+                {
+                    group->addChild(node);
+                }
             }
             else if (auto data = object.cast<vsg::Data>())
             {
                 if (auto textureGeometry = createTextureQuad(data, options))
                 {
-                    group->addChild(textureGeometry);
+                    if (decorate)
+                    {
+                        group->addChild(decorateWithInstrumentationNode(textureGeometry, filename.string(), vsg::uint_color(255, 255, 64, 255)));
+                    }
+                    else
+                    {
+                        group->addChild(textureGeometry);
+                    }
                 }
             }
             else if (object)
@@ -183,15 +257,15 @@ int main(int argc, char** argv)
         else
             vsg_scene = group;
 
-        // create the viewer and assign window(s) to it
-        auto viewer = vsg::Viewer::create();
-        auto window = vsg::Window::create(windowTraits);
-        if (!window)
+
+        if (outputFilename)
         {
-            std::cout << "Could not create window." << std::endl;
+            vsg::write(vsg_scene, outputFilename, options);
             return 1;
         }
 
+        // create the viewer and assign window(s) to it
+        auto viewer = vsg::Viewer::create();
         viewer->addWindow(window);
 
         // compute the bounds of the scene graph to help position camera
@@ -225,40 +299,37 @@ int main(int argc, char** argv)
 
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
-        // if required preload specific number of PagedLOD levels.
-        if (loadLevels > 0)
-        {
-            vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
-
-            auto startTime = vsg::clock::now();
-
-            vsg_scene->accept(loadPagedLOD);
-
-            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(vsg::clock::now() - startTime).count();
-            std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
-        }
+        // add event handler to control the cpu and gpu_instrumentation_level using the 'c', 'g' keys to reduce the cpu and gpu instruemntation level, and 'C' and 'G' to increase them respectively.
+        viewer->addEventHandler(InstrumentationHandler::create(instrumentation));
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-        if (instrumentation) viewer->assignInstrumentation(instrumentation);
+        if (assignInstrumentationBeforeMainLoop)
+        {
+            viewer->assignInstrumentation(instrumentation);
+        }
+
+        if (multiThreading)
+        {
+            viewer->setupThreading();
+        }
 
         viewer->compile();
-
-        if (maxPagedLOD > 0)
-        {
-            // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-            for(auto& task : viewer->recordAndSubmitTasks)
-            {
-                if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
-            }
-        }
 
         viewer->start_point() = vsg::clock::now();
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
+#if defined(TRACY_ENABLE) && defined(TRACY_ON_DEMAND)
+            if (!viewer->instrumentation && GetProfiler().IsConnected())
+            {
+                vsg::info("Tracy profile is now connected, assigning TracyInstrumentation.");
+                viewer->assignInstrumentation(instrumentation);
+            }
+#endif
+
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 

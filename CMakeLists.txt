@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 
 project(vsgExamples
-        VERSION 1.1.0
+        VERSION 1.1.1
         DESCRIPTION "Set of example programs that test and illustrate how to use the VulkanSceneGraph"
         LANGUAGES CXX C
 )
@@ -21,7 +21,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-find_package(vsg 1.1.0)
+find_package(vsg 1.1.1)
 
 vsg_setup_dir_vars()
 vsg_setup_build_vars()
@@ -31,6 +31,8 @@ find_package(vsgXchange 1.0.5 QUIET)
 
 # find the optional vsgImGui that can be used for GUI elements added into graphics windows.
 find_package(vsgImGui QUIET)
+
+find_package(Tracy QUIET)
 
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
