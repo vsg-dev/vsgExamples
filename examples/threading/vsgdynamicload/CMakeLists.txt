@@ -11,4 +11,9 @@ if (vsgXchange_FOUND)
     target_link_libraries(vsgdynamicload vsgXchange::vsgXchange)
 endif()
 
+if (Tracy_FOUND)
+    target_compile_definitions(vsgdynamicload PRIVATE Tracy_FOUND)
+    target_link_libraries(vsgdynamicload Tracy::TracyClient)
+endif()
+
 install(TARGETS vsgdynamicload RUNTIME DESTINATION bin)
