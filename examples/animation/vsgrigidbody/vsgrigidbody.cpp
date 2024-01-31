@@ -6,8 +6,107 @@
 
 #include <iostream>
 
+using AnimationGroups = std::vector<vsg::ref_ptr<vsg::AnimationGroup>>;
+
+class AnimationManager : public vsg::Inherit<vsg::Operation, AnimationManager>
+{
+public:
+
+    AnimationGroups animationGroups;
+
+    vsg::ref_ptr<vsg::FrameStamp> frameStamp;
+
+    void start(vsg::ref_ptr<vsg::AnimationGroup> animationGroup, vsg::ref_ptr<vsg::Animation> animation)
+    {
+        vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ")");
+    }
+
+    void end(vsg::ref_ptr<vsg::AnimationGroup> animationGroup, vsg::ref_ptr<vsg::Animation> animation)
+    {
+        vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ")");
+    }
+
+    void run() override
+    {
+        // vsg::info("AnimationManager::run() ", animationGroups.size());
+    }
+};
+
+class FindAnimation : public vsg::Inherit<vsg::Visitor, FindAnimation>
+{
+public:
+
+    AnimationGroups animationGroups;
+
+    void apply(vsg::Node& node) override
+    {
+        //vsg::info(node.className());
+        node.traverse(*this);
+    }
+
+    void apply(vsg::Animation& animation) override
+    {
+        vsg::info("Animation ", animation.className(), " ", animation.name);
+        animation.traverse(*this);
+    }
+
+    void apply(vsg::AnimationGroup& node) override
+    {
+        vsg::info("AnimationGroup ", node.className(), " node.animations.size() = ", node.animations.size());
+
+        for(auto& animation : node.animations)
+        {
+            animation->accept(*this);
+        }
+
+        animationGroups.emplace_back(&node);
+
+        node.traverse(*this);
+    }
+};
+
+class AnimationControl : public vsg::Inherit<vsg::Visitor, AnimationControl>
+{
+public:
+
+    AnimationControl(vsg::ref_ptr<AnimationManager> am) : animationManager(am)
+    {
+        for(auto ag : am->animationGroups)
+        {
+            for(auto& animation : ag->animations)
+            {
+                animations.emplace_back(ag, animation);
+            }
+        }
+        itr = animations.begin();
+    }
+
+    using AnimationPairs = std::vector<std::pair<vsg::ref_ptr<vsg::AnimationGroup>, vsg::ref_ptr<vsg::Animation>>>;
+
+    vsg::ref_ptr<AnimationManager> animationManager;
+    AnimationPairs animations;
+    AnimationPairs::iterator itr;
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (keyPress.keyModified == 'p')
+        {
+            if (itr != animations.end())
+            {
+                animationManager->start(itr->first, itr->second);
+
+                ++itr;
+                if (itr == animations.end()) itr = animations.begin();
+            }
+        }
+    }
+};
+
 int main(int argc, char** argv)
 {
+    // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
     // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->sharedObjects = vsg::SharedObjects::create();
@@ -19,11 +118,11 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
+    arguments.read(options);
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgskinning";
 
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
@@ -51,6 +150,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    FindAnimation findAnimation;
+    model->accept(findAnimation);
+
+    auto animationManager = AnimationManager::create();
+    animationManager->animationGroups = findAnimation.animationGroups;
 
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(model).bounds;
@@ -99,9 +203,13 @@ int main(int argc, char** argv)
     view->camera = camera;
     view->addChild(scene);
 
+    // assign the animationManager to viewer as an update operation.
+    viewer->addUpdateOperation(animationManager, vsg::UpdateOperations::ALL_FRAMES);
+
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
+    viewer->addEventHandler(AnimationControl::create(animationManager));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
