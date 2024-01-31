@@ -16,19 +16,86 @@ public:
 
     vsg::ref_ptr<vsg::FrameStamp> frameStamp;
 
-    void start(vsg::ref_ptr<vsg::AnimationGroup> animationGroup, vsg::ref_ptr<vsg::Animation> animation)
+    bool start(vsg::ref_ptr<vsg::AnimationGroup> animationGroup, vsg::ref_ptr<vsg::Animation> animation)
     {
-        vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ")");
+        bool animationStarted = false;
+
+        for(auto activeAnimation : animationGroup->active)
+        {
+            if (activeAnimation == animation)
+            {
+                vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ") can't start already active animnation.");
+                return animationStarted;
+            }
+        }
+
+        animationStarted = true;
+
+        animationGroup->active.push_back(animation);
+
+        bool animationGroupAlreadyAdded = false;
+        for(auto ag : animationGroups)
+        {
+            if (ag == animationGroup) animationGroupAlreadyAdded = true;
+        }
+
+        if (!animationGroupAlreadyAdded)
+        {
+            animationGroups.push_back(animationGroup);
+        }
+        else
+        {
+            // vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ") can't start already active animnation group.");
+        }
+
+        vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ") added to active list");
+
+        return animationStarted;
     }
 
-    void end(vsg::ref_ptr<vsg::AnimationGroup> animationGroup, vsg::ref_ptr<vsg::Animation> animation)
+    bool end(vsg::ref_ptr<vsg::AnimationGroup> animationGroup, vsg::ref_ptr<vsg::Animation> animation)
     {
-        vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ")");
+        vsg::info("AnimationManager::end(", animationGroup, ", ", animation, ", ", animation->name, ")");
+
+        bool animationEnded = false;
+
+        for(auto a_itr = animationGroup->active.begin(); a_itr != animationGroup->active.end(); ++a_itr)
+        {
+            if ((*a_itr) == animation)
+            {
+                vsg::info("    removing Animation.");
+                animationGroup->active.erase(a_itr);
+                animationEnded = true;
+                break;
+            }
+        }
+
+        if (animationGroup->active.empty())
+        {
+            for(auto ag_itr = animationGroups.begin(); ag_itr != animationGroups.end(); ++ag_itr)
+            {
+                if ((*ag_itr) == animationGroup)
+                {
+                    vsg::info("    removing AnimationGroup.");
+                    animationGroups.erase(ag_itr);
+                    animationEnded = true;
+                    break;
+                }
+            }
+        }
+        return animationEnded;
     }
 
     void run() override
     {
         // vsg::info("AnimationManager::run() ", animationGroups.size());
+        for(auto ag : animationGroups)
+        {
+            for(auto animation : ag->active)
+            {
+                // vsg::info("AnimationManager::run() active animation = ", animation, ", name = ", animation->name);
+            }
+        }
     }
 };
 
@@ -69,9 +136,9 @@ class AnimationControl : public vsg::Inherit<vsg::Visitor, AnimationControl>
 {
 public:
 
-    AnimationControl(vsg::ref_ptr<AnimationManager> am) : animationManager(am)
+    AnimationControl(vsg::ref_ptr<AnimationManager> am, const AnimationGroups& in_animationGroups) : animationManager(am)
     {
-        for(auto ag : am->animationGroups)
+        for(auto ag : in_animationGroups)
         {
             for(auto& animation : ag->animations)
             {
@@ -86,17 +153,47 @@ public:
     vsg::ref_ptr<AnimationManager> animationManager;
     AnimationPairs animations;
     AnimationPairs::iterator itr;
+    unsigned int numStartedAnimations = 0;
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
-        if (keyPress.keyModified == 'p')
+        if (animations.empty()) return;
+
+        if (keyPress.keyModified == 's')
         {
             if (itr != animations.end())
             {
-                animationManager->start(itr->first, itr->second);
+                if (animationManager->start(itr->first, itr->second))
+                {
+                    ++numStartedAnimations;
 
-                ++itr;
-                if (itr == animations.end()) itr = animations.begin();
+                    ++itr;
+                    if (itr == animations.end()) itr = animations.begin();
+                }
+            }
+        }
+        else if (keyPress.keyModified == 'e')
+        {
+            if (numStartedAnimations > 0)
+            {
+                // stop the previous started animation
+                if (itr == animations.begin())
+                {
+                    itr = animations.end() - 1;
+                    vsg::info("Wrapping around ", itr->second->name);
+                }
+                else
+                {
+                    --itr;
+                }
+
+                if (itr != animations.end())
+                {
+                    if (animationManager->end(itr->first, itr->second))
+                    {
+                        --numStartedAnimations;
+                    }
+                }
             }
         }
     }
@@ -154,7 +251,6 @@ int main(int argc, char** argv)
     model->accept(findAnimation);
 
     auto animationManager = AnimationManager::create();
-    animationManager->animationGroups = findAnimation.animationGroups;
 
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(model).bounds;
@@ -209,7 +305,7 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
-    viewer->addEventHandler(AnimationControl::create(animationManager));
+    viewer->addEventHandler(AnimationControl::create(animationManager, findAnimation.animationGroups));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
