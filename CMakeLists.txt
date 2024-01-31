@@ -85,5 +85,6 @@ add_subdirectory(examples/raytracing)
 add_subdirectory(examples/platform)
 add_subdirectory(examples/utils)
 add_subdirectory(examples/volume)
+add_subdirectory(examples/animation)
 
 vsg_add_feature_summary()
