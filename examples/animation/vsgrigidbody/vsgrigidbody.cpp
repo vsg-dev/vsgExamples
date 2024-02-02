@@ -6,104 +6,12 @@
 
 #include <iostream>
 
-using AnimationGroups = std::vector<vsg::ref_ptr<vsg::AnimationGroup>>;
-
-class AnimationManager : public vsg::Inherit<vsg::Operation, AnimationManager>
-{
-public:
-
-    AnimationGroups animationGroups;
-
-    vsg::ref_ptr<vsg::FrameStamp> frameStamp;
-
-    bool start(vsg::ref_ptr<vsg::AnimationGroup> animationGroup, vsg::ref_ptr<vsg::Animation> animation)
-    {
-        bool animationStarted = false;
-
-        for(auto activeAnimation : animationGroup->active)
-        {
-            if (activeAnimation == animation)
-            {
-                vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ") can't start already active animnation.");
-                return animationStarted;
-            }
-        }
-
-        animationStarted = true;
-
-        animationGroup->active.push_back(animation);
-
-        bool animationGroupAlreadyAdded = false;
-        for(auto ag : animationGroups)
-        {
-            if (ag == animationGroup) animationGroupAlreadyAdded = true;
-        }
-
-        if (!animationGroupAlreadyAdded)
-        {
-            animationGroups.push_back(animationGroup);
-        }
-        else
-        {
-            // vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ") can't start already active animnation group.");
-        }
-
-        vsg::info("AnimationManager::start(", animationGroup, ", ", animation, ", ", animation->name, ") added to active list");
-
-        return animationStarted;
-    }
-
-    bool end(vsg::ref_ptr<vsg::AnimationGroup> animationGroup, vsg::ref_ptr<vsg::Animation> animation)
-    {
-        vsg::info("AnimationManager::end(", animationGroup, ", ", animation, ", ", animation->name, ")");
-
-        bool animationEnded = false;
-
-        for(auto a_itr = animationGroup->active.begin(); a_itr != animationGroup->active.end(); ++a_itr)
-        {
-            if ((*a_itr) == animation)
-            {
-                vsg::info("    removing Animation.");
-                animationGroup->active.erase(a_itr);
-                animationEnded = true;
-                break;
-            }
-        }
-
-        if (animationGroup->active.empty())
-        {
-            for(auto ag_itr = animationGroups.begin(); ag_itr != animationGroups.end(); ++ag_itr)
-            {
-                if ((*ag_itr) == animationGroup)
-                {
-                    vsg::info("    removing AnimationGroup.");
-                    animationGroups.erase(ag_itr);
-                    animationEnded = true;
-                    break;
-                }
-            }
-        }
-        return animationEnded;
-    }
-
-    void run() override
-    {
-        // vsg::info("AnimationManager::run() ", animationGroups.size());
-        for(auto ag : animationGroups)
-        {
-            for(auto animation : ag->active)
-            {
-                // vsg::info("AnimationManager::run() active animation = ", animation, ", name = ", animation->name);
-            }
-        }
-    }
-};
 
 class FindAnimation : public vsg::Inherit<vsg::Visitor, FindAnimation>
 {
 public:
 
-    AnimationGroups animationGroups;
+    vsg::AnimationGroups animationGroups;
 
     void apply(vsg::Node& node) override
     {
@@ -136,7 +44,7 @@ class AnimationControl : public vsg::Inherit<vsg::Visitor, AnimationControl>
 {
 public:
 
-    AnimationControl(vsg::ref_ptr<AnimationManager> am, const AnimationGroups& in_animationGroups) : animationManager(am)
+    AnimationControl(vsg::ref_ptr<vsg::AnimationManager> am, const vsg::AnimationGroups& in_animationGroups) : animationManager(am)
     {
         for(auto ag : in_animationGroups)
         {
@@ -150,7 +58,7 @@ public:
 
     using AnimationPairs = std::vector<std::pair<vsg::ref_ptr<vsg::AnimationGroup>, vsg::ref_ptr<vsg::Animation>>>;
 
-    vsg::ref_ptr<AnimationManager> animationManager;
+    vsg::ref_ptr<vsg::AnimationManager> animationManager;
     AnimationPairs animations;
     AnimationPairs::iterator itr;
     unsigned int numStartedAnimations = 0;
@@ -161,6 +69,8 @@ public:
 
         if (keyPress.keyModified == 's')
         {
+            keyPress.handled = true;
+
             if (itr != animations.end())
             {
                 if (animationManager->start(itr->first, itr->second))
@@ -174,6 +84,8 @@ public:
         }
         else if (keyPress.keyModified == 'e')
         {
+            keyPress.handled = true;
+
             if (numStartedAnimations > 0)
             {
                 // stop the previous started animation
@@ -250,7 +162,7 @@ int main(int argc, char** argv)
     FindAnimation findAnimation;
     model->accept(findAnimation);
 
-    auto animationManager = AnimationManager::create();
+    auto animationManager = vsg::AnimationManager::create();
 
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(model).bounds;
@@ -318,6 +230,8 @@ int main(int argc, char** argv)
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
+        animationManager->frameStamp = viewer->getFrameStamp();
+
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
         viewer->update();
