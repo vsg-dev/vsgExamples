@@ -162,8 +162,6 @@ int main(int argc, char** argv)
     FindAnimation findAnimation;
     model->accept(findAnimation);
 
-    auto animationManager = vsg::AnimationManager::create();
-
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(model).bounds;
     vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
@@ -211,13 +209,10 @@ int main(int argc, char** argv)
     view->camera = camera;
     view->addChild(scene);
 
-    // assign the animationManager to viewer as an update operation.
-    viewer->addUpdateOperation(animationManager, vsg::UpdateOperations::ALL_FRAMES);
-
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
-    viewer->addEventHandler(AnimationControl::create(animationManager, findAnimation.animationGroups));
+    viewer->addEventHandler(AnimationControl::create(viewer->animationManager, findAnimation.animationGroups));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
@@ -230,8 +225,6 @@ int main(int argc, char** argv)
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
-        animationManager->frameStamp = viewer->getFrameStamp();
-
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
         viewer->update();
