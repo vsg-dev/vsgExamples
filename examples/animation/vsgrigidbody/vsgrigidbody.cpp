@@ -11,7 +11,7 @@ class FindAnimation : public vsg::Inherit<vsg::Visitor, FindAnimation>
 {
 public:
 
-    vsg::AnimationGroups animationGroups;
+    vsg::Animations animations;
 
     void apply(vsg::Node& node) override
     {
@@ -19,22 +19,11 @@ public:
         node.traverse(*this);
     }
 
-    void apply(vsg::Animation& animation) override
-    {
-        vsg::info("Animation ", animation.className(), " ", animation.name);
-        animation.traverse(*this);
-    }
-
     void apply(vsg::AnimationGroup& node) override
     {
         vsg::info("AnimationGroup ", node.className(), " node.animations.size() = ", node.animations.size());
 
-        for(auto& animation : node.animations)
-        {
-            animation->accept(*this);
-        }
-
-        animationGroups.emplace_back(&node);
+        animations.insert(animations.end(), node.animations.begin(), node.animations.end());
 
         node.traverse(*this);
     }
@@ -44,23 +33,14 @@ class AnimationControl : public vsg::Inherit<vsg::Visitor, AnimationControl>
 {
 public:
 
-    AnimationControl(vsg::ref_ptr<vsg::AnimationManager> am, const vsg::AnimationGroups& in_animationGroups) : animationManager(am)
+    AnimationControl(vsg::ref_ptr<vsg::AnimationManager> am, const vsg::Animations& in_animations) : animationManager(am), animations(in_animations)
     {
-        for(auto ag : in_animationGroups)
-        {
-            for(auto& animation : ag->animations)
-            {
-                animations.emplace_back(ag, animation);
-            }
-        }
         itr = animations.begin();
     }
 
-    using AnimationPairs = std::vector<std::pair<vsg::ref_ptr<vsg::AnimationGroup>, vsg::ref_ptr<vsg::Animation>>>;
-
     vsg::ref_ptr<vsg::AnimationManager> animationManager;
-    AnimationPairs animations;
-    AnimationPairs::iterator itr;
+    vsg::Animations animations;
+    vsg::Animations::iterator itr;
     unsigned int numStartedAnimations = 0;
 
     void apply(vsg::KeyPressEvent& keyPress) override
@@ -73,7 +53,7 @@ public:
 
             if (itr != animations.end())
             {
-                if (animationManager->start(itr->first, itr->second))
+                if (animationManager->start(*itr))
                 {
                     ++numStartedAnimations;
 
@@ -92,7 +72,7 @@ public:
                 if (itr == animations.begin())
                 {
                     itr = animations.end() - 1;
-                    vsg::info("Wrapping around ", itr->second->name);
+                    vsg::info("Wrapping around ", (*itr)->name);
                 }
                 else
                 {
@@ -101,7 +81,7 @@ public:
 
                 if (itr != animations.end())
                 {
-                    if (animationManager->end(itr->first, itr->second))
+                    if (animationManager->end(*itr))
                     {
                         --numStartedAnimations;
                     }
@@ -130,7 +110,7 @@ int main(int argc, char** argv)
     arguments.read(options);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgskinning";
+    windowTraits->windowTitle = "vsgrigidbody";
 
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
@@ -212,7 +192,7 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
-    viewer->addEventHandler(AnimationControl::create(viewer->animationManager, findAnimation.animationGroups));
+    viewer->addEventHandler(AnimationControl::create(viewer->animationManager, findAnimation.animations));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
