@@ -31,9 +31,10 @@ layout(location = 4) in vec3 vsg_position;
 layout(location = 5) in ivec4 vsg_JointIndices;
 layout(location = 6) in vec4 vsg_JointWeights;
 
-layout(std430, set = MATERIAL_DESCRIPTOR_SET, binding = 11) readonly buffer JointMatrices {
-	mat4 jointMatrices[];
-};
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) uniform JointMatrices
+{
+	mat4 matrices[64];
+} joint;
 #endif
 
 layout(location = 0) out vec3 eyePos;
@@ -108,10 +109,10 @@ void main()
 #elif defined(VSG_SKINNING)
     // Calculate skinned matrix from weights and joint indices of the current vertex
     mat4 skinMat =
-        vsg_JointWeights.x * jointMatrices[int(vsg_JointIndices.x)] +
-        vsg_JointWeights.y * jointMatrices[int(vsg_JointIndices.y)] +
-        vsg_JointWeights.z * jointMatrices[int(vsg_JointIndices.z)] +
-        vsg_JointWeights.w * jointMatrices[int(vsg_JointIndices.w)];
+        vsg_JointWeights.x * joint.matrices[vsg_JointIndices.x] +
+        vsg_JointWeights.y * joint.matrices[vsg_JointIndices.y] +
+        vsg_JointWeights.z * joint.matrices[vsg_JointIndices.z] +
+        vsg_JointWeights.w * joint.matrices[vsg_JointIndices.w];
 
     mat4 mv = pc.modelView * skinMat;
 #else
