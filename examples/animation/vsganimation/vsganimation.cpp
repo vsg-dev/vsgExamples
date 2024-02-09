@@ -110,7 +110,7 @@ int main(int argc, char** argv)
     arguments.read(options);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgrigidbody";
+    windowTraits->windowTitle = "vsganimation";
 
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});

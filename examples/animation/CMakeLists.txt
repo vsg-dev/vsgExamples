@@ -1,3 +1,1 @@
-add_subdirectory(vsgrigidbody)
-add_subdirectory(vsgmorph)
-add_subdirectory(vsgskinning)
+add_subdirectory(vsganimation)
