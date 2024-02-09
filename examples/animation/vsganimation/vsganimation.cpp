@@ -4,6 +4,10 @@
 #    include <vsgXchange/all.h>
 #endif
 
+#ifdef Tracy_FOUND
+#    include <vsg/utils/TracyInstrumentation.h>
+#endif
+
 #include <iostream>
 
 
@@ -121,6 +125,29 @@ int main(int argc, char** argv)
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
+    vsg::ref_ptr<vsg::Instrumentation> instrumentation;
+    if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+    {
+        windowTraits->debugUtils = true;
+
+        auto gpu_instrumentation = vsg::GpuAnnotation::create();
+        if (arguments.read("--func")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
+
+        instrumentation = gpu_instrumentation;
+    }
+#ifdef Tracy_FOUND
+    else if (arguments.read("--tracy"))
+    {
+        windowTraits->deviceExtensionNames.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+
+        auto tracy_instrumentation = vsg::TracyInstrumentation::create();
+        arguments.read("--cpu", tracy_instrumentation->settings->cpu_instumentation_level);
+        arguments.read("--gpu", tracy_instrumentation->settings->gpu_instumentation_level);
+        instrumentation = tracy_instrumentation;
+    }
+#endif
+
+
     // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
 
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
@@ -196,6 +223,8 @@ int main(int argc, char** argv)
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+    if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
     viewer->compile();
 
