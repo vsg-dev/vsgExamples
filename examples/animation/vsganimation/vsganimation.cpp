@@ -125,6 +125,23 @@ int main(int argc, char** argv)
     }
 #endif
 
+    // when using shadows set the depthClampEnable to true;
+    bool depthClamp = true;
+    if (depthClamp)
+    {
+        auto rasterizationState = vsg::RasterizationState::create();
+        rasterizationState->depthClampEnable = VK_TRUE;
+
+        auto pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
+        pbr->defaultGraphicsPipelineStates.push_back(rasterizationState);
+
+        auto phong = options->shaderSets["phong"] = vsg::createPhysicsBasedRenderingShaderSet(options);
+        phong->defaultGraphicsPipelineStates.push_back(rasterizationState);
+
+        auto flat = options->shaderSets["flat"] = vsg::createPhysicsBasedRenderingShaderSet(options);
+        flat->defaultGraphicsPipelineStates.push_back(rasterizationState);
+    }
+
 
     // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
 
@@ -157,7 +174,53 @@ int main(int argc, char** argv)
     vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
     double radius = vsg::length(bounds.max - bounds.min) * 0.6;
 
-    auto scene = model;
+    auto scene = vsg::Group::create();
+    scene->addChild(model);
+
+    bool insertBaseGeometry = true;
+    if (insertBaseGeometry)
+    {
+        auto builder = vsg::Builder::create();
+        builder->options = options;
+
+        vsg::GeometryInfo geomInfo;
+        vsg::StateInfo stateInfo;
+
+        double diameter = vsg::length(bounds.max - bounds.min);
+        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+        geomInfo.dx.set(diameter, 0.0, 0.0);
+        geomInfo.dy.set(0.0, diameter, 0.0);
+        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+        stateInfo.two_sided = true;
+
+        scene->addChild(builder->createQuad(geomInfo, stateInfo));
+    }
+
+    unsigned int numLights = 2;
+    unsigned int numShadowMapsPerLight = 3;
+    vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
+    auto direction = arguments.value(vsg::dvec3(-1.0, 1.0, -1.0), "--direction");
+    if (numLights >= 1)
+    {
+        directionalLight = vsg::DirectionalLight::create();
+        directionalLight->name = "directional";
+        directionalLight->color.set(1.0, 1.0, 1.0);
+        directionalLight->intensity = 0.7;
+        directionalLight->direction = direction;
+        directionalLight->shadowMaps = numShadowMapsPerLight;
+        scene->addChild(directionalLight);
+    }
+
+    vsg::ref_ptr<vsg::AmbientLight> ambientLight;
+    if (numLights >= 2)
+    {
+        ambientLight = vsg::AmbientLight::create();
+        ambientLight->name = "ambient";
+        ambientLight->color.set(1.0, 1.0, 1.0);
+        ambientLight->intensity = 0.3;
+        scene->addChild(ambientLight);
+    }
 
     // write out scene if required
     if (outputFilename)
@@ -204,7 +267,8 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(camera));
     viewer->addEventHandler(AnimationControl::create(viewer->animationManager, animations));
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
+    auto renderGraph = vsg::RenderGraph::create(window, view);
+    auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     if (instrumentation) viewer->assignInstrumentation(instrumentation);
