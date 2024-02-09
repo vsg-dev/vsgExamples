@@ -11,28 +11,6 @@
 #include <iostream>
 
 
-class FindAnimation : public vsg::Inherit<vsg::Visitor, FindAnimation>
-{
-public:
-
-    vsg::Animations animations;
-
-    void apply(vsg::Node& node) override
-    {
-        //vsg::info(node.className());
-        node.traverse(*this);
-    }
-
-    void apply(vsg::AnimationGroup& node) override
-    {
-        vsg::info("AnimationGroup ", node.className(), " node.animations.size() = ", node.animations.size());
-
-        animations.insert(animations.end(), node.animations.begin(), node.animations.end());
-
-        node.traverse(*this);
-    }
-};
-
 class AnimationControl : public vsg::Inherit<vsg::Visitor, AnimationControl>
 {
 public:
@@ -166,8 +144,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    FindAnimation findAnimation;
-    model->accept(findAnimation);
+    auto animations = vsg::visit<vsg::FindAnimations>(model).animations;
+
+    std::cout<<"Model contains "<<animations.size()<<" animations."<<std::endl;
+    for(auto animation : animations)
+    {
+        std::cout<<"    "<<animation->name<<std::endl;
+    }
 
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(model).bounds;
@@ -219,7 +202,7 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
-    viewer->addEventHandler(AnimationControl::create(viewer->animationManager, findAnimation.animations));
+    viewer->addEventHandler(AnimationControl::create(viewer->animationManager, animations));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scene);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
