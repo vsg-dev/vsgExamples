@@ -29,13 +29,13 @@ public:
     {
         if (animations.empty()) return;
 
-        if (keyPress.keyModified == 's')
+        if (keyPress.keyModified == 'p')
         {
             keyPress.handled = true;
 
             if (itr != animations.end())
             {
-                if (animationManager->start(*itr))
+                if (animationManager->play(*itr))
                 {
                     ++numStartedAnimations;
 
@@ -44,7 +44,7 @@ public:
                 }
             }
         }
-        else if (keyPress.keyModified == 'e')
+        else if (keyPress.keyModified == 's')
         {
             keyPress.handled = true;
 
@@ -54,7 +54,6 @@ public:
                 if (itr == animations.begin())
                 {
                     itr = animations.end() - 1;
-                    vsg::info("Wrapping around ", (*itr)->name);
                 }
                 else
                 {
@@ -63,7 +62,7 @@ public:
 
                 if (itr != animations.end())
                 {
-                    if (animationManager->end(*itr))
+                    if (animationManager->stop(*itr))
                     {
                         --numStartedAnimations;
                     }
@@ -209,8 +208,8 @@ int main(int argc, char** argv)
     }
 
     unsigned int numLights = 2;
-    unsigned int numShadowMapsPerLight = 3;
     auto direction = arguments.value(vsg::dvec3(-1.0, 1.0, -1.0), "--direction");
+    auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
     if (numLights >= 1)
     {
         auto directionalLight = vsg::DirectionalLight::create();
