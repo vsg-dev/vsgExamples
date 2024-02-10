@@ -209,7 +209,8 @@ int main(int argc, char** argv)
 
     unsigned int numLights = 2;
     auto direction = arguments.value(vsg::dvec3(-1.0, 1.0, -1.0), "--direction");
-    auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
+    auto numShadowMapsPerLight = arguments.value<uint32_t>(3, "--sm");
+    double maxShadowDistance = 1e8;
     if (numLights >= 1)
     {
         auto directionalLight = vsg::DirectionalLight::create();
@@ -253,6 +254,7 @@ int main(int argc, char** argv)
     bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
     centre = (bounds.min + bounds.max) * 0.5;
     radius = vsg::length(bounds.max - bounds.min) * 0.6;
+    maxShadowDistance = radius * 4.0;
 
     // set up the camera
     lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -264,6 +266,7 @@ int main(int argc, char** argv)
 
     // add the camera and scene graph to View
     auto view = vsg::View::create();
+    view->viewDependentState->maxShadowDistance = maxShadowDistance;
     view->camera = camera;
     view->addChild(scene);
 
