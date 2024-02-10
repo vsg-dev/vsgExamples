@@ -199,26 +199,21 @@ int main(int argc, char** argv)
 
     unsigned int numLights = 2;
     unsigned int numShadowMapsPerLight = 3;
-    vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
     auto direction = arguments.value(vsg::dvec3(-1.0, 1.0, -1.0), "--direction");
     if (numLights >= 1)
     {
-        directionalLight = vsg::DirectionalLight::create();
+        auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.7;
+        directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
         directionalLight->shadowMaps = numShadowMapsPerLight;
         scene->addChild(directionalLight);
-    }
 
-    vsg::ref_ptr<vsg::AmbientLight> ambientLight;
-    if (numLights >= 2)
-    {
-        ambientLight = vsg::AmbientLight::create();
+        auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.3;
+        ambientLight->intensity = 0.1;
         scene->addChild(ambientLight);
     }
 
