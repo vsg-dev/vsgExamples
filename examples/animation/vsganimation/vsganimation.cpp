@@ -102,6 +102,17 @@ int main(int argc, char** argv)
     auto numFrames = arguments.value(-1, "-f");
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    if (arguments.read({"-t", "--test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->fullscreen = true;
+    }
+    if (arguments.read("--st"))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->width = 192, windowTraits->height = 108;
+        windowTraits->decoration = false;
+    }
 
     vsg::ref_ptr<vsg::Instrumentation> instrumentation;
     if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
@@ -188,8 +199,8 @@ int main(int argc, char** argv)
 
         double diameter = vsg::length(bounds.max - bounds.min);
         geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-        geomInfo.dx.set(diameter, 0.0, 0.0);
-        geomInfo.dy.set(0.0, diameter, 0.0);
+        geomInfo.dx.set(1.5*diameter, 0.0, 0.0);
+        geomInfo.dy.set(0.0, 1.5*diameter, 0.0);
         geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
 
         stateInfo.two_sided = true;
