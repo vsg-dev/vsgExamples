@@ -17,13 +17,12 @@ public:
 
     AnimationControl(vsg::ref_ptr<vsg::AnimationManager> am, const vsg::Animations& in_animations) : animationManager(am), animations(in_animations)
     {
-        itr = animations.begin();
+        itr = animations.end();
     }
 
     vsg::ref_ptr<vsg::AnimationManager> animationManager;
     vsg::Animations animations;
     vsg::Animations::iterator itr;
-    unsigned int numStartedAnimations = 0;
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
@@ -33,11 +32,28 @@ public:
         {
             keyPress.handled = true;
 
+            // if the iterator hasn't been set yet, set it to the next animation after the last one played,
+            // or the first entry in the list of animations
+            if (itr == animations.end())
+            {
+                if (!(animationManager->animations.empty()))
+                {
+                    itr = std::find(animations.begin(), animations.end(), animationManager->animations.back());
+                    if (itr != animations.end()) ++itr;
+                }
+
+                if (itr == animations.end()) itr = animations.begin();
+            }
+
+            // stop all running animations
+            animationManager->stop();
+
+            // play the animation
             if (itr != animations.end())
             {
                 if (animationManager->play(*itr))
                 {
-                    ++numStartedAnimations;
+                    std::cout<<"Playing "<<(*itr)->name<<std::endl;
 
                     ++itr;
                     if (itr == animations.end()) itr = animations.begin();
@@ -48,26 +64,8 @@ public:
         {
             keyPress.handled = true;
 
-            if (numStartedAnimations > 0)
-            {
-                // stop the previous started animation
-                if (itr == animations.begin())
-                {
-                    itr = animations.end() - 1;
-                }
-                else
-                {
-                    --itr;
-                }
-
-                if (itr != animations.end())
-                {
-                    if (animationManager->stop(*itr))
-                    {
-                        --numStartedAnimations;
-                    }
-                }
-            }
+            // stop all running animations
+            animationManager->stop();
         }
     }
 };
@@ -101,6 +99,7 @@ int main(int argc, char** argv)
     auto numFrames = arguments.value(-1, "-f");
     if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    if (arguments.read("--IMMEDIATE")) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; }
     if (arguments.read({"-t", "--test"}))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -152,8 +151,7 @@ int main(int argc, char** argv)
         flat->defaultGraphicsPipelineStates.push_back(rasterizationState);
     }
 
-
-    // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
+    auto autoPlay = !arguments.read({"--no-auto-play", "-n"});
 
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
@@ -282,6 +280,10 @@ int main(int argc, char** argv)
     if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
     viewer->compile();
+
+    // start first animation if available
+    if (autoPlay && !animations.empty()) viewer->animationManager->play(animations.front());
+
 
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
