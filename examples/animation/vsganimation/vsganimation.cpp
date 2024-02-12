@@ -151,8 +151,8 @@ int main(int argc, char** argv)
         flat->defaultGraphicsPipelineStates.push_back(rasterizationState);
     }
 
-    auto autoPlay = !arguments.read({"--no-auto-play", "-n"});
-
+    auto numCopies = arguments.value<unsigned int>(1, "-n");
+    auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     if (argc<=1)
@@ -161,53 +161,12 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    vsg::Path filename = argv[1];
-    auto model = vsg::read_cast<vsg::Node>(filename, options);
-    if (!model)
-    {
-        std::cout<<"Failed to load "<<filename<<std::endl;
-        return 1;
-    }
-
-    auto animations = vsg::visit<vsg::FindAnimations>(model).animations;
-
-    std::cout<<"Model contains "<<animations.size()<<" animations."<<std::endl;
-    for(auto animation : animations)
-    {
-        std::cout<<"    "<<animation->name<<std::endl;
-    }
-
-    // compute the bounds of the scene graph to help position camera
-    auto bounds = vsg::visit<vsg::ComputeBounds>(model).bounds;
-    vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
-    double radius = vsg::length(bounds.max - bounds.min) * 0.6;
-
     auto scene = vsg::Group::create();
-    scene->addChild(model);
-
-    bool insertBaseGeometry = true;
-    if (insertBaseGeometry)
-    {
-        auto builder = vsg::Builder::create();
-        builder->options = options;
-
-        vsg::GeometryInfo geomInfo;
-        vsg::StateInfo stateInfo;
-
-        double diameter = vsg::length(bounds.max - bounds.min);
-        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-        geomInfo.dx.set(1.5*diameter, 0.0, 0.0);
-        geomInfo.dy.set(0.0, 1.5*diameter, 0.0);
-        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
-
-        stateInfo.two_sided = true;
-
-        scene->addChild(builder->createQuad(geomInfo, stateInfo));
-    }
 
     unsigned int numLights = 2;
     auto direction = arguments.value(vsg::dvec3(-1.0, 1.0, -1.0), "--direction");
     auto numShadowMapsPerLight = arguments.value<uint32_t>(3, "--sm");
+    auto lambda = arguments.value<double>(0.5, "--lambda");
     double maxShadowDistance = 1e8;
     if (numLights >= 1)
     {
@@ -225,6 +184,113 @@ int main(int argc, char** argv)
         ambientLight->intensity = 0.1;
         scene->addChild(ambientLight);
     }
+
+
+    // load the models
+    struct ModelBound
+    {
+        vsg::ref_ptr<vsg::Node> node;
+        vsg::dbox bounds;
+    };
+
+    std::list<ModelBound> models;
+    for (int i = 1; i < argc; ++i)
+    {
+        vsg::Path filename = arguments[i];
+        if (auto node = vsg::read_cast<vsg::Node>(filename, options))
+        {
+            auto bounds = vsg::visit<vsg::ComputeBounds>(node).bounds;
+            models.push_back(ModelBound{node, bounds});
+        }
+    }
+
+    if (models.empty())
+    {
+        std::cout<<"Failed to load any models, please specify filenames of 3d models on the command line,"<<std::endl;
+        return 1;
+    }
+
+    if (models.size()==1 && numCopies==1)
+    {
+        // just a single model so just add it directly to the scene
+        scene->addChild(models.front().node);
+    }
+    else
+    {
+        // find the largest model diameter so we can use it to set up layout
+        double maxDiameter = 0.0;
+        for(auto model : models)
+        {
+            auto diameter = vsg::length(model.bounds.max - model.bounds.min);
+            if (diameter > maxDiameter) maxDiameter = diameter;
+        }
+
+        // we have multiple models so we need to lay then out on a grid
+        unsigned int totalNumberOfModels = static_cast<unsigned int>(models.size()) * numCopies;
+        unsigned int columns = static_cast<unsigned int>(std::ceil(std::sqrt(static_cast<double>(totalNumberOfModels))));
+
+        unsigned int column = 0;
+        vsg::dvec3 position = {0.0, 0.0, 0.0};
+        double spacing = maxDiameter;
+        for(unsigned int ci = 0; ci < numCopies; ++ci)
+        {
+            for(auto [node, bounds] : models)
+            {
+                auto diameter = vsg::length(bounds.max - bounds.min);
+                vsg::dvec3 origin((bounds.min.x + bounds.max.x) * 0.5,
+                                  (bounds.min.y + bounds.max.y) * 0.5,
+                                  bounds.min.z);
+                auto transform = vsg::MatrixTransform::create(vsg::translate(position) * vsg::scale(maxDiameter / diameter) * vsg::translate(-origin));
+                transform->addChild(node);
+
+                scene->addChild(transform);
+
+                // advance position
+                position.x += spacing;
+                ++column;
+                if (column >= columns)
+                {
+                    position.x = 0.0;
+                    position.y += spacing;
+                    column = 0;
+                }
+            }
+        }
+    }
+
+    auto animations = vsg::visit<vsg::FindAnimations>(scene).animations;
+
+    std::cout<<"Model contains "<<animations.size()<<" animations."<<std::endl;
+    for(auto animation : animations)
+    {
+        std::cout<<"    "<<animation->name<<std::endl;
+    }
+
+    // compute the bounds of the scene graph to help position camera
+    auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+    vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+    double radius = vsg::length(bounds.max - bounds.min) * 0.6;
+
+    bool insertBaseGeometry = true;
+    if (insertBaseGeometry)
+    {
+        auto builder = vsg::Builder::create();
+        builder->options = options;
+
+        vsg::GeometryInfo geomInfo;
+        vsg::StateInfo stateInfo;
+
+        double margin = bounds.max.z - bounds.min.z;
+        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+        geomInfo.dx.set(bounds.max.x - bounds.min.x + margin, 0.0, 0.0);
+        geomInfo.dy.set(0.0, bounds.max.y - bounds.min.y + margin, 0.0);
+        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+        stateInfo.two_sided = true;
+
+        scene->addChild(builder->createQuad(geomInfo, stateInfo));
+    }
+
 
     // write out scene if required
     if (outputFilename)
@@ -249,10 +315,9 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
     // update bounds to new scene extent
-    bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
     centre = (bounds.min + bounds.max) * 0.5;
     radius = vsg::length(bounds.max - bounds.min) * 0.6;
-    maxShadowDistance = radius * 4.0;
+    maxShadowDistance = radius * 3.0;
 
     // set up the camera
     lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -265,6 +330,7 @@ int main(int argc, char** argv)
     // add the camera and scene graph to View
     auto view = vsg::View::create();
     view->viewDependentState->maxShadowDistance = maxShadowDistance;
+    view->viewDependentState->lambda = lambda;
     view->camera = camera;
     view->addChild(scene);
 
