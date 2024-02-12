@@ -15,12 +15,17 @@ class AnimationControl : public vsg::Inherit<vsg::Visitor, AnimationControl>
 {
 public:
 
-    AnimationControl(vsg::ref_ptr<vsg::AnimationManager> am, const vsg::Animations& in_animations) : animationManager(am), animations(in_animations)
+    AnimationControl(vsg::ref_ptr<vsg::AnimationManager> am, const vsg::AnimationGroups& in_animationGroups) : animationManager(am), animationGroups(in_animationGroups)
     {
+        for(auto ag : animationGroups)
+        {
+            animations.insert(animations.end(), ag->animations.begin(), ag->animations.end());
+        }
         itr = animations.end();
     }
 
     vsg::ref_ptr<vsg::AnimationManager> animationManager;
+    vsg::AnimationGroups animationGroups;
     vsg::Animations animations;
     vsg::Animations::iterator itr;
 
@@ -66,6 +71,21 @@ public:
 
             // stop all running animations
             animationManager->stop();
+        }
+        else if (keyPress.keyModified == 'a')
+        {
+            keyPress.handled = true;
+
+            // stop all running animations
+            animationManager->stop();
+
+            for(auto ag : animationGroups)
+            {
+                if (!ag->animations.empty())
+                {
+                    animationManager->play(ag->animations.front());
+                }
+            }
         }
     }
 };
@@ -166,7 +186,7 @@ int main(int argc, char** argv)
     unsigned int numLights = 2;
     auto direction = arguments.value(vsg::dvec3(-1.0, 1.0, -1.0), "--direction");
     auto numShadowMapsPerLight = arguments.value<uint32_t>(3, "--sm");
-    auto lambda = arguments.value<double>(0.5, "--lambda");
+    auto lambda = arguments.value<double>(0.25, "--lambda");
     double maxShadowDistance = 1e8;
     if (numLights >= 1)
     {
@@ -258,12 +278,21 @@ int main(int argc, char** argv)
         }
     }
 
-    auto animations = vsg::visit<vsg::FindAnimations>(scene).animations;
+    // find the animations available in scene
+    vsg::FindAnimations findAnimations;
+    scene->accept(findAnimations);
+
+    auto animations = findAnimations.animations;
+    auto animationGroups = findAnimations.animationGroups;
 
     std::cout<<"Model contains "<<animations.size()<<" animations."<<std::endl;
-    for(auto animation : animations)
+    for(auto& ag : animationGroups)
     {
-        std::cout<<"    "<<animation->name<<std::endl;
+        std::cout<<"AnimationGroup "<<ag<<std::endl;
+        for(auto animation : ag->animations)
+        {
+            std::cout<<"    animation : "<<animation->name<<std::endl;
+        }
     }
 
     // compute the bounds of the scene graph to help position camera
@@ -337,7 +366,7 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
     viewer->addEventHandler(vsg::Trackball::create(camera));
-    viewer->addEventHandler(AnimationControl::create(viewer->animationManager, animations));
+    viewer->addEventHandler(AnimationControl::create(viewer->animationManager, animationGroups));
 
     auto renderGraph = vsg::RenderGraph::create(window, view);
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
@@ -348,8 +377,13 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // start first animation if available
-    if (autoPlay && !animations.empty()) viewer->animationManager->play(animations.front());
-
+    if (autoPlay && !animations.empty())
+    {
+        for(auto ag : animationGroups)
+        {
+            if (!ag->animations.empty()) viewer->animationManager->play(ag->animations.front());
+        }
+    }
 
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
