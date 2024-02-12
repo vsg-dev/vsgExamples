@@ -90,6 +90,195 @@ public:
     }
 };
 
+
+class Duplicator : public vsg::Visitor
+{
+public:
+
+    template<class T>
+    vsg::ref_ptr<T> duplicate(vsg::ref_ptr<T> ptr)
+    {
+        if (ptr)
+        {
+            ptr->accept(*this);
+            if (auto successful_duplicate = _object.cast<T>())
+            {
+                _object = {};
+                return successful_duplicate;
+            }
+        }
+        return ptr;
+    }
+
+    template<class T>
+    vsg::ref_ptr<T> operator() (vsg::ref_ptr<T> ptr) { return duplicate(ptr); }
+
+    void reset()
+    {
+        _object = {};
+        _duplicates.clear();
+    }
+
+protected:
+
+    vsg::ref_ptr<vsg::Object> _object;
+    std::map<vsg::Object*, vsg::ref_ptr<vsg::Object>> _duplicates;
+
+    bool duplicated(Object& object)
+    {
+        if (auto itr = _duplicates.find(&object); itr != _duplicates.end())
+        {
+            _object = itr->second;
+            vsg::info("    Returning Duplicate ", _object);
+            return true;
+        }
+        else
+        {
+            _object = &object;
+            return false;
+        }
+    }
+
+    bool duplicated(Object& object, vsg::ref_ptr<vsg::Object> duplicate)
+    {
+        vsg::info("    Duplicated ", duplicate);
+        _object = duplicate;
+        _duplicates[&object] = duplicate;
+        return true;
+    }
+
+    void apply(vsg::Object& original) override
+    {
+        if (duplicated(original)) return;
+        else original.traverse(*this);
+    }
+
+    void apply(vsg::Data& data) override
+    {
+        if (duplicated(data)) return;
+
+        auto new_data = data.clone();
+        duplicated(data, new_data);
+    }
+
+    void apply(vsg::Joint& joint) override
+    {
+        if (duplicated(joint)) return;
+
+        auto new_joint = vsg::Joint::create();
+
+        new_joint->name = joint.name;
+        new_joint->index = joint.index;
+        new_joint->matrix = joint.matrix;
+
+        new_joint->children.reserve(joint.children.size());
+        for(auto child : joint.children)
+        {
+            new_joint->children.push_back(duplicate(child));
+        }
+
+        duplicated(joint, new_joint);
+    }
+
+    void apply(vsg::MatrixTransform& mt) override
+    {
+        if (duplicated(mt)) return;
+
+        auto new_mt = vsg::MatrixTransform::create();
+
+        new_mt->matrix = mt.matrix;
+
+        new_mt->children.reserve(mt.children.size());
+        for(auto child : mt.children)
+        {
+            new_mt->children.push_back(duplicate(child));
+        }
+
+        duplicated(mt, new_mt);
+    }
+
+    void apply(vsg::AnimationSampler& sampler) override
+    {
+        if (duplicated(sampler)) return;
+
+        vsg::info("TODO - implement samplers");
+        _object = &sampler;
+    }
+
+    void apply(vsg::JointSampler& sampler) override
+    {
+        if (duplicated(sampler)) return;
+
+        auto new_sampler = vsg::JointSampler::create();
+
+        new_sampler->name = sampler.name;
+        new_sampler->jointMatrices = duplicate(sampler.jointMatrices);
+        new_sampler->offsetMatrices = sampler.offsetMatrices;
+        new_sampler->subgraph = duplicate(sampler.subgraph);
+
+        duplicated(sampler, new_sampler);
+    }
+
+    void apply(vsg::TransformSampler& sampler) override
+    {
+        if (duplicated(sampler)) return;
+
+        auto new_sampler = vsg::TransformSampler::create();
+        new_sampler->name = sampler.name;
+        new_sampler->keyframes = sampler.keyframes;
+        new_sampler->object = duplicate(sampler.object);
+        new_sampler->position = sampler.position;
+        new_sampler->rotation = sampler.rotation;
+        new_sampler->scale = sampler.scale;
+
+        duplicated(sampler, new_sampler);
+    }
+
+    void apply(vsg::MorphSampler& sampler) override
+    {
+        if (duplicated(sampler)) return;
+
+        vsg::info("TODO - implement norph samplers");
+    }
+
+    void apply(vsg::Animation& animation) override
+    {
+        if (duplicated(animation)) return;
+
+        auto new_animation = vsg::Animation::create();
+
+        new_animation->name = animation.name;
+        new_animation->samplers.reserve(animation.samplers.size());
+        for(auto sampler : animation.samplers)
+        {
+            new_animation->samplers.push_back(duplicate(sampler));
+        }
+
+        duplicated(animation, new_animation);
+    }
+
+    void apply(vsg::AnimationGroup& ag) override
+    {
+        if (duplicated(ag)) return;
+
+        auto new_ag = vsg::AnimationGroup::create();
+
+        new_ag->animations.reserve(ag.animations.size());
+        for(auto animation : ag.animations)
+        {
+            new_ag->animations.push_back(duplicate(animation));
+        }
+
+        new_ag->children.reserve(ag.children.size());
+        for(auto child : ag.children)
+        {
+            new_ag->children.push_back(duplicate(child));
+        }
+
+        duplicated(ag, new_ag);
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -172,6 +361,7 @@ int main(int argc, char** argv)
     }
 
     auto numCopies = arguments.value<unsigned int>(1, "-n");
+    auto duplicate = arguments.read("--duplicate");
     auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
@@ -252,6 +442,7 @@ int main(int argc, char** argv)
         unsigned int column = 0;
         vsg::dvec3 position = {0.0, 0.0, 0.0};
         double spacing = maxDiameter;
+        Duplicator duplicator;
         for(unsigned int ci = 0; ci < numCopies; ++ci)
         {
             for(auto [node, bounds] : models)
@@ -261,7 +452,15 @@ int main(int argc, char** argv)
                                   (bounds.min.y + bounds.max.y) * 0.5,
                                   bounds.min.z);
                 auto transform = vsg::MatrixTransform::create(vsg::translate(position) * vsg::scale(maxDiameter / diameter) * vsg::translate(-origin));
-                transform->addChild(node);
+
+                if (duplicate && ci>0)
+                {
+                    transform->addChild(duplicator(node));
+                }
+                else
+                {
+                    transform->addChild(node);
+                }
 
                 scene->addChild(transform);
 
@@ -274,6 +473,8 @@ int main(int argc, char** argv)
                     position.y += spacing;
                     column = 0;
                 }
+
+                duplicator.reset();
             }
         }
     }
@@ -346,7 +547,7 @@ int main(int argc, char** argv)
     // update bounds to new scene extent
     centre = (bounds.min + bounds.max) * 0.5;
     radius = vsg::length(bounds.max - bounds.min) * 0.6;
-    if (maxShadowDistance == 1e8) maxShadowDistance = radius * 3.0;
+    if (maxShadowDistance == 1e8) maxShadowDistance = radius * 4.0;
 
     // set up the camera
     lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
