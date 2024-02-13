@@ -99,20 +99,44 @@ public:
 
     std::size_t operator() (const vsg::Object* object)
     {
-        std::size_t before = requiresDuplication.size();
+        auto before = requiresDuplication.size();
 
         if (object) object->accept(*this);
 
         return requiresDuplication.size() - before;
     }
 
+    struct TagIfChildChanges
+    {
+        inline TagIfChildChanges(RequiresDuplication* in_rd, const vsg::Object* in_object) :
+            rd(in_rd),
+            object(in_object),
+            before(rd->requiresDuplication.size()) {}
+
+        inline ~TagIfChildChanges()
+        {
+            if (rd->requiresDuplication.size() != before) rd->tag(object);
+        }
+
+        RequiresDuplication* rd = nullptr;
+        const vsg::Object* object = nullptr;
+        std::size_t before = 0;
+    };
+
     inline void tag(const vsg::Object* object)
     {
         if (object) requiresDuplication.insert(object);
     }
 
+    inline bool tagged(const vsg::Object* object) const
+    {
+        return object ? (requiresDuplication.count(object) != 0) : false;
+    }
+
     void apply(const vsg::Object& object) override
     {
+        TagIfChildChanges t(this, &object);
+
         object.traverse(*this);
     }
 
@@ -150,6 +174,68 @@ public:
         tag(&sampler);
         tag(sampler.jointMatrices);
         tag(sampler.subgraph);
+    }
+
+    void apply(const vsg::BufferInfo& info) override
+    {
+        if (tagged(info.data)) tag(&info);
+    }
+
+    void apply(const vsg::DescriptorBuffer& db) override
+    {
+        TagIfChildChanges t(this, &db);
+        for(auto info : db.bufferInfoList)
+        {
+            info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::BindIndexBuffer& bib) override
+    {
+        TagIfChildChanges t(this, &bib);
+        if (bib.indices) bib.indices->accept(*this);
+    }
+
+    void apply(const vsg::BindVertexBuffers& bvb) override
+    {
+        TagIfChildChanges t(this, &bvb);
+        for(auto info : bvb.arrays)
+        {
+            if (info) info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::VertexDraw& vd) override
+    {
+        TagIfChildChanges t(this, &vd);
+        for(auto info : vd.arrays)
+        {
+            if (info) info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::VertexIndexDraw& vid) override
+    {
+        TagIfChildChanges t(this, &vid);
+        if (vid.indices) vid.indices->accept(*this);
+        for(auto info : vid.arrays)
+        {
+            if (info) info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::Geometry& geom) override
+    {
+        TagIfChildChanges t(this, &geom);
+        if (geom.indices) geom.indices->accept(*this);
+        for(auto info : geom.arrays)
+        {
+            if (info) info->accept(*this);
+        }
+        for(auto command : geom.commands)
+        {
+            if (command) command->accept(*this);
+        }
     }
 
 };
