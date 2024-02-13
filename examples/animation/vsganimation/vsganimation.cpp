@@ -106,6 +106,23 @@ public:
         return requiresDuplication.size() - before;
     }
 
+    void reset()
+    {
+        requiresDuplication.clear();
+    }
+
+    inline void tag(const vsg::Object* object)
+    {
+        if (object) requiresDuplication.insert(object);
+    }
+
+    inline bool tagged(const vsg::Object* object) const
+    {
+        return object ? (requiresDuplication.count(object) != 0) : false;
+    }
+
+protected:
+
     struct TagIfChildChanges
     {
         inline TagIfChildChanges(RequiresDuplication* in_rd, const vsg::Object* in_object) :
@@ -122,16 +139,6 @@ public:
         const vsg::Object* object = nullptr;
         std::size_t before = 0;
     };
-
-    inline void tag(const vsg::Object* object)
-    {
-        if (object) requiresDuplication.insert(object);
-    }
-
-    inline bool tagged(const vsg::Object* object) const
-    {
-        return object ? (requiresDuplication.count(object) != 0) : false;
-    }
 
     void apply(const vsg::Object& object) override
     {
@@ -281,17 +288,19 @@ public:
     void reset()
     {
         _object = {};
-        _duplicates.clear();
+        duplicates.clear();
     }
+
+    std::set<const vsg::Object*> requiresDuplication;
+    std::map<const vsg::Object*, vsg::ref_ptr<vsg::Object>> duplicates;
 
 protected:
 
     vsg::ref_ptr<vsg::Object> _object;
-    std::map<vsg::Object*, vsg::ref_ptr<vsg::Object>> _duplicates;
 
     bool duplicated(Object& object)
     {
-        if (auto itr = _duplicates.find(&object); itr != _duplicates.end())
+        if (auto itr = duplicates.find(&object); itr != duplicates.end())
         {
             _object = itr->second;
             vsg::info("    Returning Duplicate ", _object);
@@ -308,7 +317,7 @@ protected:
     {
         vsg::info("    Duplicated ", duplicate);
         _object = duplicate;
-        _duplicates[&object] = duplicate;
+        duplicates[&object] = duplicate;
         return true;
     }
 
@@ -444,6 +453,7 @@ protected:
     }
 };
 
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -526,7 +536,6 @@ int main(int argc, char** argv)
     }
 
     auto numCopies = arguments.value<unsigned int>(1, "-n");
-    auto duplicate = arguments.read("--duplicate");
     auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
@@ -568,6 +577,7 @@ int main(int argc, char** argv)
         vsg::dbox bounds;
     };
 
+    RequiresDuplication requiresDuplication;
     std::list<ModelBound> models;
     for (int i = 1; i < argc; ++i)
     {
@@ -577,12 +587,14 @@ int main(int argc, char** argv)
             auto bounds = vsg::visit<vsg::ComputeBounds>(node).bounds;
             models.push_back(ModelBound{node, bounds});
 
-            RequiresDuplication rd;
-            while (rd(node) > 0) { std::cout<< rd << "Repating search for dulicates"<<std::endl; }
-
-            vsg::info("Final number of objects requiring duplication ", rd.requiresDuplication.size());
+            if (numCopies > 1)
+            {
+                while (requiresDuplication(node) > 0) { std::cout<< requiresDuplication << "Repating search for dulicates"<<std::endl; }
+            }
         }
     }
+
+    vsg::info("Final number of objects requiring duplication ", requiresDuplication.requiresDuplication.size());
 
     if (models.empty())
     {
@@ -612,7 +624,10 @@ int main(int argc, char** argv)
         unsigned int column = 0;
         vsg::dvec3 position = {0.0, 0.0, 0.0};
         double spacing = maxDiameter;
+
         Duplicator duplicator;
+        duplicator.requiresDuplication = requiresDuplication.requiresDuplication;
+
         for(unsigned int ci = 0; ci < numCopies; ++ci)
         {
             for(auto [node, bounds] : models)
@@ -623,7 +638,7 @@ int main(int argc, char** argv)
                                   bounds.min.z);
                 auto transform = vsg::MatrixTransform::create(vsg::translate(position) * vsg::scale(maxDiameter / diameter) * vsg::translate(-origin));
 
-                if (duplicate && ci>0)
+                if (ci > 0)
                 {
                     transform->addChild(duplicator(node));
                 }
