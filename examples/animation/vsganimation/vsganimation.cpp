@@ -91,6 +91,85 @@ public:
 };
 
 
+class RequiresDuplication : public vsg::ConstVisitor
+{
+public:
+
+    std::set<const Object*> requiresDuplication;
+
+    std::size_t operator() (const vsg::Object* object)
+    {
+        std::size_t before = requiresDuplication.size();
+
+        if (object) object->accept(*this);
+
+        return requiresDuplication.size() - before;
+    }
+
+    inline void tag(const vsg::Object* object)
+    {
+        if (object) requiresDuplication.insert(object);
+    }
+
+    void apply(const vsg::Object& object) override
+    {
+        object.traverse(*this);
+    }
+
+    void apply(const vsg::AnimationGroup& ag) override
+    {
+        tag(&ag);
+        ag.traverse(*this);
+    }
+
+    void apply(const vsg::Animation& animation) override
+    {
+        tag(&animation);
+        animation.traverse(*this);
+    }
+
+    void apply(const vsg::AnimationSampler& sampler) override
+    {
+        tag(&sampler);
+    }
+
+    void apply(const vsg::TransformSampler& sampler) override
+    {
+        tag(&sampler);
+        tag(sampler.object);
+    }
+
+    void apply(const vsg::MorphSampler& sampler) override
+    {
+        tag(&sampler);
+        tag(sampler.object);
+    }
+
+    void apply(const vsg::JointSampler& sampler) override
+    {
+        tag(&sampler);
+        tag(sampler.jointMatrices);
+        tag(sampler.subgraph);
+    }
+
+};
+
+std::ostream& operator << (std::ostream& out, const RequiresDuplication& fs)
+{
+    vsg::indentation indent(4);
+
+    out << "RequiresDuplication { "<<std::endl;
+
+    for(auto object : fs.requiresDuplication)
+    {
+        out << indent << object->className() << " " << object << std::endl;
+    }
+    out << "}"<<std::endl;
+
+    return out;
+}
+
+
 class Duplicator : public vsg::Visitor
 {
 public:
@@ -411,6 +490,11 @@ int main(int argc, char** argv)
         {
             auto bounds = vsg::visit<vsg::ComputeBounds>(node).bounds;
             models.push_back(ModelBound{node, bounds});
+
+            RequiresDuplication rd;
+            while (rd(node) > 0) { std::cout<< rd << "Repating search for dulicates"<<std::endl; }
+
+            vsg::info("Final number of objects requiring duplication ", rd.requiresDuplication.size());
         }
     }
 
