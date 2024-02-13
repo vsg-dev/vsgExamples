@@ -22,13 +22,6 @@ public:
         object.traverse(*this);
     }
 
-    void apply(vsg::StateGroup& sg) override
-    {
-        for (auto& sc : sg.stateCommands) sc->accept(*this);
-
-        sg.traverse(*this);
-    }
-
     void apply(vsg::BindGraphicsPipeline& bgp) override
     {
         bgp.pipeline = graphicsPipeline;

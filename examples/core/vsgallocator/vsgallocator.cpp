@@ -71,18 +71,6 @@ struct SceneStatistics : public vsg::Inherit<vsg::ConstVisitor, SceneStatistics>
         ++objectCounts[node.className()];
         node.traverse(*this);
     }
-
-    void apply(const vsg::StateGroup& stateGroup) override
-    {
-        ++objectCounts[stateGroup.className()];
-
-        for(auto& sc : stateGroup.stateCommands)
-        {
-            sc->accept(*this);
-        }
-
-        stateGroup.traverse(*this);
-    }
 };
 
 int main(int argc, char** argv)
