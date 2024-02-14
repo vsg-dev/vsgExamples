@@ -8,6 +8,7 @@
 #    include <vsg/utils/TracyInstrumentation.h>
 #endif
 
+
 #include <iostream>
 
 
@@ -95,7 +96,13 @@ class RequiresDuplication : public vsg::ConstVisitor
 {
 public:
 
+    RequiresDuplication()
+    {
+        taggedStack.push(false);
+    }
+
     std::set<const Object*> requiresDuplication;
+    std::stack<bool> taggedStack;
 
     std::size_t operator() (const vsg::Object* object)
     {
@@ -113,12 +120,24 @@ public:
 
     inline void tag(const vsg::Object* object)
     {
-        if (object) requiresDuplication.insert(object);
+        if (object)
+        {
+            requiresDuplication.insert(object);
+            taggedStack.top() = true;
+        }
     }
 
-    inline bool tagged(const vsg::Object* object) const
+    inline bool tagged(const vsg::Object* object)
     {
-        return object ? (requiresDuplication.count(object) != 0) : false;
+        if (object && (requiresDuplication.count(object) != 0))
+        {
+            taggedStack.top() = true;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
 protected:
@@ -128,11 +147,16 @@ protected:
         inline TagIfChildChanges(RequiresDuplication* in_rd, const vsg::Object* in_object) :
             rd(in_rd),
             object(in_object),
-            before(rd->requiresDuplication.size()) {}
+            before(rd->requiresDuplication.size())
+        {
+            if (rd->tagged(object)) rd->taggedStack.top() = true;
+            rd->taggedStack.push(false);
+        }
 
         inline ~TagIfChildChanges()
         {
-            if (rd->requiresDuplication.size() != before) rd->tag(object);
+            if (rd->taggedStack.top() || rd->requiresDuplication.size() != before) rd->tag(object);
+            rd->taggedStack.pop();
         }
 
         RequiresDuplication* rd = nullptr;
@@ -263,193 +287,26 @@ std::ostream& operator << (std::ostream& out, const RequiresDuplication& fs)
 }
 
 
-class Duplicator : public vsg::Visitor
+class PrintSceneGraph : public vsg::Visitor
 {
 public:
+    vsg::indentation indent = 4;
+    vsg::CopyOp copyop;
 
-    template<class T>
-    vsg::ref_ptr<T> duplicate(vsg::ref_ptr<T> ptr)
+    void apply(vsg::Object& object) override
     {
-        if (ptr)
+        if (copyop.duplicates.count(&object) != 0)
         {
-            ptr->accept(*this);
-            if (auto successful_duplicate = _object.cast<T>())
-            {
-                _object = {};
-                return successful_duplicate;
-            }
-        }
-        return ptr;
-    }
-
-    template<class T>
-    vsg::ref_ptr<T> operator() (vsg::ref_ptr<T> ptr) { return duplicate(ptr); }
-
-    void reset()
-    {
-        _object = {};
-        duplicates.clear();
-    }
-
-    std::set<const vsg::Object*> requiresDuplication;
-    std::map<const vsg::Object*, vsg::ref_ptr<vsg::Object>> duplicates;
-
-protected:
-
-    vsg::ref_ptr<vsg::Object> _object;
-
-    bool duplicated(Object& object)
-    {
-        if (auto itr = duplicates.find(&object); itr != duplicates.end())
-        {
-            _object = itr->second;
-            vsg::info("    Returning Duplicate ", _object);
-            return true;
+            std::cout<<indent<<object.className()<<" "<<&object<<" requires duplicate" <<std::endl;
         }
         else
         {
-            _object = &object;
-            return false;
-        }
-    }
-
-    bool duplicated(Object& object, vsg::ref_ptr<vsg::Object> duplicate)
-    {
-        vsg::info("    Duplicated ", duplicate);
-        _object = duplicate;
-        duplicates[&object] = duplicate;
-        return true;
-    }
-
-    void apply(vsg::Object& original) override
-    {
-        if (duplicated(original)) return;
-        else original.traverse(*this);
-    }
-
-    void apply(vsg::Data& data) override
-    {
-        if (duplicated(data)) return;
-
-        auto new_data = data.clone();
-        duplicated(data, new_data);
-    }
-
-    void apply(vsg::Joint& joint) override
-    {
-        if (duplicated(joint)) return;
-
-        auto new_joint = vsg::Joint::create();
-
-        new_joint->name = joint.name;
-        new_joint->index = joint.index;
-        new_joint->matrix = joint.matrix;
-
-        new_joint->children.reserve(joint.children.size());
-        for(auto child : joint.children)
-        {
-            new_joint->children.push_back(duplicate(child));
+            std::cout<<indent<<object.className()<<" "<<&object<<std::endl;
         }
 
-        duplicated(joint, new_joint);
-    }
-
-    void apply(vsg::MatrixTransform& mt) override
-    {
-        if (duplicated(mt)) return;
-
-        auto new_mt = vsg::MatrixTransform::create();
-
-        new_mt->matrix = mt.matrix;
-
-        new_mt->children.reserve(mt.children.size());
-        for(auto child : mt.children)
-        {
-            new_mt->children.push_back(duplicate(child));
-        }
-
-        duplicated(mt, new_mt);
-    }
-
-    void apply(vsg::AnimationSampler& sampler) override
-    {
-        if (duplicated(sampler)) return;
-
-        vsg::info("TODO - implement samplers");
-        _object = &sampler;
-    }
-
-    void apply(vsg::JointSampler& sampler) override
-    {
-        if (duplicated(sampler)) return;
-
-        auto new_sampler = vsg::JointSampler::create();
-
-        new_sampler->name = sampler.name;
-        new_sampler->jointMatrices = duplicate(sampler.jointMatrices);
-        new_sampler->offsetMatrices = sampler.offsetMatrices;
-        new_sampler->subgraph = duplicate(sampler.subgraph);
-
-        duplicated(sampler, new_sampler);
-    }
-
-    void apply(vsg::TransformSampler& sampler) override
-    {
-        if (duplicated(sampler)) return;
-
-        auto new_sampler = vsg::TransformSampler::create();
-        new_sampler->name = sampler.name;
-        new_sampler->keyframes = sampler.keyframes;
-        new_sampler->object = duplicate(sampler.object);
-        new_sampler->position = sampler.position;
-        new_sampler->rotation = sampler.rotation;
-        new_sampler->scale = sampler.scale;
-
-        duplicated(sampler, new_sampler);
-    }
-
-    void apply(vsg::MorphSampler& sampler) override
-    {
-        if (duplicated(sampler)) return;
-
-        vsg::info("TODO - implement norph samplers");
-    }
-
-    void apply(vsg::Animation& animation) override
-    {
-        if (duplicated(animation)) return;
-
-        auto new_animation = vsg::Animation::create();
-
-        new_animation->name = animation.name;
-        new_animation->samplers.reserve(animation.samplers.size());
-        for(auto sampler : animation.samplers)
-        {
-            new_animation->samplers.push_back(duplicate(sampler));
-        }
-
-        duplicated(animation, new_animation);
-    }
-
-    void apply(vsg::AnimationGroup& ag) override
-    {
-        if (duplicated(ag)) return;
-
-        auto new_ag = vsg::AnimationGroup::create();
-
-        new_ag->animations.reserve(ag.animations.size());
-        for(auto animation : ag.animations)
-        {
-            new_ag->animations.push_back(duplicate(animation));
-        }
-
-        new_ag->children.reserve(ag.children.size());
-        for(auto child : ag.children)
-        {
-            new_ag->children.push_back(duplicate(child));
-        }
-
-        duplicated(ag, new_ag);
+        indent += 4;
+        object.traverse(*this);
+        indent -= 4;
     }
 };
 
@@ -522,6 +379,11 @@ int main(int argc, char** argv)
     bool depthClamp = true;
     if (depthClamp)
     {
+        std::cout<<"Enabled depth clamp."<<std::endl;
+        auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+        deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+        deviceFeatures->get().depthClamp = VK_TRUE;
+
         auto rasterizationState = vsg::RasterizationState::create();
         rasterizationState->depthClampEnable = VK_TRUE;
 
@@ -589,12 +451,24 @@ int main(int argc, char** argv)
 
             if (numCopies > 1)
             {
-                while (requiresDuplication(node) > 0) { std::cout<< requiresDuplication << "Repating search for dulicates"<<std::endl; }
+                while (requiresDuplication(node) > 0) { std::cout<< requiresDuplication << "Repeating search for dulicates"<<std::endl; }
             }
         }
     }
 
-    vsg::info("Final number of objects requiring duplication ", requiresDuplication.requiresDuplication.size());
+    vsg::CopyOp copyop;
+    for(auto ptr : requiresDuplication.requiresDuplication) copyop.duplicates.insert({ptr, {}});
+
+    vsg::info("Final number of objects requiring duplication ", copyop.duplicates.size());
+
+    PrintSceneGraph printer;
+    printer.copyop = copyop;
+    for(auto& model : models)
+    {
+        model.node->accept(printer);
+    }
+
+    std::cout<<std::endl;
 
     if (models.empty())
     {
@@ -625,9 +499,6 @@ int main(int argc, char** argv)
         vsg::dvec3 position = {0.0, 0.0, 0.0};
         double spacing = maxDiameter;
 
-        Duplicator duplicator;
-        duplicator.requiresDuplication = requiresDuplication.requiresDuplication;
-
         for(unsigned int ci = 0; ci < numCopies; ++ci)
         {
             for(auto [node, bounds] : models)
@@ -640,7 +511,7 @@ int main(int argc, char** argv)
 
                 if (ci > 0)
                 {
-                    transform->addChild(duplicator(node));
+                    transform->addChild(copyop(node));
                 }
                 else
                 {
@@ -658,9 +529,9 @@ int main(int argc, char** argv)
                     position.y += spacing;
                     column = 0;
                 }
-
-                duplicator.reset();
             }
+
+            copyop.reset();
         }
     }
 
