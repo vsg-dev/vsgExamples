@@ -8,9 +8,7 @@
 #    include <vsg/utils/TracyInstrumentation.h>
 #endif
 
-
 #include <iostream>
-
 
 class AnimationControl : public vsg::Inherit<vsg::Visitor, AnimationControl>
 {
@@ -90,365 +88,6 @@ public:
         }
     }
 };
-
-/// Find all the objects that should be treated as dynamic (their values change.)
-class FindDynamicObjects : public vsg::ConstVisitor
-{
-public:
-
-    std::set<const Object*> dynamicObjects;
-
-    inline void tag(const vsg::Object* object)
-    {
-        dynamicObjects.insert(object);
-    }
-
-    inline bool tagged(const vsg::Object* object)
-    {
-        return dynamicObjects.count(object) != 0;
-    }
-
-    void apply(const vsg::Object& object) override
-    {
-        object.traverse(*this);
-    }
-
-    void apply(const vsg::Data& data) override
-    {
-        if (data.properties.dataVariance != vsg::STATIC_DATA) tag(&data);
-    }
-
-    void apply(const vsg::AnimationGroup& ag) override
-    {
-        tag(&ag);
-        ag.traverse(*this);
-    }
-
-    void apply(const vsg::Animation& animation) override
-    {
-        tag(&animation);
-        animation.traverse(*this);
-    }
-
-    void apply(const vsg::AnimationSampler& sampler) override
-    {
-        tag(&sampler);
-    }
-
-    void apply(const vsg::TransformSampler& sampler) override
-    {
-        tag(&sampler);
-        if (sampler.object)
-        {
-            tag(sampler.object);
-            sampler.object->traverse(*this);
-        }
-    }
-
-    void apply(const vsg::MorphSampler& sampler) override
-    {
-        tag(&sampler);
-        tag(sampler.object);
-    }
-
-    void apply(const vsg::JointSampler& sampler) override
-    {
-        tag(&sampler);
-        tag(sampler.jointMatrices);
-        tag(sampler.subgraph);
-        sampler.subgraph->traverse(*this);
-    }
-
-    void apply(const vsg::BufferInfo& info) override
-    {
-        if (info.data) info.data->accept(*this);
-    }
-
-    void apply(const vsg::Image& image) override
-    {
-        if (image.data) image.data->accept(*this);
-    }
-
-    void apply(const vsg::ImageView& imageView) override
-    {
-        if (imageView.image) imageView.image->accept(*this);
-    }
-
-    void apply(const vsg::ImageInfo& info) override
-    {
-        if (info.sampler) info.sampler->accept(*this);
-        if (info.imageView) info.imageView->accept(*this);
-    }
-
-    void apply(const vsg::DescriptorBuffer& db) override
-    {
-        for(auto info : db.bufferInfoList)
-        {
-            info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::DescriptorImage& di) override
-    {
-        for(auto info : di.imageInfoList)
-        {
-            info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::BindIndexBuffer& bib) override
-    {
-        if (bib.indices) bib.indices->accept(*this);
-    }
-
-    void apply(const vsg::BindVertexBuffers& bvb) override
-    {
-        for(auto info : bvb.arrays)
-        {
-            if (info) info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::VertexDraw& vd) override
-    {
-        for(auto info : vd.arrays)
-        {
-            if (info) info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::VertexIndexDraw& vid) override
-    {
-        if (vid.indices) vid.indices->accept(*this);
-        for(auto info : vid.arrays)
-        {
-            if (info) info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::Geometry& geom) override
-    {
-        if (geom.indices) geom.indices->accept(*this);
-        for(auto info : geom.arrays)
-        {
-            if (info) info->accept(*this);
-        }
-        for(auto command : geom.commands)
-        {
-            if (command) command->accept(*this);
-        }
-    }
-};
-
-/// Propagate classification of objects as dynamic to all parents
-class PropogateDynamicObjects : public vsg::ConstVisitor
-{
-public:
-
-    PropogateDynamicObjects()
-    {
-        taggedStack.push(false);
-    }
-
-    std::set<const Object*> dynamicObjects;
-    std::stack<bool> taggedStack;
-
-    inline void tag(const vsg::Object* object)
-    {
-        dynamicObjects.insert(object);
-    }
-
-    inline bool tagged(const vsg::Object* object)
-    {
-        return dynamicObjects.count(object) != 0;
-    }
-
-protected:
-
-    struct TagIfChildIsDynamic
-    {
-        inline TagIfChildIsDynamic(PropogateDynamicObjects* in_rd, const vsg::Object* in_object) :
-            rd(in_rd),
-            object(in_object)
-        {
-            if (rd->tagged(object)) rd->taggedStack.top() = true;
-            rd->taggedStack.push(false);
-        }
-
-        inline ~TagIfChildIsDynamic()
-        {
-            if (rd->taggedStack.top())
-            {
-                rd->tag(object);
-                rd->taggedStack.pop();
-                rd->taggedStack.top() = true;
-            }
-            else
-            {
-                rd->taggedStack.pop();
-            }
-        }
-
-        PropogateDynamicObjects* rd = nullptr;
-        const vsg::Object* object = nullptr;
-    };
-
-    void apply(const vsg::Object& object) override
-    {
-        TagIfChildIsDynamic t(this, &object);
-        object.traverse(*this);
-    }
-
-    void apply(const vsg::AnimationGroup& ag) override
-    {
-        TagIfChildIsDynamic t(this, &ag);
-        ag.traverse(*this);
-    }
-
-    void apply(const vsg::Animation& animation) override
-    {
-        TagIfChildIsDynamic t(this, &animation);
-        animation.traverse(*this);
-    }
-
-    void apply(const vsg::AnimationSampler& sampler) override
-    {
-        TagIfChildIsDynamic t(this, &sampler);
-    }
-
-    void apply(const vsg::TransformSampler& sampler) override
-    {
-        TagIfChildIsDynamic t(this, &sampler);
-        if (sampler.object) sampler.object->accept(*this);
-    }
-
-    void apply(const vsg::MorphSampler& sampler) override
-    {
-        TagIfChildIsDynamic t(this, &sampler);
-    }
-
-    void apply(const vsg::JointSampler& sampler) override
-    {
-        TagIfChildIsDynamic t(this, &sampler);
-        if (sampler.subgraph) sampler.subgraph->accept(*this);
-    }
-
-    void apply(const vsg::BufferInfo& info) override
-    {
-        TagIfChildIsDynamic t(this, &info);
-        if (info.data) info.data->accept(*this);
-    }
-
-    void apply(const vsg::Image& image) override
-    {
-        TagIfChildIsDynamic t(this, &image);
-        if (image.data) image.data->accept(*this);
-    }
-
-    void apply(const vsg::ImageView& imageView) override
-    {
-        TagIfChildIsDynamic t(this, &imageView);
-        if (imageView.image) imageView.image->accept(*this);
-    }
-
-    void apply(const vsg::ImageInfo& info) override
-    {
-        TagIfChildIsDynamic t(this, &info);
-        if (info.sampler) info.sampler->accept(*this);
-        if (info.imageView) info.imageView->accept(*this);
-    }
-
-    void apply(const vsg::DescriptorBuffer& db) override
-    {
-        TagIfChildIsDynamic t(this, &db);
-        for(auto info : db.bufferInfoList)
-        {
-            info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::DescriptorImage& di) override
-    {
-        TagIfChildIsDynamic t(this, &di);
-        for(auto info : di.imageInfoList)
-        {
-            info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::BindIndexBuffer& bib) override
-    {
-        TagIfChildIsDynamic t(this, &bib);
-        if (bib.indices) bib.indices->accept(*this);
-    }
-
-    void apply(const vsg::BindVertexBuffers& bvb) override
-    {
-        TagIfChildIsDynamic t(this, &bvb);
-        for(auto info : bvb.arrays)
-        {
-            if (info) info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::VertexDraw& vd) override
-    {
-        TagIfChildIsDynamic t(this, &vd);
-        for(auto info : vd.arrays)
-        {
-            if (info) info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::VertexIndexDraw& vid) override
-    {
-        TagIfChildIsDynamic t(this, &vid);
-        if (vid.indices) vid.indices->accept(*this);
-        for(auto info : vid.arrays)
-        {
-            if (info) info->accept(*this);
-        }
-    }
-
-    void apply(const vsg::Geometry& geom) override
-    {
-        TagIfChildIsDynamic t(this, &geom);
-        if (geom.indices) geom.indices->accept(*this);
-        for(auto info : geom.arrays)
-        {
-            if (info) info->accept(*this);
-        }
-        for(auto command : geom.commands)
-        {
-            if (command) command->accept(*this);
-        }
-    }
-};
-
-
-class PrintSceneGraph : public vsg::Visitor
-{
-public:
-    vsg::indentation indent{4};
-    vsg::CopyOp copyop;
-
-    void apply(vsg::Object& object) override
-    {
-        if (copyop.duplicate->contains(&object))
-        {
-            std::cout<<indent<<object.className()<<" "<<&object<<" requires duplicate" <<std::endl;
-        }
-        else
-        {
-            std::cout<<indent<<object.className()<<" "<<&object<<std::endl;
-        }
-
-        indent += 4;
-        object.traverse(*this);
-        indent -= 4;
-    }
-};
-
 
 int main(int argc, char** argv)
 {
@@ -578,52 +217,22 @@ int main(int argc, char** argv)
         vsg::dbox bounds;
     };
 
-    auto findAndPropogateDynamicObjects = [](const vsg::Object* object) -> std::set<const vsg::Object*>
-    {
-        FindDynamicObjects findDynamicObjects;
-        object->accept(findDynamicObjects);
-
-        PropogateDynamicObjects propogateDynamicObjects;
-        propogateDynamicObjects.dynamicObjects.swap(findDynamicObjects.dynamicObjects);
-        object->accept(propogateDynamicObjects);
-
-        return propogateDynamicObjects.dynamicObjects;
-    };
-
     vsg::CopyOp copyop;
     auto duplicate = copyop.duplicate = new vsg::Duplicate;
 
     std::list<ModelBound> models;
-    for (int i = 1; i < argc; ++i)
+    for(unsigned int ci = 0; ci < numCopies; ++ci)
     {
-        vsg::Path filename = arguments[i];
-        if (auto node = vsg::read_cast<vsg::Node>(filename, options))
+        for (int i = 1; i < argc; ++i)
         {
-            auto bounds = vsg::visit<vsg::ComputeBounds>(node).bounds;
-            models.push_back(ModelBound{node, bounds});
-
-            if (numCopies > 1)
+            vsg::Path filename = arguments[i];
+            if (auto node = vsg::read_cast<vsg::Node>(filename, options))
             {
-                auto dynamicObjects = findAndPropogateDynamicObjects(node);
-                for(auto& object : dynamicObjects)
-                {
-                    duplicate->insert(object);
-                }
+                auto bounds = vsg::visit<vsg::ComputeBounds>(node).bounds;
+                models.push_back(ModelBound{node, bounds});
             }
         }
     }
-
-    vsg::info("Final number of objects requiring duplication ", copyop.duplicate->size());
-
-    //PrintSceneGraph printer;
-    PrintSceneGraph printer;
-    printer.copyop = copyop;
-    for(auto& model : models)
-    {
-        model.node->accept(printer);
-    }
-
-    std::cout<<std::endl;
 
     if (models.empty())
     {
@@ -631,7 +240,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    if (models.size()==1 && numCopies==1)
+    if (models.size()==1)
     {
         // just a single model so just add it directly to the scene
         scene->addChild(models.front().node);
@@ -647,46 +256,33 @@ int main(int argc, char** argv)
         }
 
         // we have multiple models so we need to lay then out on a grid
-        unsigned int totalNumberOfModels = static_cast<unsigned int>(models.size()) * numCopies;
+        unsigned int totalNumberOfModels = static_cast<unsigned int>(models.size());
         unsigned int columns = static_cast<unsigned int>(std::ceil(std::sqrt(static_cast<double>(totalNumberOfModels))));
 
         unsigned int column = 0;
         vsg::dvec3 position = {0.0, 0.0, 0.0};
         double spacing = maxDiameter;
 
-        for(unsigned int ci = 0; ci < numCopies; ++ci)
+        for(auto [node, bounds] : models)
         {
-            for(auto [node, bounds] : models)
+            auto diameter = vsg::length(bounds.max - bounds.min);
+            vsg::dvec3 origin((bounds.min.x + bounds.max.x) * 0.5,
+                                (bounds.min.y + bounds.max.y) * 0.5,
+                                bounds.min.z);
+            auto transform = vsg::MatrixTransform::create(vsg::translate(position) * vsg::scale(maxDiameter / diameter) * vsg::translate(-origin));
+            transform->addChild(node);
+
+            scene->addChild(transform);
+
+            // advance position
+            position.x += spacing;
+            ++column;
+            if (column >= columns)
             {
-                auto diameter = vsg::length(bounds.max - bounds.min);
-                vsg::dvec3 origin((bounds.min.x + bounds.max.x) * 0.5,
-                                  (bounds.min.y + bounds.max.y) * 0.5,
-                                  bounds.min.z);
-                auto transform = vsg::MatrixTransform::create(vsg::translate(position) * vsg::scale(maxDiameter / diameter) * vsg::translate(-origin));
-
-                if (ci > 0)
-                {
-                    transform->addChild(copyop(node)); // node->clone(copyop);
-                }
-                else
-                {
-                    transform->addChild(node);
-                }
-
-                scene->addChild(transform);
-
-                // advance position
-                position.x += spacing;
-                ++column;
-                if (column >= columns)
-                {
-                    position.x = 0.0;
-                    position.y += spacing;
-                    column = 0;
-                }
+                position.x = 0.0;
+                position.y += spacing;
+                column = 0;
             }
-
-            copyop.duplicate->reset();
         }
     }
 
