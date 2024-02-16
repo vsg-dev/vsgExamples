@@ -176,6 +176,15 @@ void main()
 
     if (numDirectionalLights>0)
     {
+        vec3 q1 = dFdx(eyePos);
+        vec3 q2 = dFdy(eyePos);
+        vec2 st1 = dFdx(texCoord0);
+        vec2 st2 = dFdy(texCoord0);
+
+        vec3 N = normalize(normalDir);
+        vec3 T = normalize(q1 * st2.t - q2 * st1.t);
+        vec3 B = -normalize(cross(N, T));
+
         // directional lights
         for(int i = 0; i<numDirectionalLights; ++i)
         {
@@ -201,6 +210,19 @@ void main()
                     matched = true;
 
                     float coverage = texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+
+                    const float radius = 0.05;
+                    sm_tc = sm_matrix * vec4(eyePos + radius * T, 1.0);
+                    coverage += texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                    sm_tc = sm_matrix * vec4(eyePos - radius * T, 1.0);
+                    coverage += texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                    sm_tc = sm_matrix * vec4(eyePos + radius * B, 1.0);
+                    coverage += texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                    sm_tc = sm_matrix * vec4(eyePos - radius * B, 1.0);
+                    coverage += texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+
+                    coverage /= 5;
+
                     brightness *= (1.0-coverage);
 
 #ifdef SHADOWMAP_DEBUG
