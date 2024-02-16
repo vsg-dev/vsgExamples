@@ -96,40 +96,41 @@ class RequiresDuplication : public vsg::ConstVisitor
 {
 public:
 
-    RequiresDuplication()
+    RequiresDuplication():
+        duplicate(new vsg::Duplicate)
     {
         taggedStack.push(false);
     }
 
-    std::set<const Object*> requiresDuplication;
+    vsg::ref_ptr<vsg::Duplicate> duplicate;
     std::stack<bool> taggedStack;
 
     std::size_t operator() (const vsg::Object* object)
     {
-        auto before = requiresDuplication.size();
+        auto before = duplicate->size();
 
         if (object) object->accept(*this);
 
-        return requiresDuplication.size() - before;
+        return duplicate->size() - before;
     }
 
     void reset()
     {
-        requiresDuplication.clear();
+        duplicate->clear();
     }
 
     inline void tag(const vsg::Object* object)
     {
         if (object)
         {
-            requiresDuplication.insert(object);
+            duplicate->insert(object);
             taggedStack.top() = true;
         }
     }
 
     inline bool tagged(const vsg::Object* object)
     {
-        if (object && (requiresDuplication.count(object) != 0))
+        if (object && duplicate->contains(object))
         {
             taggedStack.top() = true;
             return true;
@@ -147,7 +148,7 @@ protected:
         inline TagIfChildChanges(RequiresDuplication* in_rd, const vsg::Object* in_object) :
             rd(in_rd),
             object(in_object),
-            before(rd->requiresDuplication.size())
+            before(rd->duplicate->size())
         {
             if (rd->tagged(object)) rd->taggedStack.top() = true;
             rd->taggedStack.push(false);
@@ -155,7 +156,7 @@ protected:
 
         inline ~TagIfChildChanges()
         {
-            if (rd->taggedStack.top() || rd->requiresDuplication.size() != before) rd->tag(object);
+            if (rd->taggedStack.top() || rd->duplicate->size() != before) rd->tag(object);
             rd->taggedStack.pop();
         }
 
@@ -273,13 +274,13 @@ protected:
 
 std::ostream& operator << (std::ostream& out, const RequiresDuplication& fs)
 {
-    vsg::indentation indent(4);
+    vsg::indentation indent{4};
 
     out << "RequiresDuplication { "<<std::endl;
 
-    for(auto object : fs.requiresDuplication)
+    for(auto [object, duplicate] : *(fs.duplicate))
     {
-        out << indent << object->className() << " " << object << std::endl;
+        out << indent << object->className() << " " << object << " -> " << duplicate << std::endl;
     }
     out << "}"<<std::endl;
 
@@ -290,12 +291,12 @@ std::ostream& operator << (std::ostream& out, const RequiresDuplication& fs)
 class PrintSceneGraph : public vsg::Visitor
 {
 public:
-    vsg::indentation indent = 4;
+    vsg::indentation indent{4};
     vsg::CopyOp copyop;
 
     void apply(vsg::Object& object) override
     {
-        if (copyop.duplicates.count(&object) != 0)
+        if (copyop.duplicate->contains(&object))
         {
             std::cout<<indent<<object.className()<<" "<<&object<<" requires duplicate" <<std::endl;
         }
@@ -457,9 +458,9 @@ int main(int argc, char** argv)
     }
 
     vsg::CopyOp copyop;
-    for(auto ptr : requiresDuplication.requiresDuplication) copyop.duplicates.insert({ptr, {}});
+    copyop.duplicate = requiresDuplication.duplicate;
 
-    vsg::info("Final number of objects requiring duplication ", copyop.duplicates.size());
+    vsg::info("Final number of objects requiring duplication ", copyop.duplicate->size());
 
     PrintSceneGraph printer;
     printer.copyop = copyop;
@@ -511,7 +512,7 @@ int main(int argc, char** argv)
 
                 if (ci > 0)
                 {
-                    transform->addChild(copyop(node));
+                    transform->addChild(copyop(node)); // node->clone(copyop);
                 }
                 else
                 {
@@ -531,7 +532,7 @@ int main(int argc, char** argv)
                 }
             }
 
-            copyop.reset();
+            copyop.duplicate->reset();
         }
     }
 
