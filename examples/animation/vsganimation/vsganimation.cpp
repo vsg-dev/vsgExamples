@@ -105,18 +105,15 @@ public:
     vsg::ref_ptr<vsg::Duplicate> duplicate;
     std::stack<bool> taggedStack;
 
-    std::size_t operator() (const vsg::Object* object)
+    void operator() (const vsg::Object* object)
     {
-        auto before = duplicate->size();
+        std::size_t before = 0;
+        do
+        {
+            before = duplicate->size();
+            object->accept(*this);
 
-        if (object) object->accept(*this);
-
-        return duplicate->size() - before;
-    }
-
-    void reset()
-    {
-        duplicate->clear();
+        } while (duplicate->size() - before);
     }
 
     inline void tag(const vsg::Object* object)
@@ -452,7 +449,7 @@ int main(int argc, char** argv)
 
             if (numCopies > 1)
             {
-                while (requiresDuplication(node) > 0) { std::cout<< requiresDuplication << "Repeating search for dulicates"<<std::endl; }
+                requiresDuplication(node);
             }
         }
     }
