@@ -91,82 +91,31 @@ public:
     }
 };
 
-
-class RequiresDuplication : public vsg::ConstVisitor
+/// Find all the objects that should be treated as dynamic (their values change.)
+class FindDynamicObjects : public vsg::ConstVisitor
 {
 public:
 
-    RequiresDuplication():
-        duplicate(new vsg::Duplicate)
-    {
-        taggedStack.push(false);
-    }
-
-    vsg::ref_ptr<vsg::Duplicate> duplicate;
-    std::stack<bool> taggedStack;
-
-    void operator() (const vsg::Object* object)
-    {
-        std::size_t before = 0;
-        do
-        {
-            before = duplicate->size();
-            object->accept(*this);
-
-        } while (duplicate->size() - before);
-    }
+    std::set<const Object*> dynamicObjects;
 
     inline void tag(const vsg::Object* object)
     {
-        if (object)
-        {
-            duplicate->insert(object);
-            taggedStack.top() = true;
-        }
+        dynamicObjects.insert(object);
     }
 
     inline bool tagged(const vsg::Object* object)
     {
-        if (object && duplicate->contains(object))
-        {
-            taggedStack.top() = true;
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return dynamicObjects.count(object) != 0;
     }
-
-protected:
-
-    struct TagIfChildChanges
-    {
-        inline TagIfChildChanges(RequiresDuplication* in_rd, const vsg::Object* in_object) :
-            rd(in_rd),
-            object(in_object),
-            before(rd->duplicate->size())
-        {
-            if (rd->tagged(object)) rd->taggedStack.top() = true;
-            rd->taggedStack.push(false);
-        }
-
-        inline ~TagIfChildChanges()
-        {
-            if (rd->taggedStack.top() || rd->duplicate->size() != before) rd->tag(object);
-            rd->taggedStack.pop();
-        }
-
-        RequiresDuplication* rd = nullptr;
-        const vsg::Object* object = nullptr;
-        std::size_t before = 0;
-    };
 
     void apply(const vsg::Object& object) override
     {
-        TagIfChildChanges t(this, &object);
-
         object.traverse(*this);
+    }
+
+    void apply(const vsg::Data& data) override
+    {
+        if (data.properties.dataVariance != vsg::STATIC_DATA) tag(&data);
     }
 
     void apply(const vsg::AnimationGroup& ag) override
@@ -189,7 +138,11 @@ protected:
     void apply(const vsg::TransformSampler& sampler) override
     {
         tag(&sampler);
-        tag(sampler.object);
+        if (sampler.object)
+        {
+            tag(sampler.object);
+            sampler.object->traverse(*this);
+        }
     }
 
     void apply(const vsg::MorphSampler& sampler) override
@@ -203,17 +156,41 @@ protected:
         tag(&sampler);
         tag(sampler.jointMatrices);
         tag(sampler.subgraph);
+        sampler.subgraph->traverse(*this);
     }
 
     void apply(const vsg::BufferInfo& info) override
     {
-        if (tagged(info.data)) tag(&info);
+        if (info.data) info.data->accept(*this);
+    }
+
+    void apply(const vsg::Image& image) override
+    {
+        if (image.data) image.data->accept(*this);
+    }
+
+    void apply(const vsg::ImageView& imageView) override
+    {
+        if (imageView.image) imageView.image->accept(*this);
+    }
+
+    void apply(const vsg::ImageInfo& info) override
+    {
+        if (info.sampler) info.sampler->accept(*this);
+        if (info.imageView) info.imageView->accept(*this);
     }
 
     void apply(const vsg::DescriptorBuffer& db) override
     {
-        TagIfChildChanges t(this, &db);
         for(auto info : db.bufferInfoList)
+        {
+            info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::DescriptorImage& di) override
+    {
+        for(auto info : di.imageInfoList)
         {
             info->accept(*this);
         }
@@ -221,13 +198,11 @@ protected:
 
     void apply(const vsg::BindIndexBuffer& bib) override
     {
-        TagIfChildChanges t(this, &bib);
         if (bib.indices) bib.indices->accept(*this);
     }
 
     void apply(const vsg::BindVertexBuffers& bvb) override
     {
-        TagIfChildChanges t(this, &bvb);
         for(auto info : bvb.arrays)
         {
             if (info) info->accept(*this);
@@ -236,7 +211,6 @@ protected:
 
     void apply(const vsg::VertexDraw& vd) override
     {
-        TagIfChildChanges t(this, &vd);
         for(auto info : vd.arrays)
         {
             if (info) info->accept(*this);
@@ -245,7 +219,6 @@ protected:
 
     void apply(const vsg::VertexIndexDraw& vid) override
     {
-        TagIfChildChanges t(this, &vid);
         if (vid.indices) vid.indices->accept(*this);
         for(auto info : vid.arrays)
         {
@@ -255,7 +228,6 @@ protected:
 
     void apply(const vsg::Geometry& geom) override
     {
-        TagIfChildChanges t(this, &geom);
         if (geom.indices) geom.indices->accept(*this);
         for(auto info : geom.arrays)
         {
@@ -266,23 +238,192 @@ protected:
             if (command) command->accept(*this);
         }
     }
-
 };
 
-std::ostream& operator << (std::ostream& out, const RequiresDuplication& fs)
+/// Propagate classification of objects as dynamic to all parents
+class PropogateDynamicObjects : public vsg::ConstVisitor
 {
-    vsg::indentation indent{4};
+public:
 
-    out << "RequiresDuplication { "<<std::endl;
-
-    for(auto [object, duplicate] : *(fs.duplicate))
+    PropogateDynamicObjects()
     {
-        out << indent << object->className() << " " << object << " -> " << duplicate << std::endl;
+        taggedStack.push(false);
     }
-    out << "}"<<std::endl;
 
-    return out;
-}
+    std::set<const Object*> dynamicObjects;
+    std::stack<bool> taggedStack;
+
+    inline void tag(const vsg::Object* object)
+    {
+        dynamicObjects.insert(object);
+    }
+
+    inline bool tagged(const vsg::Object* object)
+    {
+        return dynamicObjects.count(object) != 0;
+    }
+
+protected:
+
+    struct TagIfChildIsDynamic
+    {
+        inline TagIfChildIsDynamic(PropogateDynamicObjects* in_rd, const vsg::Object* in_object) :
+            rd(in_rd),
+            object(in_object)
+        {
+            if (rd->tagged(object)) rd->taggedStack.top() = true;
+            rd->taggedStack.push(false);
+        }
+
+        inline ~TagIfChildIsDynamic()
+        {
+            if (rd->taggedStack.top())
+            {
+                rd->tag(object);
+                rd->taggedStack.pop();
+                rd->taggedStack.top() = true;
+            }
+            else
+            {
+                rd->taggedStack.pop();
+            }
+        }
+
+        PropogateDynamicObjects* rd = nullptr;
+        const vsg::Object* object = nullptr;
+    };
+
+    void apply(const vsg::Object& object) override
+    {
+        TagIfChildIsDynamic t(this, &object);
+        object.traverse(*this);
+    }
+
+    void apply(const vsg::AnimationGroup& ag) override
+    {
+        TagIfChildIsDynamic t(this, &ag);
+        ag.traverse(*this);
+    }
+
+    void apply(const vsg::Animation& animation) override
+    {
+        TagIfChildIsDynamic t(this, &animation);
+        animation.traverse(*this);
+    }
+
+    void apply(const vsg::AnimationSampler& sampler) override
+    {
+        TagIfChildIsDynamic t(this, &sampler);
+    }
+
+    void apply(const vsg::TransformSampler& sampler) override
+    {
+        TagIfChildIsDynamic t(this, &sampler);
+        if (sampler.object) sampler.object->accept(*this);
+    }
+
+    void apply(const vsg::MorphSampler& sampler) override
+    {
+        TagIfChildIsDynamic t(this, &sampler);
+    }
+
+    void apply(const vsg::JointSampler& sampler) override
+    {
+        TagIfChildIsDynamic t(this, &sampler);
+        if (sampler.subgraph) sampler.subgraph->accept(*this);
+    }
+
+    void apply(const vsg::BufferInfo& info) override
+    {
+        TagIfChildIsDynamic t(this, &info);
+        if (info.data) info.data->accept(*this);
+    }
+
+    void apply(const vsg::Image& image) override
+    {
+        TagIfChildIsDynamic t(this, &image);
+        if (image.data) image.data->accept(*this);
+    }
+
+    void apply(const vsg::ImageView& imageView) override
+    {
+        TagIfChildIsDynamic t(this, &imageView);
+        if (imageView.image) imageView.image->accept(*this);
+    }
+
+    void apply(const vsg::ImageInfo& info) override
+    {
+        TagIfChildIsDynamic t(this, &info);
+        if (info.sampler) info.sampler->accept(*this);
+        if (info.imageView) info.imageView->accept(*this);
+    }
+
+    void apply(const vsg::DescriptorBuffer& db) override
+    {
+        TagIfChildIsDynamic t(this, &db);
+        for(auto info : db.bufferInfoList)
+        {
+            info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::DescriptorImage& di) override
+    {
+        TagIfChildIsDynamic t(this, &di);
+        for(auto info : di.imageInfoList)
+        {
+            info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::BindIndexBuffer& bib) override
+    {
+        TagIfChildIsDynamic t(this, &bib);
+        if (bib.indices) bib.indices->accept(*this);
+    }
+
+    void apply(const vsg::BindVertexBuffers& bvb) override
+    {
+        TagIfChildIsDynamic t(this, &bvb);
+        for(auto info : bvb.arrays)
+        {
+            if (info) info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::VertexDraw& vd) override
+    {
+        TagIfChildIsDynamic t(this, &vd);
+        for(auto info : vd.arrays)
+        {
+            if (info) info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::VertexIndexDraw& vid) override
+    {
+        TagIfChildIsDynamic t(this, &vid);
+        if (vid.indices) vid.indices->accept(*this);
+        for(auto info : vid.arrays)
+        {
+            if (info) info->accept(*this);
+        }
+    }
+
+    void apply(const vsg::Geometry& geom) override
+    {
+        TagIfChildIsDynamic t(this, &geom);
+        if (geom.indices) geom.indices->accept(*this);
+        for(auto info : geom.arrays)
+        {
+            if (info) info->accept(*this);
+        }
+        for(auto command : geom.commands)
+        {
+            if (command) command->accept(*this);
+        }
+    }
+};
 
 
 class PrintSceneGraph : public vsg::Visitor
@@ -437,7 +578,7 @@ int main(int argc, char** argv)
         vsg::dbox bounds;
     };
 
-    RequiresDuplication requiresDuplication;
+    FindDynamicObjects findDynamicObjects;
     std::list<ModelBound> models;
     for (int i = 1; i < argc; ++i)
     {
@@ -449,16 +590,31 @@ int main(int argc, char** argv)
 
             if (numCopies > 1)
             {
-                requiresDuplication(node);
+                node->accept(findDynamicObjects);
             }
         }
     }
 
+    // Propagate dynamic objects up the scene graph
+    PropogateDynamicObjects propogateDynamicObjects;
+    propogateDynamicObjects.dynamicObjects = findDynamicObjects.dynamicObjects;
+
+    for(auto& model : models)
+    {
+        model.node->accept(propogateDynamicObjects);
+    }
+
     vsg::CopyOp copyop;
-    copyop.duplicate = requiresDuplication.duplicate;
+    auto duplicate = copyop.duplicate = new vsg::Duplicate;
+    for(auto& object : propogateDynamicObjects.dynamicObjects)
+    {
+        vsg::info("   ", object, ", ", object->className());
+        duplicate->insert(object);
+    }
 
     vsg::info("Final number of objects requiring duplication ", copyop.duplicate->size());
 
+    //PrintSceneGraph printer;
     PrintSceneGraph printer;
     printer.copyop = copyop;
     for(auto& model : models)
