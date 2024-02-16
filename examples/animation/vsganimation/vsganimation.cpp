@@ -597,7 +597,7 @@ int main(int argc, char** argv)
 
     // Propagate dynamic objects up the scene graph
     PropogateDynamicObjects propogateDynamicObjects;
-    propogateDynamicObjects.dynamicObjects = findDynamicObjects.dynamicObjects;
+    propogateDynamicObjects.dynamicObjects.swap(findDynamicObjects.dynamicObjects);
 
     for(auto& model : models)
     {
