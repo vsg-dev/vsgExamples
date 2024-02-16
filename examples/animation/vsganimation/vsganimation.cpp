@@ -578,7 +578,21 @@ int main(int argc, char** argv)
         vsg::dbox bounds;
     };
 
-    FindDynamicObjects findDynamicObjects;
+    auto findAndPropogateDynamicObjects = [](const vsg::Object* object) -> std::set<const vsg::Object*>
+    {
+        FindDynamicObjects findDynamicObjects;
+        object->accept(findDynamicObjects);
+
+        PropogateDynamicObjects propogateDynamicObjects;
+        propogateDynamicObjects.dynamicObjects.swap(findDynamicObjects.dynamicObjects);
+        object->accept(propogateDynamicObjects);
+
+        return propogateDynamicObjects.dynamicObjects;
+    };
+
+    vsg::CopyOp copyop;
+    auto duplicate = copyop.duplicate = new vsg::Duplicate;
+
     std::list<ModelBound> models;
     for (int i = 1; i < argc; ++i)
     {
@@ -590,26 +604,13 @@ int main(int argc, char** argv)
 
             if (numCopies > 1)
             {
-                node->accept(findDynamicObjects);
+                auto dynamicObjects = findAndPropogateDynamicObjects(node);
+                for(auto& object : dynamicObjects)
+                {
+                    duplicate->insert(object);
+                }
             }
         }
-    }
-
-    // Propagate dynamic objects up the scene graph
-    PropogateDynamicObjects propogateDynamicObjects;
-    propogateDynamicObjects.dynamicObjects.swap(findDynamicObjects.dynamicObjects);
-
-    for(auto& model : models)
-    {
-        model.node->accept(propogateDynamicObjects);
-    }
-
-    vsg::CopyOp copyop;
-    auto duplicate = copyop.duplicate = new vsg::Duplicate;
-    for(auto& object : propogateDynamicObjects.dynamicObjects)
-    {
-        vsg::info("   ", object, ", ", object->className());
-        duplicate->insert(object);
     }
 
     vsg::info("Final number of objects requiring duplication ", copyop.duplicate->size());
