@@ -55,6 +55,74 @@ layout(location = 5) in vec3 viewDir;
 
 layout(location = 0) out vec4 outColor;
 
+const int POISSON_DISK_SAMPLE_COUNT = 64;
+const vec2 POISSON_DISK[POISSON_DISK_SAMPLE_COUNT] = {
+    vec2(0.555681f, 0.027077f),
+    vec2(0.624764f, 0.135227f),
+    vec2(0.483386f, 0.107472f),
+    vec2(0.385284f, 0.056509f),
+    vec2(0.544866f, 0.195669f),
+    vec2(0.402647f, 0.157584f),
+    vec2(0.472663f, 0.288639f),
+    vec2(0.655949f, 0.047274f),
+    vec2(0.584311f, 0.374102f),
+    vec2(0.370957f, 0.287246f),
+    vec2(0.385653f, 0.428889f),
+    vec2(0.646069f, 0.258077f),
+    vec2(0.709717f, 0.170809f),
+    vec2(0.261568f, 0.093993f),
+    vec2(0.313212f, 0.185905f),
+    vec2(0.274151f, 0.282478f),
+    vec2(0.384885f, 0.577155f),
+    vec2(0.310583f, 0.375487f),
+    vec2(0.509546f, 0.473810f),
+    vec2(0.253171f, 0.506737f),
+    vec2(0.646399f, 0.466525f),
+    vec2(0.760376f, 0.335765f),
+    vec2(0.095830f, 0.461713f),
+    vec2(0.194419f, 0.640549f),
+    vec2(0.176131f, 0.395575f),
+    vec2(0.140053f, 0.564268f),
+    vec2(0.794822f, 0.106158f),
+    vec2(0.141978f, 0.303126f),
+    vec2(0.828908f, 0.208294f),
+    vec2(0.055161f, 0.615897f),
+    vec2(0.001468f, 0.537012f),
+    vec2(0.113329f, 0.713374f),
+    vec2(0.172592f, 0.211995f),
+    vec2(0.033343f, 0.390274f),
+    vec2(0.921623f, 0.306743f),
+    vec2(0.646280f, 0.568723f),
+    vec2(0.738956f, 0.451485f),
+    vec2(0.554098f, 0.620482f),
+    vec2(0.743110f, 0.554261f),
+    vec2(0.702998f, 0.727767f),
+    vec2(0.515121f, 0.706600f),
+    vec2(0.836214f, 0.538577f),
+    vec2(0.826891f, 0.424059f),
+    vec2(0.812759f, 0.633505f),
+    vec2(0.293493f, 0.686620f),
+    vec2(0.410579f, 0.694776f),
+    vec2(0.988820f, 0.496849f),
+    vec2(0.985607f, 0.382411f),
+    vec2(0.221699f, 0.779301f),
+    vec2(0.305154f, 0.852915f),
+    vec2(0.930853f, 0.683521f),
+    vec2(0.893595f, 0.778292f),
+    vec2(0.389791f, 0.802140f),
+    vec2(0.229570f, 0.919262f),
+    vec2(0.367085f, 0.953231f),
+    vec2(0.605182f, 0.735870f),
+    vec2(0.790278f, 0.761306f),
+    vec2(0.743290f, 0.886339f),
+    vec2(0.585147f, 0.828388f),
+    vec2(0.838230f, 0.865769f),
+    vec2(0.481457f, 0.823729f),
+    vec2(0.636728f, 0.918171f),
+    vec2(0.132152f, 0.837307f),
+    vec2(0.474275f, 0.921209f),
+};
+
 // Find the normal for this fragment, pulling either from a predefined normal map
 // or from the interpolated mesh normal and tangent attributes.
 vec3 getNormal()
@@ -209,19 +277,18 @@ void main()
                 if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 /* && sm_tc.z <= 1.0*/)
                 {
                     matched = true;
-                    float coverage = texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
 
+                    const float shadowSamples = 5;
                     const float radius = 0.05;
-                    sm_tc = sm_matrix * vec4(eyePos + radius * T, 1.0);
-                    coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
-                    sm_tc = sm_matrix * vec4(eyePos - radius * T, 1.0);
-                    coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
-                    sm_tc = sm_matrix * vec4(eyePos + radius * B, 1.0);
-                    coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
-                    sm_tc = sm_matrix * vec4(eyePos - radius * B, 1.0);
-                    coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
 
-                    coverage /= 5;
+                    float coverage = 0;
+                    for (int i = 0; i < min(shadowSamples, POISSON_DISK_SAMPLE_COUNT); ++i)
+                    {
+                        sm_tc = sm_matrix * vec4(eyePos + radius * POISSON_DISK[i].x * T + radius * POISSON_DISK[i].y * B, 1.0);
+                        coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                    }
+
+                    coverage /= min(shadowSamples, POISSON_DISK_SAMPLE_COUNT);
 
                     brightness *= (1.0-coverage);
 
