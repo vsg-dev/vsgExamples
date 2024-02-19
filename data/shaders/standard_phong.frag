@@ -122,6 +122,8 @@ const vec2 POISSON_DISK[POISSON_DISK_SAMPLE_COUNT] = {
     vec2(-0.8952524079003322, 0.26695407119959574),
 };
 
+const float PI = radians(180);
+
 // Find the normal for this fragment, pulling either from a predefined normal map
 // or from the interpolated mesh normal and tangent attributes.
 vec3 getNormal()
@@ -277,13 +279,18 @@ void main()
                 {
                     matched = true;
 
-                    const float shadowSamples = 5;
+                    const float shadowSamples = 8;
                     const float radius = 0.05;
+
+                    // hopefully relatively temporaly stable. world position would be better.
+                    float diskRotation = mod((eyePos.x + eyePos.y + eyePos.z) * 100, 2) * PI;
+                    mat2 diskRotationMatrix = mat2(cos(diskRotation), sin(diskRotation), -sin(diskRotation), cos(diskRotation));
 
                     float coverage = 0;
                     for (int i = 0; i < min(shadowSamples, POISSON_DISK_SAMPLE_COUNT); ++i)
                     {
-                        sm_tc = sm_matrix * vec4(eyePos + radius * POISSON_DISK[i].x * T + radius * POISSON_DISK[i].y * B, 1.0);
+                        vec2 rotatedDisk = diskRotationMatrix * POISSON_DISK[i];
+                        sm_tc = sm_matrix * vec4(eyePos + radius * rotatedDisk.x * T + radius * rotatedDisk.y * B, 1.0);
                         coverage += texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
                     }
 
