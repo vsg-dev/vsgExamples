@@ -244,15 +244,15 @@ int main(int argc, char** argv)
     if (useExecuteCommands)
     {
         std::cout << "Using SecondaryCommandGraph and ExecuteCommands" << std::endl;
-        auto seccommandGraph1 = vsg::createSecondaryCommandGraphForView(window1, camera, vsg_scene, 0);
+        auto secondaryCommandGraph = vsg::createSecondaryCommandGraphForView(window1, camera, vsg_scene, 0);
 
         auto scenegraphwin1 = vsg::Group::create();
         auto pass1 = vsg::ExecuteCommands::create();
-        pass1->connect(seccommandGraph1);
+        pass1->connect(secondaryCommandGraph);
 
         auto scenegraphwin2 = vsg::Group::create();
         auto pass2 = vsg::ExecuteCommands::create();
-        pass2->connect(seccommandGraph1);
+        pass2->connect(secondaryCommandGraph);
 
         scenegraphwin1->addChild(pass1);
         scenegraphwin2->addChild(pass2);
@@ -260,7 +260,7 @@ int main(int argc, char** argv)
         auto commandGraphwin1 = vsg::createCommandGraphForView(window1, camera, scenegraphwin1, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
         auto commandGraphwin2 = vsg::createCommandGraphForView(window2, camera, scenegraphwin2, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-        viewer->assignRecordAndSubmitTaskAndPresentation({seccommandGraph1, commandGraphwin1, commandGraphwin2});
+        viewer->assignRecordAndSubmitTaskAndPresentation({secondaryCommandGraph, commandGraphwin1, commandGraphwin2});
     }
     else
     {
