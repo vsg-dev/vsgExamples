@@ -124,6 +124,13 @@ const vec2 POISSON_DISK[POISSON_DISK_SAMPLE_COUNT] = {
 
 const float PI = radians(180);
 
+// Interleaved Gradient Noise
+// https://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare
+float quick_hash(vec2 pos) {
+    const vec3 magic = vec3(0.06711056f, 0.00583715f, 52.9829189f);
+    return fract(magic.z * fract(dot(pos, magic.xy)));
+}
+
 // Find the normal for this fragment, pulling either from a predefined normal map
 // or from the interpolated mesh normal and tangent attributes.
 vec3 getNormal()
@@ -282,8 +289,8 @@ void main()
                     const float shadowSamples = 8;
                     const float radius = 0.05;
 
-                    // hopefully relatively temporaly stable. world position would be better.
-                    float diskRotation = mod((eyePos.x + eyePos.y + eyePos.z) * 100, 2) * PI;
+                    // Godot's implementation
+                    float diskRotation = quick_hash(gl_FragCoord.xy) * 2 * PI;
                     mat2 diskRotationMatrix = mat2(cos(diskRotation), sin(diskRotation), -sin(diskRotation), cos(diskRotation));
 
                     float coverage = 0;
