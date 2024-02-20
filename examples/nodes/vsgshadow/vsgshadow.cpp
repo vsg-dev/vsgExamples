@@ -431,7 +431,6 @@ int main(int argc, char** argv)
         group->addChild(earthModel);
 
         scene = group;
-
         viewingDistance *= scale;
 
         // set up the camera

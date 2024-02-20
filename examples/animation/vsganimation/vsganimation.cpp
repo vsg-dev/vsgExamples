@@ -179,6 +179,22 @@ int main(int argc, char** argv)
     auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
+    bool insertBaseGeometry = true;
+
+    vsg::ref_ptr<vsg::Node> earthModel;
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
+    auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
+    auto scale = arguments.value<double>(1.0, "--scale");
+    if (auto earthFilename = arguments.value<vsg::Path>("", "--earth"))
+    {
+        earthModel = vsg::read_cast<vsg::Node>(earthFilename, options);
+        if (earthModel)
+        {
+            ellipsoidModel = earthModel->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
+            insertBaseGeometry = false;
+        }
+    }
+
     if (argc<=1)
     {
         std::cout<<"Please specify model to load on command line."<<std::endl;
@@ -188,27 +204,11 @@ int main(int argc, char** argv)
     auto scene = vsg::Group::create();
 
     unsigned int numLights = 2;
-    auto direction = arguments.value(vsg::dvec3(-1.0, 1.0, -1.0), "--direction");
+    auto direction = arguments.value(vsg::dvec3(-0.25, 0.25, -1.0), "--direction");
     auto numShadowMapsPerLight = arguments.value<uint32_t>(3, "--sm");
     auto lambda = arguments.value<double>(0.25, "--lambda");
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
-    if (numLights >= 1)
-    {
-        auto directionalLight = vsg::DirectionalLight::create();
-        directionalLight->name = "directional";
-        directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.9;
-        directionalLight->direction = direction;
-        directionalLight->shadowMaps = numShadowMapsPerLight;
-        scene->addChild(directionalLight);
-
-        auto ambientLight = vsg::AmbientLight::create();
-        ambientLight->name = "ambient";
-        ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.1;
-        scene->addChild(ambientLight);
-    }
-
+    double nearFarRatio = arguments.value<double>(0.001, "--nf");
 
     // load the models
     struct ModelBound
@@ -286,6 +286,77 @@ int main(int argc, char** argv)
         }
     }
 
+    auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+    double viewingDistance = vsg::length(bounds.max - bounds.min) * 2.0;
+
+    vsg::ref_ptr<vsg::LookAt> lookAt;
+    if (earthModel && ellipsoidModel)
+    {
+        auto center = (bounds.min + bounds.max) * 0.5;
+        center.z = bounds.min.z;
+
+        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale));
+        transform->addChild(scene);
+
+        auto group = vsg::Group::create();
+        group->addChild(transform);
+        group->addChild(earthModel);
+
+        scene = group;
+        viewingDistance *= scale;
+
+        // set up the camera
+        lookAt = vsg::LookAt::create(center + vsg::dvec3(0.0, 0.0, viewingDistance), center, vsg::dvec3(0.0, 1.0, 0.0));
+
+        lookAt->transform(transform->transform({}));
+
+        // update bounds
+        bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
+    }
+    else
+    {
+        if (insertBaseGeometry)
+        {
+            auto builder = vsg::Builder::create();
+            builder->options = options;
+
+            vsg::GeometryInfo geomInfo;
+            vsg::StateInfo stateInfo;
+
+            double margin = bounds.max.z - bounds.min.z;
+            geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+            geomInfo.dx.set(bounds.max.x - bounds.min.x + margin, 0.0, 0.0);
+            geomInfo.dy.set(0.0, bounds.max.y - bounds.min.y + margin, 0.0);
+            geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+
+            stateInfo.two_sided = true;
+
+            scene->addChild(builder->createQuad(geomInfo, stateInfo));
+        }
+
+        vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+
+        // set up the camera
+        lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -viewingDistance, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    }
+
+    if (numLights >= 1)
+    {
+        auto directionalLight = vsg::DirectionalLight::create();
+        directionalLight->name = "directional";
+        directionalLight->color.set(1.0, 1.0, 1.0);
+        directionalLight->intensity = 0.9;
+        directionalLight->direction = direction;
+        directionalLight->shadowMaps = numShadowMapsPerLight;
+        scene->addChild(directionalLight);
+
+        auto ambientLight = vsg::AmbientLight::create();
+        ambientLight->name = "ambient";
+        ambientLight->color.set(1.0, 1.0, 1.0);
+        ambientLight->intensity = 0.1;
+        scene->addChild(ambientLight);
+    }
+
     // find the animations available in scene
     vsg::FindAnimations findAnimations;
     scene->accept(findAnimations);
@@ -302,32 +373,6 @@ int main(int argc, char** argv)
             std::cout<<"    animation : "<<animation->name<<std::endl;
         }
     }
-
-    // compute the bounds of the scene graph to help position camera
-    auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
-    vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
-    double radius = vsg::length(bounds.max - bounds.min) * 0.6;
-
-    bool insertBaseGeometry = true;
-    if (insertBaseGeometry)
-    {
-        auto builder = vsg::Builder::create();
-        builder->options = options;
-
-        vsg::GeometryInfo geomInfo;
-        vsg::StateInfo stateInfo;
-
-        double margin = bounds.max.z - bounds.min.z;
-        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-        geomInfo.dx.set(bounds.max.x - bounds.min.x + margin, 0.0, 0.0);
-        geomInfo.dy.set(0.0, bounds.max.y - bounds.min.y + margin, 0.0);
-        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
-
-        stateInfo.two_sided = true;
-
-        scene->addChild(builder->createQuad(geomInfo, stateInfo));
-    }
-
 
     // write out scene if required
     if (outputFilename)
@@ -349,18 +394,17 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-    vsg::ref_ptr<vsg::LookAt> lookAt;
-
-    // update bounds to new scene extent
-    centre = (bounds.min + bounds.max) * 0.5;
-    radius = vsg::length(bounds.max - bounds.min) * 0.6;
-    if (maxShadowDistance == 1e8) maxShadowDistance = radius * 4.0;
-
     // set up the camera
-    lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-
-    double nearFarRatio = 0.001;
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.0);
+    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+    if (ellipsoidModel)
+    {
+        double horizonMountainHeight = 0.0;
+        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+    }
+    else
+    {
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * viewingDistance, viewingDistance * 1.5);
+    }
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
