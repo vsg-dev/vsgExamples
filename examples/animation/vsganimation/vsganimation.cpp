@@ -179,7 +179,7 @@ int main(int argc, char** argv)
     auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
-    bool insertBaseGeometry = true;
+    bool insertBaseGeometry = !arguments.read("--no-base");
 
     vsg::ref_ptr<vsg::Node> earthModel;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
@@ -228,8 +228,10 @@ int main(int argc, char** argv)
             vsg::Path filename = arguments[i];
             if (auto node = vsg::read_cast<vsg::Node>(filename, options))
             {
-                auto bounds = vsg::visit<vsg::ComputeBounds>(node).bounds;
-                models.push_back(ModelBound{node, bounds});
+                vsg::ComputeBounds computeBounds;
+                computeBounds.useNodeBounds = false;
+                node->accept(computeBounds);
+                models.push_back(ModelBound{node, computeBounds.bounds});
             }
         }
     }
@@ -240,12 +242,14 @@ int main(int argc, char** argv)
         return 1;
     }
 
+#if 0
     if (models.size()==1)
     {
         // just a single model so just add it directly to the scene
         scene->addChild(models.front().node);
     }
     else
+#endif
     {
         // find the largest model diameter so we can use it to set up layout
         double maxDiameter = 0.0;
@@ -324,7 +328,7 @@ int main(int argc, char** argv)
             vsg::StateInfo stateInfo;
 
             double margin = bounds.max.z - bounds.min.z;
-            geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+            geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, 0.0);
             geomInfo.dx.set(bounds.max.x - bounds.min.x + margin, 0.0, 0.0);
             geomInfo.dy.set(0.0, bounds.max.y - bounds.min.y + margin, 0.0);
             geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
@@ -426,7 +430,11 @@ int main(int argc, char** argv)
 
     if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
+    auto before_compile = vsg::clock::now();
+
     viewer->compile();
+
+    std::cout<<"Compile time : "<<std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - before_compile).count()*1000.0<<" ms"<<std::endl;;
 
     // start first animation if available
     if (autoPlay && !animations.empty())
@@ -440,12 +448,20 @@ int main(int argc, char** argv)
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
 
+    double updateTime = 0.0;
+
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
+
+        auto before = vsg::clock::now();
+
         viewer->update();
+
+        updateTime += std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - before).count();
+
         viewer->recordAndSubmit();
         viewer->present();
 
@@ -456,6 +472,7 @@ int main(int argc, char** argv)
     if (numFramesCompleted > 0.0)
     {
         std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
+        std::cout << "Average update time = " << (updateTime / numFramesCompleted)*1000.0 <<" ms"<< std::endl;
     }
 
     return 0;
