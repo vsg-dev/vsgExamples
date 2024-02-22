@@ -294,14 +294,19 @@ void main()
                     mat2 diskRotationMatrix = mat2(cos(diskRotation), sin(diskRotation), -sin(diskRotation), cos(diskRotation));
 
                     float coverage = 0;
+                    int viableSamples = 0;
                     for (int i = 0; i < min(shadowSamples, POISSON_DISK_SAMPLE_COUNT); ++i)
                     {
                         vec2 rotatedDisk = diskRotationMatrix * POISSON_DISK[i];
                         sm_tc = sm_matrix * vec4(eyePos + radius * rotatedDisk.x * T + radius * rotatedDisk.y * B, 1.0);
-                        coverage += texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                        if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0)
+                        {
+                            coverage += texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                            ++viableSamples;
+                        }
                     }
 
-                    coverage /= min(shadowSamples, POISSON_DISK_SAMPLE_COUNT);
+                    coverage /= viableSamples;
 
                     brightness *= (1.0-coverage);
 
