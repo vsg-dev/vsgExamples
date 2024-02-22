@@ -131,6 +131,8 @@ int main(int argc, char** argv)
             instrumentation = gpu_instrumentation;
         }
 
+        // should animations be automatically played
+        auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -251,6 +253,16 @@ int main(int argc, char** argv)
             for(auto& task : viewer->recordAndSubmitTasks)
             {
                 if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
+            }
+        }
+
+        if (autoPlay)
+        {
+            // find any animation groups in the loaded scene graph and play the first animation in each of the animation groups.
+            auto animationGroups = vsg::visit<vsg::FindAnimations>(vsg_scene).animationGroups;
+            for(auto ag : animationGroups)
+            {
+                if (!ag->animations.empty()) viewer->animationManager->play(ag->animations.front());
             }
         }
 

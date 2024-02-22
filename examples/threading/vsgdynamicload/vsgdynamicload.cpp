@@ -38,6 +38,7 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
     vsg::ref_ptr<vsg::Group> attachmentPoint;
     vsg::ref_ptr<vsg::Node> node;
     vsg::CompileResult compileResult;
+    bool autoPlay = true;
 
     void run() override
     {
@@ -47,6 +48,17 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
         if (ref_viewer)
         {
             updateViewer(*ref_viewer, compileResult);
+
+            if (autoPlay)
+            {
+                // find any animation groups in the loaded scene graph and play the first animation in each of the animation groups.
+                auto animationGroups = vsg::visit<vsg::FindAnimations>(node).animationGroups;
+                for(auto ag : animationGroups)
+                {
+                    if (!ag->animations.empty()) ref_viewer->animationManager->play(ag->animations.front());
+                }
+            }
+
         }
 
         attachmentPoint->addChild(node);

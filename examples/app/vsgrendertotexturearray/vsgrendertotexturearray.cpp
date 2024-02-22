@@ -416,12 +416,6 @@ struct CollectStats : public vsg::ConstVisitor
         object.traverse(*this);
     }
 
-    void apply(const vsg::StateGroup& sg) override
-    {
-        for(auto& sc : sg.stateCommands) sc->accept(*this);
-        sg.traverse(*this);
-    }
-
     void apply(const vsg::BindGraphicsPipeline& bgp) override
     {
         ++pipelines[bgp.pipeline.get()];
