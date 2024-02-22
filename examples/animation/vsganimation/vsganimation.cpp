@@ -235,9 +235,6 @@ int main(int argc, char** argv)
         vsg::dbox bounds;
     };
 
-    vsg::CopyOp copyop;
-    auto duplicate = copyop.duplicate = new vsg::Duplicate;
-
     std::list<ModelBound> models;
     for(unsigned int ci = 0; ci < numCopies; ++ci)
     {
