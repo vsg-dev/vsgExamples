@@ -86,6 +86,24 @@ public:
                 }
             }
         }
+        else if (keyPress.keyModified == '<')
+        {
+            keyPress.handled = true;
+
+            for(auto animation : animations)
+            {
+                animation->speed -= 0.25;
+            }
+        }
+        else if (keyPress.keyModified == '>')
+        {
+            keyPress.handled = true;
+
+            for(auto animation : animations)
+            {
+                animation->speed += 0.25;
+            }
+        }
     }
 };
 
