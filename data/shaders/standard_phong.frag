@@ -43,6 +43,7 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 
 
 layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform texture2DArray shadowMaps;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 3) uniform sampler shadowMapDirectSampler;
 layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
 
 layout(location = 0) in vec3 eyePos;
@@ -287,27 +288,58 @@ void main()
                 {
                     matched = true;
 
+                    vec4 original_sm_tc = sm_tc;
+
                     const float shadowSamples = 8;
-                    const float radius = 0.05;
+                    const float blockerSearchRadius = 0.05;
+                    // angle subtended by the Sun on Earth in radians
+                    const float angleSubtended = 0.090;
 
                     // Godot's implementation
                     float diskRotation = quick_hash(gl_FragCoord.xy) * 2 * PI;
                     mat2 diskRotationMatrix = mat2(cos(diskRotation), sin(diskRotation), -sin(diskRotation), cos(diskRotation));
 
-                    float coverage = 0;
-                    int viableSamples = 0;
-                    for (int i = 0; i < min(shadowSamples, POISSON_DISK_SAMPLE_COUNT); ++i)
+                    float blockerDistances = 0.0;
+                    int blockerCount = 0;
+                    for (int i = 0; i < min(shadowSamples / 2, POISSON_DISK_SAMPLE_COUNT); ++i)
                     {
-                        vec2 rotatedDisk = diskRotationMatrix * POISSON_DISK[i];
-                        sm_tc = sm_matrix * vec4(eyePos + radius * rotatedDisk.x * T + radius * rotatedDisk.y * B, 1.0);
+                        vec2 rotatedDisk = blockerSearchRadius * diskRotationMatrix * POISSON_DISK[i];
+                        sm_tc = sm_matrix * vec4(eyePos + rotatedDisk.x * T + rotatedDisk.y * B, 1.0);
                         if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0)
                         {
-                            coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
-                            ++viableSamples;
+                            float blockerDistance = texture(sampler2DArray(shadowMaps, shadowMapDirectSampler), vec3(sm_tc.st, shadowMapIndex)).r;
+                            if (blockerDistance > sm_tc.z) {
+                                blockerDistances += blockerDistance;
+                                ++blockerCount;
+                            }
                         }
                     }
 
-                    coverage /= viableSamples;
+                    blockerDistances /= blockerCount;
+
+                    float coverage = 0;
+                    if (blockerCount > 0)
+                    {
+                        mat4 sm_matrix_inv = inverse(sm_matrix);
+                        vec4 averageBlockerEuclidean = sm_matrix_inv * vec4(original_sm_tc.xy, blockerDistances, original_sm_tc.w);
+                        averageBlockerEuclidean.xyz /= averageBlockerEuclidean.w;
+                        float dist = distance(averageBlockerEuclidean.xyz, eyePos);
+                        float penumbraRadius = dist * tan(angleSubtended / 2);
+
+                        int viableSamples = 0;
+                        for (int i = 0; i < min(shadowSamples, POISSON_DISK_SAMPLE_COUNT); ++i)
+                        {
+                            vec2 rotatedDisk = penumbraRadius * diskRotationMatrix * POISSON_DISK[i];
+                            sm_tc = sm_matrix * vec4(eyePos + rotatedDisk.x * T + rotatedDisk.y * B, 1.0);
+                            if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0)
+                            {
+                                coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                                ++viableSamples;
+                            }
+                        }
+
+                        coverage /= viableSamples;
+                    }
 
                     brightness *= (1.0-coverage);
 
