@@ -422,6 +422,15 @@ void main()
 
     if (numDirectionalLights>0)
     {
+        vec3 q1 = dFdx(eyePos);
+        vec3 q2 = dFdy(eyePos);
+        vec2 st1 = dFdx(texCoord0);
+        vec2 st2 = dFdy(texCoord0);
+
+        vec3 N = normalize(normalDir);
+        vec3 T = normalize(q1 * st2.t - q2 * st1.t);
+        vec3 B = -normalize(cross(N, T));
+
         // directional lights
         for(int i = 0; i<numDirectionalLights; ++i)
         {
@@ -429,46 +438,150 @@ void main()
             vec3 direction = -lightData.values[index++].xyz;
             vec4 shadowMapSettings = lightData.values[index++];
 
+            int shadowMapCount = int(shadowMapSettings.r);
+            int originalShadowMapIndex = shadowMapIndex;
+            int originalIndex = index;
+
             float brightness = lightColor.a;
 
-            // check shadow maps if required
-            bool matched = false;
-            while ((shadowMapSettings.r > 0.0 && brightness > brightnessCutoff) && !matched)
+            if (brightness > brightnessCutoff)
             {
-                mat4 sm_matrix = mat4(lightData.values[index++],
-                                      lightData.values[index++],
-                                      lightData.values[index++],
-                                      lightData.values[index++]);
+                const float shadowSamples = 8;
+                const float blockerSearchRadius = 1;
+                // angle subtended by the Sun on Earth in radians
+                const float angleSubtended = 0.090;
+                const float viableSampleRatio = 1;
 
-                vec4 sm_tc = (sm_matrix) * vec4(eyePos, 1.0);
+                // Godot's implementation
+                float diskRotation = quick_hash(gl_FragCoord.xy) * 2 * PI;
+                mat2 diskRotationMatrix = mat2(cos(diskRotation), sin(diskRotation), -sin(diskRotation), cos(diskRotation));
 
-                if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 /* && sm_tc.z <= 1.0*/)
+                // blocker search
+                bool matched = false;
+                float overallBlockerDistances = 0;
+                float overallBlockerCount = 0;
+                int overallViableSamples = 0;
+                while (shadowMapCount > 0 && !matched)
                 {
-                    matched = true;
+                    mat4 sm_matrix = mat4(lightData.values[index++],
+                                        lightData.values[index++],
+                                        lightData.values[index++],
+                                        lightData.values[index++]);
 
-                    float coverage = texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
-                    brightness *= (1.0-coverage);
+                    float blockerDistances = 0.0;
+                    int blockerCount = 0;
+                    int viableSamples = 0;
+                    // always sample the original coordinates as otherwise blockers smaller than the search radius may be missed with small sample counts
+                    vec4 sm_tc = sm_matrix * vec4(eyePos, 1.0);
+                    if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0)
+                    {
+                        ++viableSamples;
+                        float blockerDistance = texture(sampler2DArray(shadowMaps, shadowMapDirectSampler), vec3(sm_tc.st, shadowMapIndex)).r;
+                        if (blockerDistance > sm_tc.z) {
+                            blockerDistances += blockerDistance;
+                            ++blockerCount;
+                        }
+                    }
+                    for (int i = 0; i < min(shadowSamples / 2, POISSON_DISK_SAMPLE_COUNT); ++i)
+                    {
+                        vec2 rotatedDisk = blockerSearchRadius * diskRotationMatrix * POISSON_DISK[i];
+                        sm_tc = sm_matrix * vec4(eyePos + rotatedDisk.x * T + rotatedDisk.y * B, 1.0);
+                        if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0)
+                        {
+                            ++viableSamples;
+                            float blockerDistance = texture(sampler2DArray(shadowMaps, shadowMapDirectSampler), vec3(sm_tc.st, shadowMapIndex)).r;
+                            if (blockerDistance > sm_tc.z) {
+                                blockerDistances += blockerDistance;
+                                ++blockerCount;
+                            }
+                        }
+                    }
 
-#ifdef SHADOWMAP_DEBUG
-                    if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
-                    else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
-                    else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
-                    else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
-                    else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
-                    else color = vec3(1.0, 1.0, 1.0);
-#endif
+                    overallViableSamples += viableSamples;
+                    if (overallViableSamples >= viableSampleRatio * min(shadowSamples / 2, POISSON_DISK_SAMPLE_COUNT))
+                        matched = true;
+
+                    if (blockerCount > 0)
+                    {
+                        // if averaging like this is legal, then calculating the penumbra radius in light space should be legal, too
+                        blockerDistances /= blockerCount;
+
+                        mat4 sm_matrix_inv = inverse(sm_matrix);
+                        vec4 sm_tc = sm_matrix * vec4(eyePos, 1.0);
+                        vec4 averageBlockerEuclidean = sm_matrix_inv * vec4(sm_tc.xy, blockerDistances, sm_tc.w);
+                        averageBlockerEuclidean.xyz /= averageBlockerEuclidean.w;
+                        float dist = distance(averageBlockerEuclidean.xyz, eyePos);
+
+                        overallBlockerCount += blockerCount;
+                        overallBlockerDistances = mix(overallBlockerDistances, dist, blockerCount / overallBlockerCount);
+                    }
+
+                    ++shadowMapIndex;
+                    --shadowMapCount;
                 }
 
-                ++shadowMapIndex;
-                shadowMapSettings.r -= 1.0;
+                float overallCoverage = 0;
+                // there's something there, compute shadow
+                // note - can't skip if all viable samples so far were blockers - if they're distant, the penumbra could be wider than the blocker search
+                if (overallBlockerCount > 0)
+                {
+                    shadowMapCount = int(shadowMapSettings.r);
+                    shadowMapIndex = originalShadowMapIndex;
+                    index = originalIndex;
+
+                    float penumbraRadius = overallBlockerDistances * tan(angleSubtended / 2);
+
+                    matched = false;
+                    float overallSampleCount = 0;
+                    while (shadowMapCount > 0 && !matched)
+                    {
+                        mat4 sm_matrix = mat4(lightData.values[index++],
+                                            lightData.values[index++],
+                                            lightData.values[index++],
+                                            lightData.values[index++]);
+
+                        float coverage = 0;
+                        int viableSamples = 0;
+                        for (int i = 0; i < min(shadowSamples, POISSON_DISK_SAMPLE_COUNT); ++i)
+                        {
+                            vec2 rotatedDisk = penumbraRadius * diskRotationMatrix * POISSON_DISK[i];
+                            vec4 sm_tc = sm_matrix * vec4(eyePos + rotatedDisk.x * T + rotatedDisk.y * B, 1.0);
+                            if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0)
+                            {
+                                coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                                ++viableSamples;
+                            }
+                        }
+
+                        coverage /= max(viableSamples, 1);
+                        overallSampleCount += viableSamples;
+                        overallCoverage = mix(overallCoverage, coverage, viableSamples / max(overallSampleCount, 1));
+
+                        if (overallSampleCount >= viableSampleRatio * min(shadowSamples, POISSON_DISK_SAMPLE_COUNT))
+                            matched = true;
+
+#ifdef SHADOWMAP_DEBUG
+                        if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
+                        else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
+                        else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
+                        else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
+                        else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
+                        else color = vec3(1.0, 1.0, 1.0);
+#endif
+                        ++shadowMapIndex;
+                        --shadowMapCount;
+                    }
+                }
+
+                brightness *= (1.0-overallCoverage);
             }
 
-            if (shadowMapSettings.r > 0.0)
+            if (shadowMapCount > 0.0)
             {
                 // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
                 // so subsequent light pointions are correct.
-                index += 4 * int(shadowMapSettings.r);
-                shadowMapIndex += int(shadowMapSettings.r);
+                index += 4 * shadowMapCount;
+                shadowMapIndex += shadowMapCount;
             }
 
             // if light is too dim/shadowed to effect the rendering skip it
