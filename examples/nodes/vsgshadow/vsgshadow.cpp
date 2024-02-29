@@ -410,7 +410,7 @@ int main(int argc, char** argv)
         auto model = vsg::read_cast<vsg::Node>(filename, options);
         if (!model)
         {
-            std::cout<<"Faled to load "<<filename<<std::endl;
+            std::cout<<"Failed to load "<<filename<<std::endl;
             return 1;
         }
 
