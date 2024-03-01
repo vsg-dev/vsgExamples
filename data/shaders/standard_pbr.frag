@@ -53,7 +53,8 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
     vec4 values[2048];
 } lightData;
 
-layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform sampler2DArrayShadow shadowMaps;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform texture2DArray shadowMaps;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -445,7 +446,7 @@ void main()
                 {
                     matched = true;
 
-                    float coverage = texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
+                    float coverage = texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
                     brightness *= (1.0-coverage);
 
 #ifdef SHADOWMAP_DEBUG
