@@ -239,7 +239,7 @@ int main(int argc, char** argv)
         animationPathHandler->printFrameStatsToConsole = true;
         viewer->addEventHandler(animationPathHandler);
 
-        // add event handler to control the cpu and gpu_instrumentation_level using the 'c', 'g' keys to reduce the cpu and gpu instruemntation level, and 'C' and 'G' to increase them respectively.
+        // add event handler to control the cpu and gpu_instrumentation_level using the 'c', 'g' keys to reduce the cpu and gpu instrumentation level, and 'C' and 'G' to increase them respectively.
         viewer->addEventHandler(InstrumentationHandler::create(instrumentation));
 
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
@@ -268,6 +268,11 @@ int main(int argc, char** argv)
             viewer->recordAndSubmit();
 
             viewer->present();
+        }
+
+        if (instrumentation && instrumentation->log)
+        {
+            instrumentation->log->report(std::cout);
         }
 
         if (reportAverageFrameRate)

@@ -1,10 +1,73 @@
 #pragma once
 
 #include <vsg/utils/Instrumentation.h>
+#include <vsg/ui/FrameStamp.h>
 #include <vsg/io/stream.h>
 
 namespace vsg
 {
+    class ProfileLog : public Inherit<Object, ProfileLog>
+    {
+    public:
+
+        ProfileLog(size_t size = 1024);
+
+        enum Type
+        {
+            NO_TYPE,
+            FRAME_ENTER,
+            FRAME_LEAVE,
+            CPU_ENTER,
+            CPU_LEAVE,
+            COMMAND_BUFFER_ENTER,
+            COMMAND_BUFFER_LEAVE,
+            GPU_ENTER,
+            GPU_LEAVE
+        };
+
+        struct Entry
+        {
+            Type type = {};
+            vsg::time_point time = {};
+            const SourceLocation* sourceLocation = nullptr;
+            const Object* object = nullptr;
+            uint64_t reference = 0;
+        };
+
+        std::vector<Entry> entries;
+        std::atomic_uint64_t index = 0;
+
+        Entry& enter(uint64_t& reference)
+        {
+            reference = index.fetch_add(1);
+            Entry& enter_entry = entries[reference];
+            enter_entry.time = clock::now();
+            enter_entry.reference = 0;
+            return enter_entry;
+        }
+
+        Entry& leave(uint64_t& reference)
+        {
+            Entry& enter_entry = entries[reference];
+
+            uint64_t new_reference = index.fetch_add(1);
+            Entry& leave_entry = entries[new_reference];
+
+            enter_entry.reference = new_reference;
+            leave_entry.reference = reference;
+            leave_entry.time = clock::now();
+            reference = new_reference;
+            return leave_entry;
+        }
+
+        void report(std::ostream& out);
+
+    public:
+        void read(Input& input) override;
+        void write(Output& output) const override;
+    };
+    VSG_type_name(ProfileLog)
+
     class Profiler : public Inherit<Instrumentation, Profiler>
     {
     public:
@@ -13,13 +76,12 @@ namespace vsg
 
         struct Settings : public Inherit<Object, Settings>
         {
-            unsigned int cpu_instrumentation_level = 0;
-            unsigned int gpu_instrumentation_level = 0;
+            unsigned int cpu_instrumentation_level = 1;
+            unsigned int gpu_instrumentation_level = 1;
         };
 
         ref_ptr<Settings> settings;
-        mutable std::atomic_uint64_t index = 0;
-        mutable indentation indent;
+        mutable ref_ptr<ProfileLog> log;
 
     public:
         virtual void setThreadName(const std::string& /*name*/) const;
@@ -36,4 +98,5 @@ namespace vsg
         virtual void enter(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/, const Object* /*object*/ = nullptr) const;
         virtual void leave(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/, const Object* /*object*/ = nullptr) const;
     };
+    VSG_type_name(Profiler)
 }
