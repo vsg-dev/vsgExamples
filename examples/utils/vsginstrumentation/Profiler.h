@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vsg/utils/Instrumentation.h>
+#include <vsg/io/stream.h>
 
 namespace vsg
 {
@@ -16,6 +17,7 @@ namespace vsg
 
         ref_ptr<Settings> settings;
         mutable std::atomic_uint64_t index = 0;
+        mutable indentation indent;
 
     public:
         virtual void setThreadName(const std::string& /*name*/) const;
