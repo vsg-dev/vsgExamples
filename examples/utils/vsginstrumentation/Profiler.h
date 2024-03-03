@@ -10,7 +10,7 @@ namespace vsg
     {
     public:
 
-        ProfileLog(size_t size = 1024);
+        ProfileLog(size_t size = 16384);
 
         enum Type
         {
