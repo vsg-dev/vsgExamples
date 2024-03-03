@@ -9,10 +9,12 @@ namespace vsg
     {
     public:
 
+        Profiler();
+
         struct Settings : public Inherit<Object, Settings>
         {
-            unsigned int cpu_instumentation_level = 0;
-            unsigned int gpu_instumentation_level = 0;
+            unsigned int cpu_instrumentation_level = 0;
+            unsigned int gpu_instrumentation_level = 0;
         };
 
         ref_ptr<Settings> settings;

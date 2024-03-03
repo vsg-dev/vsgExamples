@@ -26,19 +26,19 @@ public:
     {
         if (keyPress.keyModified == 'c')
         {
-            if (instrumentation->settings->cpu_instumentation_level > 0) --instrumentation->settings->cpu_instumentation_level;
+            if (instrumentation->settings->cpu_instrumentation_level > 0) --instrumentation->settings->cpu_instrumentation_level;
         }
         else if (keyPress.keyModified == 'C')
         {
-            if (instrumentation->settings->cpu_instumentation_level < 3) ++instrumentation->settings->cpu_instumentation_level;
+            if (instrumentation->settings->cpu_instrumentation_level < 3) ++instrumentation->settings->cpu_instrumentation_level;
         }
         if (keyPress.keyModified == 'g')
         {
-            if (instrumentation->settings->gpu_instumentation_level > 0) --instrumentation->settings->gpu_instumentation_level;
+            if (instrumentation->settings->gpu_instrumentation_level > 0) --instrumentation->settings->gpu_instrumentation_level;
         }
         else if (keyPress.keyModified == 'G')
         {
-            if (instrumentation->settings->gpu_instumentation_level < 3) ++instrumentation->settings->gpu_instumentation_level;
+            if (instrumentation->settings->gpu_instrumentation_level < 3) ++instrumentation->settings->gpu_instrumentation_level;
         }
     }
 };
@@ -123,8 +123,8 @@ int main(int argc, char** argv)
 
         // set Profiler options
         auto instrumentation = vsg::Profiler::create();
-        arguments.read("--cpu", instrumentation->settings->cpu_instumentation_level);
-        arguments.read("--gpu", instrumentation->settings->gpu_instumentation_level);
+        arguments.read("--cpu", instrumentation->settings->cpu_instrumentation_level);
+        arguments.read("--gpu", instrumentation->settings->gpu_instrumentation_level);
 
         auto window = vsg::Window::create(windowTraits);
         if (!window)
