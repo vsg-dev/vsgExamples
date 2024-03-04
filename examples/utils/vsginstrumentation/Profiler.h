@@ -12,22 +12,19 @@ namespace vsg
 
         ProfileLog(size_t size = 16384);
 
-        enum Type
+        enum Type : uint8_t
         {
             NO_TYPE,
-            FRAME_ENTER,
-            FRAME_LEAVE,
-            CPU_ENTER,
-            CPU_LEAVE,
-            COMMAND_BUFFER_ENTER,
-            COMMAND_BUFFER_LEAVE,
-            GPU_ENTER,
-            GPU_LEAVE
+            FRAME,
+            CPU,
+            COMMAND_BUFFER,
+            GPU
         };
 
         struct Entry
         {
             Type type = {};
+            bool enter = true;
             vsg::time_point time = {};
             const SourceLocation* sourceLocation = nullptr;
             const Object* object = nullptr;
@@ -37,16 +34,18 @@ namespace vsg
         std::vector<Entry> entries;
         std::atomic_uint64_t index = 0;
 
-        Entry& enter(uint64_t& reference)
+        Entry& enter(uint64_t& reference, Type type)
         {
             reference = index.fetch_add(1);
             Entry& enter_entry = entries[reference];
-            enter_entry.time = clock::now();
+            enter_entry.enter = true;
+            enter_entry.type = type;
             enter_entry.reference = 0;
+            enter_entry.time = clock::now();
             return enter_entry;
         }
 
-        Entry& leave(uint64_t& reference)
+        Entry& leave(uint64_t& reference, Type type)
         {
             Entry& enter_entry = entries[reference];
 
@@ -54,8 +53,10 @@ namespace vsg
             Entry& leave_entry = entries[new_reference];
 
             enter_entry.reference = new_reference;
-            leave_entry.reference = reference;
             leave_entry.time = clock::now();
+            leave_entry.enter = false;
+            leave_entry.type = type;
+            leave_entry.reference = reference;
             reference = new_reference;
             return leave_entry;
         }

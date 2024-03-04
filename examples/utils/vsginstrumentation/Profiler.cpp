@@ -31,16 +31,41 @@ void ProfileLog::report(std::ostream& out)
     indentation indent;
     out<<"ProfileLog::report() entries.size() = "<<entries.size()<<std::endl;
     out<<"{"<<std::endl;
-    uint32_t tab = 2;
+    uint32_t tab = 1;
     indent += tab;
+
+    const char* typeNames[] = {
+        "NO_TYPE",
+        "FRAME",
+        "CPU",
+        "COMMAND_BUFFER",
+        "GPU"
+    };
 
     for(uint64_t i=0; i<index.load(); ++i)
     {
         auto& entry = entries[i];
-        out<<indent<<"{ "<<entry.type;
-        if (entry.sourceLocation) out<<", file="<<entry.sourceLocation->file<<", func="<<entry.sourceLocation->function<<", line="<<entry.sourceLocation->line;
-        if (entry.object) out<<", "<<entry.object->className();
-        out << " }"<<std::endl;
+        auto& paired = entries[entry.reference];
+
+        auto duration = std::abs(std::chrono::duration<double, std::chrono::milliseconds::period>(entry.time - paired.time).count());
+
+        if (entry.type == FRAME && entry.enter) out<<std::endl;
+
+        if (entry.enter) out<<indent<<"{ ";
+        else
+        {
+            indent -= tab;
+            out<<indent<<"} ";
+        }
+
+        out<<typeNames[entry.type]<<", duration = "<<duration<<"ms, ";
+
+        if (entry.sourceLocation) out/*<<", file="<<entry.sourceLocation->file*/<<", func="<<entry.sourceLocation->function<<", line="<<entry.sourceLocation->line;
+        // if (entry.object) out<<", "<<entry.object->className();
+
+        out << std::endl;
+
+        if (entry.enter) indent += tab;
     }
 
     indent -= tab;
@@ -66,8 +91,7 @@ void Profiler::enterFrame(const SourceLocation* sl, uint64_t& reference, FrameSt
 {
     if (settings->cpu_instrumentation_level >= sl->level || settings->gpu_instrumentation_level >= sl->level)
     {
-        auto& entry = log->enter(reference);
-        entry.type = ProfileLog::FRAME_ENTER;
+        auto& entry = log->enter(reference, ProfileLog::FRAME);
         entry.sourceLocation = sl;
         entry.object = &frameStamp;
     }
@@ -77,8 +101,7 @@ void Profiler::leaveFrame(const SourceLocation* sl, uint64_t& reference, FrameSt
 {
     if (settings->cpu_instrumentation_level >= sl->level || settings->gpu_instrumentation_level >= sl->level)
     {
-        auto& entry = log->leave(reference);
-        entry.type = ProfileLog::FRAME_LEAVE;
+        auto& entry = log->leave(reference, ProfileLog::FRAME);
         entry.sourceLocation = sl;
         entry.object = &frameStamp;
     }
@@ -88,8 +111,7 @@ void Profiler::enter(const SourceLocation* sl, uint64_t& reference, const Object
 {
     if (settings->cpu_instrumentation_level >= sl->level)
     {
-        auto& entry = log->enter(reference);
-        entry.type = ProfileLog::CPU_ENTER;
+        auto& entry = log->enter(reference, ProfileLog::CPU);
         entry.sourceLocation = sl;
         entry.object = object;
     }
@@ -99,8 +121,7 @@ void Profiler::leave(const SourceLocation* sl, uint64_t& reference, const Object
 {
     if (settings->cpu_instrumentation_level >= sl->level)
     {
-        auto& entry = log->leave(reference);
-        entry.type = ProfileLog::CPU_LEAVE;
+        auto& entry = log->leave(reference, ProfileLog::CPU);
         entry.sourceLocation = sl;
         entry.object = object;
     }
@@ -110,8 +131,7 @@ void Profiler::enterCommandBuffer(const SourceLocation* sl, uint64_t& reference,
 {
     if (settings->gpu_instrumentation_level >= sl->level)
     {
-        auto& entry = log->enter(reference);
-        entry.type = ProfileLog::COMMAND_BUFFER_ENTER;
+        auto& entry = log->enter(reference, ProfileLog::COMMAND_BUFFER);
         entry.sourceLocation = sl;
         entry.object = &commandBuffer;
     }
@@ -121,8 +141,7 @@ void Profiler::leaveCommandBuffer(const SourceLocation* sl, uint64_t& reference,
 {
     if (settings->gpu_instrumentation_level >= sl->level)
     {
-        auto& entry = log->leave(reference);
-        entry.type = ProfileLog::COMMAND_BUFFER_LEAVE;
+        auto& entry = log->leave(reference, ProfileLog::COMMAND_BUFFER);
         entry.sourceLocation = sl;
         entry.object = &commandBuffer;
     }
@@ -132,8 +151,7 @@ void Profiler::enter(const SourceLocation* sl, uint64_t& reference, CommandBuffe
 {
     if (settings->gpu_instrumentation_level >= sl->level)
     {
-        auto& entry = log->enter(reference);
-        entry.type = ProfileLog::GPU_ENTER;
+        auto& entry = log->enter(reference, ProfileLog::GPU);
         entry.sourceLocation = sl;
         entry.object = object;
     }
@@ -143,8 +161,7 @@ void Profiler::leave(const SourceLocation* sl, uint64_t& reference, CommandBuffe
 {
     if (settings->gpu_instrumentation_level >= sl->level)
     {
-        auto& entry = log->leave(reference);
-        entry.type = ProfileLog::GPU_LEAVE;
+        auto& entry = log->leave(reference, ProfileLog::GPU);
         entry.sourceLocation = sl;
         entry.object = object;
     }
