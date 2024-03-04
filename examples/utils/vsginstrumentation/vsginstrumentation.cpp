@@ -270,16 +270,16 @@ int main(int argc, char** argv)
             viewer->present();
         }
 
-        if (instrumentation && instrumentation->log)
-        {
-            instrumentation->log->report(std::cout);
-        }
-
         if (reportAverageFrameRate)
         {
             auto fs = viewer->getFrameStamp();
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
             std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
+        }
+
+        if (instrumentation && instrumentation->log)
+        {
+            instrumentation->log->report(std::cout);
         }
     }
     catch (const vsg::Exception& ve)

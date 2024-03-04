@@ -28,8 +28,18 @@ void ProfileLog::write(Output& output) const
 
 void ProfileLog::report(std::ostream& out)
 {
+    out<<"frames "<<frameIndices.size()<<std::endl;
+    for(auto frameIndex : frameIndices)
+    {
+        report(out, frameIndex);
+        out<<std::endl;
+    }
+}
+
+void ProfileLog::report(std::ostream& out, uint64_t reference)
+{
     indentation indent;
-    out<<"ProfileLog::report() entries.size() = "<<entries.size()<<std::endl;
+    out<<"ProfileLog::report("<<reference<<")"<<std::endl;
     out<<"{"<<std::endl;
     uint32_t tab = 1;
     indent += tab;
@@ -42,16 +52,20 @@ void ProfileLog::report(std::ostream& out)
         "GPU"
     };
 
+    uint64_t startReference = reference;
+    uint64_t endReference = entry(reference).reference;
 
-    uint64_t numEntries = std::min(entries.size(), index.load());
-    for(uint64_t i=0; i<numEntries; ++i)
+    if (startReference > endReference)
+    {
+        std::swap(startReference, endReference);
+    }
+
+    for(uint64_t i = startReference; i <= endReference; ++i)
     {
         auto& first = entry(i);
         auto& second = entry(first.reference);
 
         auto duration = std::abs(std::chrono::duration<double, std::chrono::milliseconds::period>(second.time - first.time).count());
-
-        if (first.type == FRAME && first.enter) out<<std::endl;
 
         if (first.enter) out<<indent<<"{ ";
         else
@@ -69,10 +83,8 @@ void ProfileLog::report(std::ostream& out)
 
         if (first.enter) indent += tab;
     }
-
-    indent -= tab;
-    out<<"}"<<std::endl;
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -103,9 +115,30 @@ void Profiler::leaveFrame(const SourceLocation* sl, uint64_t& reference, FrameSt
 {
     if (settings->cpu_instrumentation_level >= sl->level || settings->gpu_instrumentation_level >= sl->level)
     {
+        uint64_t startReference = reference;
         auto& entry = log->leave(reference, ProfileLog::FRAME);
         entry.sourceLocation = sl;
         entry.object = &frameStamp;
+        uint64_t endReference = reference;
+
+        if (endReference >= static_cast<uint64_t>(log->entries.size()))
+        {
+            uint32_t safeReference = endReference - log->entries.size();
+            size_t i = 0;
+            for(; i<log->frameIndices.size(); ++i)
+            {
+                if (log->frameIndices[i] > safeReference)
+                {
+                    break;
+                }
+            }
+            if (i > 0)
+            {
+                log->frameIndices.erase(log->frameIndices.begin(), log->frameIndices.begin() + i);
+            }
+        }
+
+        log->frameIndices.push_back(startReference);
     }
 }
 

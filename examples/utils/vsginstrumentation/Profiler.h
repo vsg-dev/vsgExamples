@@ -33,6 +33,7 @@ namespace vsg
 
         std::vector<Entry> entries;
         std::atomic_uint64_t index = 0;
+        std::vector<uint64_t> frameIndices;
 
         Entry& enter(uint64_t& reference, Type type)
         {
@@ -67,6 +68,7 @@ namespace vsg
         }
 
         void report(std::ostream& out);
+        void report(std::ostream& out, uint64_t reference);
 
     public:
         void read(Input& input) override;
