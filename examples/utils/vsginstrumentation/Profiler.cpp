@@ -42,30 +42,32 @@ void ProfileLog::report(std::ostream& out)
         "GPU"
     };
 
-    for(uint64_t i=0; i<index.load(); ++i)
+
+    uint64_t numEntries = std::min(entries.size(), index.load());
+    for(uint64_t i=0; i<numEntries; ++i)
     {
-        auto& entry = entries[i];
-        auto& paired = entries[entry.reference];
+        auto& first = entry(i);
+        auto& second = entry(first.reference);
 
-        auto duration = std::abs(std::chrono::duration<double, std::chrono::milliseconds::period>(entry.time - paired.time).count());
+        auto duration = std::abs(std::chrono::duration<double, std::chrono::milliseconds::period>(second.time - first.time).count());
 
-        if (entry.type == FRAME && entry.enter) out<<std::endl;
+        if (first.type == FRAME && first.enter) out<<std::endl;
 
-        if (entry.enter) out<<indent<<"{ ";
+        if (first.enter) out<<indent<<"{ ";
         else
         {
             indent -= tab;
             out<<indent<<"} ";
         }
 
-        out<<typeNames[entry.type]<<", duration = "<<duration<<"ms, ";
+        out<<typeNames[first.type]<<", duration = "<<duration<<"ms, ";
 
-        if (entry.sourceLocation) out/*<<", file="<<entry.sourceLocation->file*/<<", func="<<entry.sourceLocation->function<<", line="<<entry.sourceLocation->line;
-        // if (entry.object) out<<", "<<entry.object->className();
+        if (first.sourceLocation) out/*<<", file="<<first.sourceLocation->file*/<<", func="<<first.sourceLocation->function<<", line="<<first.sourceLocation->line;
+        // if (first.object) out<<", "<<first.object->className();
 
         out << std::endl;
 
-        if (entry.enter) indent += tab;
+        if (first.enter) indent += tab;
     }
 
     indent -= tab;

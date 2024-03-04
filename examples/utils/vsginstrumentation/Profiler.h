@@ -37,7 +37,7 @@ namespace vsg
         Entry& enter(uint64_t& reference, Type type)
         {
             reference = index.fetch_add(1);
-            Entry& enter_entry = entries[reference];
+            Entry& enter_entry = entry(reference);
             enter_entry.enter = true;
             enter_entry.type = type;
             enter_entry.reference = 0;
@@ -47,10 +47,10 @@ namespace vsg
 
         Entry& leave(uint64_t& reference, Type type)
         {
-            Entry& enter_entry = entries[reference];
+            Entry& enter_entry = entry(reference);
 
             uint64_t new_reference = index.fetch_add(1);
-            Entry& leave_entry = entries[new_reference];
+            Entry& leave_entry = entry(new_reference);
 
             enter_entry.reference = new_reference;
             leave_entry.time = clock::now();
@@ -59,6 +59,11 @@ namespace vsg
             leave_entry.reference = reference;
             reference = new_reference;
             return leave_entry;
+        }
+
+        Entry& entry(uint64_t reference)
+        {
+            return entries[reference % entries.size()];
         }
 
         void report(std::ostream& out);
