@@ -159,6 +159,18 @@ int main(int argc, char** argv)
 
         instrumentation = gpu_instrumentation;
     }
+    else if (arguments.read({"--profiler", "--pr"}))
+    {
+        // set Profiler options
+        auto settings = vsg::Profiler::Settings::create();
+        arguments.read("--cpu", settings->cpu_instrumentation_level);
+        arguments.read("--gpu", settings->gpu_instrumentation_level);
+        arguments.read("--log-size", settings->log_size);
+        arguments.read("--gpu-size", settings->gpu_timestamp_size);
+
+        // create the profiler
+        instrumentation = vsg::Profiler::create(settings);
+    }
 #ifdef Tracy_FOUND
     else if (arguments.read("--tracy"))
     {
@@ -488,6 +500,11 @@ int main(int argc, char** argv)
     {
         std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
         std::cout << "Average update time = " << (updateTime / numFramesCompleted)*1000.0 <<" ms"<< std::endl;
+    }
+
+    if (auto profiler = instrumentation.cast<vsg::Profiler>())
+    {
+        profiler->log->report(std::cout);
     }
 
     return 0;
