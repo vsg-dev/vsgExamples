@@ -87,8 +87,6 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
 
     const float shadowSamples = 8;
     const float blockerSearchRadius = 1;
-    // angle subtended by the Sun on Earth in radians
-    const float angleSubtended = 0.090;
     const float viableSampleRatio = 1;
 
     // Godot's implementation
@@ -168,7 +166,7 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
         shadowMapIndex = originalShadowMapIndex;
         lightDataIndex = originalIndex;
 
-        float penumbraRadius = overallBlockerDistances * tan(angleSubtended / 2);
+        float penumbraRadius = overallBlockerDistances * shadowMapSettings.g;
 
         matched = false;
         float overallSampleCount = 0;
