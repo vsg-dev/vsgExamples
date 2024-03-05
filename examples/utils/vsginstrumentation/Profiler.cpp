@@ -249,17 +249,33 @@ void Profiler::enterCommandBuffer(const SourceLocation* sl, uint64_t& reference,
         }
 
         auto& gpuStats = frameStats.perDeviceGpuStats[deviceID];
-        if (!gpuStats) gpuStats = GPUStatsCollection::create();
-
-        if (!gpuStats->queryPool)
+        if (!gpuStats)
         {
-            uint32_t numQueries = settings->gpu_timestamp_size;
-            gpuStats->device = commandBuffer.getDevice();
-            gpuStats->queryPool = QueryPool::create(commandBuffer.getDevice(), VkQueryPoolCreateFlags{0}, VK_QUERY_TYPE_TIMESTAMP, numQueries, VkQueryPipelineStatisticFlags{0});
-            gpuStats->references.resize(numQueries);
-            gpuStats->timestamps.resize(numQueries);
-            gpuStats->queryIndex = 0;
+            auto physicalDevice = commandBuffer.getDevice()->getPhysicalDevice();
+            const auto& limits = physicalDevice->getProperties().limits;
+
+            if (limits.timestampComputeAndGraphics)
+            {
+                // limits.timestampPeriod is in nanoseconds
+                vsg::info("limits.timestampPeriod = ", limits.timestampPeriod);
+
+                log->timestampScaleToMilliseconds = 1e-6 * static_cast<double>(limits.timestampPeriod);
+
+                gpuStats = GPUStatsCollection::create();
+
+                uint32_t numQueries = settings->gpu_timestamp_size;
+                gpuStats->device = commandBuffer.getDevice();
+                gpuStats->queryPool = QueryPool::create(commandBuffer.getDevice(), VkQueryPoolCreateFlags{0}, VK_QUERY_TYPE_TIMESTAMP, numQueries, VkQueryPipelineStatisticFlags{0});
+                gpuStats->references.resize(numQueries);
+                gpuStats->timestamps.resize(numQueries);
+                gpuStats->queryIndex = 0;
+            }
+            else
+            {
+                warn("Timestamps not supported by device.");
+            }
         }
+
 
         auto& entry = log->enter(reference, ProfileLog::COMMAND_BUFFER);
         entry.sourceLocation = sl;
