@@ -66,7 +66,12 @@ uint64_t ProfileLog::report(std::ostream& out, uint64_t reference)
         auto& first = entry(i);
         auto& second = entry(first.reference);
         auto cpu_duration = std::abs(std::chrono::duration<double, std::chrono::milliseconds::period>(second.cpuTime - first.cpuTime).count());
-        auto gpu_duration = static_cast<double>((first.gpuTime < second.gpuTime) ? (second.gpuTime - first.gpuTime) : (first.gpuTime - second.gpuTime)) * timestampScaleToMilliseconds;
+
+        auto gpu_duration = 0.0;
+        if (first.gpuTime != 0 && second.gpuTime != 0)
+        {
+            gpu_duration = static_cast<double>((first.gpuTime < second.gpuTime) ? (second.gpuTime - first.gpuTime) : (first.gpuTime - second.gpuTime)) * timestampScaleToMilliseconds;
+        }
 
         if (first.enter && first.reference == i+1)
         {
@@ -116,9 +121,9 @@ uint64_t ProfileLog::report(std::ostream& out, uint64_t reference)
 //
 // Profiler
 //
-Profiler::Profiler() :
-    settings(Profiler::Settings::create()),
-    log(ProfileLog::create()),
+Profiler::Profiler(ref_ptr<Settings> in_settings) :
+    settings(in_settings.valid() ? in_settings : Settings::create()),
+    log(ProfileLog::create(settings->log_size)),
     perFrameGPUStats(3)
 {
 }
@@ -248,7 +253,7 @@ void Profiler::enterCommandBuffer(const SourceLocation* sl, uint64_t& reference,
 
         if (!gpuStats->queryPool)
         {
-            uint32_t numQueries = 2048; // TODO make user definable
+            uint32_t numQueries = settings->gpu_timestamp_size;
             gpuStats->device = commandBuffer.getDevice();
             gpuStats->queryPool = QueryPool::create(commandBuffer.getDevice(), VkQueryPoolCreateFlags{0}, VK_QUERY_TYPE_TIMESTAMP, numQueries, VkQueryPipelineStatisticFlags{0});
             gpuStats->references.resize(numQueries);

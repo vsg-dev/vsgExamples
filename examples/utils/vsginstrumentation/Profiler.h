@@ -90,18 +90,20 @@ namespace vsg
     {
     public:
 
-        Profiler();
-
         struct Settings : public Inherit<Object, Settings>
         {
             unsigned int cpu_instrumentation_level = 1;
             unsigned int gpu_instrumentation_level = 1;
+            uint32_t log_size = 16384;
+            uint32_t gpu_timestamp_size = 1024;
         };
+
+        Profiler(ref_ptr<Settings> in_settings = {});
 
         ref_ptr<Settings> settings;
         mutable ref_ptr<ProfileLog> log;
 
-        // resources for collecing GPU stats
+        /// resources for collecting GPU stats for a single device on a single frame
         struct GPUStatsCollection : public Inherit<Object, GPUStatsCollection>
         {
             ref_ptr<Device> device;
@@ -111,8 +113,11 @@ namespace vsg
             std::vector<uint64_t> timestamps;
         };
 
+        /// resources for collecting GPU stats for all devices for a single frame
         struct FrameStatsCollection
         {
+            FrameStatsCollection() : perDeviceGpuStats(VSG_MAX_DEVICES) {}
+
             std::vector<ref_ptr<GPUStatsCollection>> perDeviceGpuStats;
         };
 

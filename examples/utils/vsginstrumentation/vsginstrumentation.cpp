@@ -122,9 +122,14 @@ int main(int argc, char** argv)
         bool decorate = arguments.read("--decorate");
 
         // set Profiler options
-        auto instrumentation = vsg::Profiler::create();
-        arguments.read("--cpu", instrumentation->settings->cpu_instrumentation_level);
-        arguments.read("--gpu", instrumentation->settings->gpu_instrumentation_level);
+        auto settings = vsg::Profiler::Settings::create();
+        arguments.read("--cpu", settings->cpu_instrumentation_level);
+        arguments.read("--gpu", settings->gpu_instrumentation_level);
+        arguments.read("--log-size", settings->log_size);
+        arguments.read("--gpu-size", settings->gpu_timestamp_size);
+
+        // create the profiler
+        auto instrumentation = vsg::Profiler::create(settings);
 
         auto window = vsg::Window::create(windowTraits);
         if (!window)
