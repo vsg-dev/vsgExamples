@@ -3,6 +3,7 @@
 #include <vsg/utils/Instrumentation.h>
 #include <vsg/ui/FrameStamp.h>
 #include <vsg/io/stream.h>
+#include <vsg/vk/Device.h>
 
 namespace vsg
 {
@@ -25,7 +26,8 @@ namespace vsg
         {
             Type type = {};
             bool enter = true;
-            vsg::time_point time = {};
+            vsg::time_point cpuTime = {};
+            uint64_t gpuTime = 0;
             const SourceLocation* sourceLocation = nullptr;
             const Object* object = nullptr;
             uint64_t reference = 0;
@@ -34,6 +36,7 @@ namespace vsg
         std::vector<Entry> entries;
         std::atomic_uint64_t index = 0;
         std::vector<uint64_t> frameIndices;
+        double timestampScaleToMilliseconds = 1e-6;
 
         Entry& enter(uint64_t& reference, Type type)
         {
@@ -42,7 +45,8 @@ namespace vsg
             enter_entry.enter = true;
             enter_entry.type = type;
             enter_entry.reference = 0;
-            enter_entry.time = clock::now();
+            enter_entry.cpuTime = clock::now();
+            enter_entry.gpuTime = 0;
             return enter_entry;
         }
 
@@ -54,7 +58,8 @@ namespace vsg
             Entry& leave_entry = entry(new_reference);
 
             enter_entry.reference = new_reference;
-            leave_entry.time = clock::now();
+            leave_entry.cpuTime = clock::now();
+            leave_entry.gpuTime = 0;
             leave_entry.enter = false;
             leave_entry.type = type;
             leave_entry.reference = reference;
@@ -68,7 +73,7 @@ namespace vsg
         }
 
         void report(std::ostream& out);
-        void report(std::ostream& out, uint64_t reference);
+        uint64_t report(std::ostream& out, uint64_t reference);
 
     public:
         void read(Input& input) override;
@@ -91,20 +96,38 @@ namespace vsg
         ref_ptr<Settings> settings;
         mutable ref_ptr<ProfileLog> log;
 
+        // resources for collecing GPU stats
+        struct GPUStatsCollection
+        {
+            ref_ptr<Device> device;
+            mutable ref_ptr<QueryPool> queryPool;
+            mutable std::atomic<uint32_t> queryIndex = 0;
+            std::vector<uint64_t> references;
+            std::vector<uint64_t> timestamps;
+        };
+
+        mutable size_t frameIndex = 0;
+        mutable std::vector<GPUStatsCollection> perFrameGPUStats;
+
+        void writeGpuTimestamp(CommandBuffer& commandBuffer, uint64_t reference, VkPipelineStageFlagBits pipelineStage) const;
+        VkResult getGpuResults(GPUStatsCollection& gpuStats) const;
+
     public:
-        virtual void setThreadName(const std::string& /*name*/) const;
+        void setThreadName(const std::string& /*name*/) const override;
 
-        virtual void enterFrame(const SourceLocation* /*sl*/, uint64_t& /*reference*/, FrameStamp& /*frameStamp*/) const;
-        virtual void leaveFrame(const SourceLocation* /*sl*/, uint64_t& /*reference*/, FrameStamp& /*frameStamp*/) const;
+        void enterFrame(const SourceLocation* /*sl*/, uint64_t& /*reference*/, FrameStamp& /*frameStamp*/) const override;
+        void leaveFrame(const SourceLocation* /*sl*/, uint64_t& /*reference*/, FrameStamp& /*frameStamp*/) const override;
 
-        virtual void enter(const SourceLocation* /*sl*/, uint64_t& /*reference*/, const Object* /*object*/ = nullptr) const;
-        virtual void leave(const SourceLocation* /*sl*/, uint64_t& /*reference*/, const Object* /*object*/ = nullptr) const;
+        void enter(const SourceLocation* /*sl*/, uint64_t& /*reference*/, const Object* /*object*/ = nullptr) const override;
+        void leave(const SourceLocation* /*sl*/, uint64_t& /*reference*/, const Object* /*object*/ = nullptr) const override;
 
-        virtual void enterCommandBuffer(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/) const;
-        virtual void leaveCommandBuffer(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/) const;
+        void enterCommandBuffer(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/) const override;
+        void leaveCommandBuffer(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/) const override;
 
-        virtual void enter(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/, const Object* /*object*/ = nullptr) const;
-        virtual void leave(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/, const Object* /*object*/ = nullptr) const;
+        void enter(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/, const Object* /*object*/ = nullptr) const override;
+        void leave(const SourceLocation* /*sl*/, uint64_t& /*reference*/, CommandBuffer& /*commandBuffer*/, const Object* /*object*/ = nullptr) const override;
+
+        void finish();
     };
     VSG_type_name(Profiler)
 }

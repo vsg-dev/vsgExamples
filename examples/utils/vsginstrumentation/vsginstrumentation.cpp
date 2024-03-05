@@ -279,6 +279,7 @@ int main(int argc, char** argv)
 
         if (instrumentation && instrumentation->log)
         {
+            instrumentation->finish();
             instrumentation->log->report(std::cout);
         }
     }
