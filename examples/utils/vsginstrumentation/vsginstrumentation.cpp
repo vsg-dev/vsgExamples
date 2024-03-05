@@ -11,9 +11,6 @@
 #include <iostream>
 #include <thread>
 
-#include "Profiler.h"
-
-
 class InstrumentationHandler : public vsg::Inherit<vsg::Visitor, InstrumentationHandler>
 {
 public:
