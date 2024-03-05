@@ -72,8 +72,12 @@ uint64_t ProfileLog::report(std::ostream& out, uint64_t reference)
         {
             ++i;
 
-            out<<indent<<"{ "<<typeNames[first.type] <<", cpu_duration = "<<cpu_duration<<"ms, ";
+            out<<indent<<"{ "<<typeNames[first.type]<<", cpu_duration = "<<cpu_duration<<"ms, ";
             if (gpu_duration != 0.0) out<<", gpu_duration = "<<gpu_duration<<"ms, ";
+
+            auto itr = threadNames.find(first.thread_id);
+            if (itr != threadNames.end()) out<<", thread = "<<itr->second;
+
             if (first.sourceLocation) out/*<<", file="<<first.sourceLocation->file*/<<", func="<<first.sourceLocation->function<<", line="<<first.sourceLocation->line;
             // if (first.object) out<<", "<<first.object->className();
             out<<" }"<<std::endl;
@@ -89,6 +93,9 @@ uint64_t ProfileLog::report(std::ostream& out, uint64_t reference)
 
             out<<typeNames[first.type]<<", cpu_duration = "<<cpu_duration<<"ms, ";
             if (gpu_duration != 0.0) out<<", gpu_duration = "<<gpu_duration<<"ms, ";
+
+            auto itr = threadNames.find(first.thread_id);
+            if (itr != threadNames.end()) out<<", thread = "<<itr->second;
 
             if (first.sourceLocation) out/*<<", file="<<first.sourceLocation->file*/<<", func="<<first.sourceLocation->function<<", line="<<first.sourceLocation->line;
             // if (first.object) out<<", "<<first.object->className();
@@ -155,7 +162,9 @@ VkResult Profiler::getGpuResults(GPUStatsCollection& gpuStats) const
 
 void Profiler::setThreadName(const std::string& name) const
 {
-    vsg::info("Profiler::setThreadName(", name, ")");
+    auto id = std::this_thread::get_id();
+    vsg::info("Profiler::setThreadName(", name, ") id = ", id, ", sizeof(id) = ", sizeof(id));
+    log->threadNames[std::this_thread::get_id()] = name;
 }
 
 void Profiler::enterFrame(const SourceLocation* sl, uint64_t& reference, FrameStamp& frameStamp) const

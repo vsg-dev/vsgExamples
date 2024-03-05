@@ -31,12 +31,15 @@ namespace vsg
             const SourceLocation* sourceLocation = nullptr;
             const Object* object = nullptr;
             uint64_t reference = 0;
+            std::thread::id thread_id = {};
         };
 
+        std::map<std::thread::id, std::string> threadNames;
         std::vector<Entry> entries;
         std::atomic_uint64_t index = 0;
         std::vector<uint64_t> frameIndices;
         double timestampScaleToMilliseconds = 1e-6;
+
 
         Entry& enter(uint64_t& reference, Type type)
         {
@@ -47,6 +50,7 @@ namespace vsg
             enter_entry.reference = 0;
             enter_entry.cpuTime = clock::now();
             enter_entry.gpuTime = 0;
+            enter_entry.thread_id = std::this_thread::get_id();
             return enter_entry;
         }
 
@@ -63,6 +67,7 @@ namespace vsg
             leave_entry.enter = false;
             leave_entry.type = type;
             leave_entry.reference = reference;
+            leave_entry.thread_id = std::this_thread::get_id();
             reference = new_reference;
             return leave_entry;
         }
