@@ -102,7 +102,7 @@ namespace vsg
         mutable ref_ptr<ProfileLog> log;
 
         // resources for collecing GPU stats
-        struct GPUStatsCollection
+        struct GPUStatsCollection : public Inherit<Object, GPUStatsCollection>
         {
             ref_ptr<Device> device;
             mutable ref_ptr<QueryPool> queryPool;
@@ -111,11 +111,16 @@ namespace vsg
             std::vector<uint64_t> timestamps;
         };
 
+        struct FrameStatsCollection
+        {
+            std::vector<ref_ptr<GPUStatsCollection>> perDeviceGpuStats;
+        };
+
         mutable size_t frameIndex = 0;
-        mutable std::vector<GPUStatsCollection> perFrameGPUStats;
+        mutable std::vector<FrameStatsCollection> perFrameGPUStats;
 
         void writeGpuTimestamp(CommandBuffer& commandBuffer, uint64_t reference, VkPipelineStageFlagBits pipelineStage) const;
-        VkResult getGpuResults(GPUStatsCollection& gpuStats) const;
+        VkResult getGpuResults(FrameStatsCollection& frameStats) const;
 
     public:
         void setThreadName(const std::string& /*name*/) const override;

@@ -12,7 +12,7 @@ using namespace vsg;
 //
 // ProfileLog
 //
-ProfileLog::ProfileLog(size_t size) :
+ProfileLog::ProfileLog(size_t size) :  // TODO make user definable
     entries(size)
 {
 }
@@ -125,45 +125,49 @@ Profiler::Profiler() :
 
 void Profiler::writeGpuTimestamp(CommandBuffer& commandBuffer, uint64_t reference, VkPipelineStageFlagBits pipelineStage) const
 {
-    auto& gpuStats = perFrameGPUStats[frameIndex];
-    auto index = gpuStats.queryIndex.fetch_add(1);
-    if (index < gpuStats.timestamps.size())
+    auto& frameStats = perFrameGPUStats[frameIndex];
+    auto& gpuStats = frameStats.perDeviceGpuStats[commandBuffer.deviceID];
+    auto index = gpuStats->queryIndex.fetch_add(1);
+    if (index < gpuStats->timestamps.size())
     {
-        gpuStats.timestamps[index] = 0;
-        gpuStats.references[index] = reference;
-        return vkCmdWriteTimestamp(commandBuffer, pipelineStage, *gpuStats.queryPool, index);
+        gpuStats->timestamps[index] = 0;
+        gpuStats->references[index] = reference;
+        return vkCmdWriteTimestamp(commandBuffer, pipelineStage, gpuStats->queryPool->vk(), index);
     }
 }
 
-VkResult Profiler::getGpuResults(GPUStatsCollection& gpuStats) const
+VkResult Profiler::getGpuResults(FrameStatsCollection& frameStats) const
 {
     VkResult result = VK_SUCCESS;
-    if (gpuStats.timestamps.size() > 0)
+
+    for(auto& gpuStats : frameStats.perDeviceGpuStats)
     {
-        VkQueryResultFlags resultsFlags = VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT;
-        auto count = gpuStats.queryIndex.load();
-        result = vkGetQueryPoolResults(*gpuStats.device, *gpuStats.queryPool, 0, count, count * sizeof(uint64_t), gpuStats.timestamps.data(), sizeof(uint64_t), resultsFlags);
-        if (result == VK_SUCCESS)
+        if (gpuStats && gpuStats->timestamps.size() > 0)
         {
-            for(uint32_t i = 0; i < count; ++i)
+            VkQueryResultFlags resultsFlags = VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT;
+            auto count = std::min(static_cast<uint32_t>(gpuStats->timestamps.size()), gpuStats->queryIndex.load());
+            result = vkGetQueryPoolResults(gpuStats->device->vk(), gpuStats->queryPool->vk(), 0, count, count * sizeof(uint64_t), gpuStats->timestamps.data(), sizeof(uint64_t), resultsFlags);
+            if (result == VK_SUCCESS)
             {
-                auto& gpu_entry = log->entry(gpuStats.references[i]);
-                gpu_entry.gpuTime = gpuStats.timestamps[i];
+                for(uint32_t i = 0; i < count; ++i)
+                {
+                    auto& gpu_entry = log->entry(gpuStats->references[i]);
+                    gpu_entry.gpuTime = gpuStats->timestamps[i];
+                }
             }
+            else
+            {
+                info("query failed with results = ", result);
+            }
+            gpuStats->queryIndex = 0;
         }
-        else
-        {
-            info("query failed with results = ", result);
-        }
-        gpuStats.queryIndex = 0;
     }
+
     return result;
 }
 
 void Profiler::setThreadName(const std::string& name) const
 {
-    auto id = std::this_thread::get_id();
-    vsg::info("Profiler::setThreadName(", name, ") id = ", id, ", sizeof(id) = ", sizeof(id));
     log->threadNames[std::this_thread::get_id()] = name;
 }
 
@@ -232,15 +236,24 @@ void Profiler::enterCommandBuffer(const SourceLocation* sl, uint64_t& reference,
 {
     if (settings->gpu_instrumentation_level >= sl->level)
     {
-        auto& gpuStats = perFrameGPUStats[frameIndex];
-        if (!gpuStats.queryPool)
+        auto deviceID = commandBuffer.deviceID;
+        auto& frameStats = perFrameGPUStats[frameIndex];
+        if (deviceID >= frameStats.perDeviceGpuStats.size())
         {
-            uint32_t numQueries = 2048;
-            gpuStats.device = commandBuffer.getDevice();
-            gpuStats.queryPool = QueryPool::create(commandBuffer.getDevice(), VkQueryPoolCreateFlags{0}, VK_QUERY_TYPE_TIMESTAMP, numQueries, VkQueryPipelineStatisticFlags{0});
-            gpuStats.references.resize(numQueries);
-            gpuStats.timestamps.resize(numQueries);
-            gpuStats.queryIndex = 0;
+            frameStats.perDeviceGpuStats.resize(deviceID + 1);
+        }
+
+        auto& gpuStats = frameStats.perDeviceGpuStats[deviceID];
+        if (!gpuStats) gpuStats = GPUStatsCollection::create();
+
+        if (!gpuStats->queryPool)
+        {
+            uint32_t numQueries = 2048; // TODO make user definable
+            gpuStats->device = commandBuffer.getDevice();
+            gpuStats->queryPool = QueryPool::create(commandBuffer.getDevice(), VkQueryPoolCreateFlags{0}, VK_QUERY_TYPE_TIMESTAMP, numQueries, VkQueryPipelineStatisticFlags{0});
+            gpuStats->references.resize(numQueries);
+            gpuStats->timestamps.resize(numQueries);
+            gpuStats->queryIndex = 0;
         }
 
         auto& entry = log->enter(reference, ProfileLog::COMMAND_BUFFER);
