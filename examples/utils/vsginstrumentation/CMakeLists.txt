@@ -1,6 +1,5 @@
 set(SOURCES
     vsginstrumentation.cpp
-    Profiler.cpp
 )
 
 add_executable(vsginstrumentation ${SOURCES})
