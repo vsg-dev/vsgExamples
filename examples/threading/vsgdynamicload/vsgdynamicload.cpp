@@ -278,6 +278,7 @@ int main(int argc, char** argv)
 
         if (auto profiler = instrumentation.cast<vsg::Profiler>())
         {
+            instrumentation->finish();
             profiler->log->report(std::cout);
         }
     }
