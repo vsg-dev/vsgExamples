@@ -224,14 +224,26 @@ int main(int argc, char** argv)
 
         instrumentation = gpu_instrumentation;
     }
+    else if (arguments.read({"--profiler", "--pr"}))
+    {
+        // set Profiler options
+        auto settings = vsg::Profiler::Settings::create();
+        arguments.read("--cpu", settings->cpu_instrumentation_level);
+        arguments.read("--gpu", settings->gpu_instrumentation_level);
+        arguments.read("--log-size", settings->log_size);
+        arguments.read("--gpu-size", settings->gpu_timestamp_size);
+
+        // create the profiler
+        instrumentation = vsg::Profiler::create(settings);
+    }
 #ifdef Tracy_FOUND
     else if (arguments.read("--tracy"))
     {
         windowTraits->deviceExtensionNames.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
 
         auto tracy_instrumentation = vsg::TracyInstrumentation::create();
-        arguments.read("--cpu", tracy_instrumentation->settings->cpu_instumentation_level);
-        arguments.read("--gpu", tracy_instrumentation->settings->gpu_instumentation_level);
+        arguments.read("--cpu", tracy_instrumentation->settings->cpu_instrumentation_level);
+        arguments.read("--gpu", tracy_instrumentation->settings->gpu_instrumentation_level);
         instrumentation = tracy_instrumentation;
     }
 #endif
@@ -573,6 +585,12 @@ int main(int argc, char** argv)
     if (numFramesCompleted > 0.0)
     {
         std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
+    }
+
+    if (auto profiler = instrumentation.cast<vsg::Profiler>())
+    {
+        instrumentation->finish();
+        profiler->log->report(std::cout);
     }
 
     return 0;

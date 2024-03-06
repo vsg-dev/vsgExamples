@@ -53,7 +53,9 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
     vec4 values[2048];
 } lightData;
 
-layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform sampler2DArrayShadow shadowMaps;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform texture2DArray shadowMaps;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 3) uniform sampler shadowMapDirectSampler;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;

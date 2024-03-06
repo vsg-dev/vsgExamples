@@ -130,6 +130,18 @@ int main(int argc, char** argv)
 
             instrumentation = gpu_instrumentation;
         }
+        else if (arguments.read({"--profiler", "--pr"}))
+        {
+            // set Profiler options
+            auto settings = vsg::Profiler::Settings::create();
+            arguments.read("--cpu", settings->cpu_instrumentation_level);
+            arguments.read("--gpu", settings->gpu_instrumentation_level);
+            arguments.read("--log-size", settings->log_size);
+            arguments.read("--gpu-size", settings->gpu_timestamp_size);
+
+            // create the profiler
+            instrumentation = vsg::Profiler::create(settings);
+        }
 
         // should animations be automatically played
         auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
@@ -286,6 +298,12 @@ int main(int argc, char** argv)
             auto fs = viewer->getFrameStamp();
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
             std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
+        }
+
+        if (auto profiler = instrumentation.cast<vsg::Profiler>())
+        {
+            instrumentation->finish();
+            profiler->log->report(std::cout);
         }
     }
     catch (const vsg::Exception& ve)

@@ -4,54 +4,20 @@
 #    include <vsgXchange/all.h>
 #endif
 
-#include <vsg/utils/TracyInstrumentation.h>
+#include <vsg/utils/Instrumentation.h>
 
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <thread>
 
-vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vsg::ref_ptr<vsg::Options> options)
-{
-    auto builder = vsg::Builder::create();
-    builder->options = options;
-
-    vsg::StateInfo state;
-    state.image = sourceData;
-    state.lighting = false;
-
-    vsg::GeometryInfo geom;
-    geom.dy.set(0.0f, 0.0f, 1.0f);
-    geom.dz.set(0.0f, -1.0f, 0.0f);
-
-    return builder->createQuad(geom, state);
-}
-
-void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
-{
-    auto shaderHints = vsg::ShaderCompileSettings::create();
-    shaderHints->generateDebugInfo = true;
-
-    auto& text = options->shaderSets["text"] = vsg::createTextShaderSet(options);
-    text->defaultShaderHints = shaderHints;
-
-    auto& flat = options->shaderSets["flat"] = vsg::createFlatShadedShaderSet(options);
-    flat->defaultShaderHints = shaderHints;
-
-    auto& phong = options->shaderSets["phong"] = vsg::createPhongShaderSet(options);
-    phong->defaultShaderHints = shaderHints;
-
-    auto& pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
-    pbr->defaultShaderHints = shaderHints;
-}
-
 class InstrumentationHandler : public vsg::Inherit<vsg::Visitor, InstrumentationHandler>
 {
 public:
 
-    vsg::ref_ptr<vsg::TracyInstrumentation> instrumentation;
+    vsg::ref_ptr<vsg::Profiler> instrumentation;
 
-    InstrumentationHandler(vsg::ref_ptr<vsg::TracyInstrumentation> in_instrumentation) : instrumentation(in_instrumentation) {}
+    InstrumentationHandler(vsg::ref_ptr<vsg::Profiler> in_instrumentation) : instrumentation(in_instrumentation) {}
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
@@ -85,6 +51,7 @@ vsg::ref_ptr<vsg::Node> decorateWithInstrumentationNode(vsg::ref_ptr<vsg::Node> 
     return instrumentationNode;
 }
 
+
 int main(int argc, char** argv)
 {
     try
@@ -106,7 +73,7 @@ int main(int argc, char** argv)
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgtracyinstrumentation";
+        windowTraits->windowTitle = "vsginstrumentation";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         windowTraits->synchronizationLayer = arguments.read("--sync");
@@ -151,24 +118,15 @@ int main(int argc, char** argv)
         bool calibrated = arguments.read("--calibrated");
         bool decorate = arguments.read("--decorate");
 
-        // set TracyInstrumentation options
-        auto instrumentation = vsg::TracyInstrumentation::create();
-        arguments.read("--cpu", instrumentation->settings->cpu_instrumentation_level);
-        arguments.read("--gpu", instrumentation->settings->gpu_instrumentation_level);
+        // set Profiler options
+        auto settings = vsg::Profiler::Settings::create();
+        arguments.read("--cpu", settings->cpu_instrumentation_level);
+        arguments.read("--gpu", settings->gpu_instrumentation_level);
+        arguments.read("--log-size", settings->log_size);
+        arguments.read("--gpu-size", settings->gpu_timestamp_size);
 
-
-        if (arguments.read({"--shader-debug-info", "--sdi"}))
-        {
-            enableGenerateDebugInfo(options);
-            windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
-        }
-
-#ifndef TRACY_ON_DEMAND
-        vsg::info("TRACY_ON_DEMAND not enabled so assigning TracyInstrumentation by default.");
-        bool assignInstrumentationBeforeMainLoop = true;
-#else
-        bool assignInstrumentationBeforeMainLoop = arguments.read("--always");
-#endif
+        // create the profiler
+        auto instrumentation = vsg::Profiler::create(settings);
 
         auto window = vsg::Window::create(windowTraits);
         if (!window)
@@ -220,20 +178,6 @@ int main(int argc, char** argv)
                 else
                 {
                     group->addChild(node);
-                }
-            }
-            else if (auto data = object.cast<vsg::Data>())
-            {
-                if (auto textureGeometry = createTextureQuad(data, options))
-                {
-                    if (decorate)
-                    {
-                        group->addChild(decorateWithInstrumentationNode(textureGeometry, filename.string(), vsg::uint_color(255, 255, 64, 255)));
-                    }
-                    else
-                    {
-                        group->addChild(textureGeometry);
-                    }
                 }
             }
             else if (object)
@@ -297,18 +241,14 @@ int main(int argc, char** argv)
         animationPathHandler->printFrameStatsToConsole = true;
         viewer->addEventHandler(animationPathHandler);
 
-        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
-
-        // add event handler to control the cpu and gpu_instrumentation_level using the 'c', 'g' keys to reduce the cpu and gpu instruemntation level, and 'C' and 'G' to increase them respectively.
+        // add event handler to control the cpu and gpu_instrumentation_level using the 'c', 'g' keys to reduce the cpu and gpu instrumentation level, and 'C' and 'G' to increase them respectively.
         viewer->addEventHandler(InstrumentationHandler::create(instrumentation));
+
+        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-
-        if (assignInstrumentationBeforeMainLoop)
-        {
-            viewer->assignInstrumentation(instrumentation);
-        }
+        viewer->assignInstrumentation(instrumentation);
 
         if (multiThreading)
         {
@@ -322,14 +262,6 @@ int main(int argc, char** argv)
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
-#if defined(TRACY_ENABLE) && defined(TRACY_ON_DEMAND)
-            if (!viewer->instrumentation && GetProfiler().IsConnected())
-            {
-                vsg::info("Tracy profile is now connected, assigning TracyInstrumentation.");
-                viewer->assignInstrumentation(instrumentation);
-            }
-#endif
-
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
@@ -345,6 +277,12 @@ int main(int argc, char** argv)
             auto fs = viewer->getFrameStamp();
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
             std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
+        }
+
+        if (instrumentation && instrumentation->log)
+        {
+            instrumentation->finish();
+            instrumentation->log->report(std::cout);
         }
     }
     catch (const vsg::Exception& ve)
