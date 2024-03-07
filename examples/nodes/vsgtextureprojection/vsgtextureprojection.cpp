@@ -542,6 +542,7 @@ int main(int argc, char** argv)
     // set up the texgen matrices
     auto imageMatrices = vsg::dmat4Array::create(depth);
     double aspectRatio = (static_cast<double>(texture2DArray->width())/static_cast<double>(texture2DArray->height()));
+    dronePath->start(0.0);
     for(size_t i = 0; i < depth; ++i)
     {
         // drone has Y forward, X to the right, Z up, so without any further rotation the projected texture
@@ -552,6 +553,7 @@ int main(int argc, char** argv)
         auto p = vsg::perspective(vsg::radians(45.0), aspectRatio, 1.0, 100.0);
         imageMatrices->set(i, p * mv );
     }
+    dronePath->stop(0.0);
 
     //auto span = vsg::length(bounds.max - bounds.min);
     auto group = vsg::Group::create();
