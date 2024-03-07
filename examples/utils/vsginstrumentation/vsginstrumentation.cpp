@@ -237,14 +237,14 @@ int main(int argc, char** argv)
         // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-        auto animationPathHandler = vsg::RecordAnimationPathHandler::create(camera, pathFilename, options);
-        animationPathHandler->printFrameStatsToConsole = true;
+        auto animationPathHandler = vsg::CameraAnimation::create(camera, pathFilename, options);
+        if (animationPathHandler->animation) animationPathHandler->play();
         viewer->addEventHandler(animationPathHandler);
+
+        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
         // add event handler to control the cpu and gpu_instrumentation_level using the 'c', 'g' keys to reduce the cpu and gpu instrumentation level, and 'C' and 'G' to increase them respectively.
         viewer->addEventHandler(InstrumentationHandler::create(instrumentation));
-
-        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});

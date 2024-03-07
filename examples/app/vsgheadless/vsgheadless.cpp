@@ -529,13 +529,9 @@ int main(int argc, char** argv)
 
     if (pathFilename)
     {
-        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
-        if (!animationPath)
-        {
-            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
-            return 1;
-        }
-        viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
+        auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
+        viewer->addEventHandler(cameraAnimation);
+        if (cameraAnimation->animation) cameraAnimation->play();
     }
 
     viewer->assignRecordAndSubmitTaskAndPresentation(commandGraphs);
