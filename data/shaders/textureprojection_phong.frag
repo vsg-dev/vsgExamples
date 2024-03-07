@@ -45,7 +45,8 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 } lightData;
 
 
-layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform sampler2DArrayShadow shadowMaps;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform texture2DArray shadowMaps;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
 
 // Custom state
 layout(set = CUSTOM_DESCRIPTOR_SET, binding = 0) uniform TextureCount
@@ -238,8 +239,8 @@ void main()
                 if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 /* && sm_tc.z <= 1.0*/)
                 {
                     matched = true;
+                    float coverage = texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
 
-                    float coverage = texture(shadowMaps, vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
                     brightness *= (1.0-coverage);
 
 #ifdef SHADOWMAP_DEBUG

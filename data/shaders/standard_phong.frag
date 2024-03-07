@@ -306,7 +306,6 @@ void main()
         }
     }
 
-
     outColor.rgb = (color * ambientOcclusion) + emissiveColor.rgb;
     outColor.a = diffuseColor.a;
 }
