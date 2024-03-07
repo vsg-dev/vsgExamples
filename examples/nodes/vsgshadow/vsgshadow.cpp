@@ -194,6 +194,7 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     windowTraits->synchronizationLayer = arguments.read("--sync");
 
+    bool reportAverageFrameRate = arguments.read("--fps");
     arguments.read("--screen", windowTraits->screenNum);
     arguments.read("--display", windowTraits->display);
     auto numFrames = arguments.value(-1, "-f");
@@ -206,13 +207,16 @@ int main(int argc, char** argv)
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         windowTraits->fullscreen = true;
+        reportAverageFrameRate = true;
     }
     if (arguments.read("--st"))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         windowTraits->width = 192, windowTraits->height = 108;
         windowTraits->decoration = false;
+        reportAverageFrameRate = true;
     }
+    auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
 
     vsg::ref_ptr<vsg::Instrumentation> instrumentation;
     if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
@@ -549,11 +553,12 @@ int main(int argc, char** argv)
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    if (pathFilename)
+    auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
+    viewer->addEventHandler(cameraAnimation);
+    if (cameraAnimation->animation)
     {
-        auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
-        viewer->addEventHandler(cameraAnimation);
-        if (cameraAnimation->animation) cameraAnimation->play();
+        cameraAnimation->play();
+        if (reportAverageFrameRate) maxTime = cameraAnimation->animation->maxTime();
     }
 
     viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
@@ -570,7 +575,7 @@ int main(int argc, char** argv)
     double numFramesCompleted = 0.0;
 
     // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
@@ -583,10 +588,13 @@ int main(int argc, char** argv)
         numFramesCompleted += 1.0;
     }
 
-    auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
-    if (numFramesCompleted > 0.0)
+    if (reportAverageFrameRate)
     {
-        std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
+        auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
+        if (numFramesCompleted > 0.0)
+        {
+            std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
+        }
     }
 
     if (auto profiler = instrumentation.cast<vsg::Profiler>())

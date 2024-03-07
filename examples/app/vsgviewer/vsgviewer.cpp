@@ -94,6 +94,7 @@ int main(int argc, char** argv)
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
         if (arguments.read("--or")) windowTraits->overrideRedirect = true;
+        auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
 
         if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
         if (arguments.read("--sRGB")) windowTraits->swapchainPreferences.surfaceFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
@@ -233,9 +234,13 @@ int main(int argc, char** argv)
         // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-        auto animationPathHandler = vsg::CameraAnimation::create(camera, pathFilename, options);
-        if (autoPlay && animationPathHandler->animation) animationPathHandler->play();
-        viewer->addEventHandler(animationPathHandler);
+        auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
+        viewer->addEventHandler(cameraAnimation);
+        if (autoPlay && cameraAnimation->animation)
+        {
+            cameraAnimation->play();
+            if (reportAverageFrameRate) maxTime = cameraAnimation->animation->maxTime();
+        }
 
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
@@ -281,7 +286,7 @@ int main(int argc, char** argv)
         viewer->start_point() = vsg::clock::now();
 
         // rendering main loop
-        while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
+        while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
         {
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
