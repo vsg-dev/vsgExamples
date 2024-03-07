@@ -279,20 +279,14 @@ int main(int argc, char** argv)
     // assign a CloseHandler to the Viewer to respond to pressing Escape or the window close button
     viewer->addEventHandlers({vsg::CloseHandler::create(viewer)});
 
-    if (!pathFilename)
+    if (pathFilename)
     {
-        viewer->addEventHandler(vsg::Trackball::create(camera));
+        auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
+        viewer->addEventHandler(cameraAnimation);
+        if (cameraAnimation->animation) cameraAnimation->play();
     }
-    else
-    {
-        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
-        if (!animationPath)
-        {
-            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
-            return 1;
-        }
-        viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
-    }
+
+    viewer->addEventHandler(vsg::Trackball::create(camera));
 
     // main frame loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))

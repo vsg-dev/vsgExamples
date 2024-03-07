@@ -549,12 +549,14 @@ int main(int argc, char** argv)
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    auto animationPathHandler = vsg::RecordAnimationPathHandler::create(camera, pathFilename, options);
-    animationPathHandler->printFrameStatsToConsole = true;
-    viewer->addEventHandler(animationPathHandler);
+    if (pathFilename)
+    {
+        auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
+        viewer->addEventHandler(cameraAnimation);
+        if (cameraAnimation->animation) cameraAnimation->play();
+    }
 
-    auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
-    viewer->addEventHandler(trackball);
+    viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
     auto renderGraph = vsg::RenderGraph::create(window, view);
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);

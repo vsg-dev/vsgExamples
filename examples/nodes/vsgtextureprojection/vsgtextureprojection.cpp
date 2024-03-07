@@ -188,17 +188,24 @@ vsg::ref_ptr<vsg::Node> createEarthModel(vsg::CommandLine& arguments, vsg::ref_p
     return {};
 }
 
-vsg::ref_ptr<vsg::AnimationPath> createAnimationPath(double flight_scale, double period)
+vsg::ref_ptr<vsg::Animation> createAnimationPath(vsg::ref_ptr<vsg::MatrixTransform> transform, double flight_scale, double period)
 {
-    auto path = vsg::AnimationPath::create();
-    path->mode = vsg::AnimationPath::REPEAT;
+    auto path = vsg::Animation::create();
+    path->mode = vsg::Animation::REPEAT;
+
+    auto transformSampler = vsg::TransformSampler::create();
+    auto keyframes = transformSampler->keyframes = vsg::TransformKeyframes::create();
+    transformSampler->object = transform;
+    path->samplers.push_back(transformSampler);
+
+    vsg::dvec3 scale(1.0, 1.0, 1.0);
     double delta = period / 100.0;
     for(double time = 0.0; time < period; time += delta)
     {
         double theta = 2 * vsg::PI * (time / period);
-        auto& location= path->locations[time];
-        location.position.set(flight_scale * sin(theta), flight_scale * cos(theta), 0.0);
-        location.orientation.set(- 0.5 * vsg::PI - theta, vsg::dvec3(0.0, 0.0, 1.0));
+        vsg::dvec3 position(flight_scale * sin(theta), flight_scale * cos(theta), 0.0);
+        vsg::dquat rotation(- 0.5 * vsg::PI - theta, vsg::dvec3(0.0, 0.0, 1.0));
+        keyframes->add(time, position, rotation, scale);
     }
     return path;
 }
@@ -459,7 +466,7 @@ int main(int argc, char** argv)
     double animationPeriod = 60.0;
 
     // create the path for the drone to follow, and to use for setting the texgen matrices to position the textures
-    auto dronePath = createAnimationPath(flight_scale, animationPeriod);
+    auto dronePath = createAnimationPath(droneTransform, flight_scale, animationPeriod);
 
 
     // copy loaded images to single texture2DArray
@@ -539,8 +546,9 @@ int main(int argc, char** argv)
     {
         // drone has Y forward, X to the right, Z up, so without any further rotation the projected texture
         // will poject down the negative Z axis, which in this setup is straight down towards the earth.
-        double time = dronePath->period() * (double(i) / double(depth));
-        auto mv = vsg::inverse(droneLocation->matrix * dronePath->computeMatrix(time));
+        double time = dronePath->maxTime() * (double(i) / double(depth));
+        dronePath->update(time);
+        auto mv = vsg::inverse(droneLocation->matrix * droneTransform->matrix);
         auto p = vsg::perspective(vsg::radians(45.0), aspectRatio, 1.0, 100.0);
         imageMatrices->set(i, p * mv );
     }
@@ -612,9 +620,12 @@ int main(int argc, char** argv)
     // add close handler to respond the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    auto animationPathHandler = vsg::RecordAnimationPathHandler::create(camera, pathFilename, options);
-    animationPathHandler->printFrameStatsToConsole = true;
-    viewer->addEventHandler(animationPathHandler);
+    if (pathFilename)
+    {
+        auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
+        viewer->addEventHandler(cameraAnimation);
+        if (cameraAnimation->animation) cameraAnimation->play();
+    }
 
     auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
     viewer->addEventHandler(trackball);
@@ -625,6 +636,8 @@ int main(int argc, char** argv)
 
     viewer->compile(resourceHints);
 
+    viewer->animationManager->play(dronePath);
+
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
 
@@ -634,9 +647,6 @@ int main(int argc, char** argv)
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
-
-        double time = std::chrono::duration<double,  std::chrono::seconds::period>(viewer->getFrameStamp()->time - startTime).count();
-        droneTransform->matrix = dronePath->computeMatrix(time);
 
         viewer->update();
 

@@ -329,38 +329,30 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    if (!pathFilename)
+    if (pathFilename)
     {
-        auto trackball = vsg::Trackball::create(master_camera);
-
-        int32_t x = 0;
-        int32_t y = 0;
-        uint32_t width = 0;
-        uint32_t height = 0;
-
-        for(auto& window : viewer->windows())
-        {
-            trackball->addWindow(window, vsg::ivec2(width, 0));
-            width += window->extent2D().width;
-            if (window->extent2D().height > height) height = window->extent2D().height;
-        }
-
-        master_camera->viewportState = vsg::ViewportState::create(x, y, width, height);
-
-        viewer->addEventHandler(trackball);
+        auto cameraAnimation = vsg::CameraAnimation::create(master_camera, pathFilename, options);
+        viewer->addEventHandler(cameraAnimation);
+        if (cameraAnimation->animation) cameraAnimation->play();
     }
-    else
+
+    auto trackball = vsg::Trackball::create(master_camera);
+
+    int32_t x = 0;
+    int32_t y = 0;
+    uint32_t width = 0;
+    uint32_t height = 0;
+
+    for(auto& window : viewer->windows())
     {
-        auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
-        if (!animationPath)
-        {
-            std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
-            return 1;
-        }
-        auto aph = vsg::AnimationPathHandler::create(master_camera, animationPath, viewer->start_point());
-        aph->printFrameStatsToConsole = true;
-        viewer->addEventHandler(aph);
+        trackball->addWindow(window, vsg::ivec2(width, 0));
+        width += window->extent2D().width;
+        if (window->extent2D().height > height) height = window->extent2D().height;
     }
+
+    master_camera->viewportState = vsg::ViewportState::create(x, y, width, height);
+
+    viewer->addEventHandler(trackball);
 
     viewer->compile();
 
