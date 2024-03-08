@@ -214,7 +214,7 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
     if (shadowMapCount > 0)
     {
         // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
-        // so subsequent light pointions are correct.
+        // so subsequent light positions are correct.
         lightDataIndex += 4 * shadowMapCount;
         shadowMapIndex += shadowMapCount;
     }

@@ -476,7 +476,7 @@ void main()
             if (shadowMapSettings.r > 0.0)
             {
                 // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
-                // so subsequent light pointions are correct.
+                // so subsequent light positions are correct.
                 index += 4 * int(shadowMapSettings.r);
                 shadowMapIndex += int(shadowMapSettings.r);
             }
