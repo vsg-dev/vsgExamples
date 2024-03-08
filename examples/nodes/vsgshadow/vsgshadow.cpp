@@ -319,17 +319,14 @@ int main(int argc, char** argv)
                 phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
             if (technique == "pcss")
             {
-                phong->optionalDefines.insert("VSG_SHADOWS_PCSS");
                 phong->defaultShaderHints->defines.insert("VSG_SHADOWS_PCSS");
             }
             else if (technique == "pcf")
             {
-                phong->optionalDefines.insert("VSG_SHADOWS_PCF");
                 phong->defaultShaderHints->defines.insert("VSG_SHADOWS_PCF");
             }
             else if (technique == "hard")
             {
-                phong->optionalDefines.insert("VSG_SHADOWS_HARD");
                 phong->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
             }
 
@@ -370,17 +367,14 @@ int main(int argc, char** argv)
                 pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
             if (technique == "pcss")
             {
-                pbr->optionalDefines.insert("VSG_SHADOWS_PCSS");
                 pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_PCSS");
             }
             else if (technique == "pcf")
             {
-                pbr->optionalDefines.insert("VSG_SHADOWS_PCF");
                 pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_PCF");
             }
             else if (technique == "hard")
             {
-                pbr->optionalDefines.insert("VSG_SHADOWS_HARD");
                 pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
             }
 
