@@ -18,6 +18,7 @@ struct ModelSettings
     bool insertBaseGeometry = true;
     bool insertCullNode = false;
     bool insertLODNode = false;
+    uint32_t targetNumObjects = 1000;
 };
 
 vsg::ref_ptr<vsg::Node> decorateIfRequired(vsg::ref_ptr<vsg::Node> node, const ModelSettings& settings)
@@ -108,20 +109,22 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
 
     vsg::box bounds(vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(1000.0f, 1000.0f, 20.0f));
 
-    uint32_t numBoxes = 400;
-    uint32_t numSpheres = 300;
-    uint32_t numCapsules = 300;
+    uint32_t numBoxes = (400 * settings.targetNumObjects) / 1000;
+    uint32_t numSpheres = (300 * settings.targetNumObjects) / 1000;
+    uint32_t numCapsules = (300 * settings.targetNumObjects) / 1000;
 
     vsg::vec3 size = bounds.max - bounds.min;
+    float length = 0.5f * std::sqrt((size.x*size.y) / static_cast<float>(settings.targetNumObjects));
+
     auto assignRandomGeometryInfo = [&]()
     {
         vsg::vec3 offset(size.x * float(std::rand()) / float(RAND_MAX),
                          size.y * float(std::rand()) / float(RAND_MAX),
                          size.z * float(std::rand()) / float(RAND_MAX));
         geomInfo.position = bounds.min + offset;
-        geomInfo.dx.set(10.0f, 0.0f, 0.0f);
-        geomInfo.dy.set(0.0f, 10.0f, 0.0f);
-        geomInfo.dz.set(0.0f, 0.0f, 10.0f);
+        geomInfo.dx.set(length, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, length, 0.0f);
+        geomInfo.dz.set(0.0f, 0.0f, length);
 
         geomInfo.color.set(float(std::rand()) / float(RAND_MAX),
                            float(std::rand()) / float(RAND_MAX),
@@ -272,6 +275,7 @@ int main(int argc, char** argv)
     settings.textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
     settings.insertCullNode = arguments.read("--cull");
     settings.insertLODNode = arguments.read("--lod");
+    arguments.read("--target", settings.targetNumObjects);
 
     auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
     auto numLights = arguments.value<uint32_t>(1, "-n");
