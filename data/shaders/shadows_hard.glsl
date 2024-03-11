@@ -11,9 +11,11 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
     while (shadowMapCount > 0 && !matched)
     {
         mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
-                            lightData.values[lightDataIndex++],
-                            lightData.values[lightDataIndex++],
-                            lightData.values[lightDataIndex++]);
+                              lightData.values[lightDataIndex++],
+                              lightData.values[lightDataIndex++],
+                              lightData.values[lightDataIndex++]);
+        // skip inverse matrix
+        lightDataIndex += 4;
 
         vec4 sm_tc = sm_matrix * vec4(eyePos, 1.0);
 
@@ -41,7 +43,7 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
     {
         // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
         // so subsequent light positions are correct.
-        lightDataIndex += 4 * shadowMapCount;
+        lightDataIndex += 8 * shadowMapCount;
         shadowMapIndex += shadowMapCount;
     }
 
@@ -53,7 +55,7 @@ void skipShadowData(inout int lightDataIndex, inout int shadowMapIndex)
     float shadowMapCount = lightData.values[lightDataIndex++].r;
     if (shadowMapCount > 0.0)
     {
-        lightDataIndex += 4 * int(shadowMapCount);
+        lightDataIndex += 8 * int(shadowMapCount);
         shadowMapIndex += int(shadowMapCount);
     }
 }

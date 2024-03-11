@@ -3,7 +3,7 @@ void skipShadowData(inout int lightDataIndex, inout int shadowMapIndex)
     float shadowMapCount = lightData.values[lightDataIndex++].r;
     if (shadowMapCount > 0.0)
     {
-        lightDataIndex += 4 * int(shadowMapCount);
+        lightDataIndex += 8 * int(shadowMapCount);
         shadowMapIndex += int(shadowMapCount);
     }
 }

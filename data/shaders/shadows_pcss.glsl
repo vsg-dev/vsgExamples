@@ -143,7 +143,10 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
             // if averaging like this is legal, then calculating the penumbra radius in light space should be legal, too
             blockerDistances /= blockerCount;
 
-            mat4 sm_matrix_inv = inverse(sm_matrix);
+            mat4 sm_matrix_inv = mat4(lightData.values[lightDataIndex++],
+                                      lightData.values[lightDataIndex++],
+                                      lightData.values[lightDataIndex++],
+                                      lightData.values[lightDataIndex++]);
             vec4 sm_tc = sm_matrix * vec4(eyePos, 1.0);
             vec4 averageBlockerEuclidean = sm_matrix_inv * vec4(sm_tc.xy, blockerDistances, sm_tc.w);
             averageBlockerEuclidean.xyz /= averageBlockerEuclidean.w;
@@ -152,6 +155,8 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
             overallBlockerCount += blockerCount;
             overallBlockerDistances = mix(overallBlockerDistances, dist, blockerCount / overallBlockerCount);
         }
+        else
+            lightDataIndex += 4;
 
         ++shadowMapIndex;
         --shadowMapCount;
@@ -173,9 +178,11 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
         while (shadowMapCount > 0 && !matched)
         {
             mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
-                                lightData.values[lightDataIndex++],
-                                lightData.values[lightDataIndex++],
-                                lightData.values[lightDataIndex++]);
+                                  lightData.values[lightDataIndex++],
+                                  lightData.values[lightDataIndex++],
+                                  lightData.values[lightDataIndex++]);
+            // skip inverse matrix
+            lightDataIndex += 4;
 
             float coverage = 0;
             int viableSamples = 0;
@@ -215,7 +222,7 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
     {
         // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
         // so subsequent light positions are correct.
-        lightDataIndex += 4 * shadowMapCount;
+        lightDataIndex += 8 * shadowMapCount;
         shadowMapIndex += shadowMapCount;
     }
 
@@ -227,7 +234,7 @@ void skipShadowData(inout int lightDataIndex, inout int shadowMapIndex)
     float shadowMapCount = lightData.values[lightDataIndex++].r;
     if (shadowMapCount > 0.0)
     {
-        lightDataIndex += 4 * int(shadowMapCount);
+        lightDataIndex += 8 * int(shadowMapCount);
         shadowMapIndex += int(shadowMapCount);
     }
 }
