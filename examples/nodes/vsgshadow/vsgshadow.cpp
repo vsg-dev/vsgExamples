@@ -219,7 +219,9 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
         reportAverageFrameRate = true;
     }
-    auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
+
+    const double invalid_time = std::numeric_limits<double>::max();
+    auto duration = arguments.value(invalid_time, "--duration");
 
     vsg::ref_ptr<vsg::Instrumentation> instrumentation;
     if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
@@ -562,7 +564,7 @@ int main(int argc, char** argv)
     if (cameraAnimation->animation)
     {
         cameraAnimation->play();
-        if (reportAverageFrameRate) maxTime = cameraAnimation->animation->maxTime();
+        if (reportAverageFrameRate && duration == invalid_time) duration = cameraAnimation->animation->maxTime();
     }
 
     viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
@@ -579,7 +581,7 @@ int main(int argc, char** argv)
     double numFramesCompleted = 0.0;
 
     // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < duration))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
@@ -594,10 +596,10 @@ int main(int argc, char** argv)
 
     if (reportAverageFrameRate)
     {
-        auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
+        auto elapesedTime = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
         if (numFramesCompleted > 0.0)
         {
-            std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
+            std::cout << "Average frame rate = " << (numFramesCompleted / elapesedTime) << std::endl;
         }
     }
 
