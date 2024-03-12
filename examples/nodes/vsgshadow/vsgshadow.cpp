@@ -260,6 +260,7 @@ int main(int argc, char** argv)
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
     double shadowMapBias = arguments.value<double>(0.005, "--sb");
     double lambda = arguments.value<double>(0.5, "--lambda");
+    uint32_t numThreads = arguments.value<uint32_t>(3, {"--num-threads", "--nt"});
     double nearFarRatio = arguments.value<double>(0.001, "--nf");
 
     bool shaderDebug = arguments.read("--shader-debug");
@@ -554,6 +555,7 @@ int main(int argc, char** argv)
     view->viewDependentState->maxShadowDistance = maxShadowDistance;
     view->viewDependentState->shadowMapBias = shadowMapBias;
     view->viewDependentState->lambda = lambda;
+    view->viewDependentState->numThreads = numThreads;
     view->addChild(scene);
 
     // add close handler to respond the close window button and pressing escape
