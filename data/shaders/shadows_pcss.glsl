@@ -101,9 +101,9 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
     while (shadowMapCount > 0 && !matched)
     {
         mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
-                            lightData.values[lightDataIndex++],
-                            lightData.values[lightDataIndex++],
-                            lightData.values[lightDataIndex++]);
+                              lightData.values[lightDataIndex++],
+                              lightData.values[lightDataIndex++],
+                              lightData.values[lightDataIndex++]);
 
         float blockerDistances = 0.0;
         int blockerCount = 0;
