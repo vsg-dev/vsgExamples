@@ -220,6 +220,19 @@ int main(int argc, char** argv)
         reportAverageFrameRate = true;
     }
 
+    vsg::Affinity affinity;
+    uint32_t cpu = 0;
+    while (arguments.read({"--cpu", "-c"}, cpu))
+    {
+        affinity.cpus.insert(cpu);
+    }
+
+    while (arguments.read({"--main-cpu", "--mc"}, cpu))
+    {
+        std::cout<<"Setting affinity of main thread to "<<cpu<<std::endl;;
+        vsg::setAffinity(vsg::Affinity(cpu));
+    }
+
     const double invalid_time = std::numeric_limits<double>::max();
     auto duration = arguments.value(invalid_time, "--duration");
 
@@ -556,6 +569,7 @@ int main(int argc, char** argv)
     view->viewDependentState->shadowMapBias = shadowMapBias;
     view->viewDependentState->lambda = lambda;
     view->viewDependentState->numThreads = numThreads;
+    view->viewDependentState->affinity = affinity;
     view->addChild(scene);
 
     // add close handler to respond the close window button and pressing escape
