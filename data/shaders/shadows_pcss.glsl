@@ -2,6 +2,8 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform texture2DArray shadowMaps
 layout(set = VIEW_DESCRIPTOR_SET, binding = 3) uniform sampler shadowMapDirectSampler;
 layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
 
+layout(constant_id = 0) const int shadowSamples = 16;
+
 const int POISSON_DISK_SAMPLE_COUNT = 64;
 const vec2 POISSON_DISK[POISSON_DISK_SAMPLE_COUNT] = {
     vec2(-0.5029332998560511, 0.1810152662195826), 
@@ -84,8 +86,6 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
     int originalShadowMapIndex = shadowMapIndex;
     int originalIndex = lightDataIndex;
 
-
-    const float shadowSamples = 8;
     const float blockerSearchRadius = 1;
     const float viableSampleRatio = 1;
 

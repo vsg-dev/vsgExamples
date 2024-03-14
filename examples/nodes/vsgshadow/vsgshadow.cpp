@@ -268,6 +268,7 @@ int main(int argc, char** argv)
     }
 
     std::string technique = arguments.value<std::string>("pcss", "--technique");
+    int shadowSampleCount = arguments.value(16, "--shadow-samples");
 
     ModelSettings settings;
     settings.options = options;
@@ -295,7 +296,7 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug || technique != "none")
+    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug || technique != "none" || shadowSampleCount != 16)
     {
         // customize the phong ShaderSet
         auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
@@ -329,6 +330,10 @@ int main(int argc, char** argv)
             {
                 phong->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
             }
+
+            phong_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+                {0, vsg::intValue::create(shadowSampleCount)},
+            };
 
             if (depthClamp)
             {
@@ -377,6 +382,10 @@ int main(int argc, char** argv)
             {
                 pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
             }
+
+            pbr_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+                {0, vsg::intValue::create(shadowSampleCount)},
+            };
 
             if (depthClamp)
             {
