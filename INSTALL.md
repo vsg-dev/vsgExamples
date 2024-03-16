@@ -12,7 +12,7 @@ The above dependency versions are known to work so they've been set as the curre
 To build in source, with all dependencies installed in standard system directories:
 
     git clone https://github.com/vsg-dev/vsgExamples.git
-    cd vsgExmples
+    cd vsgExamples
     cmake .
     make -j 8
 
