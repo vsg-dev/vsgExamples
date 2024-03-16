@@ -272,6 +272,9 @@ int main(int argc, char** argv)
         deviceFeatures->get().depthClamp = VK_TRUE;
     }
 
+    std::string technique = arguments.value<std::string>("pcss", "--technique");
+    int shadowSampleCount = arguments.value(16, "--shadow-samples");
+
     ModelSettings settings;
     settings.options = options;
     settings.textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
@@ -299,7 +302,7 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug)
+    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug || technique != "none" || shadowSampleCount != 16)
     {
         // customize the phong ShaderSet
         auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
@@ -318,6 +321,25 @@ int main(int argc, char** argv)
                 phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
                 phong->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
             }
+
+            if (!phong->defaultShaderHints && technique != "none")
+                phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
+            if (technique == "pcss")
+            {
+                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_PCSS");
+            }
+            else if (technique == "pcf")
+            {
+                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_PCF");
+            }
+            else if (technique == "hard")
+            {
+                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
+            }
+
+            phong_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+                {0, vsg::intValue::create(shadowSampleCount)},
+            };
 
             if (depthClamp)
             {
@@ -351,6 +373,25 @@ int main(int argc, char** argv)
                 pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
                 pbr->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
             }
+
+            if (!pbr->defaultShaderHints && technique != "none")
+                pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
+            if (technique == "pcss")
+            {
+                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_PCSS");
+            }
+            else if (technique == "pcf")
+            {
+                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_PCF");
+            }
+            else if (technique == "hard")
+            {
+                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
+            }
+
+            pbr_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+                {0, vsg::intValue::create(shadowSampleCount)},
+            };
 
             if (depthClamp)
             {
