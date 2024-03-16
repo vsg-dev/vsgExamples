@@ -427,6 +427,7 @@ int main(int argc, char** argv)
 
     auto inherit = arguments.read("--inherit");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
+    auto angleSubtended = arguments.value<double>(0.0090f, "--angleSubtended");
     auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
     double viewingDistance = scale;
@@ -525,6 +526,7 @@ int main(int argc, char** argv)
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
+        directionalLight->angleSubtended = angleSubtended;
         directionalLight->shadowMaps = numShadowMapsPerLight;
         group->addChild(directionalLight);
     }
@@ -549,6 +551,7 @@ int main(int argc, char** argv)
         directionalLight2->color.set(1.0, 1.0, 0.0);
         directionalLight2->intensity = 0.7;
         directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
+        directionalLight2->angleSubtended = angleSubtended;
         directionalLight2->shadowMaps = numShadowMapsPerLight;
         group->addChild(directionalLight2);
     }
