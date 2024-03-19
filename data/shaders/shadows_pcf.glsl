@@ -83,7 +83,6 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
     vec4 shadowMapSettings = lightData.values[lightDataIndex++];
     int shadowMapCount = int(shadowMapSettings.r);
 
-    const float penumbraRadius = 0.05;
     const float viableSampleRatio = 1;
 
     // Godot's implementation
@@ -106,6 +105,7 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
         int viableSamples = 0;
         for (int i = 0; i < POISSON_DISK_SAMPLE_COUNT; i += POISSON_DISK_SAMPLE_COUNT / min(shadowSamples, POISSON_DISK_SAMPLE_COUNT))
         {
+            float penumbraRadius = shadowMapSettings.a;
             vec2 rotatedDisk = penumbraRadius * diskRotationMatrix * POISSON_DISK[i];
             vec4 sm_tc = sm_matrix * vec4(eyePos + rotatedDisk.x * T + rotatedDisk.y * B, 1.0);
             if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0)
