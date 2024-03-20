@@ -89,7 +89,7 @@ int main(int argc, char** argv)
     uint32_t height = window->extent2D().height;
     VkClearValue clearValue{};
     clearValue.depthStencil = {0.0f, 0};
-    VkClearAttachment attachment{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_COLOR_BIT, 1, clearValue};
+    VkClearAttachment attachment{VK_IMAGE_ASPECT_DEPTH_BIT, 1, clearValue};
     VkClearRect rect{VkRect2D{VkOffset2D{0, 0}, VkExtent2D{width, height}}, 0, 1};
     auto clearAttachments = vsg::ClearAttachments::create(vsg::ClearAttachments::Attachments{attachment}, vsg::ClearAttachments::Rects{rect});
 
