@@ -97,11 +97,13 @@ int main(int argc, char** argv)
     hud->addChild(clearAttachments);
     hud->addChild(text);
 
+    // draw lower binNumber first
     auto layer_1 = vsg::Layer::create();
-    layer_1->binNumber = -1;
+    layer_1->binNumber = 0;
     layer_1->value = 0;
     layer_1->child = model;
 
+    // draw higher binNumber second
     auto layer_2 = vsg::Layer::create();
     layer_2->binNumber = 1;
     layer_2->value = 1;
