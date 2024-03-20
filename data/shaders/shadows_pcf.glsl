@@ -108,7 +108,7 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
             float penumbraRadius = shadowMapSettings.a;
             vec2 rotatedDisk = penumbraRadius * diskRotationMatrix * POISSON_DISK[i];
             vec4 sm_tc = sm_matrix * vec4(eyePos + rotatedDisk.x * T + rotatedDisk.y * B, 1.0);
-            if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0)
+            if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 && sm_tc.z <= 1.0)
             {
                 coverage += texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
                 ++viableSamples;
