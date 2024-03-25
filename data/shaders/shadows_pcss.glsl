@@ -110,7 +110,7 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
         int viableSamples = 0;
         // always sample the original coordinates as otherwise blockers smaller than the search radius may be missed with small sample counts
         vec4 sm_tc = sm_matrix * vec4(eyePos, 1.0);
-        if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0)
+        if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 && sm_tc.z <= 1.0)
         {
             ++viableSamples;
             float blockerDistance = texture(sampler2DArray(shadowMaps, shadowMapDirectSampler), vec3(sm_tc.st, shadowMapIndex)).r;
