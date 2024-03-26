@@ -1,7 +1,5 @@
-layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform texture2DArray shadowMaps;
-layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
-
-float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
+#ifdef VSG_SHADOWS_HARD
+float calculateShadowCoverageForDirectionalLightHard(inout int lightDataIndex, inout int shadowMapIndex, vec3 T, vec3 B, int extraDataSize, inout vec3 color)
 {
     vec4 shadowMapSettings = lightData.values[lightDataIndex++];
     int shadowMapCount = int(shadowMapSettings.r);
@@ -14,8 +12,7 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
                               lightData.values[lightDataIndex++],
                               lightData.values[lightDataIndex++],
                               lightData.values[lightDataIndex++]);
-        // skip inverse matrix
-        lightDataIndex += 4;
+        lightDataIndex += extraDataSize;
 
         vec4 sm_tc = sm_matrix * vec4(eyePos, 1.0);
 
@@ -43,19 +40,20 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
     {
         // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
         // so subsequent light positions are correct.
-        lightDataIndex += 8 * shadowMapCount;
+        lightDataIndex += (4 + extraDataSize) * shadowMapCount;
         shadowMapIndex += shadowMapCount;
     }
 
     return overallCoverage;
 }
+#endif
 
-void skipShadowData(inout int lightDataIndex, inout int shadowMapIndex)
+void skipShadowDataHard(inout int lightDataIndex, inout int shadowMapIndex)
 {
     float shadowMapCount = lightData.values[lightDataIndex++].r;
     if (shadowMapCount > 0.0)
     {
-        lightDataIndex += 8 * int(shadowMapCount);
+        lightDataIndex += 4 * int(shadowMapCount);
         shadowMapIndex += int(shadowMapCount);
     }
 }
