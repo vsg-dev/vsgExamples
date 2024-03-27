@@ -527,7 +527,11 @@ int main(int argc, char** argv)
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
         directionalLight->angleSubtended = angleSubtended;
-        directionalLight->shadowMaps = numShadowMapsPerLight;
+        if (numShadowMapsPerLight > 0)
+        {
+            directionalLight->shadowSettings = vsg::ShadowSettings::create(numShadowMapsPerLight);
+        }
+
         group->addChild(directionalLight);
     }
 
@@ -552,7 +556,10 @@ int main(int argc, char** argv)
         directionalLight2->intensity = 0.7;
         directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
         directionalLight2->angleSubtended = angleSubtended;
-        directionalLight2->shadowMaps = numShadowMapsPerLight;
+        if (numShadowMapsPerLight > 0)
+        {
+            directionalLight2->shadowSettings = vsg::ShadowSettings::create(numShadowMapsPerLight);
+        }
         group->addChild(directionalLight2);
     }
 
