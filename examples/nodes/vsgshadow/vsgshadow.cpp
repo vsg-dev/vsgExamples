@@ -566,7 +566,7 @@ int main(int argc, char** argv)
         directionalLight2->intensity = 0.7;
         directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
         directionalLight2->angleSubtended = angleSubtended;
-        directionalLight->shadowSettings = shadowSettings;
+        directionalLight2->shadowSettings = shadowSettings;
 
         group->addChild(directionalLight2);
     }
