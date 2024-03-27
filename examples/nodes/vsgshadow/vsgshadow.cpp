@@ -516,6 +516,26 @@ int main(int argc, char** argv)
     auto group = vsg::Group::create();
     group->addChild(scene);
 
+    vsg::ref_ptr<vsg::ShadowSettings> shadowSettings;
+    if (technique.find("pcss") == 0)
+    {
+        auto pcss = vsg::PercentageCloserSoftShadows::create();
+        pcss->shadowMaps = numShadowMapsPerLight;
+        shadowSettings = pcss;
+    }
+    else if (technique.find("pcf") == 0)
+    {
+        auto softShadows = vsg::SoftShadows::create();
+        softShadows->shadowMaps = numShadowMapsPerLight;
+        softShadows->penumbraRadius = 0.1f;
+        shadowSettings = softShadows;
+    }
+    else if (technique.find("hard") == 0)
+    {
+        auto hardShadows = vsg::HardShadows::create();
+        hardShadows->shadowMaps = numShadowMapsPerLight;
+        shadowSettings = hardShadows;
+    }
 
     vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
     if (numLights >= 1)
@@ -525,27 +545,7 @@ int main(int argc, char** argv)
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
-
-        if (technique.find("pcss") == 0)
-        {
-            vsg::ref_ptr<vsg::DirectionalPCSSShadows> shadowSettings = vsg::DirectionalPCSSShadows::create();
-            shadowSettings->numShadowMaps = numShadowMapsPerLight;
-            shadowSettings->angleSubtended = 0.1f;
-            directionalLight->shadowSettings = std::move(shadowSettings);
-        }
-        else if (technique.find("pcf") == 0)
-        {
-            vsg::ref_ptr<vsg::DirectionalPCFShadows> shadowSettings = vsg::DirectionalPCFShadows::create();
-            shadowSettings->numShadowMaps = numShadowMapsPerLight;
-            shadowSettings->penumbraRadius = 0.1f;
-            directionalLight->shadowSettings = std::move(shadowSettings);
-        }
-        else if (technique.find("hard") == 0)
-        {
-            vsg::ref_ptr<vsg::DirectionalHardShadows> shadowSettings = vsg::DirectionalHardShadows::create();
-            shadowSettings->numShadowMaps = numShadowMapsPerLight;
-            directionalLight->shadowSettings = std::move(shadowSettings);
-        }
+        directionalLight->shadowSettings = shadowSettings;
 
         group->addChild(directionalLight);
     }
@@ -570,26 +570,7 @@ int main(int argc, char** argv)
         directionalLight2->color.set(1.0, 1.0, 0.0);
         directionalLight2->intensity = 0.7;
         directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
-
-        if (technique.rfind("pcss") == technique.size() - 4)
-        {
-            vsg::ref_ptr<vsg::DirectionalPCSSShadows> shadowSettings = vsg::DirectionalPCSSShadows::create();
-            shadowSettings->numShadowMaps = numShadowMapsPerLight;
-            shadowSettings->angleSubtended = 0.03f;
-            directionalLight2->shadowSettings = std::move(shadowSettings);
-        }
-        else if (technique.find("pcf") == technique.size() - 3)
-        {
-            vsg::ref_ptr<vsg::DirectionalPCFShadows> shadowSettings = vsg::DirectionalPCFShadows::create();
-            shadowSettings->numShadowMaps = numShadowMapsPerLight;
-            directionalLight2->shadowSettings = std::move(shadowSettings);
-        }
-        else if (technique.find("hard") == technique.size() - 4)
-        {
-            vsg::ref_ptr<vsg::DirectionalHardShadows> shadowSettings = vsg::DirectionalHardShadows::create();
-            shadowSettings->numShadowMaps = numShadowMapsPerLight;
-            directionalLight2->shadowSettings = std::move(shadowSettings);
-        }
+        directionalLight->shadowSettings = shadowSettings;
 
         group->addChild(directionalLight2);
     }
