@@ -436,9 +436,6 @@ void main()
             vec4 lightColor = lightData.values[index++];
             vec3 direction = -lightData.values[index++].xyz;
 
-            int originalShadowMapIndex = shadowMapIndex;
-            int originalIndex = index;
-
             float brightness = lightColor.a;
 
             if (brightness > brightnessCutoff)
