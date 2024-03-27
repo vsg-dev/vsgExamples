@@ -566,9 +566,17 @@ int main(int argc, char** argv)
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
+<<<<<<< HEAD
         if (numShadowMapsPerLight > 0)
         {
             directionalLight->shadowSettings = vsg::ShadowSettings::create(numShadowMapsPerLight);
+=======
+        if (numShadowMapsPerLight > 1)
+        {
+            vsg::ref_ptr<vsg::DirectionalHardShadows> shadowSettings = vsg::DirectionalHardShadows::create();
+            shadowSettings->numShadowMaps = numShadowMapsPerLight;
+            directionalLight->shadowSettings = std::move(shadowSettings);
+>>>>>>> AnyOldName3-soft-shadows
         }
         group->addChild(directionalLight);
 

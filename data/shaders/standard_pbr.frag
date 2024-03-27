@@ -105,15 +105,7 @@ float pow5(const in float value)
     return value * value * value * value * value;
 }
 
-#ifdef VSG_SHADOWS_PCSS
-#include "shadows_pcss.glsl"
-#elif defined(VSG_SHADOWS_PCF)
-#include "shadows_pcf.glsl"
-#elif defined(VSG_SHADOWS_HARD)
-#include "shadows_hard.glsl"
-#else
-#include "shadows_none.glsl"
-#endif
+#include "shadows.glsl"
 
 // Find the normal for this fragment, pulling either from a predefined normal map
 // or from the interpolated mesh normal and tangent attributes.

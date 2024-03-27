@@ -53,15 +53,7 @@ layout(location = 5) in vec3 viewDir;
 
 layout(location = 0) out vec4 outColor;
 
-#ifdef VSG_SHADOWS_PCSS
-#include "shadows_pcss.glsl"
-#elif defined(VSG_SHADOWS_PCF)
-#include "shadows_pcf.glsl"
-#elif defined(VSG_SHADOWS_HARD)
-#include "shadows_hard.glsl"
-#else
-#include "shadows_none.glsl"
-#endif
+#include "shadows.glsl"
 
 // Find the normal for this fragment, pulling either from a predefined normal map
 // or from the interpolated mesh normal and tangent attributes.
