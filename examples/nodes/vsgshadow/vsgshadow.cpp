@@ -520,22 +520,15 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::ShadowSettings> shadowSettings;
     if (technique.find("pcss") == 0)
     {
-        auto pcss = vsg::PercentageCloserSoftShadows::create();
-        pcss->shadowMaps = numShadowMapsPerLight;
-        shadowSettings = pcss;
+        shadowSettings = vsg::PercentageCloserSoftShadows::create(numShadowMapsPerLight);
     }
     else if (technique.find("pcf") == 0)
     {
-        auto softShadows = vsg::SoftShadows::create();
-        softShadows->shadowMaps = numShadowMapsPerLight;
-        softShadows->penumbraRadius = 0.1f;
-        shadowSettings = softShadows;
+        shadowSettings = vsg::SoftShadows::create(numShadowMapsPerLight, 0.1f);
     }
     else if (technique.find("hard") == 0)
     {
-        auto hardShadows = vsg::HardShadows::create();
-        hardShadows->shadowMaps = numShadowMapsPerLight;
-        shadowSettings = hardShadows;
+        shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
     }
 
     vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
