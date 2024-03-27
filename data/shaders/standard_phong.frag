@@ -1,9 +1,11 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, SHADOWMAP_DEBUG)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_SHADOWS_PCSS, VSG_SHADOWS_PCF, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG)
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
+
+const float PI = radians(180);
 
 #ifdef VSG_DIFFUSE_MAP
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
@@ -41,10 +43,6 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
     vec4 values[2048];
 } lightData;
 
-
-layout(set = VIEW_DESCRIPTOR_SET, binding = 2) uniform texture2DArray shadowMaps;
-layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
-
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
 layout(location = 2) in vec4 vertexColor;
@@ -54,6 +52,8 @@ layout(location = 3) in vec2 texCoord0;
 layout(location = 5) in vec3 viewDir;
 
 layout(location = 0) out vec4 outColor;
+
+#include "shadows.glsl"
 
 // Find the normal for this fragment, pulling either from a predefined normal map
 // or from the interpolated mesh normal and tangent attributes.
@@ -177,54 +177,26 @@ void main()
 
     if (numDirectionalLights>0)
     {
+        vec3 q1 = dFdx(eyePos);
+        vec3 q2 = dFdy(eyePos);
+        vec2 st1 = dFdx(texCoord0);
+        vec2 st2 = dFdy(texCoord0);
+
+        vec3 N = normalize(normalDir);
+        vec3 T = normalize(q1 * st2.t - q2 * st1.t);
+        vec3 B = -normalize(cross(N, T));
+
         // directional lights
         for(int i = 0; i<numDirectionalLights; ++i)
         {
             vec4 lightColor = lightData.values[index++];
             vec3 direction = -lightData.values[index++].xyz;
-            vec4 shadowMapSettings = lightData.values[index++];
 
             float brightness = lightColor.a;
-
-            // check shadow maps if required
-            bool matched = false;
-            while ((shadowMapSettings.r > 0.0 && brightness > brightnessCutoff) && !matched)
-            {
-                mat4 sm_matrix = mat4(lightData.values[index++],
-                                      lightData.values[index++],
-                                      lightData.values[index++],
-                                      lightData.values[index++]);
-
-                vec4 sm_tc = (sm_matrix) * vec4(eyePos, 1.0);
-
-                if (sm_tc.x >= 0.0 && sm_tc.x <= 1.0 && sm_tc.y >= 0.0 && sm_tc.y <= 1.0 && sm_tc.z >= 0.0 /* && sm_tc.z <= 1.0*/)
-                {
-                    matched = true;
-                    float coverage = texture(sampler2DArrayShadow(shadowMaps, shadowMapShadowSampler), vec4(sm_tc.st, shadowMapIndex, sm_tc.z)).r;
-
-                    brightness *= (1.0-coverage);
-
-#ifdef SHADOWMAP_DEBUG
-                    if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
-                    else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
-                    else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
-                    else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
-                    else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
-                    else color = vec3(1.0, 1.0, 1.0);
-#endif
-                }
-
-                ++shadowMapIndex;
-                shadowMapSettings.r -= 1.0;
-            }
-
-            if (shadowMapSettings.r > 0.0)
-            {
-                // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
-                // so subsequent light pointions are correct.
-                index += 4 * int(shadowMapSettings.r);
-                shadowMapIndex += int(shadowMapSettings.r);
-            }
+            if (brightness > brightnessCutoff)
+                brightness *= (1.0-calculateShadowCoverageForDirectionalLight(index, shadowMapIndex, T, B, color));
+            else
+                skipShadowData(index, shadowMapIndex);
 
             // if light is too dim/shadowed to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;

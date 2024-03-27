@@ -272,6 +272,9 @@ int main(int argc, char** argv)
         deviceFeatures->get().depthClamp = VK_TRUE;
     }
 
+    std::string technique = arguments.value<std::string>("pcss", "--technique");
+    int shadowSampleCount = arguments.value(16, "--shadow-samples");
+
     ModelSettings settings;
     settings.options = options;
     settings.textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
@@ -299,7 +302,7 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug)
+    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug || technique != "none" || shadowSampleCount != 16)
     {
         // customize the phong ShaderSet
         auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
@@ -318,6 +321,25 @@ int main(int argc, char** argv)
                 phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
                 phong->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
             }
+
+            if (!phong->defaultShaderHints)
+                phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
+            if (technique.find("pcss") != std::string::npos)
+            {
+                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_PCSS");
+            }
+            if (technique.find("pcf") != std::string::npos)
+            {
+                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_PCF");
+            }
+            if (technique.find("hard") != std::string::npos)
+            {
+                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
+            }
+
+            phong_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+                {0, vsg::intValue::create(shadowSampleCount)},
+            };
 
             if (depthClamp)
             {
@@ -351,6 +373,25 @@ int main(int argc, char** argv)
                 pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
                 pbr->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
             }
+
+            if (!pbr->defaultShaderHints)
+                pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
+            if (technique.find("pcss") != std::string::npos)
+            {
+                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_PCSS");
+            }
+            if (technique.find("pcf") != std::string::npos)
+            {
+                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_PCF");
+            }
+            if (technique.find("hard") != std::string::npos)
+            {
+                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
+            }
+
+            pbr_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+                {0, vsg::intValue::create(shadowSampleCount)},
+            };
 
             if (depthClamp)
             {
@@ -416,7 +457,7 @@ int main(int argc, char** argv)
         auto model = vsg::read_cast<vsg::Node>(filename, options);
         if (!model)
         {
-            std::cout<<"Faled to load "<<filename<<std::endl;
+            std::cout<<"Failed to load "<<filename<<std::endl;
             return 1;
         }
 
@@ -484,7 +525,28 @@ int main(int argc, char** argv)
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
-        directionalLight->shadowMaps = numShadowMapsPerLight;
+
+        if (technique.find("pcss") == 0)
+        {
+            vsg::ref_ptr<vsg::DirectionalPCSSShadows> shadowSettings = vsg::DirectionalPCSSShadows::create();
+            shadowSettings->numShadowMaps = numShadowMapsPerLight;
+            shadowSettings->angleSubtended = 0.1f;
+            directionalLight->shadowSettings = std::move(shadowSettings);
+        }
+        else if (technique.find("pcf") == 0)
+        {
+            vsg::ref_ptr<vsg::DirectionalPCFShadows> shadowSettings = vsg::DirectionalPCFShadows::create();
+            shadowSettings->numShadowMaps = numShadowMapsPerLight;
+            shadowSettings->penumbraRadius = 0.1f;
+            directionalLight->shadowSettings = std::move(shadowSettings);
+        }
+        else if (technique.find("hard") == 0)
+        {
+            vsg::ref_ptr<vsg::DirectionalHardShadows> shadowSettings = vsg::DirectionalHardShadows::create();
+            shadowSettings->numShadowMaps = numShadowMapsPerLight;
+            directionalLight->shadowSettings = std::move(shadowSettings);
+        }
+
         group->addChild(directionalLight);
     }
 
@@ -508,7 +570,27 @@ int main(int argc, char** argv)
         directionalLight2->color.set(1.0, 1.0, 0.0);
         directionalLight2->intensity = 0.7;
         directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
-        directionalLight2->shadowMaps = numShadowMapsPerLight;
+
+        if (technique.rfind("pcss") == technique.size() - 4)
+        {
+            vsg::ref_ptr<vsg::DirectionalPCSSShadows> shadowSettings = vsg::DirectionalPCSSShadows::create();
+            shadowSettings->numShadowMaps = numShadowMapsPerLight;
+            shadowSettings->angleSubtended = 0.03f;
+            directionalLight2->shadowSettings = std::move(shadowSettings);
+        }
+        else if (technique.find("pcf") == technique.size() - 3)
+        {
+            vsg::ref_ptr<vsg::DirectionalPCFShadows> shadowSettings = vsg::DirectionalPCFShadows::create();
+            shadowSettings->numShadowMaps = numShadowMapsPerLight;
+            directionalLight2->shadowSettings = std::move(shadowSettings);
+        }
+        else if (technique.find("hard") == technique.size() - 4)
+        {
+            vsg::ref_ptr<vsg::DirectionalHardShadows> shadowSettings = vsg::DirectionalHardShadows::create();
+            shadowSettings->numShadowMaps = numShadowMapsPerLight;
+            directionalLight2->shadowSettings = std::move(shadowSettings);
+        }
+
         group->addChild(directionalLight2);
     }
 
