@@ -18,18 +18,21 @@ public:
     {
         if (geometry.arrays.empty()) return;
         geometry.arrays[0]->data->accept(*this);
+        bufferInfoSet.insert(geometry.arrays[0]);
     }
 
     void apply(vsg::VertexIndexDraw& vid)
     {
         if (vid.arrays.empty()) return;
         vid.arrays[0]->data->accept(*this);
+        bufferInfoSet.insert(vid.arrays[0]);
     }
 
     void apply(vsg::BindVertexBuffers& bvd)
     {
         if (bvd.arrays.empty()) return;
         bvd.arrays[0]->data->accept(*this);
+        bufferInfoSet.insert(bvd.arrays[0]);
     }
 
     void apply(vsg::vec3Array& vertices)
@@ -54,6 +57,8 @@ public:
     }
 
     std::set<vsg::vec3Array*> verticesSet;
+    std::set<vsg::ref_ptr<vsg::BufferInfo>> bufferInfoSet;
+
 };
 
 int main(int argc, char** argv)
@@ -99,10 +104,13 @@ int main(int argc, char** argv)
         auto numFrames = arguments.value(-1, "-f");
 
         bool multiThreading = arguments.read("--mt");
-        auto modify = arguments.read("--modify");
+        auto modify = !arguments.read("--no-modify");
         auto dirty = arguments.read("--dirty");
-        auto dynamic = arguments.read("--dynamic") || dirty || modify;
-        bool lateTransfer = arguments.read("--late");
+
+        // set the dynamic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
+        vsg::DataVariance dataVariance = vsg::DYNAMIC_DATA;
+        if (arguments.read("--static")) dataVariance = vsg::STATIC_DATA;
+        else if (arguments.read("--late")) dataVariance = vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD;
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -122,14 +130,13 @@ int main(int argc, char** argv)
 
         // visit the scene graph to collect all the vertex arrays
         size_t numVertices = 0;
-        auto verticesList = vsg::visit<FindVertexData>(vsg_scene).getVerticesList();
-        if (dynamic)
+        FindVertexData fdv;
+        vsg_scene->accept(fdv);
+        auto verticesList = fdv.getVerticesList();
+        for(auto& vertices : verticesList)
         {
-            for(auto& vertices : verticesList)
-            {
-                vertices->properties.dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
-                numVertices += vertices->size();
-            }
+            vertices->properties.dataVariance = dataVariance;
+            numVertices += vertices->size();
         }
 
         vsg::info("number of dynamic vertex arrays : ", verticesList.size());
@@ -210,6 +217,22 @@ int main(int argc, char** argv)
                         v.z += (sin(vsg::PI * frameCount / 180.0) * radius * 0.001);
                     }
                     vertices->dirty();
+                }
+
+                if (dataVariance == vsg::STATIC_DATA)
+                {
+                    // If the data variance is static then we have to manually
+                    // assign the buffer info we want to transfer on each frame.
+                    // This approach is most apporopriate for occassional updates
+                    // for updates every frame it's best to declare the dataVaraince as DYANMIC_DATA
+                    for(auto& tasks : viewer->recordAndSubmitTasks)
+                    {
+                        auto transferTask = tasks->earlyTransferTask;
+                        for(auto& bufferInfo : fdv.bufferInfoSet)
+                        {
+                            transferTask->assign(vsg::BufferInfoList{bufferInfo});
+                        }
+                    }
                 }
             }
             else if (dirty)

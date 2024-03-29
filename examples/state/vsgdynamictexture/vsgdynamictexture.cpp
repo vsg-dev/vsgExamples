@@ -95,8 +95,10 @@ int main(int argc, char** argv)
     if (arguments.read("--rgb")) arrayType = USE_RGB;
     if (arguments.read("--rgba")) arrayType = USE_RGBA;
     auto image_size = arguments.value<uint32_t>(256, "-s");
-    bool lateTransfer = arguments.read("--late");
     bool multiThreading = arguments.read("--mt");
+    vsg::DataVariance dataVariance = vsg::DYNAMIC_DATA;
+    if (arguments.read("--static")) dataVariance = vsg::STATIC_DATA;
+    else if (arguments.read("--late")) dataVariance = vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD;
 
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
@@ -147,6 +149,7 @@ int main(int argc, char** argv)
         // use float image - typically for displacementMap
         textureData = vsg::floatArray2D::create(image_size, image_size);
         textureData->properties.format = VK_FORMAT_R32_SFLOAT;
+        textureData->properties.dataVariance = dataVariance;
         break;
     case (USE_RGB):
         // note, RGB image data has to be converted to RGBA when copying to a VkImage,
@@ -155,16 +158,15 @@ int main(int argc, char** argv)
         // one approach, illustrated in the vsgdynamictexture_cs example, for avoiding this conversion overhead is to use a compute shader to map the RGB data to RGBA.
         textureData = vsg::vec3Array2D::create(image_size, image_size);
         textureData->properties.format = VK_FORMAT_R32G32B32_SFLOAT;
+        textureData->properties.dataVariance = dataVariance;
         break;
     case (USE_RGBA):
         // R, RG and RGBA data can be copied to VkImage without any conversion so is efficient, while RGB requires conversion, see above explanation
         textureData = vsg::vec4Array2D::create(image_size, image_size);
         textureData->properties.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        textureData->properties.dataVariance = dataVariance;
         break;
     }
-
-    // set the dynamic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
-    textureData->properties.dataVariance = lateTransfer ? vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD : vsg::DYNAMIC_DATA;
 
     // initialize the image
     UpdateImage updateImage;

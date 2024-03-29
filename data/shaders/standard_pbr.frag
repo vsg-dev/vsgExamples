@@ -48,9 +48,9 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform PbrData
 } pbr;
 
 // ViewDependentState
-layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
+layout(set = VIEW_DESCRIPTOR_SET, binding = 0) buffer LightData
 {
-    vec4 values[2048];
+    vec4 values[];
 } lightData;
 
 layout(location = 0) in vec3 eyePos;
