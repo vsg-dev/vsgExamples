@@ -31,9 +31,9 @@ layout(location = 4) in vec3 vsg_position;
 layout(location = 5) in ivec4 vsg_JointIndices;
 layout(location = 6) in vec4 vsg_JointWeights;
 
-layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) uniform JointMatrices
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) buffer JointMatrices
 {
-	mat4 matrices[64];
+	mat4 matrices[];
 } joint;
 #endif
 

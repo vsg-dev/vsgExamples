@@ -36,9 +36,9 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
-layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
+layout(set = VIEW_DESCRIPTOR_SET, binding = 0) buffer LightData
 {
-    vec4 values[2048];
+    vec4 values[];
 } lightData;
 
 
