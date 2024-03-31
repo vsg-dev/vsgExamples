@@ -1,4 +1,3 @@
-#ifdef VSG_SHADOWS_HARD
 float calculateShadowCoverageForDirectionalLightHard(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
 {
     vec4 shadowMapSettings = lightData.values[lightDataIndex++];
@@ -46,4 +45,3 @@ float calculateShadowCoverageForDirectionalLightHard(int lightDataIndex, int sha
 
     return overallCoverage;
 }
-#endif

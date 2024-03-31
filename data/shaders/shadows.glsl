@@ -84,9 +84,17 @@ float quick_hash(vec2 pos) {
 #endif
 
 
+#ifdef VSG_SHADOWS_PCSS
 #include "shadows_pcss.glsl"
+#endif
+
+#ifdef VSG_SHADOWS_PCF
 #include "shadows_pcf.glsl"
+#endif
+
+#ifdef VSG_SHADOWS_HARD
 #include "shadows_hard.glsl"
+#endif
 
 float calculateShadowCoverageForDirectionalLight(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
 {

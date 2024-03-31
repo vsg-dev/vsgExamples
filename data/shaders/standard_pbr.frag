@@ -105,6 +105,7 @@ float pow5(const in float value)
     return value * value * value * value * value;
 }
 
+// include the calculateShadowCoverageForDirectionalLight(..) implementation
 #include "shadows.glsl"
 
 // Find the normal for this fragment, pulling either from a predefined normal map

@@ -1,4 +1,3 @@
-#ifdef VSG_SHADOWS_PCSS
 float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
 {
     vec4 shadowMapSettings = lightData.values[lightDataIndex++];
@@ -148,4 +147,3 @@ float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int sha
 
     return overallCoverage;
 }
-#endif

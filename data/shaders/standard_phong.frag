@@ -53,6 +53,7 @@ layout(location = 5) in vec3 viewDir;
 
 layout(location = 0) out vec4 outColor;
 
+// include the calculateShadowCoverageForDirectionalLight(..) implementation
 #include "shadows.glsl"
 
 // Find the normal for this fragment, pulling either from a predefined normal map
