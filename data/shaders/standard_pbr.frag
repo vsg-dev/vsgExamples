@@ -446,7 +446,7 @@ void main()
                 if (brightness > brightnessCutoff)
                     brightness *= (1.0-calculateShadowCoverageForDirectionalLight(lightDataIndex, shadowMapIndex, T, B, color));
 
-                lightDataIndex += 8 * int(shadowMapCount);
+                lightDataIndex += 1 + 8 * int(shadowMapCount);
                 shadowMapIndex += int(shadowMapCount);
             }
             else
