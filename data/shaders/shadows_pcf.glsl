@@ -1,5 +1,5 @@
 #ifdef VSG_SHADOWS_PCF
-float calculateShadowCoverageForDirectionalLightPCF(inout int lightDataIndex, inout int shadowMapIndex, vec3 T, vec3 B, int extraDataSize, inout vec3 color)
+float calculateShadowCoverageForDirectionalLightPCF(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
 {
     vec4 shadowMapSettings = lightData.values[lightDataIndex++];
     int shadowMapCount = int(shadowMapSettings.r);
@@ -19,7 +19,6 @@ float calculateShadowCoverageForDirectionalLightPCF(inout int lightDataIndex, in
                               lightData.values[lightDataIndex++],
                               lightData.values[lightDataIndex++],
                               lightData.values[lightDataIndex++]);
-        lightDataIndex += extraDataSize;
 
         float coverage = 0;
         int viableSamples = 0;
@@ -53,6 +52,7 @@ float calculateShadowCoverageForDirectionalLightPCF(inout int lightDataIndex, in
             else color = vec3(1.0, 1.0, 1.0);
         }
 #endif
+        lightDataIndex += 4;
         ++shadowMapIndex;
         --shadowMapCount;
     }
@@ -62,20 +62,10 @@ float calculateShadowCoverageForDirectionalLightPCF(inout int lightDataIndex, in
     {
         // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
         // so subsequent light positions are correct.
-        lightDataIndex += (4 + extraDataSize) * shadowMapCount;
+        lightDataIndex += (8) * shadowMapCount;
         shadowMapIndex += shadowMapCount;
     }
 
     return overallCoverage;
 }
 #endif
-
-void skipShadowDataPCF(inout int lightDataIndex, inout int shadowMapIndex)
-{
-    float shadowMapCount = lightData.values[lightDataIndex++].r;
-    if (shadowMapCount > 0.0)
-    {
-        lightDataIndex += 4 * int(shadowMapCount);
-        shadowMapIndex += int(shadowMapCount);
-    }
-}

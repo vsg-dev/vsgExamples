@@ -160,14 +160,14 @@ void main()
     int numDirectionalLights = int(lightNums[1]);
     int numPointLights = int(lightNums[2]);
     int numSpotLights = int(lightNums[3]);
-    int index = 1;
+    int lightDataIndex = 1;
 
     if (numAmbientLights>0)
     {
         // ambient lights
         for(int i = 0; i<numAmbientLights; ++i)
         {
-            vec4 lightColor = lightData.values[index++];
+            vec4 lightColor = lightData.values[lightDataIndex++];
             color += (ambientColor.rgb * lightColor.rgb) * (lightColor.a);
         }
     }
@@ -189,14 +189,24 @@ void main()
         // directional lights
         for(int i = 0; i<numDirectionalLights; ++i)
         {
-            vec4 lightColor = lightData.values[index++];
-            vec3 direction = -lightData.values[index++].xyz;
+            vec4 lightColor = lightData.values[lightDataIndex++];
+            vec3 direction = -lightData.values[lightDataIndex++].xyz;
 
             float brightness = lightColor.a;
-            if (brightness > brightnessCutoff)
-                brightness *= (1.0-calculateShadowCoverageForDirectionalLight(index, shadowMapIndex, T, B, color));
+
+            vec4 shadowMapSettings = lightData.values[lightDataIndex];
+            int shadowMapCount = int(shadowMapSettings.r);
+            if (shadowMapCount > 0)
+            {
+                if (brightness > brightnessCutoff)
+                    brightness *= (1.0-calculateShadowCoverageForDirectionalLight(lightDataIndex, shadowMapIndex, T, B, color));
+
+                lightDataIndex += 8 * int(shadowMapCount);
+                shadowMapIndex += int(shadowMapCount);
+            }
             else
-                skipShadowData(index, shadowMapIndex);
+                lightDataIndex++;
+
             // if light is too dim/shadowed to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;
 
@@ -218,8 +228,8 @@ void main()
         // point light
         for(int i = 0; i<numPointLights; ++i)
         {
-            vec4 lightColor = lightData.values[index++];
-            vec3 position = lightData.values[index++].xyz;
+            vec4 lightColor = lightData.values[lightDataIndex++];
+            vec3 position = lightData.values[lightDataIndex++].xyz;
 
             float brightness = lightColor.a;
 
@@ -249,9 +259,9 @@ void main()
         // spot light
         for(int i = 0; i<numSpotLights; ++i)
         {
-            vec4 lightColor = lightData.values[index++];
-            vec4 position_cosInnerAngle = lightData.values[index++];
-            vec4 lightDirection_cosOuterAngle = lightData.values[index++];
+            vec4 lightColor = lightData.values[lightDataIndex++];
+            vec4 position_cosInnerAngle = lightData.values[lightDataIndex++];
+            vec4 lightDirection_cosOuterAngle = lightData.values[lightDataIndex++];
 
             float brightness = lightColor.a;
 

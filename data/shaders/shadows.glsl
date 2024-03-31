@@ -85,29 +85,10 @@ float quick_hash(vec2 pos) {
 
 
 #include "shadows_pcss.glsl"
-
 #include "shadows_pcf.glsl"
-
 #include "shadows_hard.glsl"
 
-void skipShadowData(inout int lightDataIndex, inout int shadowMapIndex)
-{
-    vec4 shadowMapSettings = lightData.values[lightDataIndex];
-    int shadowMapCount = int(shadowMapSettings.r);
-    if (shadowMapCount > 0)
-    {
-        if (shadowMapSettings.g < 0.0)
-            skipShadowDataHard(lightDataIndex, shadowMapIndex);
-        else if (shadowMapSettings.b < 0.0)
-            skipShadowDataPCF(lightDataIndex, shadowMapIndex);
-        else
-            skipShadowDataPCSS(lightDataIndex, shadowMapIndex);
-    }
-    else
-        lightDataIndex++;
-}
-
-float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
+float calculateShadowCoverageForDirectionalLight(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
 {
     vec4 shadowMapSettings = lightData.values[lightDataIndex];
     int shadowMapCount = int(shadowMapSettings.r);
@@ -116,20 +97,18 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
         if (shadowMapSettings.g < 0.0)
         {
 #ifdef VSG_SHADOWS_HARD
-            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, T, B, 0, color);
+            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, T, B, color);
 #else
-            skipShadowDataHard(lightDataIndex, shadowMapIndex);
             return 0;
 #endif
         }
         else if (shadowMapSettings.b < 0.0)
         {
 #ifdef VSG_SHADOWS_PCF
-            return calculateShadowCoverageForDirectionalLightPCF(lightDataIndex, shadowMapIndex, T, B, 0, color);
+            return calculateShadowCoverageForDirectionalLightPCF(lightDataIndex, shadowMapIndex, T, B, color);
 #elif defined(VSG_SHADOWS_HARD)
-            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, T, B, 0, color);
+            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, T, B, color);
 #else
-            skipShadowDataPCF(lightDataIndex, shadowMapIndex);
             return 0;
 #endif
         }
@@ -138,14 +117,11 @@ float calculateShadowCoverageForDirectionalLight(inout int lightDataIndex, inout
 #ifdef VSG_SHADOWS_PCSS
             return calculateShadowCoverageForDirectionalLightPCSS(lightDataIndex, shadowMapIndex, T, B, color);
 #elif defined(VSG_SHADOWS_HARD)
-            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, T, B, 4, color);
+            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, T, B, color);
 #else
-            skipShadowDataPCSS(lightDataIndex, shadowMapIndex);
             return 0;
 #endif
         }
     }
-    else
-        lightDataIndex++;
     return 0;
 }
