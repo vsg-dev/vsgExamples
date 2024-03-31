@@ -302,6 +302,26 @@ int main(int argc, char** argv)
         return 0;
     }
 
+    auto shaderHints = vsg::ShaderCompileSettings::create();
+    if (shaderDebug)
+    {
+        shaderHints = vsg::ShaderCompileSettings::create();
+        shaderHints->defines.insert("SHADOWMAP_DEBUG");
+    }
+
+    if (technique.find("pcss") != std::string::npos)
+    {
+        shaderHints->defines.insert("VSG_SHADOWS_PCSS");
+    }
+    if (technique.find("pcf") != std::string::npos)
+    {
+        shaderHints->defines.insert("VSG_SHADOWS_PCF");
+    }
+    if (technique.find("hard") != std::string::npos)
+    {
+        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+    }
+
     if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug || technique != "none" || shadowSampleCount != 16)
     {
         // customize the phong ShaderSet
@@ -315,27 +335,7 @@ int main(int argc, char** argv)
             phong->stages.push_back(phong_vertexShader);
             phong->stages.push_back(phong_fragShader);
 
-            if (shaderDebug)
-            {
-                phong->optionalDefines.insert("SHADOWMAP_DEBUG");
-                phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
-                phong->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
-            }
-
-            if (!phong->defaultShaderHints)
-                phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
-            if (technique.find("pcss") != std::string::npos)
-            {
-                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_PCSS");
-            }
-            if (technique.find("pcf") != std::string::npos)
-            {
-                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_PCF");
-            }
-            if (technique.find("hard") != std::string::npos)
-            {
-                phong->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
-            }
+            phong->defaultShaderHints = shaderHints;
 
             phong_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
                 {0, vsg::intValue::create(shadowSampleCount)},
@@ -367,27 +367,7 @@ int main(int argc, char** argv)
             pbr->stages.push_back(pbr_vertexShader);
             pbr->stages.push_back(pbr_fragShader);
 
-            if (shaderDebug)
-            {
-                pbr->optionalDefines.insert("SHADOWMAP_DEBUG");
-                pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
-                pbr->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
-            }
-
-            if (!pbr->defaultShaderHints)
-                pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
-            if (technique.find("pcss") != std::string::npos)
-            {
-                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_PCSS");
-            }
-            if (technique.find("pcf") != std::string::npos)
-            {
-                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_PCF");
-            }
-            if (technique.find("hard") != std::string::npos)
-            {
-                pbr->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
-            }
+            pbr->defaultShaderHints = shaderHints;
 
             pbr_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
                 {0, vsg::intValue::create(shadowSampleCount)},
