@@ -192,17 +192,28 @@ int main(int argc, char** argv)
         deviceFeatures->get().samplerAnisotropy = VK_TRUE;
         deviceFeatures->get().depthClamp = VK_TRUE;
 
+        auto shaderHints = vsg::ShaderCompileSettings::create();
+        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+
+        if (arguments.read("--shader-debug"))
+        {
+            shaderHints->defines.insert("SHADOWMAP_DEBUG");
+        }
+
         auto rasterizationState = vsg::RasterizationState::create();
         rasterizationState->depthClampEnable = VK_TRUE;
 
         auto pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
         pbr->defaultGraphicsPipelineStates.push_back(rasterizationState);
+        pbr->defaultShaderHints = shaderHints;
 
         auto phong = options->shaderSets["phong"] = vsg::createPhysicsBasedRenderingShaderSet(options);
         phong->defaultGraphicsPipelineStates.push_back(rasterizationState);
+        phong->defaultShaderHints = shaderHints;
 
         auto flat = options->shaderSets["flat"] = vsg::createPhysicsBasedRenderingShaderSet(options);
         flat->defaultGraphicsPipelineStates.push_back(rasterizationState);
+        flat->defaultShaderHints = shaderHints;
     }
 
     auto numCopies = arguments.value<unsigned int>(1, "-n");
