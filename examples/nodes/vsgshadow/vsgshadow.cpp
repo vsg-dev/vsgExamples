@@ -262,7 +262,6 @@ int main(int argc, char** argv)
     double lambda = arguments.value<double>(0.5, "--lambda");
     double nearFarRatio = arguments.value<double>(0.001, "--nf");
 
-    bool shaderDebug = arguments.read("--shader-debug");
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
     {
@@ -271,9 +270,6 @@ int main(int argc, char** argv)
         deviceFeatures->get().samplerAnisotropy = VK_TRUE;
         deviceFeatures->get().depthClamp = VK_TRUE;
     }
-
-    std::string technique = arguments.value<std::string>("pcss", "--technique");
-    int shadowSampleCount = arguments.value(16, "--shadow-samples");
 
     ModelSettings settings;
     settings.options = options;
@@ -303,26 +299,35 @@ int main(int argc, char** argv)
     }
 
     auto shaderHints = vsg::ShaderCompileSettings::create();
-    if (shaderDebug)
+    vsg::ref_ptr<vsg::ShadowSettings> shadowSettings;
+
+    int shadowSampleCount = arguments.value(16, "--shadow-samples");
+
+    if (arguments.read("--pcss"))
     {
-        shaderHints = vsg::ShaderCompileSettings::create();
+        shaderHints->defines.insert("VSG_SHADOWS_PCSS");
+        shadowSettings = vsg::PercentageCloserSoftShadows::create(numShadowMapsPerLight);
+    }
+
+    float penumbraRadius = 0.05f;
+    if (arguments.read("--pcf", penumbraRadius) || arguments.read("--soft", penumbraRadius))
+    {
+        shaderHints->defines.insert("VSG_SHADOWS_PCF");
+        shadowSettings = vsg::SoftShadows::create(numShadowMapsPerLight, penumbraRadius);
+    }
+
+    if (arguments.read("--hard") || !shadowSettings)
+    {
+        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+        shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
+    }
+
+    if (arguments.read("--shader-debug"))
+    {
         shaderHints->defines.insert("SHADOWMAP_DEBUG");
     }
 
-    if (technique.find("pcss") != std::string::npos)
-    {
-        shaderHints->defines.insert("VSG_SHADOWS_PCSS");
-    }
-    if (technique.find("pcf") != std::string::npos)
-    {
-        shaderHints->defines.insert("VSG_SHADOWS_PCF");
-    }
-    if (technique.find("hard") != std::string::npos)
-    {
-        shaderHints->defines.insert("VSG_SHADOWS_HARD");
-    }
-
-    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug || technique != "none" || shadowSampleCount != 16)
+    if (arguments.read({"-c", "--custom"}) || depthClamp || !shaderHints->defines.empty() || shadowSampleCount != 16)
     {
         // customize the phong ShaderSet
         auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
@@ -497,19 +502,6 @@ int main(int argc, char** argv)
     auto group = vsg::Group::create();
     group->addChild(scene);
 
-    vsg::ref_ptr<vsg::ShadowSettings> shadowSettings;
-    if (technique.find("pcss") == 0)
-    {
-        shadowSettings = vsg::PercentageCloserSoftShadows::create(numShadowMapsPerLight);
-    }
-    else if (technique.find("pcf") == 0)
-    {
-        shadowSettings = vsg::SoftShadows::create(numShadowMapsPerLight, 0.1f);
-    }
-    else if (technique.find("hard") == 0)
-    {
-        shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
-    }
 
     vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
     if (numLights >= 1)
