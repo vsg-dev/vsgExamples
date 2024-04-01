@@ -81,20 +81,20 @@ float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int sha
         --shadowMapCount;
     }
 
-    float overallCoverage = 0;
     // there's something there, compute shadow
     // note - can't skip if all viable samples so far were blockers - if they're distant, the penumbra could be wider than the blocker search
     if (overallBlockerCount > 0)
     {
+        float overallCoverage = 0;
+
         shadowMapCount = int(shadowMapSettings.r);
         shadowMapIndex = originalShadowMapIndex;
         lightDataIndex = originalIndex;
 
         float penumbraRadius = overallBlockerDistances * shadowMapSettings.b;
 
-        matched = false;
         float overallSampleCount = 0;
-        while (shadowMapCount > 0 && !matched)
+        while (shadowMapCount > 0)
         {
             mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
                                   lightData.values[lightDataIndex++],
@@ -121,29 +121,22 @@ float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int sha
             overallCoverage = mix(overallCoverage, coverage, viableSamples / max(overallSampleCount, 1));
 
             if (overallSampleCount >= viableSampleRatio * min(shadowSamples, POISSON_DISK_SAMPLE_COUNT))
-                matched = true;
+            {
+                #ifdef SHADOWMAP_DEBUG
+                            if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
+                            else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
+                            else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
+                            else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
+                            else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
+                            else color = vec3(1.0, 1.0, 1.0);
+                #endif
+                return overallCoverage;
+            }
 
-#ifdef SHADOWMAP_DEBUG
-            if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
-            else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
-            else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
-            else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
-            else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
-            else color = vec3(1.0, 1.0, 1.0);
-#endif
             ++shadowMapIndex;
             --shadowMapCount;
         }
     }
 
-
-    if (shadowMapCount > 0)
-    {
-        // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
-        // so subsequent light positions are correct.
-        lightDataIndex += 8 * shadowMapCount;
-        shadowMapIndex += shadowMapCount;
-    }
-
-    return overallCoverage;
+    return 0.0;
 }

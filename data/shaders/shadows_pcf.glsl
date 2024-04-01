@@ -9,10 +9,9 @@ float calculateShadowCoverageForDirectionalLightPCF(int lightDataIndex, int shad
     float diskRotation = quick_hash(gl_FragCoord.xy) * 2 * PI;
     mat2 diskRotationMatrix = mat2(cos(diskRotation), sin(diskRotation), -sin(diskRotation), cos(diskRotation));
 
-    bool matched = false;
     float overallCoverage = 0;
     float overallSampleCount = 0;
-    while (shadowMapCount > 0 && !matched)
+    while (shadowMapCount > 0)
     {
         mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
                               lightData.values[lightDataIndex++],
@@ -38,32 +37,22 @@ float calculateShadowCoverageForDirectionalLightPCF(int lightDataIndex, int shad
         overallCoverage = mix(overallCoverage, coverage, viableSamples / max(overallSampleCount, 1));
 
         if (overallSampleCount >= viableSampleRatio * min(shadowSamples, POISSON_DISK_SAMPLE_COUNT))
-            matched = true;
-
-#ifdef SHADOWMAP_DEBUG
-        if (viableSamples > 0)
         {
+        #ifdef SHADOWMAP_DEBUG
             if (shadowMapIndex==0) color = vec3(1.0, 0.0, 0.0);
             else if (shadowMapIndex==1) color = vec3(0.0, 1.0, 0.0);
             else if (shadowMapIndex==2) color = vec3(0.0, 0.0, 1.0);
             else if (shadowMapIndex==3) color = vec3(1.0, 1.0, 0.0);
             else if (shadowMapIndex==4) color = vec3(0.0, 1.0, 1.0);
             else color = vec3(1.0, 1.0, 1.0);
+        #endif
+            return overallCoverage;
         }
-#endif
+
         lightDataIndex += 4;
         ++shadowMapIndex;
         --shadowMapCount;
     }
 
-
-    if (shadowMapCount > 0)
-    {
-        // skip lightData and shadowMap entries for shadow maps that we haven't visited for this light
-        // so subsequent light positions are correct.
-        lightDataIndex += (8) * shadowMapCount;
-        shadowMapIndex += shadowMapCount;
-    }
-
-    return overallCoverage;
+    return 0.0;
 }
