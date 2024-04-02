@@ -19,11 +19,10 @@ float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int sha
     int overallViableSamples = 0;
     while (shadowMapCount > 0 && !matched)
     {
-        mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++]);
-
+        mat4 sm_matrix = mat4(lightData.values[lightDataIndex],
+                              lightData.values[lightDataIndex+1],
+                              lightData.values[lightDataIndex+2],
+                              lightData.values[lightDataIndex+3]);
         float blockerDistances = 0.0;
         int blockerCount = 0;
         int viableSamples = 0;
@@ -62,10 +61,10 @@ float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int sha
             // if averaging like this is legal, then calculating the penumbra radius in light space should be legal, too
             blockerDistances /= blockerCount;
 
-            mat4 sm_matrix_inv = mat4(lightData.values[lightDataIndex++],
-                                      lightData.values[lightDataIndex++],
-                                      lightData.values[lightDataIndex++],
-                                      lightData.values[lightDataIndex++]);
+            mat4 sm_matrix_inv = mat4(lightData.values[lightDataIndex+4],
+                                      lightData.values[lightDataIndex+5],
+                                      lightData.values[lightDataIndex+6],
+                                      lightData.values[lightDataIndex+7]);
             vec4 sm_tc = sm_matrix * vec4(eyePos, 1.0);
             vec4 averageBlockerEuclidean = sm_matrix_inv * vec4(sm_tc.xy, blockerDistances, sm_tc.w);
             averageBlockerEuclidean.xyz /= averageBlockerEuclidean.w;
@@ -74,9 +73,8 @@ float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int sha
             overallBlockerCount += blockerCount;
             overallBlockerDistances = mix(overallBlockerDistances, dist, blockerCount / overallBlockerCount);
         }
-        else
-            lightDataIndex += 4;
 
+        lightDataIndex += 8;
         ++shadowMapIndex;
         --shadowMapCount;
     }
@@ -96,12 +94,10 @@ float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int sha
         float overallSampleCount = 0;
         while (shadowMapCount > 0)
         {
-            mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
-                                  lightData.values[lightDataIndex++],
-                                  lightData.values[lightDataIndex++],
-                                  lightData.values[lightDataIndex++]);
-            // skip inverse matrix
-            lightDataIndex += 4;
+            mat4 sm_matrix = mat4(lightData.values[lightDataIndex],
+                                  lightData.values[lightDataIndex+1],
+                                  lightData.values[lightDataIndex+2],
+                                  lightData.values[lightDataIndex+3]);
 
             float coverage = 0;
             int viableSamples = 0;
@@ -133,6 +129,7 @@ float calculateShadowCoverageForDirectionalLightPCSS(int lightDataIndex, int sha
                 return overallCoverage;
             }
 
+            lightDataIndex += 8;
             ++shadowMapIndex;
             --shadowMapCount;
         }

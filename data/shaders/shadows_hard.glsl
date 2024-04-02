@@ -6,10 +6,10 @@ float calculateShadowCoverageForDirectionalLightHard(int lightDataIndex, int sha
     while (shadowMapCount > 0)
     {
         float overallCoverage = 0;
-        mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++]);
+        mat4 sm_matrix = mat4(lightData.values[lightDataIndex],
+                              lightData.values[lightDataIndex+1],
+                              lightData.values[lightDataIndex+2],
+                              lightData.values[lightDataIndex+3]);
 
         vec4 sm_tc = sm_matrix * vec4(eyePos, 1.0);
 
@@ -29,7 +29,7 @@ float calculateShadowCoverageForDirectionalLightHard(int lightDataIndex, int sha
             return overallCoverage;
         }
 
-        lightDataIndex += 4;
+        lightDataIndex += 8;
         ++shadowMapIndex;
         --shadowMapCount;
     }

@@ -13,10 +13,10 @@ float calculateShadowCoverageForDirectionalLightPCF(int lightDataIndex, int shad
     float overallSampleCount = 0;
     while (shadowMapCount > 0)
     {
-        mat4 sm_matrix = mat4(lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++],
-                              lightData.values[lightDataIndex++]);
+        mat4 sm_matrix = mat4(lightData.values[lightDataIndex],
+                              lightData.values[lightDataIndex+1],
+                              lightData.values[lightDataIndex+2],
+                              lightData.values[lightDataIndex+3]);
 
         float coverage = 0;
         int viableSamples = 0;
@@ -49,7 +49,7 @@ float calculateShadowCoverageForDirectionalLightPCF(int lightDataIndex, int shad
             return overallCoverage;
         }
 
-        lightDataIndex += 4;
+        lightDataIndex += 8;
         ++shadowMapIndex;
         --shadowMapCount;
     }
