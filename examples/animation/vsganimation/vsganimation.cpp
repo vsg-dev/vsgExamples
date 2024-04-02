@@ -183,26 +183,64 @@ int main(int argc, char** argv)
     }
 #endif
 
-    // when using shadows set the depthClampEnable to true;
-    bool depthClamp = true;
-    if (depthClamp)
+    unsigned int numLights = 2;
+    auto direction = arguments.value(vsg::dvec3(-0.25, 0.25, -1.0), "--direction");
+    auto lambda = arguments.value<double>(0.25, "--lambda");
+    double maxShadowDistance = arguments.value<double>(1e8, "--sd");
+    double nearFarRatio = arguments.value<double>(0.001, "--nf");
+    vsg::ref_ptr<vsg::ShadowSettings> shadowSettings;
+
+    auto numShadowMapsPerLight = arguments.value<uint32_t>(3, "--sm");
+    if (numShadowMapsPerLight > 0)
     {
+        auto shaderHints = vsg::ShaderCompileSettings::create();
+
+        float penumbraRadius = 0.005;
+        if (arguments.read("--pcss"))
+        {
+            shadowSettings = vsg::PercentageCloserSoftShadows::create(numShadowMapsPerLight);
+            shaderHints->defines.insert("VSG_SHADOWS_PCSS");
+        }
+
+        if (arguments.read("--soft", penumbraRadius))
+        {
+            shadowSettings = vsg::SoftShadows::create(numShadowMapsPerLight, penumbraRadius);
+            shaderHints->defines.insert("VSG_SHADOWS_SOFT");
+        }
+
+        if (arguments.read("--hard") || !shadowSettings)
+        {
+            shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
+            // shaderHints->defines.insert("VSG_SHADOWS_HARD");
+        }
+
         std::cout<<"Enabled depth clamp."<<std::endl;
         auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
         deviceFeatures->get().samplerAnisotropy = VK_TRUE;
         deviceFeatures->get().depthClamp = VK_TRUE;
+
+        if (arguments.read("--shader-debug"))
+        {
+            shaderHints->defines.insert("SHADOWMAP_DEBUG");
+        }
 
         auto rasterizationState = vsg::RasterizationState::create();
         rasterizationState->depthClampEnable = VK_TRUE;
 
         auto pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
         pbr->defaultGraphicsPipelineStates.push_back(rasterizationState);
+        pbr->defaultShaderHints = shaderHints;
+        pbr->variants.clear();
 
-        auto phong = options->shaderSets["phong"] = vsg::createPhysicsBasedRenderingShaderSet(options);
+        auto phong = options->shaderSets["phong"] = vsg::createPhongShaderSet(options);
         phong->defaultGraphicsPipelineStates.push_back(rasterizationState);
+        phong->defaultShaderHints = shaderHints;
+        phong->variants.clear();
 
         auto flat = options->shaderSets["flat"] = vsg::createPhysicsBasedRenderingShaderSet(options);
         flat->defaultGraphicsPipelineStates.push_back(rasterizationState);
+        flat->defaultShaderHints = shaderHints;
+        flat->variants.clear();
     }
 
     auto numCopies = arguments.value<unsigned int>(1, "-n");
@@ -232,13 +270,6 @@ int main(int argc, char** argv)
     }
 
     auto scene = vsg::Group::create();
-
-    unsigned int numLights = 2;
-    auto direction = arguments.value(vsg::dvec3(-0.25, 0.25, -1.0), "--direction");
-    auto numShadowMapsPerLight = arguments.value<uint32_t>(3, "--sm");
-    auto lambda = arguments.value<double>(0.25, "--lambda");
-    double maxShadowDistance = arguments.value<double>(1e8, "--sd");
-    double nearFarRatio = arguments.value<double>(0.001, "--nf");
 
     // load the models
     struct ModelBound
@@ -378,7 +409,8 @@ int main(int argc, char** argv)
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
-        directionalLight->shadowMaps = numShadowMapsPerLight;
+        directionalLight->shadowSettings = shadowSettings;
+
         scene->addChild(directionalLight);
 
         auto ambientLight = vsg::AmbientLight::create();

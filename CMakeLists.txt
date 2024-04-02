@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 
 project(vsgExamples
-        VERSION 1.1.2
+        VERSION 1.1.3
         DESCRIPTION "Set of example programs that test and illustrate how to use the VulkanSceneGraph"
         LANGUAGES CXX C
 )
@@ -21,7 +21,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-find_package(vsg 1.1.2)
+find_package(vsg 1.1.3)
 
 vsg_setup_dir_vars()
 vsg_setup_build_vars()

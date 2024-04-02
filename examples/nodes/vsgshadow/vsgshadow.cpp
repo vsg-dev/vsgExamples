@@ -262,7 +262,6 @@ int main(int argc, char** argv)
     double lambda = arguments.value<double>(0.5, "--lambda");
     double nearFarRatio = arguments.value<double>(0.001, "--nf");
 
-    bool shaderDebug = arguments.read("--shader-debug");
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
     {
@@ -299,7 +298,43 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if (arguments.read({"-c", "--custom"}) || depthClamp || shaderDebug)
+    auto shaderHints = vsg::ShaderCompileSettings::create();
+    vsg::ref_ptr<vsg::ShadowSettings> shadowSettings;
+
+    int shadowSampleCount = arguments.value(16, "--shadow-samples");
+
+    if (arguments.read("--pcss"))
+    {
+        shaderHints->defines.insert("VSG_SHADOWS_PCSS");
+        shadowSettings = vsg::PercentageCloserSoftShadows::create(numShadowMapsPerLight);
+    }
+
+    float penumbraRadius = 0.05f;
+    if (arguments.read("--pcf", penumbraRadius) || arguments.read("--soft", penumbraRadius))
+    {
+        shaderHints->defines.insert("VSG_SHADOWS_SOFT");
+        shadowSettings = vsg::SoftShadows::create(numShadowMapsPerLight, penumbraRadius);
+    }
+
+    if (arguments.read("--hard") || !shadowSettings)
+    {
+        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+        shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
+    }
+
+    bool overrideShadowSettings = arguments.read("--override");
+    if (overrideShadowSettings)
+    {
+        // overrideShadowSettings test will use the viewDependentState::shadowSettingsOverride with HardShadows later
+        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+    }
+
+    if (arguments.read("--shader-debug"))
+    {
+        shaderHints->defines.insert("SHADOWMAP_DEBUG");
+    }
+
+    if (arguments.read({"-c", "--custom"}) || depthClamp || !shaderHints->defines.empty() || shadowSampleCount != 16)
     {
         // customize the phong ShaderSet
         auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
@@ -312,12 +347,11 @@ int main(int argc, char** argv)
             phong->stages.push_back(phong_vertexShader);
             phong->stages.push_back(phong_fragShader);
 
-            if (shaderDebug)
-            {
-                phong->optionalDefines.insert("SHADOWMAP_DEBUG");
-                phong->defaultShaderHints = vsg::ShaderCompileSettings::create();
-                phong->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
-            }
+            phong->defaultShaderHints = shaderHints;
+
+            phong_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+                {0, vsg::intValue::create(shadowSampleCount)},
+            };
 
             if (depthClamp)
             {
@@ -345,12 +379,11 @@ int main(int argc, char** argv)
             pbr->stages.push_back(pbr_vertexShader);
             pbr->stages.push_back(pbr_fragShader);
 
-            if (shaderDebug)
-            {
-                pbr->optionalDefines.insert("SHADOWMAP_DEBUG");
-                pbr->defaultShaderHints = vsg::ShaderCompileSettings::create();
-                pbr->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
-            }
+            pbr->defaultShaderHints = shaderHints;
+
+            pbr_fragShader->specializationConstants = vsg::ShaderStage::SpecializationConstants{
+                {0, vsg::intValue::create(shadowSampleCount)},
+            };
 
             if (depthClamp)
             {
@@ -386,6 +419,7 @@ int main(int argc, char** argv)
 
     auto inherit = arguments.read("--inherit");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
+    auto angleSubtended = arguments.value<double>(0.0090f, "--angleSubtended");
     auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
     auto scale = arguments.value<double>(1.0, "--scale");
     double viewingDistance = scale;
@@ -416,7 +450,7 @@ int main(int argc, char** argv)
         auto model = vsg::read_cast<vsg::Node>(filename, options);
         if (!model)
         {
-            std::cout<<"Faled to load "<<filename<<std::endl;
+            std::cout<<"Failed to load "<<filename<<std::endl;
             return 1;
         }
 
@@ -484,7 +518,9 @@ int main(int argc, char** argv)
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
-        directionalLight->shadowMaps = numShadowMapsPerLight;
+        directionalLight->angleSubtended = angleSubtended;
+        directionalLight->shadowSettings = shadowSettings;
+
         group->addChild(directionalLight);
     }
 
@@ -508,7 +544,9 @@ int main(int argc, char** argv)
         directionalLight2->color.set(1.0, 1.0, 0.0);
         directionalLight2->intensity = 0.7;
         directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
-        directionalLight2->shadowMaps = numShadowMapsPerLight;
+        directionalLight2->angleSubtended = angleSubtended;
+        directionalLight2->shadowSettings = shadowSettings;
+
         group->addChild(directionalLight2);
     }
 
@@ -554,6 +592,8 @@ int main(int argc, char** argv)
     view->viewDependentState->maxShadowDistance = maxShadowDistance;
     view->viewDependentState->shadowMapBias = shadowMapBias;
     view->viewDependentState->lambda = lambda;
+    if (overrideShadowSettings) view->viewDependentState->shadowSettingsOverride[{}] = vsg::HardShadows::create(1);
+
     view->addChild(scene);
 
     // add close handler to respond the close window button and pressing escape

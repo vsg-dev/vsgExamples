@@ -315,13 +315,18 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    auto shaderHints = shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
+
+//    if (numShadowMapsPerLight>0)
+//    {
+//        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+//    }
+
     if (depthClamp || shaderDebug)
     {
         if (shaderDebug)
         {
-            shaderSet->optionalDefines.insert("SHADOWMAP_DEBUG");
-            shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
-            shaderSet->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
+            shaderHints->defines.insert("SHADOWMAP_DEBUG");
         }
 
         if (depthClamp)
@@ -566,7 +571,10 @@ int main(int argc, char** argv)
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.9;
         directionalLight->direction = direction;
-        directionalLight->shadowMaps = numShadowMapsPerLight;
+        if (numShadowMapsPerLight > 0)
+        {
+            directionalLight->shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
+        }
         group->addChild(directionalLight);
 
         auto ambientLight = vsg::AmbientLight::create();
