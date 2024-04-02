@@ -1,4 +1,4 @@
-float calculateShadowCoverageForDirectionalLightPCF(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
+float calculateShadowCoverageForDirectionalLightSoft(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
 {
     vec4 shadowMapSettings = lightData.values[lightDataIndex++];
     int shadowMapCount = int(shadowMapSettings.r);

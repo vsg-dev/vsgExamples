@@ -312,7 +312,7 @@ int main(int argc, char** argv)
     float penumbraRadius = 0.05f;
     if (arguments.read("--pcf", penumbraRadius) || arguments.read("--soft", penumbraRadius))
     {
-        shaderHints->defines.insert("VSG_SHADOWS_PCF");
+        shaderHints->defines.insert("VSG_SHADOWS_SOFT");
         shadowSettings = vsg::SoftShadows::create(numShadowMapsPerLight, penumbraRadius);
     }
 

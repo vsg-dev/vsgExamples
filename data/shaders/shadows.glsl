@@ -4,7 +4,7 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 3) uniform sampler shadowMapDirectSa
 #endif
 layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
 
-#if defined(VSG_SHADOWS_PCSS) || defined(VSG_SHADOWS_PCF)
+#if defined(VSG_SHADOWS_PCSS) || defined(VSG_SHADOWS_SOFT)
 layout(constant_id = 0) const int shadowSamples = 16;
 
 const int POISSON_DISK_SAMPLE_COUNT = 64;
@@ -88,8 +88,8 @@ float quick_hash(vec2 pos) {
 #include "shadows_pcss.glsl"
 #endif
 
-#ifdef VSG_SHADOWS_PCF
-#include "shadows_pcf.glsl"
+#ifdef VSG_SHADOWS_SOFT
+#include "shadows_soft.glsl"
 #endif
 
 #ifdef VSG_SHADOWS_HARD
@@ -112,8 +112,8 @@ float calculateShadowCoverageForDirectionalLight(int lightDataIndex, int shadowM
         }
         else if (shadowMapSettings.b < 0.0)
         {
-#ifdef VSG_SHADOWS_PCF
-            return calculateShadowCoverageForDirectionalLightPCF(lightDataIndex, shadowMapIndex, T, B, color);
+#ifdef VSG_SHADOWS_SOFT
+            return calculateShadowCoverageForDirectionalLightSoft(lightDataIndex, shadowMapIndex, T, B, color);
 #elif defined(VSG_SHADOWS_HARD)
             return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, T, B, color);
 #else

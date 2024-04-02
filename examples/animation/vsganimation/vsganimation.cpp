@@ -205,7 +205,7 @@ int main(int argc, char** argv)
         if (arguments.read("--soft", penumbraRadius))
         {
             shadowSettings = vsg::SoftShadows::create(numShadowMapsPerLight, penumbraRadius);
-            shaderHints->defines.insert("VSG_SHADOWS_PCF");
+            shaderHints->defines.insert("VSG_SHADOWS_SOFT");
         }
 
         if (arguments.read("--hard") || !shadowSettings)
