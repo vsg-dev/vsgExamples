@@ -322,6 +322,13 @@ int main(int argc, char** argv)
         shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
     }
 
+    bool overrideShadowSettings = arguments.read("--override");
+    if (overrideShadowSettings)
+    {
+        // overrideShadowSettings test will use the viewDependentState::shadowSettingsOverride with HardShadows later
+        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+    }
+
     if (arguments.read("--shader-debug"))
     {
         shaderHints->defines.insert("SHADOWMAP_DEBUG");
@@ -585,6 +592,8 @@ int main(int argc, char** argv)
     view->viewDependentState->maxShadowDistance = maxShadowDistance;
     view->viewDependentState->shadowMapBias = shadowMapBias;
     view->viewDependentState->lambda = lambda;
+    if (overrideShadowSettings) view->viewDependentState->shadowSettingsOverride[{}] = vsg::HardShadows::create(1);
+
     view->addChild(scene);
 
     // add close handler to respond the close window button and pressing escape
