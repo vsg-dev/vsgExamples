@@ -439,15 +439,14 @@ void main()
 
             float brightness = lightColor.a;
 
-            vec4 shadowMapSettings = lightData.values[lightDataIndex];
-            int shadowMapCount = int(shadowMapSettings.r);
+            int shadowMapCount = int(lightData.values[lightDataIndex].r);
             if (shadowMapCount > 0)
             {
                 if (brightness > brightnessCutoff)
                     brightness *= (1.0-calculateShadowCoverageForDirectionalLight(lightDataIndex, shadowMapIndex, T, B, color));
 
-                lightDataIndex += 1 + 8 * int(shadowMapCount);
-                shadowMapIndex += int(shadowMapCount);
+                lightDataIndex += 1 + 8 * shadowMapCount;
+                shadowMapIndex += shadowMapCount;
             }
             else
                 lightDataIndex++;
