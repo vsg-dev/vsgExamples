@@ -319,7 +319,6 @@ int main(int argc, char** argv)
     {
         if (shaderDebug)
         {
-            shaderSet->optionalDefines.insert("SHADOWMAP_DEBUG");
             shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
             shaderSet->defaultShaderHints->defines.insert("SHADOWMAP_DEBUG");
         }
