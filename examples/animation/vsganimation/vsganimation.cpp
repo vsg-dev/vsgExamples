@@ -211,7 +211,7 @@ int main(int argc, char** argv)
         if (arguments.read("--hard") || !shadowSettings)
         {
             shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
-            shaderHints->defines.insert("VSG_SHADOWS_HARD");
+            // shaderHints->defines.insert("VSG_SHADOWS_HARD");
         }
 
         std::cout<<"Enabled depth clamp."<<std::endl;

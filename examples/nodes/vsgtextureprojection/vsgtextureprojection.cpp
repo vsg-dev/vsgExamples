@@ -317,10 +317,10 @@ int main(int argc, char** argv)
 
     auto shaderHints = shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
 
-    if (numShadowMapsPerLight>0)
-    {
-        shaderHints->defines.insert("VSG_SHADOWS_HARD");
-    }
+//    if (numShadowMapsPerLight>0)
+//    {
+//        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+//    }
 
     if (depthClamp || shaderDebug)
     {
