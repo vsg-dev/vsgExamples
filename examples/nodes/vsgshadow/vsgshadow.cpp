@@ -287,6 +287,8 @@ int main(int argc, char** argv)
         resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceHintsFilename, options);
     }
 
+    bool assignRegionOfInterest = arguments.read({"--region-of-interest", "--roi"});
+
     if (!resourceHints) resourceHints = vsg::ResourceHints::create();
 
     arguments.read("--shadowMapSize", resourceHints->shadowMapSize);
@@ -471,6 +473,26 @@ int main(int argc, char** argv)
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
     viewingDistance = vsg::length(bounds.max - bounds.min) * 2.0;
+
+    if (assignRegionOfInterest)
+    {
+        auto group = vsg::Group::create();
+
+        auto regionOfInterest = vsg::RegionOfInterest::create();
+        regionOfInterest->name = "region to cast shadow";
+        regionOfInterest->points.emplace_back(bounds.min.x, bounds.min.y, bounds.min.z);
+        regionOfInterest->points.emplace_back(bounds.max.x, bounds.min.y, bounds.min.z);
+        regionOfInterest->points.emplace_back(bounds.max.x, bounds.max.y, bounds.min.z);
+        regionOfInterest->points.emplace_back(bounds.min.x, bounds.max.y, bounds.min.z);
+        regionOfInterest->points.emplace_back(bounds.min.x, bounds.min.y, bounds.max.z);
+        regionOfInterest->points.emplace_back(bounds.max.x, bounds.min.y, bounds.max.z);
+        regionOfInterest->points.emplace_back(bounds.max.x, bounds.max.y, bounds.max.z);
+        regionOfInterest->points.emplace_back(bounds.min.x, bounds.max.y, bounds.max.z);
+        group->addChild(regionOfInterest);
+        group->addChild(scene);
+
+        scene = group;
+    }
 
     vsg::ref_ptr<vsg::LookAt> lookAt;
 
