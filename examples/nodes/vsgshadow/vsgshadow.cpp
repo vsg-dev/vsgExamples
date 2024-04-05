@@ -572,6 +572,22 @@ int main(int argc, char** argv)
         group->addChild(directionalLight2);
     }
 
+    if (numLights >= 4)
+    {
+        auto spotLight = vsg::SpotLight::create();
+        spotLight->name = "spot";
+        spotLight->color.set(0.0, 1.0, 1.0);
+        spotLight->intensity = 200.0;
+        spotLight->position = vsg::vec3(3.0, 0.5, 15.0);
+        spotLight->direction = vsg::normalize(vsg::vec3(-0.5, -1, -10));
+        spotLight->outerAngle = vsg::radians(10.0);
+        spotLight->innerAngle = vsg::radians(5.0);
+        spotLight->radius = 0.2;
+        spotLight->shadowSettings = shadowSettings;
+
+        group->addChild(spotLight);
+    }
+
     scene = group;
 
     // write out scene if required

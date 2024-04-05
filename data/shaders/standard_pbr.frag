@@ -487,6 +487,15 @@ void main()
 
     if (numSpotLights>0)
     {
+        vec3 q1 = dFdx(eyePos);
+        vec3 q2 = dFdy(eyePos);
+        vec2 st1 = dFdx(texCoord0);
+        vec2 st2 = dFdy(texCoord0);
+
+        vec3 N = normalize(normalDir);
+        vec3 T = normalize(q1 * st2.t - q2 * st1.t);
+        vec3 B = -normalize(cross(N, T));
+
         // spot light
         for(int i = 0; i<numSpotLights; ++i)
         {
@@ -494,14 +503,30 @@ void main()
             vec4 position_cosInnerAngle = lightData.values[lightDataIndex++];
             vec4 lightDirection_cosOuterAngle = lightData.values[lightDataIndex++];
 
+            float brightness = lightColor.a;
+
             vec3 delta = position_cosInnerAngle.xyz - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
-            vec3 direction = delta / sqrt(distance2);
+            float dist = sqrt(distance2);
+
+            int shadowMapCount = int(lightData.values[lightDataIndex].r);
+            if (shadowMapCount > 0)
+            {
+                if (brightness > brightnessCutoff)
+                    brightness *= (1.0-calculateShadowCoverageForSpotLight(lightDataIndex, shadowMapIndex, T, B, dist, color));
+
+                lightDataIndex += 1 + 8 * shadowMapCount;
+                shadowMapIndex += shadowMapCount;
+            }
+            else
+                lightDataIndex++;
+
+            vec3 direction = delta / dist;
             float dot_lightdirection = -dot(lightDirection_cosOuterAngle.xyz, direction);
 
             vec3 l = direction;        // Vector from surface point to light
             vec3 h = normalize(l+v);    // Half vector between both l and v
-            float scale = (lightColor.a * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
+            float scale = (brightness * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
 
             color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
         }
