@@ -1,3 +1,6 @@
 if (ANDROID)
     add_subdirectory(vsgandroidnative)
 endif()
+if (WIN32)
+	add_subdirectory(vsgwin32)
+endif()
