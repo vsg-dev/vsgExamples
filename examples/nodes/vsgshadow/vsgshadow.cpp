@@ -442,7 +442,8 @@ int main(int argc, char** argv)
     }
 
     vsg::ref_ptr<vsg::Node> scene;
-    if (arguments.read("--large"))
+    bool largeScene = arguments.read("--large");
+    if (largeScene)
     {
         scene = createLargeTestScene(settings);
     }
@@ -580,6 +581,12 @@ int main(int argc, char** argv)
         spotLight->intensity = 200.0;
         spotLight->position = vsg::vec3(3.0, 0.5, 15.0);
         spotLight->direction = vsg::normalize(vsg::vec3(-0.5, -1, -10));
+        if (largeScene)
+        {
+            spotLight->position = vsg::vec3(3000.0, 500.0, 15000.0);
+            spotLight->direction = vsg::normalize(vsg::dvec3(500, 500, 0) - spotLight->position);
+            spotLight->intensity = 15000.0 * 15000.0 / 4.0;
+        }
         spotLight->outerAngle = vsg::radians(10.0);
         spotLight->innerAngle = vsg::radians(5.0);
         spotLight->radius = 0.2;
