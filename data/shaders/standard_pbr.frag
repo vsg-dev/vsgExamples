@@ -442,6 +442,9 @@ void main()
 
             float brightness = lightColor.a;
 
+            // if light is too dim to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
             int shadowMapCount = int(lightData.values[lightDataIndex].r);
             if (shadowMapCount > 0)
             {
@@ -454,7 +457,7 @@ void main()
             else
                 lightDataIndex++;
 
-            // if light is too dim/shadowed to effect the rendering skip it
+            // if light is too shadowed to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;
 
             vec3 l = direction;         // Vector from surface point to light
@@ -505,14 +508,21 @@ void main()
 
             float brightness = lightColor.a;
 
+            // if light is too dim to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
             vec3 delta = position_cosInnerAngle.xyz - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
             float dist = sqrt(distance2);
 
+            vec3 direction = delta / dist;
+
+            float dot_lightdirection = dot(lightDirection_cosOuterAngle.xyz, -direction);
+
             int shadowMapCount = int(lightData.values[lightDataIndex].r);
             if (shadowMapCount > 0)
             {
-                if (brightness > brightnessCutoff)
+                if (lightDirection_cosOuterAngle.w > dot_lightdirection)
                     brightness *= (1.0-calculateShadowCoverageForSpotLight(lightDataIndex, shadowMapIndex, T, B, dist, color));
 
                 lightDataIndex += 1 + 8 * shadowMapCount;
@@ -521,8 +531,8 @@ void main()
             else
                 lightDataIndex++;
 
-            vec3 direction = delta / dist;
-            float dot_lightdirection = -dot(lightDirection_cosOuterAngle.xyz, direction);
+            // if light is too shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
 
             vec3 l = direction;        // Vector from surface point to light
             vec3 h = normalize(l+v);    // Half vector between both l and v
