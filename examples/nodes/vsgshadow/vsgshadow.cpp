@@ -534,7 +534,7 @@ int main(int argc, char** argv)
 
 
     vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
-    if (numLights >= 1)
+    if (numLights >= 1 && numLights < 4)
     {
         directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
@@ -557,7 +557,7 @@ int main(int argc, char** argv)
         group->addChild(ambientLight);
     }
 
-    if (numLights >= 3)
+    if (numLights >= 3 && numLights < 4)
     {
         directionalLight->intensity = 0.7;
         ambientLight->intensity = 0.1;
