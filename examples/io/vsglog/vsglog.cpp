@@ -46,7 +46,12 @@ int main(int argc, char** argv)
     // you can override the message verbosity by setting the minimum level that will be printed.
     vsg::Logger::instance()->level = level;
 
+    // if we want to redirect std::cout and std::cerr to the vsg::Logger call vsg::Logger::redirect_stdout()
+    if (arguments.read({"--redirect-std", "-r"})) vsg::Logger::instance()->redirect_std();
+
     // simplest form of messaging gets passed to the vsg::Logger::instance().
+    std::cout<<"cout cstring"<<std::endl;
+    std::cerr<<"cerr cstring"<<std::endl;
     vsg::debug("debug string");
     vsg::info("info cstring");
     vsg::warn("warn cstring");
