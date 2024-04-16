@@ -12,6 +12,7 @@ struct MyOperation : public vsg::Inherit<vsg::Operation, MyOperation>
         auto level = vsg::Logger::Level(1 + value % 4);
         vsg::info("info() operation ",value);
         vsg::log(level, "log() operation ",value);
+        std::cout<<"cout operation "<<value<<std::endl;
     }
 };
 
@@ -25,6 +26,10 @@ int main(int argc, char** argv)
     mt_logger->setThreadPrefix(std::this_thread::get_id(), "main | ");
 
     vsg::CommandLine arguments(&argc, argv);
+
+    // if we want to redirect std::cout and std::cerr to the vsg::Logger call vsg::Logger::redirect_stdout()
+    if (arguments.read({"--redirect-std", "-r"})) vsg::Logger::instance()->redirect_std();
+
     auto numThreads = arguments.value<size_t>(16, "-t");
     auto count = arguments.value<size_t>(100, "-n");
     auto level = vsg::Logger::Level(arguments.value(0, "-l"));

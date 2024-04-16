@@ -10,27 +10,27 @@ public:
 protected:
     void debug_implementation(const std::string_view& message) override
     {
-        std::cout<<"custom debug : "<<message<<"\n";
+        fprintf(stdout, "custom debug: %.*s\n", static_cast<int>(message.length()), message.data());
     }
 
     void info_implementation(const std::string_view& message) override
     {
-        std::cout<<"custom info : "<<message<<"\n";
+        fprintf(stdout, "custom info: %.*s\n", static_cast<int>(message.length()), message.data());
     }
 
     void warn_implementation(const std::string_view& message) override
     {
-        std::cerr<<"custom warn : "<<message<<std::endl;
+        fprintf(stderr, "custom warn: %.*s\n", static_cast<int>(message.length()), message.data());
     }
 
     void error_implementation(const std::string_view& message) override
     {
-        std::cerr<<"custom error : "<<message<<std::endl;
+        fprintf(stderr, "custom error: %.*s\n", static_cast<int>(message.length()), message.data());
     }
 
     void fatal_implementation(const std::string_view& message) override
     {
-        std::cerr<<"custom error : "<<message<<std::endl;
+        fprintf(stderr, "custom error: %.*s\n", static_cast<int>(message.length()), message.data());
         throw vsg::Exception{std::string(message)};
     }
 };
@@ -46,7 +46,12 @@ int main(int argc, char** argv)
     // you can override the message verbosity by setting the minimum level that will be printed.
     vsg::Logger::instance()->level = level;
 
+    // if we want to redirect std::cout and std::cerr to the vsg::Logger call vsg::Logger::redirect_stdout()
+    if (arguments.read({"--redirect-std", "-r"})) vsg::Logger::instance()->redirect_std();
+
     // simplest form of messaging gets passed to the vsg::Logger::instance().
+    std::cout<<"cout cstring"<<std::endl;
+    std::cerr<<"cerr cstring"<<std::endl;
     vsg::debug("debug string");
     vsg::info("info cstring");
     vsg::warn("warn cstring");
