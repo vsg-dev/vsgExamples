@@ -10,27 +10,27 @@ public:
 protected:
     void debug_implementation(const std::string_view& message) override
     {
-        std::cout<<"custom debug : "<<message<<"\n";
+        fprintf(stdout, "custom debug: %.*s\n", static_cast<int>(message.length()), message.data());
     }
 
     void info_implementation(const std::string_view& message) override
     {
-        std::cout<<"custom info : "<<message<<"\n";
+        fprintf(stdout, "custom info: %.*s\n", static_cast<int>(message.length()), message.data());
     }
 
     void warn_implementation(const std::string_view& message) override
     {
-        std::cerr<<"custom warn : "<<message<<std::endl;
+        fprintf(stderr, "custom warn: %.*s\n", static_cast<int>(message.length()), message.data());
     }
 
     void error_implementation(const std::string_view& message) override
     {
-        std::cerr<<"custom error : "<<message<<std::endl;
+        fprintf(stderr, "custom error: %.*s\n", static_cast<int>(message.length()), message.data());
     }
 
     void fatal_implementation(const std::string_view& message) override
     {
-        std::cerr<<"custom error : "<<message<<std::endl;
+        fprintf(stderr, "custom error: %.*s\n", static_cast<int>(message.length()), message.data());
         throw vsg::Exception{std::string(message)};
     }
 };
