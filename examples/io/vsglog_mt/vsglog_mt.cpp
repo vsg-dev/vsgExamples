@@ -12,7 +12,7 @@ struct MyOperation : public vsg::Inherit<vsg::Operation, MyOperation>
         auto level = vsg::Logger::Level(1 + value % 4);
         vsg::info("info() operation ",value);
         vsg::log(level, "log() operation ",value);
-        std::cout<<"cout operation"<<std::endl;
+        std::cout<<"cout operation "<<value<<std::endl;
     }
 };
 
