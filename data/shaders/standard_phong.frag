@@ -41,9 +41,9 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
-layout(set = VIEW_DESCRIPTOR_SET, binding = 0) buffer LightData
+layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 {
-    vec4 values[];
+    vec4 values[2048];
 } lightData;
 
 layout(location = 0) in vec3 eyePos;
