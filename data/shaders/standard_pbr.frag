@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG)
+#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
 
 // define by default for backwards compatibility
 #define VSG_SHADOWS_HARD
@@ -334,11 +334,9 @@ void main()
     baseColor = vertexColor * pbr.baseColorFactor;
 #endif
 
-    if (pbr.alphaMask == 1.0f)
-    {
-        if (baseColor.a < pbr.alphaMaskCutoff)
-            discard;
-    }
+#ifdef VSG_ALPHA_TEST
+    if (material.alphaMask == 1.0f && diffuseColor.a < material.alphaMaskCutoff) discard;
+#endif
 
 #ifdef VSG_WORKFLOW_SPECGLOSS
     #ifdef VSG_DIFFUSE_MAP
