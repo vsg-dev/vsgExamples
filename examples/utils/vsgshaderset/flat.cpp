@@ -65,7 +65,7 @@ vsg::ref_ptr<vsg::ShaderSet> flat_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
 
     shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
 
-    shaderSet->optionalDefines = {"VSG_POINT_SPRITE", "VSG_GREYSCALE_DIFFUSE_MAP"};
+    shaderSet->optionalDefines = {"VSG_POINT_SPRITE", "VSG_GREYSCALE_DIFFUSE_MAP", "VSG_ALPHA_TEST"};
 
     shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_INSTANCE_POSITIONS", "VSG_DISPLACEMENT_MAP"}, vsg::PositionAndDisplacementMapArrayState::create()});
     shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_INSTANCE_POSITIONS"}, vsg::PositionArrayState::create()});

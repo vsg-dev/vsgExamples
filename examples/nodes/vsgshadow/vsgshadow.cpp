@@ -324,6 +324,11 @@ int main(int argc, char** argv)
         shadowSettings = vsg::HardShadows::create(numShadowMapsPerLight);
     }
 
+    if (arguments.read({"--alpha-test", "--at"}))
+    {
+        shaderHints->defines.insert("VSG_ALPHA_TEST");
+    }
+
     bool overrideShadowSettings = arguments.read("--override");
     if (overrideShadowSettings)
     {

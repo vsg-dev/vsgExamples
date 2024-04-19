@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_ALPHA_TEST)
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
@@ -44,11 +44,9 @@ void main()
     #endif
 #endif
 
-    if (material.alphaMask == 1.0f)
-    {
-        if (diffuseColor.a < material.alphaMaskCutoff)
-            discard;
-    }
+#ifdef VSG_ALPHA_TEST
+    if (material.alphaMask == 1.0f && diffuseColor.a < material.alphaMaskCutoff) discard;
+#endif
 
     outColor = diffuseColor;
 }
