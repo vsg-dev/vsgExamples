@@ -78,6 +78,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read(const vsg::Path& filename, vsg::ref_p
 vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options> options) const
 {
     auto group = createRoot();
+    if (!group) return {};
 
     uint32_t lod = 0;
     for (uint32_t y = 0; y < noY; ++y)
@@ -269,7 +270,15 @@ vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const
     vsg::ref_ptr<vsg::ShaderStage> fragmentShader = vsg::ShaderStage::read(VK_SHADER_STAGE_FRAGMENT_BIT, "main", vsg::findFile("shaders/frag_PushConstants.spv", searchPaths));
     if (!vertexShader || !fragmentShader)
     {
-        vsg::warn("Could not create shaders.");
+        vsg::warn("Could not find shaders. Please set the VSG_FILE_PATH env var to the path to your vsgExamples/data.");
+        if (!searchPaths.empty())
+        {
+            vsg::info("VSG_FILE_PATH set, but does not contains vert_PushConstants.spv & frag_PushConstants.spv shaders. Paths set:");
+            for(auto path : searchPaths)
+            {
+                vsg::info("    ", path);
+            }
+        }
         return {};
     }
 
