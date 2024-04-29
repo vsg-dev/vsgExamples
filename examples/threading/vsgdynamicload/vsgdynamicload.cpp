@@ -209,7 +209,7 @@ int main(int argc, char** argv)
         vsg::dvec3 primary(2.0, 0.0, 0.0);
         vsg::dvec3 secondary(0.0, 2.0, 0.0);
 
-        int numModels = static_cast<float>(argc - 1);
+        int numModels = argc - 1;
         int numColumns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(numModels))));
         int numRows = static_cast<int>(std::ceil(static_cast<float>(numModels) / static_cast<float>(numColumns)));
 
