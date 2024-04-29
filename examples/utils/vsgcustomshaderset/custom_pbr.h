@@ -7,11 +7,11 @@ namespace custom
     // OpenGL style fog struct to pass to the GPU
     struct Fog
     {
-        vsg::vec3 color = {1.0, 1.0, 1.0};
-        float density = 0.05; // OpenGL default is 1.0!
-        float start = 0.0;
-        float end = 1.0;
-        float exponent = 1.0;
+        vsg::vec3 color = {1.0f, 1.0f, 1.0f};
+        float density = 0.05f; // OpenGL default is 1.0!
+        float start = 0.0f;
+        float end = 1.0f;
+        float exponent = 1.0f;
 
         void read(vsg::Input& input)
         {

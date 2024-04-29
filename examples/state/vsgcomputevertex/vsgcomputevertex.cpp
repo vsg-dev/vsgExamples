@@ -170,7 +170,7 @@ int main(int argc, char** argv)
         viewer->update();
 
         double frameTime = std::chrono::duration<float, std::chrono::seconds::period>(viewer->getFrameStamp()->time - viewer->start_point()).count();
-        computeScale->at(0).z = sin(frameTime);
+        computeScale->at(0).z = static_cast<float>(sin(frameTime));
         computeScale->dirty();
 
         viewer->recordAndSubmit();
