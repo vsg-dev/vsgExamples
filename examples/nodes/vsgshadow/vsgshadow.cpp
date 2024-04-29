@@ -37,7 +37,7 @@ vsg::ref_ptr<vsg::Node> decorateIfRequired(vsg::ref_ptr<vsg::Node> node, const M
         {
             auto bb = vsg::visit<vsg::ComputeBounds>(node).bounds;
             auto lod = vsg::LOD::create();
-            lod->bound = vsg::sphere((bb.min + bb.max) * 0.5, vsg::length(bb.max - bb.min));
+            lod->bound = vsg::dsphere((bb.min + bb.max) * 0.5, vsg::length(bb.max - bb.min));
             lod->addChild(vsg::LOD::Child{settings.lodScreenRatio, node});
             return lod;
         }
@@ -79,10 +79,10 @@ vsg::ref_ptr<vsg::Node> createTestScene(const ModelSettings& settings)
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
     if (settings.insertBaseGeometry)
     {
-        double diameter = vsg::length(bounds.max - bounds.min);
-        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-        geomInfo.dx.set(diameter, 0.0, 0.0);
-        geomInfo.dy.set(0.0, diameter, 0.0);
+        float diameter = static_cast<float>(vsg::length(bounds.max - bounds.min));
+        geomInfo.position.set(static_cast<float>((bounds.min.x + bounds.max.x)*0.5), static_cast<float>((bounds.min.y + bounds.max.y)*0.5), static_cast<float>(bounds.min.z));
+        geomInfo.dx.set(diameter, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, diameter, 0.0f);
         geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
 
         stateInfo.two_sided = true;
@@ -158,11 +158,11 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
 
     if (settings.insertBaseGeometry)
     {
-        double diameter = vsg::length(bounds.max - bounds.min);
-        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
-        geomInfo.dx.set(diameter, 0.0, 0.0);
-        geomInfo.dy.set(0.0, diameter, 0.0);
-        geomInfo.dz.set(0.0, 0.0, 1.0);
+        float diameter = static_cast<float>(vsg::length(bounds.max - bounds.min));
+        geomInfo.position.set(static_cast<float>((bounds.min.x + bounds.max.x)*0.5), static_cast<float>((bounds.min.y + bounds.max.y)*0.5), static_cast<float>(bounds.min.z));
+        geomInfo.dx.set(diameter, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, diameter, 0.0f);
+        geomInfo.dz.set(0.0f, 0.0f, 1.0f);
         geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
 
         stateInfo.two_sided = true;
@@ -426,8 +426,8 @@ int main(int argc, char** argv)
 
     auto inherit = arguments.read("--inherit");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
-    auto angleSubtended = arguments.value<double>(0.0090f, "--angleSubtended");
     auto location = arguments.value<vsg::dvec3>({0.0, 0.0, 0.0}, "--location");
+    auto angleSubtended = arguments.value<float>(0.0090f, "--angleSubtended");
     auto scale = arguments.value<double>(1.0, "--scale");
     double viewingDistance = scale;
 
@@ -543,8 +543,8 @@ int main(int argc, char** argv)
     {
         directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
-        directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.9;
+        directionalLight->color.set(1.0f, 1.0f, 1.0f);
+        directionalLight->intensity = 0.9f;
         directionalLight->direction = direction;
         directionalLight->angleSubtended = angleSubtended;
         directionalLight->shadowSettings = shadowSettings;
@@ -557,21 +557,21 @@ int main(int argc, char** argv)
     {
         ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
-        ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.2;
+        ambientLight->color.set(1.0f, 1.0f, 1.0f);
+        ambientLight->intensity = 0.2f;
         group->addChild(ambientLight);
     }
 
     if (numLights >= 3 && numLights < 4)
     {
-        directionalLight->intensity = 0.7;
-        ambientLight->intensity = 0.1;
+        directionalLight->intensity = 0.7f;
+        ambientLight->intensity = 0.1f;
 
         auto directionalLight2 = vsg::DirectionalLight::create();
         directionalLight2->name = "2nd directional";
-        directionalLight2->color.set(1.0, 1.0, 0.0);
-        directionalLight2->intensity = 0.7;
-        directionalLight2->direction = vsg::normalize(vsg::vec3(0.9, 1.0, -1.0));
+        directionalLight2->color.set(1.0f, 1.0f, 0.0f);
+        directionalLight2->intensity = 0.7f;
+        directionalLight2->direction = vsg::normalize(vsg::dvec3(0.9, 1.0, -1.0));
         directionalLight2->angleSubtended = angleSubtended;
         directionalLight2->shadowSettings = shadowSettings;
 
@@ -582,15 +582,15 @@ int main(int argc, char** argv)
     {
         auto spotLight = vsg::SpotLight::create();
         spotLight->name = "spot";
-        spotLight->color.set(0.0, 1.0, 1.0);
-        spotLight->intensity = 200.0;
+        spotLight->color.set(0.0f, 1.0f, 1.0f);
+        spotLight->intensity = 200.0f;
         spotLight->position = vsg::vec3(3.0, 0.5, 15.0);
         spotLight->direction = vsg::normalize(vsg::vec3(-0.5, -1, -10));
         if (largeScene)
         {
             spotLight->position = vsg::vec3(3000.0, 500.0, 15000.0);
             spotLight->direction = vsg::normalize(vsg::dvec3(500, 500, 0) - spotLight->position);
-            spotLight->intensity = 15000.0 * 15000.0 / 4.0;
+            spotLight->intensity = static_cast<float>(15000.0 * 15000.0 / 4.0);
         }
         spotLight->outerAngle = vsg::radians(10.0);
         spotLight->innerAngle = vsg::radians(5.0);

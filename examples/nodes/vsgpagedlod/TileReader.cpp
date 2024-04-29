@@ -121,7 +121,7 @@ vsg::ref_ptr<vsg::Object> TileReader::read_root(vsg::ref_ptr<const vsg::Options>
     uint32_t level = 0;
     for (uint32_t i = level; i < maxLevel; ++i)
     {
-        estimatedNumOfTilesBelow += std::pow(4, i - level);
+        estimatedNumOfTilesBelow += static_cast<uint32_t>(std::pow(4, i - level));
     }
 
     uint32_t tileMultiplier = std::min(estimatedNumOfTilesBelow, maxNumTilesBelow) + 1;
@@ -252,7 +252,7 @@ void TileReader::init()
     pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
 
     sampler = vsg::Sampler::create();
-    sampler->maxLod = mipmapLevelsHint;
+    sampler->maxLod = static_cast<float>(mipmapLevelsHint);
     sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler->addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -436,15 +436,10 @@ vsg::ref_ptr<vsg::Node> TileReader::createTextureQuad(const vsg::dbox& tile_exte
     scenegraph->addChild(transform);
 
     // set up vertex and index arrays
-    float min_x = tile_extents.min.x;
-    float min_y = tile_extents.min.y;
-#if 1
-    float max_x = tile_extents.max.x;
-    float max_y = tile_extents.max.y;
-#else
-    float max_x = tile_extents.min.x * 0.05 + tile_extents.max.x * 0.95;
-    float max_y = tile_extents.min.y * 0.05 + tile_extents.max.y * 0.95;
-#endif
+    float min_x = static_cast<float>(tile_extents.min.x);
+    float min_y = static_cast<float>(tile_extents.min.y);
+    float max_x = static_cast<float>(tile_extents.max.x);
+    float max_y = static_cast<float>(tile_extents.max.y);
 
     auto vertices = vsg::vec3Array::create(
         {{min_x, 0.0f, min_y},

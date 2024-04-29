@@ -165,7 +165,7 @@ int main(int argc, char** argv)
     double aspectRatio = double(windowTraits->width) / double(windowTraits->height);
     double projectionHeight = 25.0;
 
-    vsg::vec3 position(2.0f, projectionHeight - 2.0f, 0.0f);
+    vsg::vec3 position(2.0f, static_cast<float>(projectionHeight) - 2.0f, 0.0f);
     vsg::vec3 delta(0.0f, -2.0f, 0.0f);
 
     // main label
@@ -177,8 +177,8 @@ int main(int argc, char** argv)
         main_layout->position = position;
         main_layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
         main_layout->vertical = vsg::vec3(0.0f, 1.0f, 0.0f);
-        main_layout->color = vsg::vec4(1.0f, 1.0f, 0.3, 1.0f);
-        main_layout->outlineWidth = 0.1;
+        main_layout->color = vsg::vec4(1.0f, 1.0f, 0.3f, 1.0f);
+        main_layout->outlineWidth = 0.1f;
 
         main->text = main_label;
         main->font = font;
@@ -199,7 +199,7 @@ int main(int argc, char** argv)
         pointer_layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
         pointer_layout->vertical = vsg::vec3(0.0f, 1.0f, 0.0f);
         pointer_layout->color = vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        pointer_layout->outlineWidth = 0.1;
+        pointer_layout->outlineWidth = 0.1f;
 
         auto pointer_string = vsg::stringValue::create("Pointer event:");
         pointer_text->text = pointer_string;
@@ -221,7 +221,7 @@ int main(int argc, char** argv)
         keyboard_layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
         keyboard_layout->vertical = vsg::vec3(0.0f, 1.0f, 0.0f);
         keyboard_layout->color = vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        keyboard_layout->outlineWidth = 0.1;
+        keyboard_layout->outlineWidth = 0.1f;
 
         auto keyboard_string = vsg::stringValue::create("Keyboard event:");
         keyboard_text->text = keyboard_string;
@@ -243,7 +243,7 @@ int main(int argc, char** argv)
         scroll_layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
         scroll_layout->vertical = vsg::vec3(0.0f, 1.0f, 0.0f);
         scroll_layout->color = vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        scroll_layout->outlineWidth = 0.1;
+        scroll_layout->outlineWidth = 0.1f;
 
         auto scroll_string = vsg::stringValue::create("Scroll event:");
         scroll_text->text = scroll_string;
@@ -265,7 +265,7 @@ int main(int argc, char** argv)
         application_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0f);
         application_layout->vertical = vsg::vec3(0.0, 1.0, 0.0f);
         application_layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0f);
-        application_layout->outlineWidth = 0.1;
+        application_layout->outlineWidth = 0.1f;
 
         auto application_string = vsg::stringValue::create("Window event:");
         window_text->text = application_string;
@@ -287,7 +287,7 @@ int main(int argc, char** argv)
         application_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0f);
         application_layout->vertical = vsg::vec3(0.0, 1.0, 0.0f);
         application_layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0f);
-        application_layout->outlineWidth = 0.1;
+        application_layout->outlineWidth = 0.1f;
 
         auto application_string = vsg::stringValue::create("Frame event:");
         frame_text->text = application_string;
