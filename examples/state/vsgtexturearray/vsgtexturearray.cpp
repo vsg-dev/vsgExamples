@@ -8,10 +8,10 @@
 
 void updateBaseTexture(vsg::ubvec4Array2D& image, float value)
 {
-    for (size_t r = 0; r < image.height(); ++r)
+    for (uint32_t r = 0; r < image.height(); ++r)
     {
         float r_ratio = static_cast<float>(r) / static_cast<float>(image.height() - 1);
-        for (size_t c = 0; c < image.width(); ++c)
+        for (uint32_t c = 0; c < image.width(); ++c)
         {
             float c_ratio = static_cast<float>(c) / static_cast<float>(image.width() - 1);
 
@@ -21,8 +21,8 @@ void updateBaseTexture(vsg::ubvec4Array2D& image, float value)
 
             float distance_from_center = vsg::length(delta);
 
-            float intensity = (sin(1.0 * angle + 30.0f * distance_from_center + 10.0 * value) + 1.0f) * 0.5f;
-            image.set(c, r, vsg::ubvec4(uint8_t(intensity * intensity * 255.0), uint8_t(intensity * 255.0), uint8_t(intensity * 255.0), 255));
+            float intensity = (sin(1.0f * angle + 30.0f * distance_from_center + 10.0f * value) + 1.0f) * 0.5f;
+            image.set(c, r, vsg::ubvec4(uint8_t(intensity * intensity * 255.0f), uint8_t(intensity * 255.0f), uint8_t(intensity * 255.0f), 255));
         }
     }
     image.dirty();
@@ -30,10 +30,10 @@ void updateBaseTexture(vsg::ubvec4Array2D& image, float value)
 
 void updateElevation(vsg::floatArray2D& heightField, float value)
 {
-    for (size_t r = 0; r < heightField.height(); ++r)
+    for (uint32_t r = 0; r < heightField.height(); ++r)
     {
         float r_ratio = static_cast<float>(r) / static_cast<float>(heightField.height() - 1);
-        for (size_t c = 0; c < heightField.width(); ++c)
+        for (uint32_t c = 0; c < heightField.width(); ++c)
         {
             float c_ratio = static_cast<float>(c) / static_cast<float>(heightField.width() - 1);
 
@@ -43,7 +43,7 @@ void updateElevation(vsg::floatArray2D& heightField, float value)
 
             float distance_from_center = vsg::length(delta);
 
-            float intensity = (sin(1.0 * angle + 10.0f * distance_from_center + 2.0 * value) + 1.0f) * 0.5f;
+            float intensity = (sin(1.0f * angle + 10.0f * distance_from_center + 2.0f * value) + 1.0f) * 0.5f;
             heightField.set(c, r, intensity);
         }
     }

@@ -50,8 +50,8 @@ int main(int argc, char** argv)
      * a very large array that would exceed the uniform buffer size limits.
      */
     auto cellColors = vsg::vec4Array::create({
-        {0.176, 0.408, 0.376, 1.0},  // Powderkeg Blue (triangle 0)
-        {0.949, 0.663, 0.000, 1.0},  // Westwood Gold  (triangle 1)
+        {0.176f, 0.408f, 0.376f, 1.0f},  // Powderkeg Blue (triangle 0)
+        {0.949f, 0.663f, 0.000f, 1.0f},  // Westwood Gold  (triangle 1)
     });
 
     /// actually assigning a storage buffer (not a uniform buffer)
@@ -61,7 +61,7 @@ int main(int argc, char** argv)
 
     /// single quad
     auto vertices = vsg::vec3Array::create({
-        {-1, 0, -1}, { 1, 0, -1}, { 1, 0,  1}, {-1, 0,  1}
+        {-1.0f, 0.0f, -1.0f}, { 1.0f, 0.0f, -1.0f}, { 1.0f, 0.0f,  1.0f}, {-1.0f, 0.0f,  1.0f}
     });
     auto indices = vsg::uintArray::create({0, 1, 2, 0, 2, 3});
     vsg::DataList vertexArrays;
@@ -80,9 +80,9 @@ int main(int argc, char** argv)
 
     auto window = vsg::Window::create(windowTraits);
     auto lookAt = vsg::LookAt::create(
-        vsg::dvec3{2,-5,-1},
-        vsg::dvec3{0, 0, 0},
-        vsg::dvec3{0, 0, 1}
+        vsg::dvec3{2.0,-5.0,-1.0},
+        vsg::dvec3{0.0, 0.0, 0.0},
+        vsg::dvec3{0.0, 0.0, 1.0}
     );
     auto perspective = vsg::Perspective::create();
     auto viewportState = vsg::ViewportState::create(window->extent2D());

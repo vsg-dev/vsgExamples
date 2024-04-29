@@ -120,17 +120,17 @@ void main() {
 
 void updateBaseTexture3D(vsg::floatArray3D& image, float value)
 {
-    for (size_t d = 0; d < image.depth(); ++d)
+    for (uint32_t d = 0; d < image.depth(); ++d)
     {
         float d_ratio = static_cast<float>(d) / static_cast<float>(image.depth() - 1);
-        for (size_t r = 0; r < image.height(); ++r)
+        for (uint32_t r = 0; r < image.height(); ++r)
         {
             float r_ratio = static_cast<float>(r) / static_cast<float>(image.height() - 1);
-            for (size_t c = 0; c < image.width(); ++c)
+            for (uint32_t c = 0; c < image.width(); ++c)
             {
                 float c_ratio = static_cast<float>(c) / static_cast<float>(image.width() - 1);
 
-                vsg::vec3 delta((r_ratio - 0.5f), (c_ratio - 0.5f), (d_ratio - 0.5));
+                vsg::vec3 delta((r_ratio - 0.5f), (c_ratio - 0.5f), (d_ratio - 0.5f));
                 float angle = atan2(delta.x, delta.y);
                 float distance_from_center = sqrt(d_ratio * d_ratio + r_ratio * r_ratio);
 
