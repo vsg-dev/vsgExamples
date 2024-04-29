@@ -26,7 +26,7 @@ vsg::ref_ptr<vsg::Node> decorateWithInstrumentationNode(vsg::ref_ptr<vsg::Node> 
 
 struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 {
-    Merge(const vsg::Path& in_path, vsg::observer_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::CompileResult& in_compileResult):
+    Merge(const vsg::Path& in_path, vsg::observer_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::CompileResult& in_compileResult) :
         path(in_path),
         viewer(in_viewer),
         attachmentPoint(in_attachmentPoint),
@@ -42,7 +42,7 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 
     void run() override
     {
-        std::cout<<"Merge::run() path = "<<path<<", "<<attachmentPoint<<", "<<node<<std::endl;
+        std::cout << "Merge::run() path = " << path << ", " << attachmentPoint << ", " << node << std::endl;
 
         vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
         if (ref_viewer)
@@ -53,12 +53,11 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
             {
                 // find any animation groups in the loaded scene graph and play the first animation in each of the animation groups.
                 auto animationGroups = vsg::visit<vsg::FindAnimations>(node).animationGroups;
-                for(auto ag : animationGroups)
+                for (auto ag : animationGroups)
                 {
                     if (!ag->animations.empty()) ref_viewer->animationManager->play(ag->animations.front());
                 }
             }
-
         }
 
         attachmentPoint->addChild(node);
@@ -180,7 +179,7 @@ int main(int argc, char** argv)
         }
 #endif
 
-    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+        if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         if (argc <= 1)
         {
@@ -197,7 +196,6 @@ int main(int argc, char** argv)
             std::cout << "Could not create window." << std::endl;
             return 1;
         }
-
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();

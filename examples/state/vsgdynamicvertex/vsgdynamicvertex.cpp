@@ -8,7 +8,6 @@
 class FindVertexData : public vsg::Visitor
 {
 public:
-
     void apply(vsg::Object& object)
     {
         object.traverse(*this);
@@ -43,12 +42,11 @@ public:
         }
     }
 
-
     std::vector<vsg::ref_ptr<vsg::vec3Array>> getVerticesList()
     {
         std::vector<vsg::ref_ptr<vsg::vec3Array>> verticesList(verticesSet.size());
         auto vertices_itr = verticesList.begin();
-        for(auto& vertices : verticesSet)
+        for (auto& vertices : verticesSet)
         {
             (*vertices_itr++) = const_cast<vsg::vec3Array*>(vertices);
         }
@@ -58,7 +56,6 @@ public:
 
     std::set<vsg::vec3Array*> verticesSet;
     std::set<vsg::ref_ptr<vsg::BufferInfo>> bufferInfoSet;
-
 };
 
 int main(int argc, char** argv)
@@ -109,8 +106,10 @@ int main(int argc, char** argv)
 
         // set the dynamic hint to tell the Viewer::compile() to assign this vsg::Data to a vsg::TransferTask
         vsg::DataVariance dataVariance = vsg::DYNAMIC_DATA;
-        if (arguments.read("--static")) dataVariance = vsg::STATIC_DATA;
-        else if (arguments.read("--late")) dataVariance = vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD;
+        if (arguments.read("--static"))
+            dataVariance = vsg::STATIC_DATA;
+        else if (arguments.read("--late"))
+            dataVariance = vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD;
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -133,7 +132,7 @@ int main(int argc, char** argv)
         FindVertexData fdv;
         vsg_scene->accept(fdv);
         auto verticesList = fdv.getVerticesList();
-        for(auto& vertices : verticesList)
+        for (auto& vertices : verticesList)
         {
             vertices->properties.dataVariance = dataVariance;
             numVertices += vertices->size();
@@ -189,7 +188,6 @@ int main(int argc, char** argv)
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-
         vsg::info("multiThreading = ", multiThreading);
         if (multiThreading) viewer->setupThreading();
 
@@ -210,9 +208,9 @@ int main(int argc, char** argv)
 
             if (modify)
             {
-                for(auto& vertices : verticesList)
+                for (auto& vertices : verticesList)
                 {
-                    for(auto& v : *vertices)
+                    for (auto& v : *vertices)
                     {
                         v.z += (sin(vsg::PI * frameCount / 180.0) * radius * 0.001);
                     }
@@ -225,10 +223,10 @@ int main(int argc, char** argv)
                     // assign the buffer info we want to transfer on each frame.
                     // This approach is most apporopriate for occassional updates
                     // for updates every frame it's best to declare the dataVaraince as DYANMIC_DATA
-                    for(auto& tasks : viewer->recordAndSubmitTasks)
+                    for (auto& tasks : viewer->recordAndSubmitTasks)
                     {
                         auto transferTask = tasks->earlyTransferTask;
-                        for(auto& bufferInfo : fdv.bufferInfoSet)
+                        for (auto& bufferInfo : fdv.bufferInfoSet)
                         {
                             transferTask->assign(vsg::BufferInfoList{bufferInfo});
                         }
@@ -237,7 +235,7 @@ int main(int argc, char** argv)
             }
             else if (dirty)
             {
-                for(auto& vertices : verticesList)
+                for (auto& vertices : verticesList)
                 {
                     vertices->dirty();
                 }
@@ -250,7 +248,7 @@ int main(int argc, char** argv)
         auto fps = frameCount / (std::chrono::duration<double, std::chrono::seconds::period>(std::chrono::steady_clock::now() - startTime).count());
         double transferSpeed = (double)(numVertices * sizeof(vsg::vec3) * fps);
         std::cout << "Average fps = " << fps << std::endl;
-        std::cout << "Average transfer speed " <<(transferSpeed) / (1024.0 * 1024.0) << " Mb/sec"<<std::endl;
+        std::cout << "Average transfer speed " << (transferSpeed) / (1024.0 * 1024.0) << " Mb/sec" << std::endl;
     }
     catch (const vsg::Exception& exception)
     {

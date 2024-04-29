@@ -12,7 +12,7 @@ vsg::ref_ptr<vsg::Node> createScene(const vsg::Path& filename, vsg::ref_ptr<vsg:
 {
     if (filename)
     {
-        std::cout<<"createScene("<<filename<<", "<<options<<")"<<std::endl;
+        std::cout << "createScene(" << filename << ", " << options << ")" << std::endl;
         return vsg::read_cast<vsg::Node>(filename, options);
     }
 
@@ -325,7 +325,6 @@ int main(int argc, char** argv)
         vsg::setAffinity(affinity);
     }
 
-
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
@@ -343,7 +342,7 @@ int main(int argc, char** argv)
     uint32_t width = 0;
     uint32_t height = 0;
 
-    for(auto& window : viewer->windows())
+    for (auto& window : viewer->windows())
     {
         trackball->addWindow(window, vsg::ivec2(width, 0));
         width += window->extent2D().width;

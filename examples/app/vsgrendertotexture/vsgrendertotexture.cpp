@@ -422,7 +422,7 @@ int main(int argc, char** argv)
 
     if (nestedCommandGraph)
     {
-        std::cout<<"Nested CommandGraph, with nested RTT CommandGraph as a child on the main CommandGraph. "<<std::endl;
+        std::cout << "Nested CommandGraph, with nested RTT CommandGraph as a child on the main CommandGraph. " << std::endl;
         auto rtt_commandGraph = vsg::CommandGraph::create(window);
         rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
         rtt_commandGraph->addChild(rtt_RenderGraph);
@@ -435,7 +435,7 @@ int main(int argc, char** argv)
     }
     else if (separateCommandGraph)
     {
-        std::cout<<"Seperate CommandGraph with RTT CommandGraph first, then main CommandGraph second."<<std::endl;
+        std::cout << "Seperate CommandGraph with RTT CommandGraph first, then main CommandGraph second." << std::endl;
         auto rtt_commandGraph = vsg::CommandGraph::create(window);
         rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
         rtt_commandGraph->addChild(rtt_RenderGraph);
@@ -447,7 +447,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        std::cout<<"Single CommandGraph containing by the RTT and main RenderGraphs"<<std::endl;
+        std::cout << "Single CommandGraph containing by the RTT and main RenderGraphs" << std::endl;
         // Place the offscreen RenderGraph before the plane geometry RenderGraph
         auto commandGraph = vsg::CommandGraph::create(window);
         commandGraph->addChild(rtt_RenderGraph);
@@ -460,7 +460,7 @@ int main(int argc, char** argv)
 
     if (multiThreading)
     {
-        std::cout<<"Enabled multi-threading"<<std::endl;
+        std::cout << "Enabled multi-threading" << std::endl;
         viewer->setupThreading();
     }
 

@@ -35,9 +35,12 @@ namespace custom
     using FogValue = vsg::Value<Fog>;
 
     extern vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options);
-}
+} // namespace custom
 
 template<>
-constexpr bool vsg::has_read_write<custom::Fog>() { return true; }
+constexpr bool vsg::has_read_write<custom::Fog>()
+{
+    return true;
+}
 
 EVSG_type_name(custom::FogValue);

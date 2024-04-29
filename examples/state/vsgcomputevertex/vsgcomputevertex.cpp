@@ -88,13 +88,13 @@ int main(int argc, char** argv)
         };
 
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-        auto pipelineLayout = vsg::PipelineLayout::create( vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
         auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
         auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
         computeCommandGraph->addChild(bindPipeline);
 
         auto storageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        auto descriptorSet = vsg::DescriptorSet::create( descriptorSetLayout, vsg::Descriptors{storageBuffer, computeScaleBuffer});
+        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{storageBuffer, computeScaleBuffer});
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
 
         computeCommandGraph->addChild(bindDescriptorSet);

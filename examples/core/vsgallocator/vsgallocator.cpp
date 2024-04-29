@@ -12,13 +12,12 @@
 class CustomAllocator : public vsg::Allocator
 {
 public:
-
     CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
         vsg::Allocator(std::move(in_nestedAllocator))
     {
         if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
         {
-            std::cout<<"CustomAllocator()"<<this<<std::endl;
+            std::cout << "CustomAllocator()" << this << std::endl;
         }
     }
 
@@ -26,13 +25,13 @@ public:
     {
         if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
         {
-            std::cout<<"~CustomAllocator() "<<this<<std::endl;
+            std::cout << "~CustomAllocator() " << this << std::endl;
         }
     }
 
     void report(std::ostream& out) const override
     {
-        std::cout<<"CustomAllocator::report() "<<allocatorMemoryBlocks.size()<<std::endl;
+        std::cout << "CustomAllocator::report() " << allocatorMemoryBlocks.size() << std::endl;
         vsg::Allocator::report(out);
     }
 
@@ -41,7 +40,7 @@ public:
         void* ptr = Allocator::allocate(size, allocatorAffinity);
         if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
         {
-            std::cout<<"CustomAllocator::allocate("<<size<<", "<<allocatorAffinity<<") ptr = "<<ptr<<std::endl;
+            std::cout << "CustomAllocator::allocate(" << size << ", " << allocatorAffinity << ") ptr = " << ptr << std::endl;
         }
         return ptr;
     }
@@ -50,12 +49,11 @@ public:
     {
         if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
         {
-            std::cout<<"CustomAllocator::deallocate("<<ptr<<")"<<std::endl;
+            std::cout << "CustomAllocator::deallocate(" << ptr << ")" << std::endl;
         }
         return Allocator::deallocate(ptr, size);
     }
 };
-
 
 struct SceneStatistics : public vsg::Inherit<vsg::ConstVisitor, SceneStatistics>
 {
@@ -63,7 +61,7 @@ struct SceneStatistics : public vsg::Inherit<vsg::ConstVisitor, SceneStatistics>
 
     void report(std::ostream& out)
     {
-        for(auto& [str, count] : objectCounts) out<<"  "<<str<<" "<<count<<std::endl;
+        for (auto& [str, count] : objectCounts) out << "  " << str << " " << count << std::endl;
     }
 
     void apply(const vsg::Node& node) override
@@ -82,7 +80,7 @@ int main(int argc, char** argv)
     if (arguments.read("--custom")) vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
     if (int mt; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
     if (int type; arguments.read("--allocator", type)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(type);
-    if (int  type; arguments.read("--blocks", type)) vsg::Allocator::instance()->memoryBlocksAllocatorType = vsg::AllocatorType(type);
+    if (int type; arguments.read("--blocks", type)) vsg::Allocator::instance()->memoryBlocksAllocatorType = vsg::AllocatorType(type);
     if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize);
     if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize);
     if (size_t dataBlockSize; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_DATA, dataBlockSize);
@@ -113,7 +111,7 @@ int main(int argc, char** argv)
         if (arguments.read("--so"))
         {
             options->sharedObjects = vsg::SharedObjects::create();
-            std::cout<<"Assigned vsg::SharedObjects "<<options->sharedObjects<<std::endl;
+            std::cout << "Assigned vsg::SharedObjects " << options->sharedObjects << std::endl;
         }
 
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
@@ -206,14 +204,13 @@ int main(int argc, char** argv)
         // record the total time taken loading the scene graph
         loadDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - startOfLoad).count();
 
-
         if (stats > 0)
         {
             auto startOfStats = vsg::clock::now();
 
             auto sceneStatistics = SceneStatistics::create();
 
-            for(size_t i=0; i<stats; ++i)
+            for (size_t i = 0; i < stats; ++i)
             {
                 sceneStatistics->objectCounts.clear();
                 vsg_scene->accept(*sceneStatistics);
@@ -221,10 +218,10 @@ int main(int argc, char** argv)
 
             auto statsDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - startOfStats).count();
 
-            std::cout<<"Stats collection took "<<statsDuration<<"ms"<<" for "<<stats<<" traversals."<<std::endl;
+            std::cout << "Stats collection took " << statsDuration << "ms"
+                      << " for " << stats << " traversals." << std::endl;
             sceneStatistics->report(std::cout);
         }
-
 
         if (useViewer)
         {
@@ -295,7 +292,7 @@ int main(int argc, char** argv)
             if (maxPagedLOD > 0)
             {
                 // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-                for(auto& task : viewer->recordAndSubmitTasks)
+                for (auto& task : viewer->recordAndSubmitTasks)
                 {
                     if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
                 }
@@ -328,7 +325,7 @@ int main(int argc, char** argv)
             }
         }
 
-        std::cout<<"\nBefore end of Viewer scope."<<std::endl;
+        std::cout << "\nBefore end of Viewer scope." << std::endl;
         vsg::Allocator::instance()->report(std::cout);
 
         // record the end of viewer scope
@@ -346,7 +343,7 @@ int main(int argc, char** argv)
 
     double releaseDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - endOfViewerScope).count();
 
-    std::cout<<"\nAfter end of Viewer scope."<<std::endl;
+    std::cout << "\nAfter end of Viewer scope." << std::endl;
     vsg::Allocator::instance()->report(std::cout);
 
     // Optional call to delete any empty memory blocks, this won't normally be required in a VSG application, but if your memory usage goes up and down regularly and you want to free up memory
@@ -356,12 +353,12 @@ int main(int argc, char** argv)
     auto memoryDeleted = vsg::Allocator::instance()->deleteEmptyMemoryBlocks();
     double deleteDuration = std::chrono::duration<double, std::chrono::milliseconds::period>(vsg::clock::now() - beforeDelete).count();
 
-    std::cout<<"\nAfter delete of empty memory blocks, where "<<memoryDeleted<<" was freed."<<std::endl;
+    std::cout << "\nAfter delete of empty memory blocks, where " << memoryDeleted << " was freed." << std::endl;
     vsg::Allocator::instance()->report(std::cout);
 
-    std::cout << "\nload duration = " << loadDuration << "ms"<<std::endl;
-    std::cout << "release duration  = " << releaseDuration << "ms"<<std::endl;
-    std::cout << "delete duration  = " << deleteDuration << "ms"<<std::endl;
-    std::cout << "Average frame rate = " << frameRate << "fps"<<std::endl;
+    std::cout << "\nload duration = " << loadDuration << "ms" << std::endl;
+    std::cout << "release duration  = " << releaseDuration << "ms" << std::endl;
+    std::cout << "delete duration  = " << deleteDuration << "ms" << std::endl;
+    std::cout << "Average frame rate = " << frameRate << "fps" << std::endl;
     return 0;
 }

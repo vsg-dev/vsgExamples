@@ -55,7 +55,7 @@ public:
 
                 // the position is set by positions data, in this case just one position so use a vec4Value, but if needed we can use an array of positions
                 auto pos = vsg::vec3(lastIntersection->worldIntersection);
-                geom.positions = vsg::vec4Value::create(vsg::vec4(pos.x, pos.y, pos.z, scale*5.0)); // x,y,z and scaleDistance
+                geom.positions = vsg::vec4Value::create(vsg::vec4(pos.x, pos.y, pos.z, scale * 5.0)); // x,y,z and scaleDistance
             }
             else
             {
@@ -129,7 +129,7 @@ public:
 
         for (auto& intersection : intersector->intersections)
         {
-            if (verbose) std::cout << "intersection = world(" << intersection->worldIntersection << "), instanceIndex " <<intersection->instanceIndex;
+            if (verbose) std::cout << "intersection = world(" << intersection->worldIntersection << "), instanceIndex " << intersection->instanceIndex;
 
             if (ellipsoidModel)
             {
@@ -149,7 +149,7 @@ public:
                 for (auto& node : intersection->nodePath)
                 {
                     std::cout << ", " << node->className();
-                    if (node->getValue("name", name)) std::cout<<":name="<<name;
+                    if (node->getValue("name", name)) std::cout << ":name=" << name;
                 }
 
                 std::cout << ", Arrays[ ";

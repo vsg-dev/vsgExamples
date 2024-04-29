@@ -38,8 +38,8 @@ int main(int argc, char** argv)
         auto viewer = vsg::Viewer::create();
 
         windowTraits->vulkanVersion = VK_API_VERSION_1_1;
-        windowTraits->deviceExtensionNames = { VK_EXT_MESH_SHADER_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME };
-        if(barycentric)
+        windowTraits->deviceExtensionNames = {VK_EXT_MESH_SHADER_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
+        if (barycentric)
             windowTraits->deviceExtensionNames.push_back(VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME);
 
         // set up features
@@ -49,7 +49,7 @@ int main(int argc, char** argv)
         meshFeatures.meshShader = 1;
         meshFeatures.taskShader = 1;
 
-        if(barycentric)
+        if (barycentric)
         {
             auto& barycentricFeatures = features->get<VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR>();
             barycentricFeatures.fragmentShaderBarycentric = 1;
@@ -151,7 +151,6 @@ int main(int argc, char** argv)
             vsg::write(scenegraph, outputFilename);
             return 1;
         }
-
 
         auto perspective = vsg::Perspective::create(60.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), 0.001, 10.0);
         auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, 2.0, -5.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));

@@ -1,10 +1,9 @@
-#include <vsg/all.h>
 #include <iostream>
+#include <vsg/all.h>
 
 #ifdef vsgXchange_FOUND
 #    include <vsgXchange/all.h>
 #endif
-
 
 int main(int argc, char** argv)
 {
@@ -72,10 +71,10 @@ int main(int argc, char** argv)
     vsg::vec3 horizontal = vsg::vec3(size, 0.0, 0.0);
     vsg::vec3 vertical = billboard ? vsg::vec3(0.0, size, 0.0) : vsg::vec3(0.0, 0.0, size);
 
-    for(uint32_t r = 0; r < numRows; ++r)
+    for (uint32_t r = 0; r < numRows; ++r)
     {
         vsg::vec3 local_origin = row_origin;
-        for(uint32_t c = 0; c < numColumns; ++c)
+        for (uint32_t c = 0; c < numColumns; ++c)
         {
 
             if (textgroup->children.size() < numLabels)
@@ -317,7 +316,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -375,7 +373,6 @@ int main(int argc, char** argv)
 
         numFramesCompleted += 1.0;
     }
-
 
     auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
     if (numFramesCompleted > 0.0)

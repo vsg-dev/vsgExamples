@@ -10,7 +10,6 @@
 class CameraSelector : public vsg::Inherit<vsg::Visitor, CameraSelector>
 {
 public:
-
     using Cameras = decltype(vsg::FindCameras::cameras);
 
     CameraSelector(vsg::ref_ptr<vsg::Camera> in_camera, const Cameras& in_cameras) :
@@ -32,7 +31,7 @@ public:
 
         if (buttonPress.button == 4)
         {
-             // next camera
+            // next camera
             currentCameraIndex++;
             currentCameraIndex %= cameras.size();
 
@@ -73,7 +72,7 @@ private:
     void selectCameraByIndex(int index)
     {
         int cameraIndex = 0;
-        for(auto& [nodePath, camera] : cameras)
+        for (auto& [nodePath, camera] : cameras)
         {
             if (cameraIndex == index)
             {
@@ -84,7 +83,7 @@ private:
                 // auto matrix = vsg::computeTransform(nodePath);
                 auto matrix = vsg::visit<vsg::ComputeTransform>(begin, end).matrix;
 
-                std::cout<<"Matched: "<<camera->name<<" "<<matrix<<std::endl;
+                std::cout << "Matched: " << camera->name << " " << matrix << std::endl;
 
                 auto selected_lookAt = camera->viewMatrix.cast<vsg::LookAt>();
                 auto main_lookAt = main_camera->viewMatrix.cast<vsg::LookAt>();
@@ -183,11 +182,11 @@ int main(int argc, char** argv)
         scene_cameras = vsg::visit<vsg::FindCameras>(scenegraph).cameras;
     }
 
-    for(auto& [nodePath, camera] : scene_cameras)
+    for (auto& [nodePath, camera] : scene_cameras)
     {
-        std::cout<<"\ncamera = "<<camera<<", "<<camera->name<<" :";
-        for(auto& node : nodePath) std::cout<<" "<<node;
-        std::cout<<std::endl;
+        std::cout << "\ncamera = " << camera << ", " << camera->name << " :";
+        for (auto& node : nodePath) std::cout << " " << node;
+        std::cout << std::endl;
     }
 
     // create the viewer and assign window(s) to it
@@ -213,7 +212,7 @@ int main(int argc, char** argv)
     // set up main interactive view
     {
         auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
-                                        centre, vsg::dvec3(0.0, 0.0, 1.0));
+                                          centre, vsg::dvec3(0.0, 0.0, 1.0));
 
         auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
                                                     nearFarRatio * radius, radius * 4.5);
@@ -234,7 +233,7 @@ int main(int argc, char** argv)
     // set up secondary views, one per camera found in the scene graph
     uint32_t margin = 10;
     uint32_t division = scene_cameras.size();
-    if (division<3) division = 3;
+    if (division < 3) division = 3;
 
     uint32_t secondary_width = width / division;
     uint32_t secondary_height = ((height - margin) / division) - margin;
@@ -242,7 +241,7 @@ int main(int argc, char** argv)
     uint32_t x = width - secondary_width - margin;
     uint32_t y = margin;
 
-    for(auto& [nodePath, camera] : scene_cameras)
+    for (auto& [nodePath, camera] : scene_cameras)
     {
         // create a RenderGraph to add a secondary vsg::View on the top right part of the window.
         auto projectionMatrix = camera->projectionMatrix;
@@ -259,9 +258,7 @@ int main(int argc, char** argv)
         y += secondary_height + margin;
     }
 
-
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-
 
     viewer->compile();
 

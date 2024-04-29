@@ -97,8 +97,10 @@ int main(int argc, char** argv)
     auto image_size = arguments.value<uint32_t>(256, "-s");
     bool multiThreading = arguments.read("--mt");
     vsg::DataVariance dataVariance = vsg::DYNAMIC_DATA;
-    if (arguments.read("--static")) dataVariance = vsg::STATIC_DATA;
-    else if (arguments.read("--late")) dataVariance = vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD;
+    if (arguments.read("--static"))
+        dataVariance = vsg::STATIC_DATA;
+    else if (arguments.read("--late"))
+        dataVariance = vsg::DYNAMIC_DATA_TRANSFER_AFTER_RECORD;
 
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;

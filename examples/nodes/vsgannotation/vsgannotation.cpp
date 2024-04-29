@@ -51,7 +51,7 @@ vsg::ref_ptr<NamedGroup> createAnnotatedScene(const std::vector<std::string>& na
     {
         vsg::ComputeBounds computeBounds;
         (*nodeItr)->accept(computeBounds);
-        double width =  (computeBounds.bounds.max.x - computeBounds.bounds.min.x) * 1.1;
+        double width = (computeBounds.bounds.max.x - computeBounds.bounds.min.x) * 1.1;
         vsg::dmat4 mat = vsg::translate(xExtent + width / 2, 0.0, 0.0);
         auto matNode = NamedTransform::create(mat);
         matNode->annotation = *nameItr;
@@ -61,7 +61,6 @@ vsg::ref_ptr<NamedGroup> createAnnotatedScene(const std::vector<std::string>& na
     }
     return scene;
 }
-
 
 void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
 {
@@ -264,7 +263,7 @@ int main(int argc, char** argv)
         if (maxPagedLOD > 0)
         {
             // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-            for(auto& task : viewer->recordAndSubmitTasks)
+            for (auto& task : viewer->recordAndSubmitTasks)
             {
                 if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
             }
@@ -289,7 +288,7 @@ int main(int argc, char** argv)
         {
             auto fs = viewer->getFrameStamp();
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
-            std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
+            std::cout << "Average frame rate = " << fps << " fps" << std::endl;
         }
     }
     catch (const vsg::Exception& ve)

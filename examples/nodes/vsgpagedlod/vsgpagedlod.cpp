@@ -224,7 +224,7 @@ int main(int argc, char** argv)
         if (maxPagedLOD > 0)
         {
             // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-            for(auto& task : viewer->recordAndSubmitTasks)
+            for (auto& task : viewer->recordAndSubmitTasks)
             {
                 if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
             }

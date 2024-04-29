@@ -35,7 +35,6 @@ protected:
     }
 };
 
-
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
@@ -50,8 +49,8 @@ int main(int argc, char** argv)
     if (arguments.read({"--redirect-std", "-r"})) vsg::Logger::instance()->redirect_std();
 
     // simplest form of messaging gets passed to the vsg::Logger::instance().
-    std::cout<<"cout cstring"<<std::endl;
-    std::cerr<<"cerr cstring"<<std::endl;
+    std::cout << "cout cstring" << std::endl;
+    std::cerr << "cerr cstring" << std::endl;
     vsg::debug("debug string");
     vsg::info("info cstring");
     vsg::warn("warn cstring");
@@ -65,9 +64,9 @@ int main(int argc, char** argv)
 
     // if you have code that prints to a ostream, then this can be adapted to work with vsg::Logger by using the info_stream(printFunction), passing in a lambda function to
     // do the IO on stream that the Logger provides to the print function.
-    vsg::info_stream([](auto& fout) { fout <<"second time "<<10<<"ms, vector = ("<<vsg::vec3(10.0f, 20.0f, 30.0f)<< ")"; });
+    vsg::info_stream([](auto& fout) { fout << "second time " << 10 << "ms, vector = (" << vsg::vec3(10.0f, 20.0f, 30.0f) << ")"; });
 
-    std::cout<<std::endl;
+    std::cout << std::endl;
 
     // override the default Logger with our locally implemented Logger
     vsg::Logger::instance() = CustomLogger::create();
@@ -86,20 +85,19 @@ int main(int argc, char** argv)
     vsg::log(vsg::Logger::LOGGER_WARN, "log warn");
     vsg::log(vsg::Logger::LOGGER_ERROR, "log error");
 
-
     if (count > 0)
     {
-        std::cout<<std::endl;
+        std::cout << std::endl;
         // let's do some performance tesing
 
         auto tick1 = vsg::clock::now();
-        for(size_t i=0; i<count; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
             vsg::info("simple");
         }
 
         auto tick2 = vsg::clock::now();
-        for(size_t i=0; i<count; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
             vsg::info("line number ", i);
         }
@@ -108,13 +106,13 @@ int main(int argc, char** argv)
         vsg::Logger::instance() = vsg::NullLogger::create();
 
         auto tick4 = vsg::clock::now();
-        for(size_t i=0; i<count; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
             vsg::info("simple");
         }
         auto tick5 = vsg::clock::now();
 
-        for(size_t i=0; i<count; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
             vsg::info("line number", i);
         }
@@ -129,10 +127,10 @@ int main(int argc, char** argv)
         vsg::Logger::instance() = vsg::StdLogger::create();
         vsg::Logger::instance()->level = vsg::Logger::LOGGER_ALL;
 
-        vsg::info("vsg::info(\"simple\") time = ",time1,"ms");
-        vsg::info("vsg::info(\"line number i\" time = ",time2,"ms");
-        vsg::info("null vsg::info(\"simple\") time = ",time3,"ms");
-        vsg::info("null vsg::info(\"line number i\" time = ",time4,"ms");
+        vsg::info("vsg::info(\"simple\") time = ", time1, "ms");
+        vsg::info("vsg::info(\"line number i\" time = ", time2, "ms");
+        vsg::info("null vsg::info(\"simple\") time = ", time3, "ms");
+        vsg::info("null vsg::info(\"line number i\" time = ", time4, "ms");
     }
 
     return 0;

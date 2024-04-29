@@ -20,7 +20,7 @@ public:
     vsg::Path depthFilename;
     vsg::ref_ptr<vsg::Options> options;
 
-    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event, const vsg::Path& in_colorFilename, const vsg::Path& in_depthFilename, vsg::ref_ptr<vsg::Options> in_options = {}):
+    ScreenshotHandler(vsg::ref_ptr<vsg::Event> in_event, const vsg::Path& in_colorFilename, const vsg::Path& in_depthFilename, vsg::ref_ptr<vsg::Options> in_options = {}) :
         event(in_event),
         colorFilename(in_colorFilename),
         depthFilename(in_depthFilename),
@@ -293,21 +293,21 @@ public:
         {
             // Map the buffer memory and assign as a ubyteArray that will automatically unmap itself on destruction.
             // A ubyteArray is used as the graphics buffer memory is not contiguous like vsg::Array2D, so map to a flat buffer first then copy to Array2D.
-            auto mappedData = vsg::MappedData<vsg::ubyteArray>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{targetImageFormat}, subResourceLayout.rowPitch*height);
+            auto mappedData = vsg::MappedData<vsg::ubyteArray>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{targetImageFormat}, subResourceLayout.rowPitch * height);
             imageData = vsg::ubvec4Array2D::create(width, height, vsg::Data::Properties{targetImageFormat});
             for (uint32_t row = 0; row < height; ++row)
             {
-                std::memcpy(imageData->dataPointer(row*width), mappedData->dataPointer(row * subResourceLayout.rowPitch), destRowWidth);
+                std::memcpy(imageData->dataPointer(row * width), mappedData->dataPointer(row * subResourceLayout.rowPitch), destRowWidth);
             }
         }
 
         if (vsg::write(imageData, colorFilename, options))
         {
-            std::cout<<"Written color buffer to "<<colorFilename<<std::endl;
+            std::cout << "Written color buffer to " << colorFilename << std::endl;
         }
         else
         {
-            std::cout<<"Failed to write color buffer to "<<colorFilename<<std::endl;
+            std::cout << "Failed to write color buffer to " << colorFilename << std::endl;
         }
     }
 
@@ -470,7 +470,7 @@ public:
 
             if (vsg::write(imageData, depthFilename, options))
             {
-                std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
+                std::cout << "Written depth buffer to " << depthFilename << std::endl;
             }
         }
         else
@@ -479,7 +479,7 @@ public:
 
             if (vsg::write(imageData, depthFilename))
             {
-                std::cout<<"Written depth buffer to "<<depthFilename<<std::endl;
+                std::cout << "Written depth buffer to " << depthFilename << std::endl;
             }
         }
     }
@@ -536,8 +536,8 @@ int main(int argc, char** argv)
         char c;
         std::stringstream vk_version_str(vk_version);
         vk_version_str >> vk_major >> c >> vk_minor;
-        std::cout<<"vk_major = "<<vk_major<<std::endl;
-        std::cout<<"vk_minor = "<<vk_minor<<std::endl;
+        std::cout << "vk_major = " << vk_major << std::endl;
+        std::cout << "vk_minor = " << vk_minor << std::endl;
     }
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);

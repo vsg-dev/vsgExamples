@@ -28,10 +28,9 @@ vsg::ref_ptr<vsg::Node> createTestScene(vsg::ref_ptr<vsg::Options> options)
     scene->addChild(builder->createCapsule(geomInfo, stateInfo));
     geomInfo.position += geomInfo.dx * 1.5f;
 
-
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
     double diameter = vsg::length(bounds.max - bounds.min);
-    geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+    geomInfo.position.set((bounds.min.x + bounds.max.x) * 0.5, (bounds.min.y + bounds.max.y) * 0.5, bounds.min.z);
     geomInfo.dx.set(diameter, 0.0, 0.0);
     geomInfo.dy.set(0.0, diameter, 0.0);
 
@@ -53,7 +52,6 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsglights";
-
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -96,13 +94,13 @@ int main(int argc, char** argv)
     }
 
     vsg::ref_ptr<vsg::Node> scene;
-    if (argc>1)
+    if (argc > 1)
     {
         vsg::Path filename = argv[1];
         auto model = vsg::read_cast<vsg::Node>(filename, options);
         if (!model)
         {
-            std::cout<<"Failed to load "<<filename<<std::endl;
+            std::cout << "Failed to load " << filename << std::endl;
             return 1;
         }
 
@@ -149,8 +147,8 @@ int main(int argc, char** argv)
             auto pointLight = vsg::PointLight::create();
             pointLight->name = "point";
             pointLight->color.set(1.0, 1.0, 0.0);
-            pointLight->intensity = span*0.5;
-            pointLight->position.set(bounds.min.x, bounds.min.y, bounds.max.z + span*0.3);
+            pointLight->intensity = span * 0.5;
+            pointLight->position.set(bounds.min.x, bounds.min.y, bounds.max.z + span * 0.3);
 
             // enable culling of the point light by decorating with a CullGroup
             auto cullGroup = vsg::CullGroup::create();
@@ -168,9 +166,9 @@ int main(int argc, char** argv)
             auto spotLight = vsg::SpotLight::create();
             spotLight->name = "spot";
             spotLight->color.set(0.0, 1.0, 1.0);
-            spotLight->intensity = span*0.5;
-            spotLight->position.set(bounds.max.x + span*0.1, bounds.min.y - span*0.1, bounds.max.z + span*0.3);
-            spotLight->direction = (bounds.min+bounds.max)*0.5 - spotLight->position;
+            spotLight->intensity = span * 0.5;
+            spotLight->position.set(bounds.max.x + span * 0.1, bounds.min.y - span * 0.1, bounds.max.z + span * 0.3);
+            spotLight->direction = (bounds.min + bounds.max) * 0.5 - spotLight->position;
             spotLight->innerAngle = vsg::radians(8.0);
             spotLight->outerAngle = vsg::radians(9.0);
 
@@ -213,7 +211,6 @@ int main(int argc, char** argv)
         vsg::write(scene, outputFilename, options);
         return 0;
     }
-
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();

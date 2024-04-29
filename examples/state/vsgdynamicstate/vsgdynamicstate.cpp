@@ -71,9 +71,6 @@ int main(int argc, char** argv)
 
     if (!shaderSet) shaderSet = vsg::createPhongShaderSet(options);
 
-
-
-
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // no ShaderSet loaded so fallback to create function.

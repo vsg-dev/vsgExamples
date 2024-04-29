@@ -12,12 +12,12 @@
 //
 Packet::Packet()
 {
-//    std::cout<<"Packet() "<< this<<std::endl;
+    //    std::cout<<"Packet() "<< this<<std::endl;
 }
 
 Packet::~Packet()
 {
-//    std::cout<<"~Packet() "<< this<<std::endl;
+    //    std::cout<<"~Packet() "<< this<<std::endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -26,7 +26,7 @@ Packet::~Packet()
 //
 void PacketSet::clear()
 {
-    for(auto& packet : packets)
+    for (auto& packet : packets)
     {
         pool.emplace(std::move(packet.second));
     }
@@ -51,7 +51,7 @@ void PacketSet::copy(const std::string& str)
     std::size_t i = 0;
     std::size_t totalSize = str.size();
 
-    while(i < totalSize)
+    while (i < totalSize)
     {
         auto packet = createPacket();
 
@@ -60,7 +60,7 @@ void PacketSet::copy(const std::string& str)
         packet->header.packetIndex = packetIndex;
         packet->header.packetSize = (remaining < DATA_SIZE) ? remaining : DATA_SIZE;
 
-        for(std::size_t j = 0; j < packet->header.packetSize; ++j, ++i)
+        for (std::size_t j = 0; j < packet->header.packetSize; ++j, ++i)
         {
             packet->data[j] = str[i];
         }
@@ -69,7 +69,7 @@ void PacketSet::copy(const std::string& str)
         ++packetIndex;
     }
 
-    for(auto& packet : packets)
+    for (auto& packet : packets)
     {
         packet.second->header.packetCount = packetIndex;
         packet.second->header.totalSize = totalSize;
@@ -88,9 +88,9 @@ std::string PacketSet::assemble() const
 
     std::string str(totalSize, '\0');
 
-    for(auto& packet : packets)
+    for (auto& packet : packets)
     {
-        for(std::size_t j=0; j<packet.second->header.packetSize; ++j, ++i)
+        for (std::size_t j = 0; j < packet.second->header.packetSize; ++j, ++i)
         {
             str[i] = packet.second->data[j];
         }
@@ -114,7 +114,7 @@ void PacketBroadcaster::broadcast(uint64_t set, vsg::ref_ptr<vsg::Object> object
 
     packets.copy(ostr.str());
 
-    for(auto& packet : packets.packets)
+    for (auto& packet : packets.packets)
     {
         Packet& ref = *packet.second;
         ref.header.set = set;
@@ -122,7 +122,6 @@ void PacketBroadcaster::broadcast(uint64_t set, vsg::ref_ptr<vsg::Object> object
         broadcaster->broadcast(&ref, static_cast<unsigned int>(size));
     }
 }
-
 
 //////////////////////////////////////////////////////////////////////////////////////
 //
@@ -147,7 +146,7 @@ std::unique_ptr<Packet> PacketReceiver::createPacket()
         }
     }
 #endif
-    for(auto& packetSet : packetSetMap)
+    for (auto& packetSet : packetSetMap)
     {
         auto packet = packetSet.second->takePacketFromPool();
         if (packet)
@@ -172,9 +171,10 @@ vsg::ref_ptr<vsg::Object> PacketReceiver::completed(uint64_t set)
     auto object = rw.read(istr);
 
     // clean up the PacketSet
-    auto next_itr = set_itr; ++next_itr;
+    auto next_itr = set_itr;
+    ++next_itr;
 
-    for(auto itr = packetSetMap.begin(); itr != next_itr; ++itr)
+    for (auto itr = packetSetMap.begin(); itr != next_itr; ++itr)
     {
         itr->second->clear();
         packetSetPool.push(std::move(itr->second));
@@ -224,7 +224,7 @@ vsg::ref_ptr<vsg::Object> PacketReceiver::receive()
         return completed(set);
     }
 
-    while(true)
+    while (true)
     {
         auto packet = createPacket();
         unsigned int size = receiver->receive(&(*packet), sizeof(Packet));

@@ -173,7 +173,7 @@ int main(int argc, char** argv)
         std::vector<uint64_t> results(1);
         if (query_pool->getResults(results) == VK_SUCCESS)
         {
-            std::cout<<"results[0] = "<<results[0]<<std::endl;
+            std::cout << "results[0] = " << results[0] << std::endl;
         }
     }
 

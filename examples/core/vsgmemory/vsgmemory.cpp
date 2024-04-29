@@ -3,11 +3,11 @@
 #include <vsg/core/observer_ptr.h>
 #include <vsg/core/ref_ptr.h>
 
+#include <vsg/io/Options.h>
 #include <vsg/nodes/Group.h>
 #include <vsg/nodes/LOD.h>
 #include <vsg/nodes/QuadGroup.h>
 #include <vsg/utils/CommandLine.h>
-#include <vsg/io/Options.h>
 
 #include <chrono>
 #include <iostream>
@@ -39,7 +39,7 @@ int main(int argc, char** argv)
     copy_objects = objects;
     copy_objects.clear();
 
-    std::cout << "Time to copy container with "<<numObjects<<" objects : " << std::chrono::duration<double>(clock::now() - start).count()<<" seconds."<<std::endl;
+    std::cout << "Time to copy container with " << numObjects << " objects : " << std::chrono::duration<double>(clock::now() - start).count() << " seconds." << std::endl;
 
     return 0;
 }

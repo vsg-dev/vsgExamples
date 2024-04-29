@@ -20,14 +20,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <iostream>
 #include <thread>
 
-
 namespace vsg
 {
     class TraverseChildrenOfNode : public vsg::Inherit<vsg::Node, TraverseChildrenOfNode>
     {
     public:
-
-        explicit TraverseChildrenOfNode(vsg::ref_ptr<vsg::Node> in_node) : node(in_node) {}
+        explicit TraverseChildrenOfNode(vsg::ref_ptr<vsg::Node> in_node) :
+            node(in_node) {}
 
         vsg::observer_ptr<vsg::Node> node;
 
@@ -42,7 +41,7 @@ namespace vsg
         void traverse(RecordTraversal& visitor) const override { t_traverse(*this, visitor); }
     };
     VSG_type_name(vsg::TraverseChildrenOfNode);
-}
+} // namespace vsg
 
 vsg::ref_ptr<vsg::Image> createImage(vsg::Context& context, uint32_t width, uint32_t height, uint32_t levels, VkFormat format, VkImageUsageFlags usage)
 {
@@ -64,7 +63,6 @@ vsg::ref_ptr<vsg::Image> createImage(vsg::Context& context, uint32_t width, uint
 
     return image;
 }
-
 
 vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context, const VkExtent2D& extent, uint32_t layer,
                                                           vsg::ref_ptr<vsg::Image> colorImage, vsg::ImageInfo& colorImageInfo,
@@ -176,7 +174,6 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     return rendergraph;
 }
 
-
 vsg::ref_ptr<vsg::Camera> createCameraForScene(vsg::Node* scenegraph, const VkExtent2D& extent)
 {
     // compute the bounds of the scene graph to help position camera
@@ -221,17 +218,22 @@ namespace vsg
     {
     public:
         EventNode() {}
-        explicit EventNode(const EventHandlers& in_eventHandlers) : eventHandlers(in_eventHandlers) {}
-        explicit EventNode(ref_ptr<Visitor> eventHandler) { if (eventHandler) eventHandlers.push_back(eventHandler); }
+        explicit EventNode(const EventHandlers& in_eventHandlers) :
+            eventHandlers(in_eventHandlers) {}
+        explicit EventNode(ref_ptr<Visitor> eventHandler)
+        {
+            if (eventHandler) eventHandlers.push_back(eventHandler);
+        }
 
         EventHandlers eventHandlers;
     };
-}
+} // namespace vsg
 
 struct AssignEventHandlers : public vsg::Visitor
 {
     vsg::Viewer& viewer;
-    AssignEventHandlers(vsg::Viewer& in_viewer) : viewer(in_viewer) {}
+    AssignEventHandlers(vsg::Viewer& in_viewer) :
+        viewer(in_viewer) {}
 
     void apply(vsg::Object& object) override { object.traverse(*this); }
     void apply(vsg::Node& node) override
@@ -250,27 +252,22 @@ struct AssignEventHandlers : public vsg::Visitor
 vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& position, const vsg::vec2& size)
 {
     // set up vertex and index arrays
-    auto vertices = vsg::vec3Array::create({
-         position + vsg::vec3(0.0f, 0.0f, 0.0f),
-         position + vsg::vec3(size.x, 0.0f, 0.0f),
-         position + vsg::vec3(size.x, size.y, 0.0f),
-         position + vsg::vec3(0.0f, size.y, 0.0f)
-        });
+    auto vertices = vsg::vec3Array::create({position + vsg::vec3(0.0f, 0.0f, 0.0f),
+                                            position + vsg::vec3(size.x, 0.0f, 0.0f),
+                                            position + vsg::vec3(size.x, size.y, 0.0f),
+                                            position + vsg::vec3(0.0f, size.y, 0.0f)});
 
     auto colors = vsg::vec3Array::create(
-        {
-            {1.0f, 1.0f, 1.0f},
-            {1.0f, 1.0f, 1.0f},
-            {1.0f, 1.0f, 1.0f},
-            {1.0f, 1.0f, 1.0f}
-        });
+        {{1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f},
+         {1.0f, 1.0f, 1.0f}});
 
     auto texcoords = vsg::vec2Array::create(
         {{0.0f, 1.0f},
          {1.0f, 1.0f},
          {1.0f, 0.0f},
-         {0.0f, 0.0f}
-        });
+         {0.0f, 0.0f}});
 
     auto indices = vsg::ushortArray::create(
         {0, 1, 2,
@@ -352,7 +349,7 @@ vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> de
     uint32_t nx = static_cast<uint32_t>(std::ceil(std::sqrt(static_cast<float>(imageInfos.size()) * aspecRatio)));
 
     uint32_t col = 0;
-    for(auto& imageInfo : imageInfos)
+    for (auto& imageInfo : imageInfos)
     {
         // create texture image and associated DescriptorSets and binding
         auto texture = vsg::DescriptorImage::create(imageInfo, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -363,7 +360,7 @@ vsg::ref_ptr<vsg::CommandGraph> createResultsWindow(vsg::ref_ptr<vsg::Device> de
         // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
         auto quadgroup = vsg::StateGroup::create();
         quadgroup->add(bindDescriptorSet);
-        quadgroup->addChild( createQuad(position, size) );
+        quadgroup->addChild(createQuad(position, size));
 
         scenegraph->addChild(quadgroup);
 
@@ -432,31 +429,30 @@ struct CollectStats : public vsg::ConstVisitor
         std::set<uint32_t> viewIDs;
 
         out << "number of vsg::View " << views.size() << std::endl;
-        for(auto& [view, count] : views)
+        for (auto& [view, count] : views)
         {
-            out << "   view = " << view << ", viewID = "<< view->viewID<< ", count = " << count <<std::endl;
+            out << "   view = " << view << ", viewID = " << view->viewID << ", count = " << count << std::endl;
             viewIDs.insert(view->viewID);
         }
 
         uint32_t numPipelines = 0;
 
         out << "number of vsg::GraphicsPipelines " << pipelines.size() << std::endl;
-        for(auto& [pipeline, count] : pipelines)
+        for (auto& [pipeline, count] : pipelines)
         {
             out << "   pipeline = " << pipeline << ", count = " << count;
-            for(auto viewID : viewIDs)
+            for (auto viewID : viewIDs)
             {
                 if (pipeline->validated_vk(viewID) != 0)
                 {
                     ++numPipelines;
-                    out<<" pipeline->vk("<<viewID<<") = "<<pipeline->validated_vk(viewID);
+                    out << " pipeline->vk(" << viewID << ") = " << pipeline->validated_vk(viewID);
                 }
             }
-            out<<std::endl;
+            out << std::endl;
         }
 
-        out<<"number of vkPipelines = "<<numPipelines<<std::endl;
-
+        out << "number of vkPipelines = " << numPipelines << std::endl;
     }
 };
 
@@ -565,7 +561,6 @@ int main(int argc, char** argv)
 
     auto view3D = vsg::View::create(camera, vsg_scene);
 
-
     auto context = vsg::Context::create(window->getOrCreateDevice());
 
     auto main_RenderGraph = vsg::RenderGraph::create(window);
@@ -592,10 +587,10 @@ int main(int argc, char** argv)
 
         // create render to textures
         auto rtt_commandGraph = vsg::CommandGraph::create(window);
-        rtt_commandGraph->submitOrder = -1; // render before the main_commandGraph
+        rtt_commandGraph->submitOrder = -1;            // render before the main_commandGraph
         main_commandGraph->addChild(rtt_commandGraph); // rtt_commandGraph nested within main CommandGraph
         vsg::ref_ptr<vsg::View> first_rrt_view;
-        for(uint32_t layer = 0; layer < numLayers; ++layer)
+        for (uint32_t layer = 0; layer < numLayers; ++layer)
         {
             // create RenderGraph for render to texture for specified layer
             auto offscreenCamera = createCameraForScene(vsg_scene, targetExtent);
@@ -634,7 +629,7 @@ int main(int argc, char** argv)
 
     // traverse the viewer's commandGraphs to add any event handlers specificied via the EventNode.
     AssignEventHandlers aeh(*viewer);
-    for(auto cg : commandGraphs) cg->accept(aeh);
+    for (auto cg : commandGraphs) cg->accept(aeh);
 
     // compile all the application and scene graph levels Vulkan objects and transfer data to GPU memory.
     viewer->compile();
@@ -659,7 +654,7 @@ int main(int argc, char** argv)
 
     auto fs = viewer->getFrameStamp();
     double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
-    std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
+    std::cout << "Average frame rate = " << fps << " fps" << std::endl;
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;

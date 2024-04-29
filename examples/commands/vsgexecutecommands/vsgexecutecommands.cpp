@@ -175,7 +175,6 @@ int main(int argc, char** argv)
     vsg::Path filename;
     if (argc > 1) filename = arguments[1];
 
-
     vsg::ref_ptr<vsg::Node> vsg_scene;
     if (filename)
     {
@@ -194,7 +193,6 @@ int main(int argc, char** argv)
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
-
 
     auto window1 = vsg::Window::create(traits);
     if (!window1)

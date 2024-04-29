@@ -22,7 +22,6 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgtransform";
 
-
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
@@ -45,9 +44,9 @@ int main(int argc, char** argv)
 
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
-    if (argc<=1)
+    if (argc <= 1)
     {
-        std::cout<<"Please specify model to load on command line."<<std::endl;
+        std::cout << "Please specify model to load on command line." << std::endl;
         return 0;
     }
 
@@ -55,7 +54,7 @@ int main(int argc, char** argv)
     auto model = vsg::read_cast<vsg::Node>(filename, options);
     if (!model)
     {
-        std::cout<<"Failed to load "<<filename<<std::endl;
+        std::cout << "Failed to load " << filename << std::endl;
         return 1;
     }
 
@@ -65,7 +64,6 @@ int main(int argc, char** argv)
     double radius = vsg::length(bounds.max - bounds.min) * 0.6;
 
     auto scene = vsg::Group::create();
-
 
     auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "-f");
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);
@@ -118,7 +116,6 @@ int main(int argc, char** argv)
         vsg::write(scene, outputFilename, options);
         return 0;
     }
-
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();

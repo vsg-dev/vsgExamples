@@ -224,12 +224,11 @@ int main(int argc, char** argv)
         return {};
     }
 
-
     vsg::ref_ptr<vsg::Data> textureData;
     if (auto texturePath = arguments.value<vsg::Path>("", "-i"))
     {
         textureData = vsg::read_cast<vsg::Data>(texturePath, options);
-        std::cout<<"Reading "<<textureData<<" from "<<texturePath<<std::endl;
+        std::cout << "Reading " << textureData << " from " << texturePath << std::endl;
     }
 
     if (!textureData)
@@ -267,7 +266,6 @@ int main(int argc, char** argv)
     vsg::VertexInputState::Attributes vertexAttributeDescriptions{
         VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0}, // vertex data
     };
-
 
     auto rasterizationState = vsg::RasterizationState::create();
     rasterizationState->cullMode = VK_CULL_MODE_FRONT_BIT;
@@ -323,7 +321,7 @@ int main(int argc, char** argv)
     // camera related details
     auto viewport = vsg::ViewportState::create(0, 0, window->extent2D().width, window->extent2D().height);
     auto perspective = vsg::Perspective::create(60.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), 0.1, 20.0);
-    auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0)*2.0, vsg::dvec3(0.5, 0.5, 0.5), vsg::dvec3(0.0, 0.0, 1.0));
+    auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0) * 2.0, vsg::dvec3(0.5, 0.5, 0.5), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, scenegraph);

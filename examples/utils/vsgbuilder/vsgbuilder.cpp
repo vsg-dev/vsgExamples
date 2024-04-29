@@ -145,14 +145,14 @@ int main(int argc, char** argv)
                 stateInfo.billboard = true;
 
                 float w = std::pow(float(numVertices), 0.33f) * 2.0f * vsg::length(geomInfo.dx);
-                float scaleDistance = w*3.0;
+                float scaleDistance = w * 3.0;
                 auto positions = vsg::vec4Array::create(numVertices);
                 geomInfo.positions = positions;
                 for (auto& v : *(positions))
                 {
                     v.set(w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
-                        w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
-                        w * (float(std::rand()) / float(RAND_MAX) - 0.5f), scaleDistance);
+                          w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
+                          w * (float(std::rand()) / float(RAND_MAX) - 0.5f), scaleDistance);
                 }
 
                 radius += (0.5 * sqrt(3.0) * w);
@@ -167,8 +167,8 @@ int main(int argc, char** argv)
                 for (auto& v : *(positions))
                 {
                     v.set(w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
-                        w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
-                        w * (float(std::rand()) / float(RAND_MAX) - 0.5f));
+                          w * (float(std::rand()) / float(RAND_MAX) - 0.5f),
+                          w * (float(std::rand()) / float(RAND_MAX) - 0.5f));
                 }
 
                 radius += (0.5 * sqrt(3.0) * w);
@@ -213,7 +213,6 @@ int main(int argc, char** argv)
             else
             {
                 scene->addChild(node);
-
             }
         }
 

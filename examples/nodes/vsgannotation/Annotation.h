@@ -19,8 +19,8 @@ namespace experimental
     {
     public:
         template<typename... Args>
-        Annotation(Args&&... args)
-            : vsg::Inherit<ParentClass, Annotation<ParentClass>>(args...), debugColor(1.0f, 1.0f, 1.0f, 1.0f)
+        Annotation(Args&&... args) :
+            vsg::Inherit<ParentClass, Annotation<ParentClass>>(args...), debugColor(1.0f, 1.0f, 1.0f, 1.0f)
         {
         }
 
@@ -53,4 +53,4 @@ namespace experimental
             }
         }
     };
-}
+} // namespace experimental

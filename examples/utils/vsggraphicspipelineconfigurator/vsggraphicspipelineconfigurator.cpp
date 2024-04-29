@@ -5,7 +5,6 @@
 #    include <vsgXchange/all.h>
 #endif
 
-
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -32,7 +31,7 @@ int main(int argc, char** argv)
     if (vsg::Path shaderSetFile; arguments.read("-s", shaderSetFile))
     {
         shaderSet = vsg::read_cast<vsg::ShaderSet>(shaderSetFile, options);
-        std::cout<<"Read ShaderSet file "<<shaderSet<<std::endl;
+        std::cout << "Read ShaderSet file " << shaderSet << std::endl;
     }
 
     auto textureFile = arguments.value<vsg::Path>("", "-t");
@@ -50,9 +49,7 @@ int main(int argc, char** argv)
         shaderSet->defaultGraphicsPipelineStates.push_back(rasterizationState);
     }
 
-
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
-
 
     // no ShaderSet loaded so fallback to create function.
     //if (!shaderSet) shaderSet = vsg::createFlatShadedShaderSet(options);
@@ -74,10 +71,9 @@ int main(int argc, char** argv)
     size_t numColumns = std::max(size_t(1), static_cast<size_t>(sqrt(static_cast<double>(numInstances))));
     size_t numRows = std::max(size_t(1), numInstances / numColumns);
 
-
-    for(size_t r=0; (r < numRows) && (scenegraph->children.size() < numInstances); ++r)
+    for (size_t r = 0; (r < numRows) && (scenegraph->children.size() < numInstances); ++r)
     {
-        for(size_t c=0; (c < numColumns) && (scenegraph->children.size() < numInstances); ++c)
+        for (size_t c = 0; (c < numColumns) && (scenegraph->children.size() < numInstances); ++c)
         {
             auto graphicsPipelineConfig = vsg::GraphicsPipelineConfigurator::create(shaderSet);
 
@@ -105,41 +101,41 @@ int main(int argc, char** argv)
             // set up vertex and index arrays
             auto vertices = vsg::vec3Array::create(
                 {{-0.5f, -0.5f, 0.0f},
-                {0.5f, -0.5f, 0.0f},
-                {0.5f, 0.5f, 0.0f},
-                {-0.5f, 0.5f, 0.0f},
-                {-0.5f, -0.5f, -0.5f},
-                {0.5f, -0.5f, -0.5f},
-                {0.5f, 0.5f, -0.5f},
-                {-0.5f, 0.5f, -0.5f}});
+                 {0.5f, -0.5f, 0.0f},
+                 {0.5f, 0.5f, 0.0f},
+                 {-0.5f, 0.5f, 0.0f},
+                 {-0.5f, -0.5f, -0.5f},
+                 {0.5f, -0.5f, -0.5f},
+                 {0.5f, 0.5f, -0.5f},
+                 {-0.5f, 0.5f, -0.5f}});
 
             auto normals = vsg::vec3Array::create(
                 {{0.0f, 0.0f, 1.0f},
-                {0.0f, 0.0f, 1.0f},
-                {0.0f, 0.0f, 1.0f},
-                {0.0f, 0.0f, 1.0f},
-                {0.0f, 0.0f, 1.0f},
-                {0.0f, 0.0f, 1.0f},
-                {0.0f, 0.0f, 1.0f},
-                {0.0f, 0.0f, 1.0f}});
+                 {0.0f, 0.0f, 1.0f},
+                 {0.0f, 0.0f, 1.0f},
+                 {0.0f, 0.0f, 1.0f},
+                 {0.0f, 0.0f, 1.0f},
+                 {0.0f, 0.0f, 1.0f},
+                 {0.0f, 0.0f, 1.0f},
+                 {0.0f, 0.0f, 1.0f}});
 
             auto texcoords = vsg::vec2Array::create(
                 {{0.0f, 0.0f},
-                {1.0f, 0.0f},
-                {1.0f, 1.0f},
-                {0.0f, 1.0f},
-                {0.0f, 0.0f},
-                {1.0f, 0.0f},
-                {1.0f, 1.0f},
-                {0.0f, 1.0f}});
+                 {1.0f, 0.0f},
+                 {1.0f, 1.0f},
+                 {0.0f, 1.0f},
+                 {0.0f, 0.0f},
+                 {1.0f, 0.0f},
+                 {1.0f, 1.0f},
+                 {0.0f, 1.0f}});
 
             auto colors = vsg::vec4Value::create(vsg::vec4{1.0f, 1.0f, 1.0f, 1.0f});
 
             auto indices = vsg::ushortArray::create(
                 {0, 1, 2,
-                2, 3, 0,
-                4, 5, 6,
-                6, 7, 4});
+                 2, 3, 0,
+                 4, 5, 6,
+                 6, 7, 4});
 
             vsg::DataList vertexArrays;
 
@@ -164,8 +160,10 @@ int main(int argc, char** argv)
             }
 
             // share the pipeline config and initialize it if it's unique
-            if (sharedObjects) sharedObjects->share(graphicsPipelineConfig, [](auto gpc) { gpc->init(); });
-            else graphicsPipelineConfig->init();
+            if (sharedObjects)
+                sharedObjects->share(graphicsPipelineConfig, [](auto gpc) { gpc->init(); });
+            else
+                graphicsPipelineConfig->init();
 
             // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
             auto stateGroup = vsg::StateGroup::create();

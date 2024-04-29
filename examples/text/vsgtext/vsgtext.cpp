@@ -541,7 +541,7 @@ int main(int argc, char** argv)
             dynamic_text_layout->billboard = true;
             dynamic_text_layout->position = vsg::vec3(0.0, 0.0, -6.0);
             dynamic_text_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-            dynamic_text_layout->vertical = dynamic_text_layout->billboard ? vsg::vec3(0.0, 1.0, 0.0) : vsg::vec3(0.0, 0.0, 1.0) ;
+            dynamic_text_layout->vertical = dynamic_text_layout->billboard ? vsg::vec3(0.0, 1.0, 0.0) : vsg::vec3(0.0, 0.0, 1.0);
             dynamic_text_layout->color = vsg::vec4(1.0, 0.9, 1.0, 1.0);
             dynamic_text_layout->outlineWidth = 0.1;
 

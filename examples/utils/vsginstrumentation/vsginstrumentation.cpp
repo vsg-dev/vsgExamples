@@ -14,10 +14,10 @@
 class InstrumentationHandler : public vsg::Inherit<vsg::Visitor, InstrumentationHandler>
 {
 public:
-
     vsg::ref_ptr<vsg::Profiler> instrumentation;
 
-    InstrumentationHandler(vsg::ref_ptr<vsg::Profiler> in_instrumentation) : instrumentation(in_instrumentation) {}
+    InstrumentationHandler(vsg::ref_ptr<vsg::Profiler> in_instrumentation) :
+        instrumentation(in_instrumentation) {}
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
@@ -50,7 +50,6 @@ vsg::ref_ptr<vsg::Node> decorateWithInstrumentationNode(vsg::ref_ptr<vsg::Node> 
 
     return instrumentationNode;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -157,7 +156,6 @@ int main(int argc, char** argv)
         // assign instrumentation to vsg::Options to enable read/write functions to provide instrumentation
         options->instrumentation = instrumentation;
 
-
         auto group = vsg::Group::create();
 
         vsg::Path path;
@@ -200,7 +198,6 @@ int main(int argc, char** argv)
             vsg_scene = group->children[0];
         else
             vsg_scene = group;
-
 
         if (outputFilename)
         {
@@ -276,7 +273,7 @@ int main(int argc, char** argv)
         {
             auto fs = viewer->getFrameStamp();
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
-            std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
+            std::cout << "Average frame rate = " << fps << " fps" << std::endl;
         }
 
         if (instrumentation && instrumentation->log)

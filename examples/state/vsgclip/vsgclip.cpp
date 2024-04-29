@@ -245,7 +245,6 @@ int main(int argc, char** argv)
 
         auto device = window->getOrCreateDevice();
 
-
         auto clipSettings_buffer = vsg::DescriptorBuffer::create(eyeClipSettings, 0);
         auto clipSettings_descriptorSet = vsg::DescriptorSet::create(clipSettings_descriptorSetLayout, vsg::Descriptors{clipSettings_buffer});
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, clipSettings_descriptorSet);

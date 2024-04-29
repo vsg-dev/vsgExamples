@@ -10,7 +10,6 @@
 class ReplaceColorBlendState : public vsg::Visitor
 {
 public:
-
     ReplaceColorBlendState(vsg::Mask in_leftMask, vsg::Mask in_rightMask) :
         leftMask(in_leftMask),
         rightMask(in_rightMask) {}

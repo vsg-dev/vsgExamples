@@ -28,8 +28,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     uint32_t numCapsules = 300;
 
     vsg::vec3 size = bounds.max - bounds.min;
-    auto assignRandomGeometryInfo = [&]()
-    {
+    auto assignRandomGeometryInfo = [&]() {
         vsg::vec3 offset(size.x * float(std::rand()) / float(RAND_MAX),
                          size.y * float(std::rand()) / float(RAND_MAX),
                          size.z * float(std::rand()) / float(RAND_MAX));
@@ -44,21 +43,21 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
                            1.0f);
     };
 
-    for(uint32_t bi = 0; bi < numBoxes; ++bi)
+    for (uint32_t bi = 0; bi < numBoxes; ++bi)
     {
         assignRandomGeometryInfo();
         auto model = builder->createBox(geomInfo, stateInfo);
         scene->addChild(model);
     }
 
-    for(uint32_t bi = 0; bi < numSpheres; ++bi)
+    for (uint32_t bi = 0; bi < numSpheres; ++bi)
     {
         assignRandomGeometryInfo();
         auto model = builder->createSphere(geomInfo, stateInfo);
         scene->addChild(model);
     }
 
-    for(uint32_t bi = 0; bi < numCapsules; ++bi)
+    for (uint32_t bi = 0; bi < numCapsules; ++bi)
     {
         assignRandomGeometryInfo();
         auto model = builder->createCapsule(geomInfo, stateInfo);
@@ -68,7 +67,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     if (requiresBase)
     {
         double diameter = vsg::length(bounds.max - bounds.min);
-        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+        geomInfo.position.set((bounds.min.x + bounds.max.x) * 0.5, (bounds.min.y + bounds.max.y) * 0.5, bounds.min.z);
         geomInfo.dx.set(diameter, 0.0, 0.0);
         geomInfo.dy.set(0.0, diameter, 0.0);
         geomInfo.dz.set(0.0, 0.0, 1.0);
@@ -98,22 +97,22 @@ vsg::ref_ptr<vsg::Node> createDroneModel(vsg::ref_ptr<vsg::Options> options, flo
     // body
     droneGroup->addChild(builder.createBox(geomInfo, stateInfo));
 
-    geomInfo.dx.set(droneSize*0.5f, 0.0f, 0.0f);
-    geomInfo.dy.set(0.0f, droneSize*0.5f, 0.0f);
-    geomInfo.dz.set(0.0f, 0.0f, droneSize*0.05f);
+    geomInfo.dx.set(droneSize * 0.5f, 0.0f, 0.0f);
+    geomInfo.dy.set(0.0f, droneSize * 0.5f, 0.0f);
+    geomInfo.dz.set(0.0f, 0.0f, droneSize * 0.05f);
     geomInfo.color.set(1.0f, 0.8f, 0.4f, 1.0f);
 
     // rotors
-    geomInfo.position.set(-droneSize*0.5f, -droneSize*0.5f, 0.0f);
+    geomInfo.position.set(-droneSize * 0.5f, -droneSize * 0.5f, 0.0f);
     droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
 
-    geomInfo.position.set(droneSize*0.5f, -droneSize*0.5f, 0.0f);
+    geomInfo.position.set(droneSize * 0.5f, -droneSize * 0.5f, 0.0f);
     droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
 
-    geomInfo.position.set(droneSize*0.5f, droneSize*0.5f, 0.0f);
+    geomInfo.position.set(droneSize * 0.5f, droneSize * 0.5f, 0.0f);
     droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
 
-    geomInfo.position.set(-droneSize*0.5f, droneSize*0.5f, 0.0f);
+    geomInfo.position.set(-droneSize * 0.5f, droneSize * 0.5f, 0.0f);
     droneGroup->addChild(builder.createDisk(geomInfo, stateInfo));
 
     return droneGroup;
@@ -170,7 +169,7 @@ vsg::ref_ptr<vsg::Node> createEarthModel(vsg::CommandLine& arguments, vsg::ref_p
         settings->maxLevel = 17;
         settings->originTopLeft = true;
         settings->lighting = true;
-        settings->projection = "EPSG:3857";  // Spherical Mecator
+        settings->projection = "EPSG:3857"; // Spherical Mecator
         settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
     }
 
@@ -200,11 +199,11 @@ vsg::ref_ptr<vsg::Animation> createAnimationPath(vsg::ref_ptr<vsg::MatrixTransfo
 
     vsg::dvec3 scale(1.0, 1.0, 1.0);
     double delta = period / 100.0;
-    for(double time = 0.0; time < period; time += delta)
+    for (double time = 0.0; time < period; time += delta)
     {
         double theta = 2 * vsg::PI * (time / period);
         vsg::dvec3 position(flight_scale * sin(theta), flight_scale * cos(theta), 0.0);
-        vsg::dquat rotation(- 0.5 * vsg::PI - theta, vsg::dvec3(0.0, 0.0, 1.0));
+        vsg::dquat rotation(-0.5 * vsg::PI - theta, vsg::dvec3(0.0, 0.0, 1.0));
         keyframes->add(time, position, rotation, scale);
     }
     return path;
@@ -225,7 +224,6 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgtextureprojection";
-
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -270,10 +268,9 @@ int main(int argc, char** argv)
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
     {
-        std::cout<<"Enabled depth clamp."<<std::endl;
+        std::cout << "Enabled depth clamp." << std::endl;
         deviceFeatures->get().depthClamp = VK_TRUE;
     }
-
 
     auto insertCullNode = arguments.read("--cull");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
@@ -286,7 +283,6 @@ int main(int argc, char** argv)
     auto textureFile = arguments.value(vsg::Path{}, {"-i", "--image"});
 
     auto numShadowMapsPerLight = arguments.value<uint32_t>(1, "--sm");
-
 
     vsg::ref_ptr<vsg::ResourceHints> resourceHints;
     if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
@@ -311,16 +307,16 @@ int main(int argc, char** argv)
     options->shaderSets["phong"] = shaderSet;
     if (!shaderSet)
     {
-        std::cout<<"No vsg::ShaderSet to process."<<std::endl;
+        std::cout << "No vsg::ShaderSet to process." << std::endl;
         return 1;
     }
 
     auto shaderHints = shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
 
-//    if (numShadowMapsPerLight>0)
-//    {
-//        shaderHints->defines.insert("VSG_SHADOWS_HARD");
-//    }
+    //    if (numShadowMapsPerLight>0)
+    //    {
+    //        shaderHints->defines.insert("VSG_SHADOWS_HARD");
+    //    }
 
     if (depthClamp || shaderDebug)
     {
@@ -340,11 +336,10 @@ int main(int argc, char** argv)
         shaderSet->variants.clear();
     }
 
-
     std::vector<vsg::ref_ptr<vsg::Data>> images;
     vsg::ref_ptr<vsg::Data> firstImage;
     uint32_t depth = 0;
-    for(int i = 1; i< argc;  ++i)
+    for (int i = 1; i < argc; ++i)
     {
         vsg::Path filename = argv[i];
         if (auto data = vsg::read_cast<vsg::Data>(filename, options))
@@ -364,24 +359,24 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    std::cout<<"Image file : "<<filename<<" loaded, but does not match required dimensions for first image."<<std::endl;
+                    std::cout << "Image file : " << filename << " loaded, but does not match required dimensions for first image." << std::endl;
                 }
             }
             else
             {
-                std::cout<<"Image file : "<<filename<<" loaded, but does not match required VK_FORMAT_R8G8B8A8_UNORM format."<<std::endl;
+                std::cout << "Image file : " << filename << " loaded, but does not match required VK_FORMAT_R8G8B8A8_UNORM format." << std::endl;
             }
         }
         else
         {
-            std::cout<<"Image file : "<<filename<<" not loaded."<<std::endl;
+            std::cout << "Image file : " << filename << " not loaded." << std::endl;
             return 1;
         }
     }
 
     if (images.empty())
     {
-        std::cout<<"No images to project, please specify an image file on the command line."<<std::endl;
+        std::cout << "No images to project, please specify an image file on the command line." << std::endl;
         return 1;
     }
 
@@ -446,7 +441,7 @@ int main(int argc, char** argv)
         droneModel = createDroneModel(options, arguments.value(10.0f, "--drone-size"));
     }
 
-    auto droneLocation = vsg::MatrixTransform::create(); // transform into world coordinate frame
+    auto droneLocation = vsg::MatrixTransform::create();  // transform into world coordinate frame
     auto droneTransform = vsg::MatrixTransform::create(); // local position of the drone within this droneLocation
     droneLocation->addChild(droneTransform);
     droneTransform->addChild(droneModel);
@@ -473,15 +468,13 @@ int main(int argc, char** argv)
     // create the path for the drone to follow, and to use for setting the texgen matrices to position the textures
     auto dronePath = createAnimationPath(droneTransform, flight_scale, animationPeriod);
 
-
     // copy loaded images to single texture2DArray
     uint32_t layer = 0;
-    for(auto& data : images)
+    for (auto& data : images)
     {
         std::memcpy(texture2DArray->dataPointer(texture2DArray->index(0, 0, layer)), data->dataPointer(), data->dataSize());
         layer += data->depth();
     }
-
 
     if (stateGroup)
     {
@@ -501,9 +494,9 @@ int main(int argc, char** argv)
         auto center = (bounds.min + bounds.max) * 0.5;
         center.z = bounds.min.z;
 
-        vsg::dvec3 model_location = { location.x, location.y, 0.0};
+        vsg::dvec3 model_location = {location.x, location.y, 0.0};
 
-        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(model_location) * vsg::translate(-center) );
+        auto transform = vsg::MatrixTransform::create(ellipsoidModel->computeLocalToWorldTransform(model_location) * vsg::translate(-center));
         transform->addChild(scene);
 
         droneLocation->matrix = ellipsoidModel->computeLocalToWorldTransform(location);
@@ -546,9 +539,9 @@ int main(int argc, char** argv)
 
     // set up the texgen matrices
     auto imageMatrices = vsg::dmat4Array::create(depth);
-    double aspectRatio = (static_cast<double>(texture2DArray->width())/static_cast<double>(texture2DArray->height()));
+    double aspectRatio = (static_cast<double>(texture2DArray->width()) / static_cast<double>(texture2DArray->height()));
     dronePath->start(0.0);
-    for(size_t i = 0; i < depth; ++i)
+    for (size_t i = 0; i < depth; ++i)
     {
         // drone has Y forward, X to the right, Z up, so without any further rotation the projected texture
         // will poject down the negative Z axis, which in this setup is straight down towards the earth.
@@ -556,7 +549,7 @@ int main(int argc, char** argv)
         dronePath->update(time);
         auto mv = vsg::inverse(droneLocation->matrix * droneTransform->matrix);
         auto p = vsg::perspective(vsg::radians(45.0), aspectRatio, 1.0, 100.0);
-        imageMatrices->set(i, p * mv );
+        imageMatrices->set(i, p * mv);
     }
     dronePath->stop(0.0);
 
@@ -605,7 +598,6 @@ int main(int argc, char** argv)
 
     viewer->addWindow(window);
 
-
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (ellipsoidModel)
     {
@@ -651,7 +643,6 @@ int main(int argc, char** argv)
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
 
-
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
@@ -662,7 +653,7 @@ int main(int argc, char** argv)
 
         // update the eye line text
         vsg::dmat4 inverse_viewMatrix = vsg::inverse(camera->viewMatrix->transform());
-        for(size_t i = 0; i < depth; ++i)
+        for (size_t i = 0; i < depth; ++i)
         {
             vsg::dmat4 texgenProjView = imageMatrices->at(i);
             vsg::dmat4 texgenTM = texgenProjView * inverse_viewMatrix;

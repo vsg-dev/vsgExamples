@@ -93,14 +93,13 @@ int main(int argc, char** argv)
         settings->maxLevel = 17;
         settings->originTopLeft = true;
         settings->lighting = false;
-        settings->projection = "EPSG:3857";  // Spherical Mecator
+        settings->projection = "EPSG:3857"; // Spherical Mecator
         settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
     }
 
-
     if (!settings)
     {
-        std::cout<<"No TileDatabaseSettings assigned."<<std::endl;
+        std::cout << "No TileDatabaseSettings assigned." << std::endl;
         return 1;
     }
 
@@ -179,7 +178,6 @@ int main(int argc, char** argv)
         perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
     }
 
-
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
     // add close handler to respond to the close window button and pressing escape
@@ -240,7 +238,7 @@ int main(int argc, char** argv)
     if (maxPagedLOD > 0)
     {
         // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-        for(auto& task : viewer->recordAndSubmitTasks)
+        for (auto& task : viewer->recordAndSubmitTasks)
         {
             if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
         }

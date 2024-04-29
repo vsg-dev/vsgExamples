@@ -125,9 +125,7 @@ vsg::ref_ptr<vsg::Commands> createTransferCommands(
     commands->addChild(cmd_transitionForTransferBarrier);
 
     if (
-        sourceImage->format == destinationImage->format
-        && sourceImage->extent.width == destinationImage->extent.width
-        && sourceImage->extent.height == destinationImage->extent.height)
+        sourceImage->format == destinationImage->format && sourceImage->extent.width == destinationImage->extent.width && sourceImage->extent.height == destinationImage->extent.height)
     {
         // use vkCmdCopyImage
         VkImageCopy region{};
@@ -456,7 +454,6 @@ void replaceChild(vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_
         }
     }
 }
-
 
 vsg::ref_ptr<vsg::Data> getImageData(vsg::ref_ptr<vsg::Viewer> viewer, vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::Image> captureImage)
 {

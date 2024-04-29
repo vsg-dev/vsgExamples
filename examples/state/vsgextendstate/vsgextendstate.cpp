@@ -1,14 +1,14 @@
-#include <string>
 #include <iostream>
+#include <string>
 
 #include "vsg/all.h"
-
 
 class ExtendedRasterizationState : public vsg::Inherit<vsg::RasterizationState, ExtendedRasterizationState>
 {
 public:
     ExtendedRasterizationState() {}
-    ExtendedRasterizationState(const ExtendedRasterizationState& rs) : Inherit(rs) {}
+    ExtendedRasterizationState(const ExtendedRasterizationState& rs) :
+        Inherit(rs) {}
 
     void apply(vsg::Context& context, VkGraphicsPipelineCreateInfo& pipelineInfo) const override
     {
@@ -85,13 +85,13 @@ int main(int argc, char** argv)
         }
 
         auto supportedLineRasterizationFeatures = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceLineRasterizationFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT>();
-        std::cout<<"LineRasterizationFeatures features supported: "<<std::endl;
-        std::cout<<"    rectangularLines : "<<supportedLineRasterizationFeatures.rectangularLines<<std::endl;
-        std::cout<<"    bresenhamLines : "<<supportedLineRasterizationFeatures.bresenhamLines<<std::endl;
-        std::cout<<"    smoothLines : "<<supportedLineRasterizationFeatures.smoothLines<<std::endl;
-        std::cout<<"    stippledRectangularLines : "<<supportedLineRasterizationFeatures.stippledRectangularLines<<std::endl;
-        std::cout<<"    stippledBresenhamLines : "<<supportedLineRasterizationFeatures.stippledBresenhamLines<<std::endl;
-        std::cout<<"    stippledSmoothLines : "<<supportedLineRasterizationFeatures.stippledSmoothLines<<std::endl;
+        std::cout << "LineRasterizationFeatures features supported: " << std::endl;
+        std::cout << "    rectangularLines : " << supportedLineRasterizationFeatures.rectangularLines << std::endl;
+        std::cout << "    bresenhamLines : " << supportedLineRasterizationFeatures.bresenhamLines << std::endl;
+        std::cout << "    smoothLines : " << supportedLineRasterizationFeatures.smoothLines << std::endl;
+        std::cout << "    stippledRectangularLines : " << supportedLineRasterizationFeatures.stippledRectangularLines << std::endl;
+        std::cout << "    stippledBresenhamLines : " << supportedLineRasterizationFeatures.stippledBresenhamLines << std::endl;
+        std::cout << "    stippledSmoothLines : " << supportedLineRasterizationFeatures.stippledSmoothLines << std::endl;
 
         /// enable stippled line extension features
         auto& requestedLineRasterizationFeatures = requestFeatures->get<VkPhysicalDeviceLineRasterizationFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT>();
@@ -149,8 +149,7 @@ int main(int argc, char** argv)
         auto lookAt = vsg::LookAt::create(
             vsg::dvec3{3, 2, 2},
             vsg::dvec3{0.2, 0.2, 0.2},
-            vsg::dvec3{0, 0, 1}
-        );
+            vsg::dvec3{0, 0, 1});
         auto perspective = vsg::Perspective::create();
         auto viewportState = vsg::ViewportState::create(window->extent2D());
         auto camera = vsg::Camera::create(perspective, lookAt, viewportState);

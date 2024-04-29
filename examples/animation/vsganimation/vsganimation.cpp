@@ -13,10 +13,10 @@
 class AnimationControl : public vsg::Inherit<vsg::Visitor, AnimationControl>
 {
 public:
-
-    AnimationControl(vsg::ref_ptr<vsg::AnimationManager> am, const vsg::AnimationGroups& in_animationGroups) : animationManager(am), animationGroups(in_animationGroups)
+    AnimationControl(vsg::ref_ptr<vsg::AnimationManager> am, const vsg::AnimationGroups& in_animationGroups) :
+        animationManager(am), animationGroups(in_animationGroups)
     {
-        for(auto ag : animationGroups)
+        for (auto ag : animationGroups)
         {
             animations.insert(animations.end(), ag->animations.begin(), ag->animations.end());
         }
@@ -57,7 +57,7 @@ public:
             {
                 if (animationManager->play(*itr))
                 {
-                    std::cout<<"Playing "<<(*itr)->name<<std::endl;
+                    std::cout << "Playing " << (*itr)->name << std::endl;
 
                     ++itr;
                     if (itr == animations.end()) itr = animations.begin();
@@ -78,7 +78,7 @@ public:
             // stop all running animations
             animationManager->stop();
 
-            for(auto ag : animationGroups)
+            for (auto ag : animationGroups)
             {
                 if (!ag->animations.empty())
                 {
@@ -90,7 +90,7 @@ public:
         {
             keyPress.handled = true;
 
-            for(auto animation : animations)
+            for (auto animation : animations)
             {
                 animation->speed -= 0.25;
             }
@@ -99,7 +99,7 @@ public:
         {
             keyPress.handled = true;
 
-            for(auto animation : animations)
+            for (auto animation : animations)
             {
                 animation->speed += 0.25;
             }
@@ -214,7 +214,7 @@ int main(int argc, char** argv)
             // shaderHints->defines.insert("VSG_SHADOWS_HARD");
         }
 
-        std::cout<<"Enabled depth clamp."<<std::endl;
+        std::cout << "Enabled depth clamp." << std::endl;
         auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
         deviceFeatures->get().samplerAnisotropy = VK_TRUE;
         deviceFeatures->get().depthClamp = VK_TRUE;
@@ -263,9 +263,9 @@ int main(int argc, char** argv)
         }
     }
 
-    if (argc<=1)
+    if (argc <= 1)
     {
-        std::cout<<"Please specify model to load on command line."<<std::endl;
+        std::cout << "Please specify model to load on command line." << std::endl;
         return 0;
     }
 
@@ -279,7 +279,7 @@ int main(int argc, char** argv)
     };
 
     std::list<ModelBound> models;
-    for(unsigned int ci = 0; ci < numCopies; ++ci)
+    for (unsigned int ci = 0; ci < numCopies; ++ci)
     {
         for (int i = 1; i < argc; ++i)
         {
@@ -296,7 +296,7 @@ int main(int argc, char** argv)
 
     if (models.empty())
     {
-        std::cout<<"Failed to load any models, please specify filenames of 3d models on the command line,"<<std::endl;
+        std::cout << "Failed to load any models, please specify filenames of 3d models on the command line," << std::endl;
         return 1;
     }
 
@@ -311,7 +311,7 @@ int main(int argc, char** argv)
     {
         // find the largest model diameter so we can use it to set up layout
         double maxDiameter = 0.0;
-        for(auto model : models)
+        for (auto model : models)
         {
             auto diameter = vsg::length(model.bounds.max - model.bounds.min);
             if (diameter > maxDiameter) maxDiameter = diameter;
@@ -325,12 +325,12 @@ int main(int argc, char** argv)
         vsg::dvec3 position = {0.0, 0.0, 0.0};
         double spacing = maxDiameter;
 
-        for(auto [node, bounds] : models)
+        for (auto [node, bounds] : models)
         {
             auto diameter = vsg::length(bounds.max - bounds.min);
             vsg::dvec3 origin((bounds.min.x + bounds.max.x) * 0.5,
-                                (bounds.min.y + bounds.max.y) * 0.5,
-                                bounds.min.z);
+                              (bounds.min.y + bounds.max.y) * 0.5,
+                              bounds.min.z);
             auto transform = vsg::MatrixTransform::create(vsg::translate(position) * vsg::scale(maxDiameter / diameter) * vsg::translate(-origin));
             transform->addChild(node);
 
@@ -357,7 +357,7 @@ int main(int argc, char** argv)
         auto center = (bounds.min + bounds.max) * 0.5;
         center.z = bounds.min.z;
 
-        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale));
+        auto transform = vsg::MatrixTransform::create(ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale));
         transform->addChild(scene);
 
         auto group = vsg::Group::create();
@@ -386,7 +386,7 @@ int main(int argc, char** argv)
             vsg::StateInfo stateInfo;
 
             double margin = bounds.max.z - bounds.min.z;
-            geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, 0.0);
+            geomInfo.position.set((bounds.min.x + bounds.max.x) * 0.5, (bounds.min.y + bounds.max.y) * 0.5, 0.0);
             geomInfo.dx.set(bounds.max.x - bounds.min.x + margin, 0.0, 0.0);
             geomInfo.dy.set(0.0, bounds.max.y - bounds.min.y + margin, 0.0);
             geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
@@ -427,13 +427,13 @@ int main(int argc, char** argv)
     auto animations = findAnimations.animations;
     auto animationGroups = findAnimations.animationGroups;
 
-    std::cout<<"Model contains "<<animations.size()<<" animations."<<std::endl;
-    for(auto& ag : animationGroups)
+    std::cout << "Model contains " << animations.size() << " animations." << std::endl;
+    for (auto& ag : animationGroups)
     {
-        std::cout<<"AnimationGroup "<<ag<<std::endl;
-        for(auto animation : ag->animations)
+        std::cout << "AnimationGroup " << ag << std::endl;
+        for (auto animation : ag->animations)
         {
-            std::cout<<"    animation : "<<animation->name<<std::endl;
+            std::cout << "    animation : " << animation->name << std::endl;
         }
     }
 
@@ -443,7 +443,6 @@ int main(int argc, char** argv)
         vsg::write(scene, outputFilename, options);
         return 0;
     }
-
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -493,12 +492,13 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
-    std::cout<<"Compile time : "<<std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - before_compile).count()*1000.0<<" ms"<<std::endl;;
+    std::cout << "Compile time : " << std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - before_compile).count() * 1000.0 << " ms" << std::endl;
+    ;
 
     // start first animation if available
     if (autoPlay && !animations.empty())
     {
-        for(auto ag : animationGroups)
+        for (auto ag : animationGroups)
         {
             if (!ag->animations.empty()) viewer->animationManager->play(ag->animations.front());
         }
@@ -531,7 +531,7 @@ int main(int argc, char** argv)
     if (numFramesCompleted > 0.0)
     {
         std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
-        std::cout << "Average update time = " << (updateTime / numFramesCompleted)*1000.0 <<" ms"<< std::endl;
+        std::cout << "Average update time = " << (updateTime / numFramesCompleted) * 1000.0 << " ms" << std::endl;
     }
 
     if (auto profiler = instrumentation.cast<vsg::Profiler>())

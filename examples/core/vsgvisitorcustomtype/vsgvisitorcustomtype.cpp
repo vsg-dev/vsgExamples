@@ -6,14 +6,14 @@
 
 #include <iostream>
 
-#include "VisitorCustomType.h"
 #include "AlternateVisitorCustomType.h"
+#include "VisitorCustomType.h"
 
 int main(int, char**)
 {
     // Approach 1
     {
-        std::cout<<"First approach to implementing custom types and custom visitors that support these custom types."<<std::endl;
+        std::cout << "First approach to implementing custom types and custom visitors that support these custom types." << std::endl;
 
         auto group = vsg::Group::create();
 
@@ -29,7 +29,7 @@ int main(int, char**)
 
     // Approach 2
     {
-        std::cout<<"\nSecond/Alternate approach to implementing custom types and custom visitors that support these custom types."<<std::endl;
+        std::cout << "\nSecond/Alternate approach to implementing custom types and custom visitors that support these custom types." << std::endl;
 
         auto group = vsg::Group::create();
 

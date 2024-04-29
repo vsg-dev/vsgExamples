@@ -424,8 +424,7 @@ int main(int argc, char** argv)
     double nearFarRatio = 0.001;
 
     // set up the camera
-    auto lookAt = (above) ? vsg::LookAt::create(centre + vsg::dvec3(0.0, 0.0, radius * 1.5), centre, vsg::dvec3(0.0, 1.0, 0.0)) :
-                            vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 1.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+    auto lookAt = (above) ? vsg::LookAt::create(centre + vsg::dvec3(0.0, 0.0, radius * 1.5), centre, vsg::dvec3(0.0, 1.0, 0.0)) : vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 1.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
 
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel"))
@@ -438,7 +437,6 @@ int main(int argc, char** argv)
     }
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
-
 
     vsg::ref_ptr<vsg::Framebuffer> framebuffer;
     vsg::ref_ptr<vsg::ImageView> colorImageView;
@@ -456,7 +454,7 @@ int main(int argc, char** argv)
         if (samples == VK_SAMPLE_COUNT_1_BIT)
         {
             auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
-            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView} , extent.width, extent.height, 1);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
         }
         else
         {
@@ -464,7 +462,7 @@ int main(int argc, char** argv)
             auto msaa_depthImageView = createDepthImageView(device, extent, depthFormat, samples);
 
             auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
-            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView} , extent.width, extent.height, 1);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView}, extent.width, extent.height, 1);
         }
 
         // create support for copying the color buffer
@@ -477,20 +475,19 @@ int main(int argc, char** argv)
         if (samples == VK_SAMPLE_COUNT_1_BIT)
         {
             auto renderPass = vsg::createRenderPass(device, imageFormat);
-            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView} , extent.width, extent.height, 1);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView}, extent.width, extent.height, 1);
         }
         else
         {
             auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
 
             auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, samples);
-            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView} , extent.width, extent.height, 1);
+            framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView}, extent.width, extent.height, 1);
         }
 
         // create support for copying the color buffer
         std::tie(colorBufferCapture, copiedColorBuffer) = createColorCapture(device, extent, colorImageView->image, imageFormat);
     }
-
 
     auto renderGraph = vsg::RenderGraph::create();
 
@@ -544,7 +541,7 @@ int main(int argc, char** argv)
     while (viewer->advanceToNextFrame() && (numFrames--) > 0)
     {
         std::cout << "Frame " << viewer->getFrameStamp()->frameCount << std::endl;
-        if (resizeCadence && (viewer->getFrameStamp()->frameCount>0) && ((viewer->getFrameStamp()->frameCount) % resizeCadence == 0))
+        if (resizeCadence && (viewer->getFrameStamp()->frameCount > 0) && ((viewer->getFrameStamp()->frameCount) % resizeCadence == 0))
         {
             viewer->deviceWaitIdle();
 
@@ -573,7 +570,7 @@ int main(int argc, char** argv)
                 if (samples == VK_SAMPLE_COUNT_1_BIT)
                 {
                     auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
-                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView} , extent.width, extent.height, 1);
+                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
                 }
                 else
                 {
@@ -581,7 +578,7 @@ int main(int argc, char** argv)
                     auto msaa_depthImageView = createDepthImageView(device, extent, depthFormat, samples);
 
                     auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
-                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView} , extent.width, extent.height, 1);
+                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView}, extent.width, extent.height, 1);
                 }
 
                 renderGraph->framebuffer = framebuffer;
@@ -599,14 +596,14 @@ int main(int argc, char** argv)
                 if (samples == VK_SAMPLE_COUNT_1_BIT)
                 {
                     auto renderPass = vsg::createRenderPass(device, imageFormat);
-                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView} , extent.width, extent.height, 1);
+                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView}, extent.width, extent.height, 1);
                 }
                 else
                 {
                     auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
 
                     auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, samples);
-                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView} , extent.width, extent.height, 1);
+                    framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView}, extent.width, extent.height, 1);
                 }
 
                 renderGraph->framebuffer = framebuffer;
@@ -617,8 +614,6 @@ int main(int argc, char** argv)
                 replace_child(commandGraph, previous_colorBufferCapture, colorBufferCapture);
                 replace_child(commandGraph, previous_depthBufferCapture, depthBufferCapture);
             }
-
-
         }
 
         // pass any events into EventHandlers assigned to the Viewer, this includes Frame events generated by the viewer each frame
@@ -652,11 +647,11 @@ int main(int argc, char** argv)
                 {
                     // Map the buffer memory and assign as a ubyteArray that will automatically unmap itself on destruction.
                     // A ubyteArray is used as the graphics buffer memory is not contiguous like vsg::Array2D, so map to a flat buffer first then copy to Array2D.
-                    auto mappedData = vsg::MappedData<vsg::ubyteArray>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{imageFormat}, subResourceLayout.rowPitch*extent.height);
+                    auto mappedData = vsg::MappedData<vsg::ubyteArray>::create(deviceMemory, subResourceLayout.offset, 0, vsg::Data::Properties{imageFormat}, subResourceLayout.rowPitch * extent.height);
                     imageData = vsg::ubvec4Array2D::create(extent.width, extent.height, vsg::Data::Properties{imageFormat});
                     for (uint32_t row = 0; row < extent.height; ++row)
                     {
-                        std::memcpy(imageData->dataPointer(row*extent.width), mappedData->dataPointer(row * subResourceLayout.rowPitch), destRowWidth);
+                        std::memcpy(imageData->dataPointer(row * extent.width), mappedData->dataPointer(row * subResourceLayout.rowPitch), destRowWidth);
                     }
                 }
 

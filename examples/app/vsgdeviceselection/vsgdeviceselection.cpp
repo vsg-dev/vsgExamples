@@ -15,17 +15,17 @@ namespace vsg
         uint32_t vk_major = 1, vk_minor = 0;
         std::stringstream vk_version_str(versionStr);
         vk_version_str >> vk_major >> c >> vk_minor;
-        std::cout<<"vk_major = "<<vk_major<<std::endl;
-        std::cout<<"vk_minor = "<<vk_minor<<std::endl;
-    #if defined(VK_MAKE_API_VERSION)
+        std::cout << "vk_major = " << vk_major << std::endl;
+        std::cout << "vk_minor = " << vk_minor << std::endl;
+#if defined(VK_MAKE_API_VERSION)
         return VK_MAKE_API_VERSION(0, vk_major, vk_minor, 0);
-    #elif defined(VK_MAKE_VERSION)
+#elif defined(VK_MAKE_VERSION)
         return VK_MAKE_VERSION(vk_major, vk_minor, 0);
-    #else
+#else
         return VK_API_VERSION_1_0;
-    #endif
+#endif
     }
-}
+} // namespace vsg
 
 int main(int argc, char** argv)
 {
@@ -38,10 +38,10 @@ int main(int argc, char** argv)
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-    #ifdef vsgXchange_all
+#ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
-    #endif
+#endif
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
@@ -51,26 +51,26 @@ int main(int argc, char** argv)
 
         if (vkEnumerateInstanceVersion(&windowTraits->vulkanVersion) == VK_SUCCESS)
         {
-            std::cout<<"vkEnumerateInstanceVersion() "<<windowTraits->vulkanVersion<<std::endl;
+            std::cout << "vkEnumerateInstanceVersion() " << windowTraits->vulkanVersion << std::endl;
         }
 
         if (arguments.read("--layers"))
         {
             auto layerProperties = vsg::enumerateInstanceLayerProperties();
-            for(auto& layer : layerProperties)
+            for (auto& layer : layerProperties)
             {
-                std::cout<<"layerName = "<<layer.layerName<<" specVersion = "<<layer.specVersion<<", implementationVersion = "<<layer.implementationVersion<<", description = "<<layer.description<<std::endl;
+                std::cout << "layerName = " << layer.layerName << " specVersion = " << layer.specVersion << ", implementationVersion = " << layer.implementationVersion << ", description = " << layer.description << std::endl;
             }
         }
 
         bool print_extensions = arguments.read({"--extensions", "-e"});
         if (print_extensions)
         {
-            std::cout<<"vsg::enumerateInstanceExtensionProperties()"<<std::endl;
+            std::cout << "vsg::enumerateInstanceExtensionProperties()" << std::endl;
             auto extensions = vsg::enumerateInstanceExtensionProperties();
-            for(auto& extension : extensions)
+            for (auto& extension : extensions)
             {
-                std::cout<<"    extensionName = "<<extension.extensionName<<", specVersion = "<<extension.specVersion<<std::endl;
+                std::cout << "    extensionName = " << extension.extensionName << ", specVersion = " << extension.specVersion << std::endl;
             }
         }
 
@@ -79,11 +79,10 @@ int main(int argc, char** argv)
             windowTraits->vulkanVersion = vsg::makeVulkanApiVersion(versionStr);
         }
 
-
-    #ifdef VK_API_VERSION_MAJOR
+#ifdef VK_API_VERSION_MAJOR
         auto version = windowTraits->vulkanVersion;
-        std::cout<<"VK_API_VERSION = "<<VK_API_VERSION_MAJOR(version) <<"."<<VK_API_VERSION_MINOR(version)<<"."<<VK_API_VERSION_PATCH(version)<<"."<<VK_API_VERSION_VARIANT(version)<<std::endl;
-    #endif
+        std::cout << "VK_API_VERSION = " << VK_API_VERSION_MAJOR(version) << "." << VK_API_VERSION_MINOR(version) << "." << VK_API_VERSION_PATCH(version) << "." << VK_API_VERSION_VARIANT(version) << std::endl;
+#endif
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -118,19 +117,18 @@ int main(int argc, char** argv)
                 std::cout << physicalDevice << " " << properties.deviceName
                           << ", deviceType = " << properties.deviceType
 #ifdef VK_API_VERSION_MAJOR
-                          << ", apiVersion = "<<VK_API_VERSION_MAJOR(properties.apiVersion)<<"."<<VK_API_VERSION_MINOR(properties.apiVersion)<<"."<<VK_API_VERSION_PATCH(properties.apiVersion)
-                          << ", driverVersion = "<<VK_API_VERSION_MAJOR(properties.driverVersion)<<"."<<VK_API_VERSION_MINOR(properties.driverVersion)<<"."<<VK_API_VERSION_PATCH(properties.driverVersion)
+                          << ", apiVersion = " << VK_API_VERSION_MAJOR(properties.apiVersion) << "." << VK_API_VERSION_MINOR(properties.apiVersion) << "." << VK_API_VERSION_PATCH(properties.apiVersion)
+                          << ", driverVersion = " << VK_API_VERSION_MAJOR(properties.driverVersion) << "." << VK_API_VERSION_MINOR(properties.driverVersion) << "." << VK_API_VERSION_PATCH(properties.driverVersion)
 #else
-                          << ", apiVersion = "<<properties.apiVersion
-                          << ", driverVersion = "<<properties.driverVersion
+                          << ", apiVersion = " << properties.apiVersion
+                          << ", driverVersion = " << properties.driverVersion
 #endif
                           << std::endl;
 
-
                 // list the queue properties
                 auto& queueFamilyProperties = physicalDevice->getQueueFamilyProperties();
-                std::cout<<"    QueueFamilyProperties "<<queueFamilyProperties.size()<<std::endl;
-                for(size_t qfp = 0; qfp < queueFamilyProperties.size(); ++qfp)
+                std::cout << "    QueueFamilyProperties " << queueFamilyProperties.size() << std::endl;
+                for (size_t qfp = 0; qfp < queueFamilyProperties.size(); ++qfp)
                 {
                     auto& prop = queueFamilyProperties[qfp];
                     std::list<std::string> flags;
@@ -148,25 +146,24 @@ int main(int argc, char** argv)
                     {
                         auto itr = flags.begin();
                         combined = *itr++;
-                        for(; itr != flags.end(); ++itr)
+                        for (; itr != flags.end(); ++itr)
                         {
                             combined.append(std::string(" | "));
                             combined.append(*itr);
                         }
                     }
 
-                    std::cout<<"        VkQueueFamilyProperties["<<qfp<<"] queueFlags = "<<combined
-                             <<", queueCount = "<<prop.queueCount<<", timestampValidBits = "<<prop.timestampValidBits
-                             <<", minImageTransferGranularity = {"<<prop.minImageTransferGranularity.width
-                             <<", "<<prop.minImageTransferGranularity.height
-                             <<", "<<prop.minImageTransferGranularity.depth<<"}"<<std::endl;
+                    std::cout << "        VkQueueFamilyProperties[" << qfp << "] queueFlags = " << combined
+                              << ", queueCount = " << prop.queueCount << ", timestampValidBits = " << prop.timestampValidBits
+                              << ", minImageTransferGranularity = {" << prop.minImageTransferGranularity.width
+                              << ", " << prop.minImageTransferGranularity.height
+                              << ", " << prop.minImageTransferGranularity.depth << "}" << std::endl;
                 }
 
-                std::cout<<std::endl;
+                std::cout << std::endl;
             }
             return 0;
         }
-
 
         if (size_t pd_num = 0; arguments.read("--select", pd_num))
         {
@@ -177,22 +174,21 @@ int main(int argc, char** argv)
             auto physicalDevices = instance->getPhysicalDevices();
             if (physicalDevices.empty())
             {
-                std::cout<<"No physical devices reported."<<std::endl;
+                std::cout << "No physical devices reported." << std::endl;
                 return 0;
             }
 
             if (pd_num >= physicalDevices.size())
             {
-                std::cout<<"--select "<<pd_num<<", exceeds physical devices available, maximum permitted value is "<<physicalDevices.size()-1<<std::endl;
+                std::cout << "--select " << pd_num << ", exceeds physical devices available, maximum permitted value is " << physicalDevices.size() - 1 << std::endl;
                 return 0;
             }
-
 
             // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they are available.
             auto physicalDevice = physicalDevices[pd_num];
             auto properties = physicalDevice->getProperties();
 
-            std::cout << "Selected vsg::PhysicalDevice " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType <<std::endl;
+            std::cout << "Selected vsg::PhysicalDevice " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType << std::endl;
 
             window->setPhysicalDevice(physicalDevice);
         }
@@ -250,14 +246,13 @@ int main(int argc, char** argv)
 
         if (print_extensions)
         {
-            std::cout<<"PhysicalDevice::enumerateDeviceExtensionProperties()"<<std::endl;
+            std::cout << "PhysicalDevice::enumerateDeviceExtensionProperties()" << std::endl;
             auto physicalDevice = window->getOrCreatePhysicalDevice();
-            for(auto extension : physicalDevice->enumerateDeviceExtensionProperties())
+            for (auto extension : physicalDevice->enumerateDeviceExtensionProperties())
             {
-                std::cout<<"    extensionName = "<<extension.extensionName<<", spec = "<<extension.specVersion<<std::endl;
+                std::cout << "    extensionName = " << extension.extensionName << ", spec = " << extension.specVersion << std::endl;
             }
         }
-
 
         // load the scene graph to render
         vsg::Path filename = "models/lz.vsgt";
@@ -321,7 +316,6 @@ int main(int argc, char** argv)
         std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
         return 1;
     }
-
 
     // clean up done automatically thanks to ref_ptr<>
     return 0;

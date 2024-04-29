@@ -1,17 +1,17 @@
 #define NOMINMAX
 #include <windows.h>
 
+#include <thread>
 #include <vsg/all.h>
 #include <vsg/platform/win32/Win32_Window.h>
-#include <thread>
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 char szClassName[] = "VSG";
 
-void startViewer(vsg::Viewer *viewer)
+void startViewer(vsg::Viewer* viewer)
 {
     viewer->compile();
-    while(viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame())
     {
         viewer->handleEvents();
         viewer->update();
@@ -33,7 +33,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInst, LPSTR lpszCmdLine, i
     MSG msg;
     WNDCLASS myProg;
 
-    if (!hPreInst) {
+    if (!hPreInst)
+    {
         myProg.style = CS_HREDRAW | CS_VREDRAW;
         myProg.lpfnWndProc = WndProc; //register event handler
         myProg.cbClsExtra = 0;
@@ -94,9 +95,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInst, LPSTR lpszCmdLine, i
     auto commandGraph = vsg::createCommandGraphForView(window, camera, group);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-    std::thread *thread = new std::thread(startViewer, (vsg::Viewer*)viewer.get());
+    std::thread* thread = new std::thread(startViewer, (vsg::Viewer*)viewer.get());
 
-    while (GetMessage(&msg, NULL, 0, 0)) {
+    while (GetMessage(&msg, NULL, 0, 0))
+    {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
@@ -118,36 +120,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     }
 
     // process/react to events yourself if required
-    switch (msg) {
-        case WM_DESTROY:
+    switch (msg)
+    {
+    case WM_DESTROY: {
+        PostQuitMessage(0);
+        break;
+    }
+    case WM_MOUSEMOVE: {
+        break;
+    }
+    case WM_KEYDOWN: {
+        switch (wParam)
         {
-            PostQuitMessage(0);
+        case VK_LEFT: {
             break;
         }
-        case WM_MOUSEMOVE:
-        {
+        case VK_UP: {
             break;
         }
-        case WM_KEYDOWN:
-        {
-            switch (wParam) {
-                case VK_LEFT:
-                {
-                    break;
-                }
-                case VK_UP:
-                {
-                    break;
-                }
-                case VK_RIGHT:
-                {
-                    break;
-                }
-            }
+        case VK_RIGHT: {
+            break;
         }
-        // ...
-        default:
-            return ::DefWindowProc(hWnd, msg, wParam, lParam);
+        }
+    }
+    // ...
+    default:
+        return ::DefWindowProc(hWnd, msg, wParam, lParam);
     }
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }

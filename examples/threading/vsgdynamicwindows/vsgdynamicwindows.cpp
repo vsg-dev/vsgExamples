@@ -11,7 +11,7 @@
 
 struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 {
-    Merge(const vsg::observer_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Visitor> in_eventHandler, vsg::ref_ptr<vsg::CommandGraph> in_commandGraph, const vsg::CompileResult& in_compileResult):
+    Merge(const vsg::observer_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Visitor> in_eventHandler, vsg::ref_ptr<vsg::CommandGraph> in_commandGraph, const vsg::CompileResult& in_compileResult) :
         viewer(in_viewer),
         eventHandler(in_eventHandler),
         commandGraph(in_commandGraph),
@@ -103,7 +103,7 @@ struct LoadWindowOperation : public vsg::Inherit<vsg::Operation, LoadWindowOpera
 
             // set up the camera
             auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
-                                            centre, vsg::dvec3(0.0, 0.0, 1.0));
+                                              centre, vsg::dvec3(0.0, 0.0, 1.0));
 
             auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
                                                         nearFarRatio * radius, radius * 4.5);
@@ -125,8 +125,7 @@ struct LoadWindowOperation : public vsg::Inherit<vsg::Operation, LoadWindowOpera
             // need to add view to compileManager
             ref_viewer->compileManager->add(*second_window, view);
 
-            auto result = ref_viewer->compileManager->compile(commandGraph, [&view](vsg::Context& context)
-            {
+            auto result = ref_viewer->compileManager->compile(commandGraph, [&view](vsg::Context& context) {
                 return (context.view == view.get());
             });
 
@@ -134,7 +133,6 @@ struct LoadWindowOperation : public vsg::Inherit<vsg::Operation, LoadWindowOpera
         }
     }
 };
-
 
 int main(int argc, char** argv)
 {
@@ -182,7 +180,6 @@ int main(int argc, char** argv)
             std::cout << "Could not create window." << std::endl;
             return 1;
         }
-
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -258,7 +255,7 @@ int main(int argc, char** argv)
             viewer->present();
 
             // do any viewer additions after present
-            while(auto op = postPresentOperationQueue->take()) op->run();
+            while (auto op = postPresentOperationQueue->take()) op->run();
         }
     }
     catch (const vsg::Exception& ve)

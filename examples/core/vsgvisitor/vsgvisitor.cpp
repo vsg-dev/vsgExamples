@@ -42,7 +42,6 @@ double time(F function)
     return std::chrono::duration<double>(clock::now() - start).count();
 }
 
-
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
@@ -67,18 +66,18 @@ int main(int argc, char** argv)
     // explicitly create visitor and call accept on the scene
     MyVisitor myVisitor;
     scene->accept(myVisitor);
-    std::cout << "MyVisitor() object types s=" << myVisitor.objectCounts.size()<< std::endl;
-    for(const auto [className, count] : myVisitor.objectCounts)
+    std::cout << "MyVisitor() object types s=" << myVisitor.objectCounts.size() << std::endl;
+    for (const auto [className, count] : myVisitor.objectCounts)
     {
-        std::cout<<"    "<<className<<" : "<<count<<std::endl;
+        std::cout << "    " << className << " : " << count << std::endl;
     }
 
     // same functionality but using the vsg::visit<> template convenience function to construct the visitor, call accept and then return the visitor.
     auto objectCounts = vsg::visit<MyVisitor>(scene).objectCounts;
-    std::cout << "\nUsing vsg::visit<>() object types s=" << myVisitor.objectCounts.size()<< std::endl;
-    for(const auto [className, count] : objectCounts)
+    std::cout << "\nUsing vsg::visit<>() object types s=" << myVisitor.objectCounts.size() << std::endl;
+    for (const auto [className, count] : objectCounts)
     {
-        std::cout<<"    "<<className<<" : "<<count<<std::endl;
+        std::cout << "    " << className << " : " << count << std::endl;
     }
 
     return 0;

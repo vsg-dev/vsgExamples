@@ -11,7 +11,7 @@
 
 struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 {
-    Merge(const vsg::Path& in_path, vsg::observer_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::CompileResult& in_compileResult):
+    Merge(const vsg::Path& in_path, vsg::observer_ptr<vsg::Viewer> in_viewer, vsg::ref_ptr<vsg::Group> in_attachmentPoint, vsg::ref_ptr<vsg::Node> in_node, const vsg::CompileResult& in_compileResult) :
         path(in_path),
         viewer(in_viewer),
         attachmentPoint(in_attachmentPoint),
@@ -26,7 +26,7 @@ struct Merge : public vsg::Inherit<vsg::Operation, Merge>
 
     void run() override
     {
-        std::cout<<"Merge::run() path = "<<path<<", "<<attachmentPoint<<", "<<node<<std::endl;
+        std::cout << "Merge::run() path = " << path << ", " << attachmentPoint << ", " << node << std::endl;
 
         vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
         if (ref_viewer)
@@ -80,7 +80,7 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
 
             // set up the camera
             auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
-                                            centre, vsg::dvec3(0.0, 0.0, 1.0));
+                                              centre, vsg::dvec3(0.0, 0.0, 1.0));
 
             auto perspective = vsg::Perspective::create(30.0, static_cast<double>(width) / static_cast<double>(height),
                                                         nearFarRatio * radius, radius * 4.5);
@@ -97,16 +97,15 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
             // need to add view to compileManager
             ref_viewer->compileManager->add(*ref_window, view);
 
-            auto result = ref_viewer->compileManager->compile(renderGraph, [&view](vsg::Context& context)
-            {
+            auto result = ref_viewer->compileManager->compile(renderGraph, [&view](vsg::Context& context) {
                 if (context.view == view.get())
                 {
-                    std::cout<<"    Enabling compile for view "<<view<<std::endl;
+                    std::cout << "    Enabling compile for view " << view << std::endl;
                     return true;
                 }
                 else
                 {
-                    std::cout<<"    Disabling compile for view "<<view<<std::endl;
+                    std::cout << "    Disabling compile for view " << view << std::endl;
                     return false;
                 }
             });
@@ -115,7 +114,6 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
         }
     }
 };
-
 
 int main(int argc, char** argv)
 {
@@ -158,7 +156,8 @@ int main(int argc, char** argv)
         auto vsg_scene = vsg::read_cast<vsg::Node>("models/teapot.vsgt", options);
         if (!vsg_scene)
         {
-            std::cout << "Unable to load file " << "models/teapot.vsgt" << std::endl;
+            std::cout << "Unable to load file "
+                      << "models/teapot.vsgt" << std::endl;
             return 1;
         }
 
@@ -168,7 +167,6 @@ int main(int argc, char** argv)
             std::cout << "Could not create window." << std::endl;
             return 1;
         }
-
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();

@@ -46,7 +46,6 @@ vsg::ref_ptr<vsg::Node> decorateIfRequired(vsg::ref_ptr<vsg::Node> node, const M
     return node;
 };
 
-
 vsg::ref_ptr<vsg::Node> createTestScene(const ModelSettings& settings)
 {
     auto builder = vsg::Builder::create();
@@ -75,12 +74,11 @@ vsg::ref_ptr<vsg::Node> createTestScene(const ModelSettings& settings)
     geomInfo.position += geomInfo.dx * 1.5f;
     scene->addChild(decorateIfRequired(builder->createCapsule(geomInfo, stateInfo), settings));
 
-
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
     if (settings.insertBaseGeometry)
     {
         double diameter = vsg::length(bounds.max - bounds.min);
-        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+        geomInfo.position.set((bounds.min.x + bounds.max.x) * 0.5, (bounds.min.y + bounds.max.y) * 0.5, bounds.min.z);
         geomInfo.dx.set(diameter, 0.0, 0.0);
         geomInfo.dy.set(0.0, diameter, 0.0);
         geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
@@ -114,10 +112,9 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
     uint32_t numCapsules = (300 * settings.targetNumObjects) / 1000;
 
     vsg::vec3 size = bounds.max - bounds.min;
-    float length = 0.5f * std::sqrt((size.x*size.y) / static_cast<float>(settings.targetNumObjects));
+    float length = 0.5f * std::sqrt((size.x * size.y) / static_cast<float>(settings.targetNumObjects));
 
-    auto assignRandomGeometryInfo = [&]()
-    {
+    auto assignRandomGeometryInfo = [&]() {
         vsg::vec3 offset(size.x * float(std::rand()) / float(RAND_MAX),
                          size.y * float(std::rand()) / float(RAND_MAX),
                          size.z * float(std::rand()) / float(RAND_MAX));
@@ -132,7 +129,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
                            1.0f);
     };
 
-    for(uint32_t bi = 0; bi < numBoxes; ++bi)
+    for (uint32_t bi = 0; bi < numBoxes; ++bi)
     {
         assignRandomGeometryInfo();
         auto model = decorateIfRequired(builder->createBox(geomInfo, stateInfo), settings);
@@ -140,7 +137,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
         scene->addChild(model);
     }
 
-    for(uint32_t bi = 0; bi < numSpheres; ++bi)
+    for (uint32_t bi = 0; bi < numSpheres; ++bi)
     {
         assignRandomGeometryInfo();
         auto model = decorateIfRequired(builder->createSphere(geomInfo, stateInfo), settings);
@@ -148,7 +145,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
         scene->addChild(model);
     }
 
-    for(uint32_t bi = 0; bi < numCapsules; ++bi)
+    for (uint32_t bi = 0; bi < numCapsules; ++bi)
     {
         assignRandomGeometryInfo();
         auto model = decorateIfRequired(builder->createCapsule(geomInfo, stateInfo), settings);
@@ -159,7 +156,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
     if (settings.insertBaseGeometry)
     {
         double diameter = vsg::length(bounds.max - bounds.min);
-        geomInfo.position.set((bounds.min.x + bounds.max.x)*0.5, (bounds.min.y + bounds.max.y)*0.5, bounds.min.z);
+        geomInfo.position.set((bounds.min.x + bounds.max.x) * 0.5, (bounds.min.y + bounds.max.y) * 0.5, bounds.min.z);
         geomInfo.dx.set(diameter, 0.0, 0.0);
         geomInfo.dy.set(0.0, diameter, 0.0);
         geomInfo.dz.set(0.0, 0.0, 1.0);
@@ -189,7 +186,6 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgshadows";
-
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -265,7 +261,7 @@ int main(int argc, char** argv)
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
     {
-        std::cout<<"Enabled depth clamp."<<std::endl;
+        std::cout << "Enabled depth clamp." << std::endl;
         auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
         deviceFeatures->get().samplerAnisotropy = VK_TRUE;
         deviceFeatures->get().depthClamp = VK_TRUE;
@@ -372,7 +368,7 @@ int main(int argc, char** argv)
 
             options->shaderSets["phong"] = phong;
 
-            std::cout<<"Replaced phong shader"<<std::endl;
+            std::cout << "Replaced phong shader" << std::endl;
         }
 
         // customize the pbr ShaderSet
@@ -404,7 +400,7 @@ int main(int argc, char** argv)
 
             options->shaderSets["pbr"] = pbr;
 
-            std::cout<<"Replaced pbr shader"<<std::endl;
+            std::cout << "Replaced pbr shader" << std::endl;
         }
     }
 
@@ -422,7 +418,6 @@ int main(int argc, char** argv)
             settings.insertBaseGeometry = false;
         }
     }
-
 
     auto inherit = arguments.read("--inherit");
     auto direction = arguments.value(vsg::dvec3(0.0, 0.0, -1.0), "--direction");
@@ -452,13 +447,13 @@ int main(int argc, char** argv)
     {
         scene = createLargeTestScene(settings);
     }
-    else if (argc>1)
+    else if (argc > 1)
     {
         vsg::Path filename = argv[1];
         auto model = vsg::read_cast<vsg::Node>(filename, options);
         if (!model)
         {
-            std::cout<<"Failed to load "<<filename<<std::endl;
+            std::cout << "Failed to load " << filename << std::endl;
             return 1;
         }
 
@@ -507,7 +502,7 @@ int main(int argc, char** argv)
         auto center = (bounds.min + bounds.max) * 0.5;
         center.z = bounds.min.z;
 
-        auto transform = vsg::MatrixTransform::create( ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale) * vsg::translate(-center) );
+        auto transform = vsg::MatrixTransform::create(ellipsoidModel->computeLocalToWorldTransform(location) * vsg::scale(scale, scale, scale) * vsg::translate(-center));
         transform->addChild(scene);
 
         auto group = vsg::Group::create();
@@ -536,7 +531,6 @@ int main(int argc, char** argv)
     //auto span = vsg::length(bounds.max - bounds.min);
     auto group = vsg::Group::create();
     group->addChild(scene);
-
 
     vsg::ref_ptr<vsg::DirectionalLight> directionalLight;
     if (numLights >= 1 && numLights < 4)
@@ -609,7 +603,6 @@ int main(int argc, char** argv)
         return 0;
     }
 
-
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
@@ -621,7 +614,6 @@ int main(int argc, char** argv)
     }
 
     viewer->addWindow(window);
-
 
     vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
     if (ellipsoidModel)

@@ -274,7 +274,7 @@ vsg::ref_ptr<vsg::StateGroup> TileReader::createRoot() const
         if (!searchPaths.empty())
         {
             vsg::info("VSG_FILE_PATH set, but does not contains vert_PushConstants.spv & frag_PushConstants.spv shaders. Paths set:");
-            for(auto path : searchPaths)
+            for (auto path : searchPaths)
             {
                 vsg::info("    ", path);
             }

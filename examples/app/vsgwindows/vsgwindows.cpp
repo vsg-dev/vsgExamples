@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    
+
     auto windowTraits2 = vsg::WindowTraits::create();
     windowTraits2->windowTitle = "Multiple Windows - second window";
     windowTraits2->debugLayer = windowTraits->debugLayer;
@@ -62,9 +62,9 @@ int main(int argc, char** argv)
 
     options->readOptions(arguments);
 
-    if (separateDevices && VSG_MAX_DEVICES<2)
+    if (separateDevices && VSG_MAX_DEVICES < 2)
     {
-        std::cout<<"VulkanSceneGraph built with VSG_MAX_DEVICES = "<<VSG_MAX_DEVICES<<", so using two windows, with a vsg::Device per vsg::Window is not supported."<<std::endl;
+        std::cout << "VulkanSceneGraph built with VSG_MAX_DEVICES = " << VSG_MAX_DEVICES << ", so using two windows, with a vsg::Device per vsg::Window is not supported." << std::endl;
         return 1;
     }
 
@@ -101,11 +101,11 @@ int main(int argc, char** argv)
     if (!separateDevices)
     {
         windowTraits2->device = window1->getOrCreateDevice(); // share the same vsg::Instance/vsg::Device as window1
-        std::cout<<"Sharing vsg::Instance and vsg::Device between windows."<<std::endl;
+        std::cout << "Sharing vsg::Instance and vsg::Device between windows." << std::endl;
     }
     else
     {
-        std::cout<<"Each window to use its own vsg::Instance and vsg::Device."<<std::endl;
+        std::cout << "Each window to use its own vsg::Instance and vsg::Device." << std::endl;
     }
     auto window2 = vsg::Window::create(windowTraits2);
     if (!window2)

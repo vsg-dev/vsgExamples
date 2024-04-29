@@ -128,9 +128,12 @@ int main(int argc, char** argv)
             windowTraits->debugUtils = true;
 
             auto gpu_instrumentation = vsg::GpuAnnotation::create();
-            if (arguments.read("--name")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_name;
-            else if (arguments.read("--className")) gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
-            else if (arguments.read("--func")) gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
+            if (arguments.read("--name"))
+                gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_name;
+            else if (arguments.read("--className"))
+                gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
+            else if (arguments.read("--func"))
+                gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
 
             instrumentation = gpu_instrumentation;
         }
@@ -270,7 +273,7 @@ int main(int argc, char** argv)
         if (maxPagedLOD > 0)
         {
             // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-            for(auto& task : viewer->recordAndSubmitTasks)
+            for (auto& task : viewer->recordAndSubmitTasks)
             {
                 if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
             }
@@ -280,7 +283,7 @@ int main(int argc, char** argv)
         {
             // find any animation groups in the loaded scene graph and play the first animation in each of the animation groups.
             auto animationGroups = vsg::visit<vsg::FindAnimations>(vsg_scene).animationGroups;
-            for(auto ag : animationGroups)
+            for (auto ag : animationGroups)
             {
                 if (!ag->animations.empty()) viewer->animationManager->play(ag->animations.front());
             }
@@ -305,7 +308,7 @@ int main(int argc, char** argv)
         {
             auto fs = viewer->getFrameStamp();
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
-            std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
+            std::cout << "Average frame rate = " << fps << " fps" << std::endl;
         }
 
         if (auto profiler = instrumentation.cast<vsg::Profiler>())

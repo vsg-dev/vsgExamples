@@ -100,19 +100,19 @@ int main(int argc, char** argv)
     viewer->addWindow(window);
 
     auto physicalDevice = window->getOrCreatePhysicalDevice();
-    std::cout<<"physicalDevice = " << physicalDevice << std::endl;
-    for(auto& queueFamilyProperties : physicalDevice->getQueueFamilyProperties())
+    std::cout << "physicalDevice = " << physicalDevice << std::endl;
+    for (auto& queueFamilyProperties : physicalDevice->getQueueFamilyProperties())
     {
-        std::cout<<"    queueFamilyProperties.timestampValidBits = " << queueFamilyProperties.timestampValidBits << std::endl;
+        std::cout << "    queueFamilyProperties.timestampValidBits = " << queueFamilyProperties.timestampValidBits << std::endl;
     }
 
     const auto& limits = physicalDevice->getProperties().limits;
-    std::cout<<"    limits.timestampComputeAndGraphics = " << limits.timestampComputeAndGraphics << std::endl;
-    std::cout<<"    limits.timestampPeriod = " << limits.timestampPeriod << " nanoseconds."<<std::endl;
+    std::cout << "    limits.timestampComputeAndGraphics = " << limits.timestampComputeAndGraphics << std::endl;
+    std::cout << "    limits.timestampPeriod = " << limits.timestampPeriod << " nanoseconds." << std::endl;
 
     if (!limits.timestampComputeAndGraphics)
     {
-        std::cout<<"Timestamps not supported by device."<<std::endl;
+        std::cout << "Timestamps not supported by device." << std::endl;
         return 1;
     }
 
@@ -195,7 +195,7 @@ int main(int argc, char** argv)
         if (query_pool->getResults(timestamps) == VK_SUCCESS)
         {
             auto delta = timestampScaleToMilliseconds * static_cast<double>(timestamps[1] - timestamps[0]);
-            std::cout<<"delta = "<<delta<<"ms"<<std::endl;
+            std::cout << "delta = " << delta << "ms" << std::endl;
         }
     }
 

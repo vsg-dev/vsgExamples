@@ -58,15 +58,15 @@ int main(int argc, char** argv)
 
         // set up features
         auto features = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
-        /*auto& deviceFeatures =*/ features->get();
+        /*auto& deviceFeatures =*/features->get();
 
         auto& deviceAddressFeatures = features->get<VkPhysicalDeviceBufferDeviceAddressFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES>();
         deviceAddressFeatures.bufferDeviceAddress = 1;
 
-        auto& rayTracingFeatures =  features->get<VkPhysicalDeviceRayTracingPipelineFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR>();
+        auto& rayTracingFeatures = features->get<VkPhysicalDeviceRayTracingPipelineFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR>();
         rayTracingFeatures.rayTracingPipeline = 1;
 
-        auto& accelerationFeatures = features->get<VkPhysicalDeviceAccelerationStructureFeaturesKHR,VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR>();
+        auto& accelerationFeatures = features->get<VkPhysicalDeviceAccelerationStructureFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR>();
         accelerationFeatures.accelerationStructure = 1;
 
         auto window = vsg::Window::create(windowTraits);
@@ -202,7 +202,6 @@ int main(int argc, char** argv)
         raytracingUniform->properties.dataVariance = vsg::DataVariance::DYNAMIC_DATA;
         raytracingUniform->value().projInverse = perspective->inverse();
         raytracingUniform->value().viewInverse = lookAt->inverse();
-
 
         // set up graphics pipeline
         vsg::DescriptorSetLayoutBindings descriptorBindings{

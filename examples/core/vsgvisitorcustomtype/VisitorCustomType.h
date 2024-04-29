@@ -7,7 +7,6 @@ class CustomLODNode;
 class CustomVisitorBase : public vsg::Inherit<vsg::Visitor, CustomVisitorBase>
 {
 public:
-
     inline bool handleCustomGroups(vsg::Group& group)
     {
         if (auto cgn = group.cast<CustomGroupNode>())
@@ -35,46 +34,41 @@ public:
 class CustomGroupNode : public vsg::Inherit<vsg::Group, CustomGroupNode>
 {
 public:
-
     std::string name = "car";
 
 protected:
-
     ~CustomGroupNode() = default;
 };
 
 class CustomLODNode : public vsg::Inherit<vsg::Group, CustomLODNode>
 {
 public:
-
     double maxDistance = 1.0;
 
 protected:
-
     ~CustomLODNode() = default;
 };
 
 class VisitCustomTypes : public CustomVisitorBase
 {
-    public:
+public:
+    void apply(vsg::Group& group) override
+    {
+        if (handleCustomGroups(group)) return;
 
-        void apply(vsg::Group& group) override
-        {
-            if (handleCustomGroups(group)) return;
+        std::cout << "apply(Group& node)" << std::endl;
+        group.traverse(*this);
+    }
 
-            std::cout << "apply(Group& node)"<<std::endl;
-            group.traverse(*this);
-        }
+    void apply(CustomGroupNode& node) override
+    {
+        std::cout << "apply(CustomGroupNode& node) name = " << node.name << std::endl;
+        node.traverse(*this);
+    }
 
-        void apply(CustomGroupNode& node) override
-        {
-            std::cout << "apply(CustomGroupNode& node) name = "<<node.name<<std::endl;
-            node.traverse(*this);
-        }
-
-        void apply(CustomLODNode& node) override
-        {
-            std::cout << "apply(CustomLODNode& node) maxDistance = "<<node.maxDistance<<std::endl;
-            node.traverse(*this);
-        }
+    void apply(CustomLODNode& node) override
+    {
+        std::cout << "apply(CustomLODNode& node) maxDistance = " << node.maxDistance << std::endl;
+        node.traverse(*this);
+    }
 };

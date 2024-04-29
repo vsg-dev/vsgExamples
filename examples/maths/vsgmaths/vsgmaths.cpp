@@ -85,21 +85,21 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << "proj = {" << std::endl
               << proj << "}" << std::endl;
 
-    auto  view = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
+    auto view = vsg::lookAt(vsg::vec3(2.0f, 2.0f, 2.0f), vsg::vec3(0.0f, 0.0f, 0.0f), vsg::vec3(0.0f, 0.0f, 1.0f));
     std::cout << "view = {" << std::endl
               << view << "}" << std::endl;
 
-    auto  rot = vsg::rotate(vsg::radians(45.0f), 0.0f, 0.0f, 1.0f);
+    auto rot = vsg::rotate(vsg::radians(45.0f), 0.0f, 0.0f, 1.0f);
     std::cout << "rot = {" << rot << "}" << std::endl;
 
-    constexpr auto  trans = vsg::translate(vsg::vec3(1.0f, 2.0f, 3.0f));
+    constexpr auto trans = vsg::translate(vsg::vec3(1.0f, 2.0f, 3.0f));
     std::cout << "trans = {" << trans << "}" << std::endl;
 
-    constexpr auto  scale = vsg::scale(vsg::vec3(1.0f, 2.0f, 3.0f));
+    constexpr auto scale = vsg::scale(vsg::vec3(1.0f, 2.0f, 3.0f));
     std::cout << "scale = {" << scale << "}" << std::endl;
 
     // note VSG and OSG matrix multiplication order is reversed.
-    auto  result = scale * trans * rot;
+    auto result = scale * trans * rot;
     std::cout << "result = {" << result << "}" << std::endl;
 
     vsg::vec2 v2(1.0, 2.0);
@@ -226,8 +226,8 @@ int main(int /*argc*/, char** /*argv*/)
     test_inverse(rot_z);
     test_inverse(plane_trans);
 
-
-    std::cout<< std::endl<<"Test vsg::transform(vsg::CoordinateConvention src, vsg::CoordinateConvention dest, vsg::dmat&)"<<std::endl;
+    std::cout << std::endl
+              << "Test vsg::transform(vsg::CoordinateConvention src, vsg::CoordinateConvention dest, vsg::dmat&)" << std::endl;
     vsg::dmat4 x_to_y;
     vsg::transform(vsg::CoordinateConvention::X_UP, vsg::CoordinateConvention::Y_UP, x_to_y);
 
@@ -253,12 +253,12 @@ int main(int /*argc*/, char** /*argv*/)
     std::cout << "z_to_x = " << z_to_x << " rotate = " << vsg::rotate(vsg::radians(90.0), 0.0, 1.0, 0.0) << std::endl;
     std::cout << "z_to_y = " << z_to_y << " rotate = " << vsg::rotate(vsg::radians(90.0), -1.0, 0.0, 0.0) << std::endl;
 
-    std::cout << "x_to_y * y_to_x = "  << x_to_y * y_to_x << std::endl;
-    std::cout << "x_to_z * z_to_x = "  << x_to_z * z_to_x << std::endl;
-    std::cout << "y_to_x * x_to_y = "  << y_to_x * x_to_y << std::endl;
-    std::cout << "y_to_z * z_to_y = "  << y_to_z * z_to_y << std::endl;
-    std::cout << "z_to_x * x_to_z = "  << z_to_x * x_to_z << std::endl;
-    std::cout << "z_to_y * y_to_z = "  << z_to_y * y_to_z << std::endl;
+    std::cout << "x_to_y * y_to_x = " << x_to_y * y_to_x << std::endl;
+    std::cout << "x_to_z * z_to_x = " << x_to_z * z_to_x << std::endl;
+    std::cout << "y_to_x * x_to_y = " << y_to_x * x_to_y << std::endl;
+    std::cout << "y_to_z * z_to_y = " << y_to_z * z_to_y << std::endl;
+    std::cout << "z_to_x * x_to_z = " << z_to_x * x_to_z << std::endl;
+    std::cout << "z_to_y * y_to_z = " << z_to_y * y_to_z << std::endl;
 
     return 0;
 }

@@ -41,7 +41,7 @@ int main(int argc, char** argv)
     options->shaderSets["pbr"] = shaderSet;
     if (!shaderSet)
     {
-        std::cout<<"No vsg::ShaderSet to process."<<std::endl;
+        std::cout << "No vsg::ShaderSet to process." << std::endl;
         return 1;
     }
 
@@ -115,7 +115,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-
     if (outputFilename)
     {
         vsg::write(vsg_scene, outputFilename, options);
@@ -183,7 +182,7 @@ int main(int argc, char** argv)
     {
         auto fs = viewer->getFrameStamp();
         double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
-        std::cout<<"Average frame rate = "<<fps<<" fps"<<std::endl;
+        std::cout << "Average frame rate = " << fps << " fps" << std::endl;
     }
     return 0;
 }

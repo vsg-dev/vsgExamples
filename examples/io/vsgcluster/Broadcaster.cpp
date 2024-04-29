@@ -100,13 +100,13 @@ Broadcaster::Broadcaster(const std::string& hostname, uint16_t port, const std::
 {
     if (_ifr_name.empty())
     {
-    #if defined(__linux) || defined(__CYGWIN__)
+#if defined(__linux) || defined(__CYGWIN__)
         _ifr_name = "eth0";
-    #elif defined(__sun)
+#elif defined(__sun)
         _ifr_name = "hme0";
-    #elif !defined(WIN32)
+#elif !defined(WIN32)
         _ifr_name = "ef0";
-    #endif
+#endif
     }
 
 #if defined(WIN32) && !defined(__CYGWIN__)
@@ -121,7 +121,7 @@ Broadcaster::Broadcaster(const std::string& hostname, uint16_t port, const std::
         struct hostent* h;
         if ((h = gethostbyname(hostname.c_str())) == 0L)
         {
-            std::cerr<<"Broadcaster::setHost() - Cannot resolve an address for "<<hostname<<std::endl;
+            std::cerr << "Broadcaster::setHost() - Cannot resolve an address for " << hostname << std::endl;
             _address = 0;
         }
         else
@@ -214,12 +214,11 @@ void Broadcaster::broadcast(const void* buffer, unsigned int buffer_size)
         return;
     }
 
-
 #if defined(WIN32) && !defined(__CYGWIN__)
 
     int flags = 0;
     unsigned int size = sizeof(SOCKADDR_IN);
-    int result = sendto(_so, (const char*)buffer, buffer_size, flags , (struct sockaddr*)&saddr, size);
+    int result = sendto(_so, (const char*)buffer, buffer_size, flags, (struct sockaddr*)&saddr, size);
     if (result == SOCKET_ERROR)
     {
         int err = WSAGetLastError();
@@ -239,9 +238,9 @@ void Broadcaster::broadcast(const void* buffer, unsigned int buffer_size)
 
     int flags = MSG_DONTWAIT;
     unsigned int size = sizeof(struct sockaddr_in);
-    ssize_t result = sendto(_so, (const void*)buffer, buffer_size, flags , (struct sockaddr*)&saddr, size);
+    ssize_t result = sendto(_so, (const void*)buffer, buffer_size, flags, (struct sockaddr*)&saddr, size);
 
-    if (result < 0 && errno==EAGAIN)
+    if (result < 0 && errno == EAGAIN)
     {
         //std::cout<<"reeat sendto()"<<std::endl;
         flags = 0;
@@ -250,7 +249,7 @@ void Broadcaster::broadcast(const void* buffer, unsigned int buffer_size)
 
     if (result < 0)
     {
-        std::cerr << "Broadcaster::sync() - errno = "<<errno<<", error : " << strerror(errno) << std::endl;
+        std::cerr << "Broadcaster::sync() - errno = " << errno << ", error : " << strerror(errno) << std::endl;
         return;
     }
 

@@ -1,12 +1,11 @@
 #pragma once
 
 #include <map>
-#include <stack>
 #include <memory>
+#include <stack>
 
 #include "Broadcaster.h"
 #include "Receiver.h"
-
 
 const uint64_t DATA_SIZE = 32768 - 40;
 
@@ -54,8 +53,10 @@ struct PacketSet
     std::unique_ptr<Packet> createPacket()
     {
         auto packet = takePacketFromPool();
-        if (packet) return packet;
-        else return std::unique_ptr<Packet>(new Packet);
+        if (packet)
+            return packet;
+        else
+            return std::unique_ptr<Packet>(new Packet);
     }
 
     void clear();

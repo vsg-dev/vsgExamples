@@ -13,86 +13,87 @@ extern vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Option
 
 void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
 {
-    out<<"stages.size() = "<<shaderSet.stages.size()<<std::endl;
-    for(auto& shaderStage : shaderSet.stages)
+    out << "stages.size() = " << shaderSet.stages.size() << std::endl;
+    for (auto& shaderStage : shaderSet.stages)
     {
-        out<<"  ShaderStage {"<<std::endl;
-        out<<"    flags = "<<shaderStage->flags<<std::endl;
-        out<<"    stage = "<<shaderStage->stage<<std::endl;
-        out<<"    entryPointName = "<<shaderStage->entryPointName<<std::endl;
-        out<<"    module = "<<shaderStage->module<<std::endl;
-        std::cout<<"  }"<<std::endl;
+        out << "  ShaderStage {" << std::endl;
+        out << "    flags = " << shaderStage->flags << std::endl;
+        out << "    stage = " << shaderStage->stage << std::endl;
+        out << "    entryPointName = " << shaderStage->entryPointName << std::endl;
+        out << "    module = " << shaderStage->module << std::endl;
+        std::cout << "  }" << std::endl;
     }
 
-    out<<std::endl;
-    out<<"attributeBindings.size() = "<<shaderSet.attributeBindings.size()<<std::endl;
-    for(auto& ab : shaderSet.attributeBindings)
+    out << std::endl;
+    out << "attributeBindings.size() = " << shaderSet.attributeBindings.size() << std::endl;
+    for (auto& ab : shaderSet.attributeBindings)
     {
-        out<<"  AttributeBinding {"<<std::endl;
-        out<<"    name = "<<ab.name<<std::endl;
-        out<<"    define = "<<ab.define<<std::endl;
-        out<<"    location = "<<ab.location<<std::endl;
-        out<<"    format = "<<ab.format<<std::endl;
-        out<<"    data = "<<ab.data<<std::endl;
-        out<<"  }"<<std::endl;
+        out << "  AttributeBinding {" << std::endl;
+        out << "    name = " << ab.name << std::endl;
+        out << "    define = " << ab.define << std::endl;
+        out << "    location = " << ab.location << std::endl;
+        out << "    format = " << ab.format << std::endl;
+        out << "    data = " << ab.data << std::endl;
+        out << "  }" << std::endl;
     }
 
-    out<<std::endl;
-    out<<"descriptorBindings.size() = "<<shaderSet.descriptorBindings.size()<<std::endl;
-    for(auto& ub : shaderSet.descriptorBindings)
+    out << std::endl;
+    out << "descriptorBindings.size() = " << shaderSet.descriptorBindings.size() << std::endl;
+    for (auto& ub : shaderSet.descriptorBindings)
     {
-        out<<"  UniformBinding {"<<std::endl;
-        out<<"    name = "<<ub.name<<std::endl;
-        out<<"    define = "<<ub.define<<std::endl;
-        out<<"    set = "<<ub.set<<std::endl;
-        out<<"    binding = "<<ub.binding<<std::endl;
-        out<<"    descriptorType = "<<ub.descriptorType<<std::endl;
-        out<<"    stageFlags = "<<ub.stageFlags<<std::endl;
-        out<<"    data = "<<ub.data<<std::endl;
-        out<<"  }"<<std::endl;
+        out << "  UniformBinding {" << std::endl;
+        out << "    name = " << ub.name << std::endl;
+        out << "    define = " << ub.define << std::endl;
+        out << "    set = " << ub.set << std::endl;
+        out << "    binding = " << ub.binding << std::endl;
+        out << "    descriptorType = " << ub.descriptorType << std::endl;
+        out << "    stageFlags = " << ub.stageFlags << std::endl;
+        out << "    data = " << ub.data << std::endl;
+        out << "  }" << std::endl;
     }
 
-    out<<std::endl;
-    out<<"pushConstantRanges.size() = "<<shaderSet.pushConstantRanges.size()<<std::endl;
-    for(auto& pcr : shaderSet.pushConstantRanges)
+    out << std::endl;
+    out << "pushConstantRanges.size() = " << shaderSet.pushConstantRanges.size() << std::endl;
+    for (auto& pcr : shaderSet.pushConstantRanges)
     {
-        out<<"  PushConstantRange {"<<std::endl;
-        out<<"    name = "<<pcr.name<<std::endl;
-        out<<"    define = "<<pcr.define<<std::endl;
-        out<<"    range = { stageFlags = "<<pcr.range.stageFlags<<", offset = "<<pcr.range.offset<<", size = "<<pcr.range.size<<" }"<<std::endl;;
-        out<<"  }"<<std::endl;
+        out << "  PushConstantRange {" << std::endl;
+        out << "    name = " << pcr.name << std::endl;
+        out << "    define = " << pcr.define << std::endl;
+        out << "    range = { stageFlags = " << pcr.range.stageFlags << ", offset = " << pcr.range.offset << ", size = " << pcr.range.size << " }" << std::endl;
+        ;
+        out << "  }" << std::endl;
     }
-    out<<std::endl;
-    out<<"definesArrayStates.size() = "<<shaderSet.definesArrayStates.size()<<std::endl;
-    for(auto& das : shaderSet.definesArrayStates)
+    out << std::endl;
+    out << "definesArrayStates.size() = " << shaderSet.definesArrayStates.size() << std::endl;
+    for (auto& das : shaderSet.definesArrayStates)
     {
-        out<<"  DefinesArrayState {"<<std::endl;
-        out<<"    defines = { ";
-        for(auto& define : das.defines) out<<define<<" ";
-        out<<"}"<<std::endl;
-        out<<"    arrayState = "<<das.arrayState<<std::endl;
-        out<<"  }"<<std::endl;
-    }
-
-    out<<std::endl;
-    out<<"optionalDefines.size() = "<<shaderSet.optionalDefines.size()<<std::endl;
-    for(auto& define : shaderSet.optionalDefines)
-    {
-        out<<"    define = "<<define<<std::endl;
+        out << "  DefinesArrayState {" << std::endl;
+        out << "    defines = { ";
+        for (auto& define : das.defines) out << define << " ";
+        out << "}" << std::endl;
+        out << "    arrayState = " << das.arrayState << std::endl;
+        out << "  }" << std::endl;
     }
 
-    out<<std::endl;
-    out<<"variants.size() = "<<shaderSet.variants.size()<<std::endl;
-    for(auto& [shaderCompileSettings, shaderStages] : shaderSet.variants)
+    out << std::endl;
+    out << "optionalDefines.size() = " << shaderSet.optionalDefines.size() << std::endl;
+    for (auto& define : shaderSet.optionalDefines)
     {
-        out<<"  Variant {"<<std::endl;
+        out << "    define = " << define << std::endl;
+    }
 
-        out<<"    shaderCompileSettings = "<<shaderCompileSettings<<" : defines ";
-        for(auto& define : shaderCompileSettings->defines) out<<define<<" ";
-        out<<std::endl;
+    out << std::endl;
+    out << "variants.size() = " << shaderSet.variants.size() << std::endl;
+    for (auto& [shaderCompileSettings, shaderStages] : shaderSet.variants)
+    {
+        out << "  Variant {" << std::endl;
 
-        out<<"    shaderStages = "<<shaderStages.size()<<std::endl;
-        out<<"  }"<<std::endl;
+        out << "    shaderCompileSettings = " << shaderCompileSettings << " : defines ";
+        for (auto& define : shaderCompileSettings->defines) out << define << " ";
+        out << std::endl;
+
+        out << "    shaderStages = " << shaderStages.size() << std::endl;
+        out << "  }" << std::endl;
     }
 
 #if 0
@@ -104,22 +105,22 @@ std::set<std::string> supportedDefines(const vsg::ShaderSet& shaderSet)
 {
     std::set<std::string> defines;
 
-    for(auto& ab : shaderSet.attributeBindings)
+    for (auto& ab : shaderSet.attributeBindings)
     {
         if (!ab.define.empty()) defines.insert(ab.define);
     }
 
-    for(auto& ub : shaderSet.descriptorBindings)
+    for (auto& ub : shaderSet.descriptorBindings)
     {
         if (!ub.define.empty()) defines.insert(ub.define);
     }
 
-    for(auto& pcr : shaderSet.pushConstantRanges)
+    for (auto& pcr : shaderSet.pushConstantRanges)
     {
         if (!pcr.define.empty()) defines.insert(pcr.define);
     }
 
-    for(auto& define : shaderSet.optionalDefines)
+    for (auto& define : shaderSet.optionalDefines)
     {
         defines.insert(define);
     }
@@ -149,7 +150,7 @@ int main(int argc, char** argv)
     bool binary = arguments.read("--binary");
     bool vsgShaderSet = arguments.read("--vsg");
     bool stripShaderSetBeforeWrite = arguments.read({"-s", "--strip"});
-    bool compileShaders = !arguments.read({"--nc","--no-compile"});
+    bool compileShaders = !arguments.read({"--nc", "--no-compile"});
 
     vsg::ref_ptr<vsg::ShaderSet> shaderSet;
     if (inputFilename)
@@ -180,10 +181,10 @@ int main(int argc, char** argv)
         options->shaderSets["pbr"] = shaderSet;
     }
 
-    std::cout<<"shaderSet = "<<shaderSet<<std::endl;
+    std::cout << "shaderSet = " << shaderSet << std::endl;
     if (!shaderSet)
     {
-        std::cout<<"No vsg::ShaderSet to process."<<std::endl;
+        std::cout << "No vsg::ShaderSet to process." << std::endl;
         return 1;
     }
 
@@ -191,26 +192,26 @@ int main(int argc, char** argv)
     auto defines = supportedDefines(*shaderSet);
 
     std::string str;
-    while(arguments.read({"-v", "--variant"}, str))
+    while (arguments.read({"-v", "--variant"}, str))
     {
-        std::cout<<"variant : "<<str<<std::endl;
+        std::cout << "variant : " << str << std::endl;
         auto scs = vsg::ShaderCompileSettings::create();
 
-        std::cout<<"   ";
+        std::cout << "   ";
         std::stringstream sstr(str);
-        while(sstr)
+        while (sstr)
         {
             std::string s;
             sstr >> s;
             if (!s.empty())
             {
-                if (defines.count(s)==0)
+                if (defines.count(s) == 0)
                 {
-                    std::cout<<"variant define [ "<<s<<" ] not supported"<<std::endl;
+                    std::cout << "variant define [ " << s << " ] not supported" << std::endl;
                     return 1;
                 }
 
-                std::cout<<s<<", ";
+                std::cout << s << ", ";
                 scs->defines.insert(s);
             }
         }
@@ -218,26 +219,26 @@ int main(int argc, char** argv)
         // assign the variant
         shaderSet->getShaderStages(scs);
 
-        std::cout<<std::endl;
+        std::cout << std::endl;
     }
 
     // load remaining command line parameters as models to help fill out the required ShaderSet variants
-    for(int i = 1; i<argc; ++i)
+    for (int i = 1; i < argc; ++i)
     {
         vsg::Path filename(argv[i]);
         if (auto model = vsg::read(filename, options))
         {
-            std::cout<<"Loaded filename = "<<filename<<", model = "<<model<<std::endl;
+            std::cout << "Loaded filename = " << filename << ", model = " << model << std::endl;
         }
     }
 
     // print out details of the ShaderSet
     print(*shaderSet, std::cout);
 
-    std::cout<<"\nSupported defines.size() = "<<defines.size()<<std::endl;
-    for(auto& define : defines)
+    std::cout << "\nSupported defines.size() = " << defines.size() << std::endl;
+    for (auto& define : defines)
     {
-        std::cout<<"   "<<define<<std::endl;
+        std::cout << "   " << define << std::endl;
     }
 
     if (compileShaders)
@@ -248,15 +249,15 @@ int main(int argc, char** argv)
         auto shaderCompiler = vsg::ShaderCompiler::create();
         if (shaderCompiler->supported())
         {
-            std::cout<<"\ncompiling shaderSet->variants.size() = "<<shaderSet->variants.size()<<std::endl;
-            std::cout<<"{"<<std::endl;
-            for(auto& [shaderCompileSetting, stagesToCompile] : shaderSet->variants)
+            std::cout << "\ncompiling shaderSet->variants.size() = " << shaderSet->variants.size() << std::endl;
+            std::cout << "{" << std::endl;
+            for (auto& [shaderCompileSetting, stagesToCompile] : shaderSet->variants)
             {
-                std::cout<<"    "<<shaderCompileSetting<<" : ";
-                for(auto& define : shaderCompileSetting->defines) std::cout<<define<<" ";
+                std::cout << "    " << shaderCompileSetting << " : ";
+                for (auto& define : shaderCompileSetting->defines) std::cout << define << " ";
 
                 size_t numShadersWithSource = 0;
-                for(auto& stage : stagesToCompile)
+                for (auto& stage : stagesToCompile)
                 {
                     if (stage->module->code.empty() && !stage->module->source.empty()) ++numShadersWithSource;
                 }
@@ -267,15 +268,15 @@ int main(int argc, char** argv)
                     shaderCompiler->compile(stagesToCompile, {}, options);
                 }
 
-                for(auto& stage : stagesToCompile)
+                for (auto& stage : stagesToCompile)
                 {
                     stage->module->source.clear();
                 }
 
-                for(auto& stage : stagesToCompile)
+                for (auto& stage : stagesToCompile)
                 {
                     vsg::ref_ptr<vsg::ShaderStage> match;
-                    for(auto& existing_stage : existing_stages)
+                    for (auto& existing_stage : existing_stages)
                     {
                         bool module_matched = stage->module->code == existing_stage->module->code;
                         if (module_matched)
@@ -283,7 +284,7 @@ int main(int argc, char** argv)
                             // share the matched ShaderModule
                             stage->module = existing_stage->module;
 
-                            if (vsg::compare_pointer(stage, existing_stage)==0)
+                            if (vsg::compare_pointer(stage, existing_stage) == 0)
                             {
                                 match = existing_stage;
                             }
@@ -301,15 +302,15 @@ int main(int argc, char** argv)
                     }
                 }
 
-                std::cout<<std::endl;
+                std::cout << std::endl;
             }
-            std::cout<<"}"<<std::endl;
+            std::cout << "}" << std::endl;
         }
 
-        std::cout<<"stages.size() = "<<existing_stages.size()<<std::endl;
-        for(auto& stage : existing_stages)
+        std::cout << "stages.size() = " << existing_stages.size() << std::endl;
+        for (auto& stage : existing_stages)
         {
-            std::cout<<"   "<<stage<<" "<<stage->module<<" "<<stage->module->code.size()<<std::endl;
+            std::cout << "   " << stage << " " << stage->module << " " << stage->module->code.size() << std::endl;
         }
     }
 
