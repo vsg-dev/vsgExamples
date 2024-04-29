@@ -134,7 +134,7 @@ void updateBaseTexture3D(vsg::floatArray3D& image, float value)
                 float angle = atan2(delta.x, delta.y);
                 float distance_from_center = sqrt(d_ratio * d_ratio + r_ratio * r_ratio);
 
-                float intensity = (sin(1.0 * angle + 30.0f * distance_from_center + 10.0 * value) + 1.0f) * 0.5f;
+                float intensity = (sin(1.0f * angle + 30.0f * distance_from_center + 10.0f * value) + 1.0f) * 0.5f;
                 image.set(c, r, d, 1.0f - intensity);
             }
         }

@@ -68,7 +68,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
     if (requiresBase)
     {
         float diameter = static_cast<float>(vsg::length(bounds.max - bounds.min));
-        geomInfo.position.set(static_cast<float>((bounds.min.x + bounds.max.x)*0.5, static_cast<float>((bounds.min.y + bounds.max.y)*0.5), static_cast<float>(bounds.min.z);
+        geomInfo.position.set(static_cast<float>((bounds.min.x + bounds.max.x)*0.5), static_cast<float>((bounds.min.y + bounds.max.y)*0.5), static_cast<float>(bounds.min.z));
         geomInfo.dx.set(diameter, 0.0f, 0.0f);
         geomInfo.dy.set(0.0f, diameter, 0.0f);
         geomInfo.dz.set(0.0f, 0.0f, 1.0f);
