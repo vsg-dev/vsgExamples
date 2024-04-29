@@ -233,7 +233,7 @@ int main(int argc, char** argv)
 
     // set up secondary views, one per camera found in the scene graph
     uint32_t margin = 10;
-    uint32_t division = scene_cameras.size();
+    uint32_t division = static_cast<uint32_t>(scene_cameras.size());
     if (division<3) division = 3;
 
     uint32_t secondary_width = width / division;
