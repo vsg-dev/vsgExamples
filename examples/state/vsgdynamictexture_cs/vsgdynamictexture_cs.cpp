@@ -11,26 +11,33 @@ public:
     {
         using value_type = typename A::value_type;
         float r_mult = 1.0f / static_cast<float>(image.height() - 1);
-        float r_offset = 0.5f + sin(value) * 0.25f;
+        float r_offset = 0.5f + static_cast<float>(sin(value)) * 0.25f;
 
         float c_mult = 1.0f / static_cast<float>(image.width() - 1);
-        float c_offset = 0.5f + cos(value) * 0.25f;
+        float c_offset = 0.5f + static_cast<float>(cos(value)) * 0.25f;
 
-        for (size_t r = 0; r < image.height(); ++r)
+        for (uint32_t r = 0; r < image.height(); ++r)
         {
             float r_ratio = static_cast<float>(r) * r_mult;
             value_type* ptr = &image.at(0, r);
-            for (size_t c = 0; c < image.width(); ++c)
+            for (uint32_t c = 0; c < image.width(); ++c)
             {
                 float c_ratio = static_cast<float>(c) * c_mult;
 
                 float intensity = 0.5f - ((r_ratio - r_offset) * (r_ratio - r_offset)) + ((c_ratio - c_offset) * (c_ratio - c_offset));
 
-                ptr->r = intensity * intensity;
-                ptr->g = intensity;
-                ptr->b = intensity;
+                if constexpr (std::is_same_v<value_type, float>)
+                {
+                    (*ptr) = intensity * intensity;
+                }
+                else
+                {
+                    ptr->r = intensity * intensity;
+                    ptr->g = intensity;
+                    ptr->b = intensity;
 
-                if constexpr (std::is_same_v<value_type, vsg::vec4>) ptr->a = 1.0f;
+                    if constexpr (std::is_same_v<value_type, vsg::vec4>) ptr->a = 1.0f;
+                }
 
                 ++ptr;
             }

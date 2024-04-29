@@ -195,7 +195,7 @@ int main(int argc, char** argv)
     {
         auto shaderHints = vsg::ShaderCompileSettings::create();
 
-        float penumbraRadius = 0.005;
+        float penumbraRadius = 0.005f;
         if (arguments.read("--pcss"))
         {
             shadowSettings = vsg::PercentageCloserSoftShadows::create(numShadowMapsPerLight);
@@ -386,9 +386,9 @@ int main(int argc, char** argv)
             vsg::StateInfo stateInfo;
 
             double margin = bounds.max.z - bounds.min.z;
-            geomInfo.position.set((bounds.min.x + bounds.max.x) * 0.5, (bounds.min.y + bounds.max.y) * 0.5, 0.0);
-            geomInfo.dx.set(bounds.max.x - bounds.min.x + margin, 0.0, 0.0);
-            geomInfo.dy.set(0.0, bounds.max.y - bounds.min.y + margin, 0.0);
+            geomInfo.position.set(static_cast<float>(bounds.min.x + bounds.max.x) * 0.5f, static_cast<float>(bounds.min.y + bounds.max.y) * 0.5f, 0.0f);
+            geomInfo.dx.set(static_cast<float>(bounds.max.x - bounds.min.x + margin), 0.0f, 0.0f);
+            geomInfo.dy.set(0.0, static_cast<float>(bounds.max.y - bounds.min.y + margin), 0.0f);
             geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
 
             stateInfo.two_sided = true;
@@ -406,8 +406,8 @@ int main(int argc, char** argv)
     {
         auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
-        directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.9;
+        directionalLight->color.set(1.0f, 1.0f, 1.0f);
+        directionalLight->intensity = 0.9f;
         directionalLight->direction = direction;
         directionalLight->shadowSettings = shadowSettings;
 
@@ -415,8 +415,8 @@ int main(int argc, char** argv)
 
         auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
-        ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.1;
+        ambientLight->color.set(1.0f, 1.0f, 1.0f);
+        ambientLight->intensity = 0.1f;
         scene->addChild(ambientLight);
     }
 

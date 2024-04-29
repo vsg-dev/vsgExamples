@@ -66,11 +66,11 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
 
     if (requiresBase)
     {
-        double diameter = vsg::length(bounds.max - bounds.min);
-        geomInfo.position.set((bounds.min.x + bounds.max.x) * 0.5, (bounds.min.y + bounds.max.y) * 0.5, bounds.min.z);
-        geomInfo.dx.set(diameter, 0.0, 0.0);
-        geomInfo.dy.set(0.0, diameter, 0.0);
-        geomInfo.dz.set(0.0, 0.0, 1.0);
+        float diameter = static_cast<float>(vsg::length(bounds.max - bounds.min));
+        geomInfo.position.set(static_cast<float>((bounds.min.x + bounds.max.x) * 0.5), static_cast<float>((bounds.min.y + bounds.max.y) * 0.5), static_cast<float>(bounds.min.z));
+        geomInfo.dx.set(diameter, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, diameter, 0.0f);
+        geomInfo.dz.set(0.0f, 0.0f, 1.0f);
         geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
 
         stateInfo.two_sided = true;
@@ -562,7 +562,7 @@ int main(int argc, char** argv)
         auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.9;
+        directionalLight->intensity = 0.9f;
         directionalLight->direction = direction;
         if (numShadowMapsPerLight > 0)
         {
@@ -573,7 +573,7 @@ int main(int argc, char** argv)
         auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.2;
+        ambientLight->intensity = 0.2f;
         group->addChild(ambientLight);
     }
 

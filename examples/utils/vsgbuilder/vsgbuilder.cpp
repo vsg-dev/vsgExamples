@@ -145,7 +145,7 @@ int main(int argc, char** argv)
                 stateInfo.billboard = true;
 
                 float w = std::pow(float(numVertices), 0.33f) * 2.0f * vsg::length(geomInfo.dx);
-                float scaleDistance = w * 3.0;
+                float scaleDistance = w * 3.0f;
                 auto positions = vsg::vec4Array::create(numVertices);
                 geomInfo.positions = positions;
                 for (auto& v : *(positions))

@@ -60,7 +60,7 @@ public:
     }
 };
 
-vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::vec3& origin, const vsg::vec3& horizontal, const vsg::vec3& vertical, vsg::ref_ptr<vsg::Data> imageData, uint32_t mipmapLevelsHints = 0)
+vsg::ref_ptr<vsg::Node> createTextureQuad(const vsg::vec3& origin, const vsg::vec3& horizontal, const vsg::vec3& vertical, vsg::ref_ptr<vsg::Data> imageData, float mipmapLevelsHints = 0.0f)
 {
 
     // set up search paths to SPIRV shaders and textures
@@ -239,8 +239,8 @@ int main(int argc, char** argv)
         if (leftImage && rightImage)
         {
             vsg::vec3 origin(0.0f, 0.0f, 0.0f);
-            vsg::vec3 horizontal(leftImage->width(), 0.0f, 0.0f);
-            vsg::vec3 vertical(0.0f, 0.0f, leftImage->height());
+            vsg::vec3 horizontal(static_cast<float>(leftImage->width()), 0.0f, 0.0f);
+            vsg::vec3 vertical(0.0f, 0.0f, static_cast<float>(leftImage->height()));
 
             auto leftQuad = createTextureQuad(origin - offset * 0.5f, horizontal, vertical, leftImage);
             auto rightQuad = createTextureQuad(origin + offset * 0.5f, horizontal, vertical, rightImage);

@@ -205,11 +205,6 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
-    std::vector<uint64_t> buffer(1);
-    uint32_t buffer_size = buffer.size() * sizeof(decltype(buffer)::value_type);
-
-    std::cout << "buffer_size = " << buffer_size << std::endl;
-
     PacketBroadcaster broadcaster;
     broadcaster.broadcaster = bc;
 
@@ -233,8 +228,6 @@ int main(int argc, char** argv)
 
         if (rc)
         {
-            //unsigned int size = rc->receive(buffer.data(), buffer_size);
-            //std::cout << "received size = " << size << std::endl;
             auto object = receiver.receive();
             viewerData = object.cast<cluster::ViewerData>();
             if (viewerData)

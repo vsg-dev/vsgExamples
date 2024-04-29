@@ -62,7 +62,7 @@ public:
     {
         scrollWheel.handled = true;
         scale *= (1.0 + scrollWheel.delta.y * 0.1);
-        world_clipSettings->at(0).w = scale;
+        world_clipSettings->at(0).w = static_cast<float>(scale);
         world_clipSettings->dirty();
     }
 
@@ -77,7 +77,10 @@ public:
         std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto lhs, auto rhs) { return lhs->ratio < rhs->ratio; });
 
         auto& intersection = *intersector->intersections.front();
-        world_clipSettings->at(0) = vsg::vec4(intersection.worldIntersection.x, intersection.worldIntersection.y, intersection.worldIntersection.z, scale);
+        world_clipSettings->at(0) = vsg::vec4(static_cast<float>(intersection.worldIntersection.x),
+                                              static_cast<float>(intersection.worldIntersection.y),
+                                              static_cast<float>(intersection.worldIntersection.z),
+                                              static_cast<float>(scale));
         world_clipSettings->dirty();
     }
 
@@ -301,7 +304,7 @@ int main(int argc, char** argv)
 
         viewer->compile();
 
-        worldClipSettings->set(0, vsg::vec4(centre.x, centre.y, centre.z, radius * 0.3));
+        worldClipSettings->set(0, vsg::vec4(static_cast<float>(centre.x), static_cast<float>(centre.y), static_cast<float>(centre.z), static_cast<float>(radius * 0.3)));
 
         auto startTime = std::chrono::steady_clock::now();
         double frameCount = 0.0;
@@ -326,7 +329,7 @@ int main(int argc, char** argv)
                 vsg::dvec3 world_center(world_sphere.x, world_sphere.y, world_sphere.z);
                 vsg::dvec3 eye_center = viewMatrix * world_center;
 
-                eye_sphere.set(eye_center.x, eye_center.y, eye_center.z, world_sphere.w);
+                eye_sphere.set(static_cast<float>(eye_center.x), static_cast<float>(eye_center.y), static_cast<float>(eye_center.z), static_cast<float>(world_sphere.w));
 
                 eyeClipSettings->dirty();
             }

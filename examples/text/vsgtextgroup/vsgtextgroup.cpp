@@ -86,7 +86,7 @@ int main(int argc, char** argv)
                 layout->horizontal = horizontal;
                 layout->vertical = vertical;
                 layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
-                layout->outlineWidth = 0.1;
+                layout->outlineWidth = 0.1f;
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -281,7 +281,7 @@ int main(int argc, char** argv)
                             {
                                 quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
                                 quad.colors[i].r = 0.5f + 0.5f * sin(quad.vertices[i].x);
-                                quad.outlineColors[i] = vsg::vec4(cos(0.5 * quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
+                                quad.outlineColors[i] = vsg::vec4(cos(0.5f * quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
                                 quad.outlineWidths[i] = 0.1f + 0.15f * (1.0f + sin(quad.vertices[i].x));
                             }
                         }

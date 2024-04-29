@@ -212,7 +212,7 @@ int main(int argc, char** argv)
                 {
                     for (auto& v : *vertices)
                     {
-                        v.z += (sin(vsg::PI * frameCount / 180.0) * radius * 0.001);
+                        v.z += static_cast<float>(sin(vsg::PI * frameCount / 180.0) * radius * 0.001);
                     }
                     vertices->dirty();
                 }

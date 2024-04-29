@@ -70,11 +70,11 @@ int main(int argc, char** argv)
 
     auto layout = vsg::StandardLayout::create();
     layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
-    layout->position = vsg::vec3(0.0, 0.0, 0.0);
-    layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
-    layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-    layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
-    layout->outlineWidth = 0.1;
+    layout->position = vsg::vec3(0.0f, 0.0f, 0.0f);
+    layout->horizontal = vsg::vec3(1.0f, 0.0f, 0.0f);
+    layout->vertical = vsg::vec3(0.0f, 0.0f, 1.0f);
+    layout->color = vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    layout->outlineWidth = 0.1f;
 
     auto text = vsg::Text::create();
     text->text = vsg::stringValue::create("Layer");

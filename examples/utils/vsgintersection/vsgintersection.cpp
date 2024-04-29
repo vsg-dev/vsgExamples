@@ -41,9 +41,9 @@ public:
 
             vsg::info("keyPress.keyModifier = ", keyPress.keyModifier, " keyPress.keyBase = ", keyPress.keyBase);
 
-            geom.dx.set(scale, 0.0f, 0.0f);
-            geom.dy.set(0.0f, scale, 0.0f);
-            geom.dz.set(0.0f, 0.0f, scale);
+            geom.dx.set(static_cast<float>(scale), 0.0f, 0.0f);
+            geom.dy.set(0.0f, static_cast<float>(scale), 0.0f);
+            geom.dz.set(0.0f, 0.0f, static_cast<float>(scale));
 
             if (keyPress.keyModifier & vsg::MODKEY_Control)
             {
@@ -55,7 +55,7 @@ public:
 
                 // the position is set by positions data, in this case just one position so use a vec4Value, but if needed we can use an array of positions
                 auto pos = vsg::vec3(lastIntersection->worldIntersection);
-                geom.positions = vsg::vec4Value::create(vsg::vec4(pos.x, pos.y, pos.z, scale * 5.0)); // x,y,z and scaleDistance
+                geom.positions = vsg::vec4Value::create(vsg::vec4(pos.x, pos.y, pos.z, static_cast<float>(scale * 5.0))); // x,y,z and scaleDistance
             }
             else
             {
