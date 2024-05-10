@@ -1,5 +1,6 @@
 add_subdirectory(vsgheadless)
 add_subdirectory(vsgmultigpu)
+add_subdirectory(vsgmultirendergraphs)
 add_subdirectory(vsgmultiviews)
 add_subdirectory(vsgortho)
 add_subdirectory(vsgoverlay)
