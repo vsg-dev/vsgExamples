@@ -9,19 +9,24 @@ public:
     vsg::ref_ptr<vsg::Text> scroll_text;
     vsg::ref_ptr<vsg::Text> window_text;
     vsg::ref_ptr<vsg::Text> frame_text;
+    bool printToConsole = false;
 
     InputHandler(vsg::ref_ptr<vsg::Text> in_keyboard_text, vsg::ref_ptr<vsg::Text> in_pointer_text,
-                 vsg::ref_ptr<vsg::Text> in_scroll_text, vsg::ref_ptr<vsg::Text> in_window_text, vsg::ref_ptr<vsg::Text> in_frame_text) :
+                 vsg::ref_ptr<vsg::Text> in_scroll_text, vsg::ref_ptr<vsg::Text> in_window_text, vsg::ref_ptr<vsg::Text> in_frame_text,
+                 bool in_printToConsole) :
         keyboard_text(in_keyboard_text),
         pointer_text(in_pointer_text),
         scroll_text(in_scroll_text),
         window_text(in_window_text),
-        frame_text(in_frame_text)
+        frame_text(in_frame_text),
+        printToConsole(in_printToConsole)
     {
     }
 
     void assign(vsg::Text& text, const std::string& str)
     {
+        if (printToConsole) vsg::info(str);
+
         auto text_string = text.text.cast<vsg::stringValue>();
 
         if (text_string)
@@ -144,6 +149,7 @@ int main(int argc, char** argv)
     auto event_read_filename = arguments.value(std::string(""), "-i");
     auto event_output_filename = arguments.value(std::string(""), "-o");
     auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "--font");
+    bool printToConsole = arguments.read("--print");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -344,7 +350,7 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
     // assign Input handler
-    viewer->addEventHandler(InputHandler::create(keyboard_text, pointer_text, scroll_text, window_text, frame_text));
+    viewer->addEventHandler(InputHandler::create(keyboard_text, pointer_text, scroll_text, window_text, frame_text, printToConsole));
 
     // main frame loop
     while (viewer->advanceToNextFrame())
