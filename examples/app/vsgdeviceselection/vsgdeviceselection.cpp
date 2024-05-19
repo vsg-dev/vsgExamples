@@ -135,7 +135,7 @@ int main(int argc, char** argv)
                     if ((prop.queueFlags & VK_QUEUE_GRAPHICS_BIT)) flags.push_back("GRAPHICS");
                     if ((prop.queueFlags & VK_QUEUE_COMPUTE_BIT)) flags.push_back("COMPUTE");
                     if ((prop.queueFlags & VK_QUEUE_TRANSFER_BIT)) flags.push_back("TRANSFER");
-                    if ((prop.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT)) flags.push_back("PARSE_BINDING");
+                    if ((prop.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT)) flags.push_back("SPARSE_BINDING");
                     if ((prop.queueFlags & VK_QUEUE_PROTECTED_BIT)) flags.push_back("PROTECTED");
                     if ((prop.queueFlags & 0x00000020)) flags.push_back("VIDEO_DECODE");
                     if ((prop.queueFlags & 0x00000040)) flags.push_back("VIDEO_ENCODE");
