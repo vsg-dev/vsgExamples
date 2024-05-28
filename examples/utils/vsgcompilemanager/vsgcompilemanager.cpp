@@ -114,6 +114,8 @@ int main(int argc, char** argv)
 {
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgcompilemanager";
+    auto requestFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+    requestFeatures->get().geometryShader = VK_TRUE;  // for gl_PrimitiveID
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -148,6 +150,7 @@ int main(int argc, char** argv)
     while (viewer->advanceToNextFrame())
     {
         if ((++frameCount % 60) == 0) {
+            viewer->deviceWaitIdle();
             sceneGraph->children.clear();
             if (sceneNumber == 0) {
                 sceneNumber = 1;
