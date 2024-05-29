@@ -15,13 +15,19 @@ class CustomMemorySlots
 public:
 
     CustomMemorySlots(size_t size);
-
+#if 0
+    using Offset = size_t;
+    using Index = size_t;
+#else
+    using Offset = uint32_t;
+    using Index = uint32_t;
+#endif
     using OptionalOffset = std::pair<bool, size_t>;
     OptionalOffset reserve(size_t size, size_t alignment);
     bool release(size_t offset, size_t size);
 
-    std::vector<size_t> offsets;
-    std::vector<size_t> availableSlots;
+    std::vector<Offset> offsets;
+    std::vector<Index> availableSlots;
 };
 
 struct CustomMemoryBlock
@@ -39,6 +45,9 @@ struct CustomMemoryBlock
     size_t block_alignment = 16;
     size_t blockSize;
     uint8_t* memory = nullptr;
+    uint8_t* memory_end = nullptr;
+
+    inline bool within(void* ptr) const { return memory <= ptr && ptr < memory_end; }
 };
 
 

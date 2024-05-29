@@ -15,6 +15,12 @@ bool& experimental::debug()
 
 CustomMemorySlots::CustomMemorySlots(size_t size)
 {
+#if 1
+    size_t num_slots = size / 32;
+    offsets.reserve(num_slots);
+    availableSlots.reserve(num_slots);
+#endif
+
     offsets.push_back(0);
     offsets.push_back(size);
 
@@ -40,8 +46,8 @@ CustomMemorySlots::OptionalOffset CustomMemorySlots::reserve(size_t size, size_t
 
     for(auto itr = availableSlots.rbegin(); itr != availableSlots.rend(); ++itr)
     {
-        size_t slotIndex = *itr;
-        size_t slotSize = offsets[slotIndex+1] - offsets[slotIndex];
+        Index slotIndex = *itr;
+        Offset slotSize = offsets[slotIndex+1] - offsets[slotIndex];
         if (size == slotSize)
         {
             availableSlots.erase(itr.base());
@@ -69,7 +75,7 @@ bool CustomMemorySlots::release(size_t offset, size_t size)
     auto offset_itr = std::lower_bound(offsets.begin(), offsets.end(), offset);
     if (offset_itr != offsets.end())
     {
-        size_t index = offset_itr - offsets.begin();
+        Index index = offset_itr - offsets.begin();
         auto available_itr = std::upper_bound(availableSlots.begin(), availableSlots.end(), index);
         if (available_itr != availableSlots.end())
         {
@@ -97,12 +103,15 @@ CustomMemoryBlock::CustomMemoryBlock(size_t in_blockSize, size_t in_alignment) :
     block_alignment = std::max(alignment, alignof(std::max_align_t));
     block_alignment = std::max(block_alignment, size_t{16});
 
-    memory = static_cast<uint8_t*>(operator new (blockSize, std::align_val_t{block_alignment}));
+    //memory = static_cast<uint8_t*>(operator new (blockSize, std::align_val_t{block_alignment}));
+    memory = static_cast<uint8_t*>(operator new (blockSize));
+    memory_end = memory + blockSize;
 }
 
 CustomMemoryBlock::~CustomMemoryBlock()
 {
-    operator delete (memory, std::align_val_t{block_alignment});
+    //operator delete (memory, std::align_val_t{block_alignment});
+    operator delete (memory);
 }
 
 void* CustomMemoryBlock::allocate(std::size_t size)
@@ -117,7 +126,7 @@ void* CustomMemoryBlock::allocate(std::size_t size)
 
 bool CustomMemoryBlock::deallocate(void* ptr, std::size_t size)
 {
-    if (ptr >= memory && ptr < memory+blockSize)
+    if (within(ptr))
     {
         size_t offset = static_cast<uint8_t*>(ptr) - memory;
         if (memorySlots.release(offset, size))
@@ -141,23 +150,28 @@ void CustomMemoryBlock::report(std::ostream& out) const
     out << "   block_alignment = "<<block_alignment<<std::endl;
     out << "   blockSize = "<<blockSize<<", memory = "<<static_cast<void*>(memory)<<std::endl;
 
-    out << "   memorySlots.offsets = "<< memorySlots.offsets.size()<< " {"<<std::endl;
+    out << "   memorySlots.offsets = "<< memorySlots.offsets.size()<< ", capacity = "<<memorySlots.offsets.capacity()<<" {"<<std::endl;
+#if 0
     for(auto& offset : memorySlots.offsets) out <<" "<<offset;
     out << "}"<< std::endl;
-
-    out << "   memorySlots.availableSlots = "<< memorySlots.availableSlots.size()<< " {"<<std::endl;
+#endif
+    out << "   memorySlots.availableSlots = "<< memorySlots.availableSlots.size()<< ", capacity = "<<memorySlots.availableSlots.capacity()<< " {"<<std::endl;
+#if 0
     for(auto& available : memorySlots.availableSlots) out <<" "<<available;
     out << "}"<<std::endl;
+#endif
 }
 
 CustomAllocator::CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator) :
     vsg::Allocator(std::move(in_nestedAllocator))
 {
     size_t alignment = 4;
-    size_t new_blockSize = size_t(20) * size_t(1024) * size_t(1024);
+    size_t new_blockSize = size_t(1024) * size_t(1024) * size_t(1024);
 
     auto block = std::make_shared<CustomMemoryBlock>(new_blockSize, alignment);
     memoryBlock = std::move(block);
+
+
     if (debug()) std::cout << "CustomAllocator()" << this << " "<<block<<std::endl;
 }
 
