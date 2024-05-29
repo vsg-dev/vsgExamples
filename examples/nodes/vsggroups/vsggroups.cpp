@@ -1,13 +1,38 @@
 #include <vsg/all.h>
 
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
+#endif
+
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <vector>
 
 #include "SharedPtrNode.h"
+#include "CustomAllocator.h"
 
 //#define INLINE_TRAVERSE
+
+std::atomic_size_t allocated = 0;
+
+#if 1
+void * operator new(std::size_t n) noexcept(false)
+{
+  allocated += n;
+  return std::malloc(n);
+}
+
+void operator delete(void * p) noexcept(false)
+{
+  std::free(p);
+}
+
+void operator delete(void * p, std::size_t) noexcept(false)
+{
+  std::free(p);
+}
+#endif
 
 class VsgVisitor : public vsg::Visitor
 {
@@ -105,7 +130,7 @@ public:
     }
 };
 
-vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
+vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, size_t& numNodes, size_t& numBytes)
 {
     if (numLevels == 0)
     {
@@ -130,7 +155,7 @@ vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& 
     return t;
 }
 
-vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
+vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, size_t& numNodes, size_t& numBytes)
 {
     if (numLevels == 0)
     {
@@ -155,7 +180,7 @@ vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int
     return t;
 }
 
-std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
+std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned int numLevels, size_t& numNodes, size_t& numBytes)
 {
     if (numLevels == 0)
     {
@@ -180,15 +205,81 @@ std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned in
     return t;
 }
 
+
+// consider tcmalloc? https://goog-perftools.sourceforge.net/doc/tcmalloc.html
+// consider Alloc https://www.codeproject.com/Articles/1084801/Replace-malloc-free-with-a-Fast-Fixed-Block-Memory
+class StdAllocator : public vsg::Allocator
+{
+public:
+    StdAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
+        vsg::Allocator(std::move(in_nestedAllocator))
+    {
+    }
+
+    ~StdAllocator()
+    {
+    }
+
+    void report(std::ostream& out) const override
+    {
+        out << "StdAllocator::report() " << std::endl;
+    }
+
+    void* allocate(std::size_t size, vsg::AllocatorAffinity) override
+    {
+        return operator new (size); //, std::align_val_t{default_alignment});
+    }
+
+    bool deallocate(void* ptr, std::size_t size) override
+    {
+        if (nestedAllocator && nestedAllocator->deallocate(ptr, size)) return true;
+
+        operator delete (ptr);//, std::align_val_t{default_alignment});
+        return true;
+    }
+};
+
+const size_t KB = 1024;
+const size_t MB = 1024 * KB;
+const size_t GB = 1024 * MB;
+
+struct Units
+{
+    Units(size_t v) : value(v) {}
+
+    size_t value;
+};
+
+std::ostream& operator<<(std::ostream& out, const Units& size)
+{
+    if (size.value>GB) out << static_cast<double>(size.value)/static_cast<double>(GB) << " gigabytes";
+    else if (size.value>MB) out << static_cast<double>(size.value)/static_cast<double>(MB) << " megabytes";
+    else if (size.value>KB) out << static_cast<double>(size.value)/static_cast<double>(KB) <<" kilobytes";
+    else out << size.value<<" bytes";
+    return out;
+}
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
+    if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
+    if (arguments.read("--custom")) vsg::Allocator::instance().reset(new experimental::CustomAllocator(std::move(vsg::Allocator::instance())));
+
+    if (arguments.read("--debug")) experimental::debug() = true;
+
     auto numLevels = arguments.value(11u, {"-l", "--levels"});
     auto numTraversals = arguments.value(10u, {"-t", "--traversals"});
     auto type = arguments.value(std::string("vsg::Group"), "--type");
     auto quiet = arguments.read("-q");
     auto inputFilename = arguments.value<vsg::Path>("", "-i");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
+
+    if (int mt; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
+    if (int allocatorType; arguments.read("--allocator", allocatorType)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(allocatorType);
+    if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize * MB);
+    if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize * MB);
+    if (size_t dataBlockSize; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_DATA, dataBlockSize * MB);
+    bool report = arguments.read({"--report", "-r"});
+
     vsg::ref_ptr<vsg::RecordTraversal> vsg_recordTraversal(arguments.read("-d") ? new vsg::RecordTraversal : nullptr);
     vsg::ref_ptr<VsgConstVisitor> vsg_ConstVisitor(arguments.read("-c") ? new VsgConstVisitor : nullptr);
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -199,12 +290,24 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::Node> vsg_root;
     std::shared_ptr<experimental::SharedPtrNode> shared_root;
 
-    unsigned int numNodes = 0;
-    unsigned int numBytes = 0;
+    size_t numNodes = 0;
+    size_t numBytes = 0;
 
     if (inputFilename)
     {
-        vsg_root = vsg::read_cast<vsg::Node>(inputFilename);
+        auto options = vsg::Options::create();
+        options->sharedObjects = vsg::SharedObjects::create();
+        options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+        options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+#ifdef vsgXchange_all
+        // add vsgXchange's support for reading and writing 3rd party file formats
+        options->add(vsgXchange::all::create());
+#endif
+
+        arguments.read(options);
+
+        vsg_root = vsg::read_cast<vsg::Node>(inputFilename, options);
 
         if (!vsg_root)
         {
@@ -254,13 +357,13 @@ int main(int argc, char** argv)
         }
         else
         {
-            vsg::ref_ptr<VsgVisitor> vsg_visitor(new VsgVisitor);
+            VsgVisitor vsg_visitor;
             std::cout << "using VsgVisitor" << std::endl;
             for (unsigned int i = 0; i < numTraversals; ++i)
             {
-                vsg_root->accept(*vsg_visitor);
-                numNodesVisited += vsg_visitor->numNodes;
-                vsg_visitor->numNodes = 0;
+                vsg_root->accept(vsg_visitor);
+                numNodesVisited += vsg_visitor.numNodes;
+                vsg_visitor.numNodes = 0;
             }
         }
     }
@@ -285,16 +388,30 @@ int main(int argc, char** argv)
 
     clock::time_point after_write = clock::now();
 
+    if (report)
+    {
+        std::cout<<"\nBefore cleanup"<<std::endl;
+        vsg::Allocator::instance()->report(std::cout);
+        std::cout<<std::endl;
+    }
+
     vsg_root = 0;
     shared_root = 0;
 
     clock::time_point after_destruction = clock::now();
 
+    if (report)
+    {
+        std::cout<<"\nAfter cleanup"<<std::endl;
+        vsg::Allocator::instance()->report(std::cout);
+        std::cout<<std::endl;
+    }
+
     if (!quiet)
     {
         std::cout << "type : " << type << std::endl;
-        std::cout << "numNodes : " << numNodes << std::endl;
-        std::cout << "numBytes : " << numBytes << std::endl;
+        std::cout << "number of nodes : " << numNodes << std::endl;
+        std::cout << "total size : " << Units(numBytes) << std::endl;
         std::cout << "average node size : " << double(numBytes) / double(numNodes) << std::endl;
         std::cout << "numNodesVisited : " << numNodesVisited << std::endl;
 
@@ -314,5 +431,14 @@ int main(int argc, char** argv)
         std::cout << "Nodes destructed per second : " << double(numNodes) / std::chrono::duration<double>(after_destruction - after_traversal).count() << std::endl;
     }
 
+    std::cout<<"Total allocated = "<<Units(allocated)<<std::endl;
+#if 0
+    size_t v = 1;
+    for(size_t i=0; i<64;++i)
+    {
+        std::cout<<"    i = "<<i<<" "<<Units(v)<<std::endl;
+        v <<= 1;
+    }
+#endif
     return 0;
 }
