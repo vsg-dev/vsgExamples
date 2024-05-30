@@ -32,8 +32,10 @@ public:
 
 struct CustomMemoryBlock
 {
-    CustomMemoryBlock(size_t in_blockSize, size_t in_alignment);
+    CustomMemoryBlock(const std::string& in_name, size_t in_blockSize, size_t in_alignment);
     virtual ~CustomMemoryBlock();
+
+    std::string name;
 
     void* allocate(std::size_t size);
     bool deallocate(void* ptr, std::size_t size);
@@ -64,8 +66,7 @@ public:
 
     bool deallocate(void* ptr, std::size_t size) override;
 
-    //std::vector<std::unique_ptr<CustomMemoryBlock>> allocatorMemoryBlocks;
-    std::shared_ptr<CustomMemoryBlock> memoryBlock;
+    std::vector<std::unique_ptr<CustomMemoryBlock>> callocatorMemoryBlocks;
 };
 
 } // namespace experimental

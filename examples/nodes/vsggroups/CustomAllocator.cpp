@@ -93,7 +93,8 @@ bool CustomMemorySlots::release(size_t offset, size_t size)
     return false;
 }
 
-CustomMemoryBlock::CustomMemoryBlock(size_t in_blockSize, size_t in_alignment) :
+CustomMemoryBlock::CustomMemoryBlock(const std::string& in_name, size_t in_blockSize, size_t in_alignment) :
+    name(in_name),
     memorySlots(in_blockSize),
     alignment(in_alignment),
     blockSize(in_blockSize)
@@ -145,21 +146,35 @@ bool CustomMemoryBlock::deallocate(void* ptr, std::size_t size)
 
 void CustomMemoryBlock::report(std::ostream& out) const
 {
-    out << "MemoryBlock "<<this<<std::endl;
-    out << "   alignment = "<<alignment<<std::endl;
-    out << "   block_alignment = "<<block_alignment<<std::endl;
-    out << "   blockSize = "<<blockSize<<", memory = "<<static_cast<void*>(memory)<<std::endl;
+    out << "MemoryBlock "<<this<<" "<<name<<std::endl;
+    out << "    alignment = "<<alignment<<std::endl;
+    out << "    block_alignment = "<<block_alignment<<std::endl;
+    out << "    blockSize = "<<blockSize<<", memory = "<<static_cast<void*>(memory)<<std::endl;
 
-    out << "   memorySlots.offsets = "<< memorySlots.offsets.size()<< ", capacity = "<<memorySlots.offsets.capacity()<<" {"<<std::endl;
+    out << "    memorySlots.offsets = "<< memorySlots.offsets.size()<< ", capacity = "<<memorySlots.offsets.capacity()<<" {"<<std::endl;
 #if 0
     for(auto& offset : memorySlots.offsets) out <<" "<<offset;
     out << "}"<< std::endl;
 #endif
-    out << "   memorySlots.availableSlots = "<< memorySlots.availableSlots.size()<< ", capacity = "<<memorySlots.availableSlots.capacity()<< " {"<<std::endl;
+    out << "    memorySlots.availableSlots = "<< memorySlots.availableSlots.size()<< ", capacity = "<<memorySlots.availableSlots.capacity()<< " {"<<std::endl;
 #if 0
     for(auto& available : memorySlots.availableSlots) out <<" "<<available;
     out << "}"<<std::endl;
 #endif
+
+    size_t totalSizeAllocated = 0;
+    size_t numAllocated = 0;
+    for(size_t i = 0; i<memorySlots.offsets.size()-2; ++i)
+    {
+        totalSizeAllocated += memorySlots.offsets[i+1] - memorySlots.offsets[i];
+        ++numAllocated;
+    }
+
+    if (numAllocated>0)
+    {
+        double averageSize = double(totalSizeAllocated) / double(numAllocated);
+        out<<"     averageSize = "<<averageSize<<std::endl;
+    }
 }
 
 CustomAllocator::CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator) :
@@ -168,11 +183,13 @@ CustomAllocator::CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator) 
     size_t alignment = 4;
     size_t new_blockSize = size_t(1024) * size_t(1024) * size_t(1024);
 
-    auto block = std::make_shared<CustomMemoryBlock>(new_blockSize, alignment);
-    memoryBlock = std::move(block);
+    callocatorMemoryBlocks.resize(vsg::ALLOCATOR_AFFINITY_LAST);
+    callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_OBJECTS].reset(new CustomMemoryBlock("ALLOCATOR_AFFINITY_OBJECTS", new_blockSize, default_alignment));
+    callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_DATA].reset(new CustomMemoryBlock("ALLOCATOR_AFFINITY_DATA", new_blockSize, default_alignment));
+    callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_NODES].reset(new CustomMemoryBlock("ALLOCATOR_AFFINITY_NODES", new_blockSize, default_alignment));
+    callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_PHYSICS].reset(new CustomMemoryBlock("ALLOCATOR_AFFINITY_PHYSICS", new_blockSize, 16));
 
-
-    if (debug()) std::cout << "CustomAllocator()" << this << " "<<block<<std::endl;
+    if (debug()) std::cout << "CustomAllocator()" << this<<std::endl;
 }
 
 CustomAllocator::~CustomAllocator()
@@ -182,20 +199,35 @@ CustomAllocator::~CustomAllocator()
 
 void CustomAllocator::report(std::ostream& out) const
 {
-    out << "CustomAllocator::report() " << allocatorMemoryBlocks.size() << std::endl;
+    out << "CustomAllocator::report() " << callocatorMemoryBlocks.size() << std::endl;
 
-    if (memoryBlock)
+    for (const auto& memoryBlock : callocatorMemoryBlocks)
     {
-        memoryBlock->report(out);
+        if (memoryBlock) memoryBlock->report(out);
     }
-
 }
 
-void* CustomAllocator::allocate(std::size_t size, vsg::AllocatorAffinity /*allocatorAffinity*/)
+void* CustomAllocator::allocate(std::size_t size, vsg::AllocatorAffinity allocatorAffinity)
 {
     std::scoped_lock<std::mutex> lock(mutex);
 
-    if (void* data = memoryBlock->allocate(size); data != nullptr) return data;
+    // create a MemoryBlocks entry if one doesn't already exist
+    if (allocatorAffinity > callocatorMemoryBlocks.size())
+    {
+        size_t blockSize = 1024 * 1024; // Megabyte
+        callocatorMemoryBlocks.resize(allocatorAffinity + 1);
+        callocatorMemoryBlocks[allocatorAffinity].reset(new CustomMemoryBlock("CustomMemoryBlockAffinity", blockSize, default_alignment));
+    }
+
+    auto& memoryBlock = callocatorMemoryBlocks[allocatorAffinity];
+    if (memoryBlock)
+    {
+        auto mem_ptr = memoryBlock->allocate(size);
+        if (mem_ptr)
+        {
+            return mem_ptr;
+        }
+    }
 
     return operator new (size); //, std::align_val_t{default_alignment});
 }
@@ -204,7 +236,16 @@ bool CustomAllocator::deallocate(void* ptr, std::size_t size)
 {
     std::scoped_lock<std::mutex> lock(mutex);
 
-    if (memoryBlock->deallocate(ptr, size)) return true;
+    for (auto& memoryBlocks : callocatorMemoryBlocks)
+    {
+        if (memoryBlocks)
+        {
+            if (memoryBlocks->deallocate(ptr, size))
+            {
+                return true;
+            }
+        }
+    }
 
     if (nestedAllocator && nestedAllocator->deallocate(ptr, size)) return true;
 
