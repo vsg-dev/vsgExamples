@@ -10,6 +10,8 @@ namespace experimental
 
 extern bool& debug();
 
+class CustomAllocator;
+
 class CustomMemorySlots
 {
 public:
@@ -52,6 +54,24 @@ struct CustomMemoryBlock
     inline bool within(void* ptr) const { return memory <= ptr && ptr < memory_end; }
 };
 
+class CustomMemoryBlocks
+{
+public:
+    CustomMemoryBlocks(CustomAllocator* in_parent, const std::string& in_name, size_t in_blockSize, size_t in_alignment);
+    virtual ~CustomMemoryBlocks();
+
+    CustomAllocator* parent = nullptr;
+    std::string name;
+    size_t alignment = 4;
+    size_t blockSize;
+    std::map<void*, std::shared_ptr<CustomMemoryBlock>> memoryBlocks;
+    std::shared_ptr<CustomMemoryBlock> memoryBlockWithSpace;
+
+    void* allocate(std::size_t size);
+    bool deallocate(void* ptr, std::size_t size);
+    void report(std::ostream& out) const;
+};
+
 
 class CustomAllocator : public vsg::Allocator
 {
@@ -66,7 +86,8 @@ public:
 
     bool deallocate(void* ptr, std::size_t size) override;
 
-    std::vector<std::unique_ptr<CustomMemoryBlock>> callocatorMemoryBlocks;
+    std::vector<std::unique_ptr<CustomMemoryBlocks>> callocatorMemoryBlocks;
+    std::map<void*, std::shared_ptr<CustomMemoryBlock>> memoryBlocks;
 };
 
 } // namespace experimental
