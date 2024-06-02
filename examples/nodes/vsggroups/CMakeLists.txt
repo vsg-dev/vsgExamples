@@ -1,5 +1,5 @@
-set(HEADERS SharedPtrNode.h)
-set(SOURCES SharedPtrNode.cpp CustomAllocator.cpp vsggroups.cpp)
+set(HEADERS SharedPtrNode.h CustomAllocator.h IntrusiveAllocator.h)
+set(SOURCES SharedPtrNode.cpp CustomAllocator.cpp IntrusiveAllocator.cpp vsggroups.cpp)
 
 add_executable(vsggroups ${HEADERS} ${SOURCES})
 target_link_libraries(vsggroups vsg::vsg)

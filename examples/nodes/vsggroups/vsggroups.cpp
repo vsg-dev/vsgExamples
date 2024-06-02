@@ -11,6 +11,7 @@
 
 #include "SharedPtrNode.h"
 #include "CustomAllocator.h"
+#include "IntrusiveAllocator.h"
 
 //#define INLINE_TRAVERSE
 
@@ -263,6 +264,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
     if (arguments.read("--custom")) vsg::Allocator::instance().reset(new experimental::CustomAllocator(std::move(vsg::Allocator::instance())));
+    if (arguments.read({"--in", "--intrusive"})) vsg::Allocator::instance().reset(new experimental::IntrusiveAllocator(std::move(vsg::Allocator::instance())));
 
     if (arguments.read("--debug")) experimental::debug() = true;
 
