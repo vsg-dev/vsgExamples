@@ -275,11 +275,12 @@ int main(int argc, char** argv)
     auto inputFilename = arguments.value<vsg::Path>("", "-i");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
+    size_t unit = arguments.value<size_t>(MB, "--unit");
     if (int mt; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
     if (int allocatorType; arguments.read("--allocator", allocatorType)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(allocatorType);
-    if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize * MB);
-    if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize * MB);
-    if (size_t dataBlockSize; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_DATA, dataBlockSize * MB);
+    if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize * unit);
+    if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize * unit);
+    if (size_t dataBlockSize; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_DATA, dataBlockSize * unit);
     bool report = arguments.read({"--report", "-r"});
 
     vsg::ref_ptr<vsg::RecordTraversal> vsg_recordTraversal(arguments.read("-d") ? new vsg::RecordTraversal : nullptr);
@@ -330,9 +331,19 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::cout<<"Finished created\n"<<std::endl;
+
     clock::time_point after_construction = clock::now();
 
     unsigned int numNodesVisited = 0;
+
+    if (arguments.read("--pre"))
+    {
+        std::cout<<"\nBefore traversal"<<std::endl;
+        vsg::Allocator::instance()->report(std::cout);
+        std::cout<<std::endl;
+    }
+
 
     if (vsg_root)
     {
