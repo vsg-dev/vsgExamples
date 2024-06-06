@@ -53,6 +53,7 @@ struct IntrusiveMemoryBlock
     struct FreeList
     {
         size_t minimum_size = 0;
+        size_t maximum_size = 0;
         size_t count = 0;
         size_t head = 0;
     };
@@ -67,11 +68,14 @@ struct IntrusiveMemoryBlock
     size_t block_alignment = 16;
     size_t blockSize = 0;
 
-    size_t firstFree = 0;
+    std::vector<FreeList> freeLists;
 
     bool validate() const;
 
+    bool freeSlotsAvaible(size_t size) const;
+
     inline bool within(void* ptr) const { return memory <= ptr && ptr < memory_end; }
+
 };
 
 class IntrusiveMemoryBlocks

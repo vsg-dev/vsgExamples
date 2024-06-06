@@ -33,18 +33,20 @@ IntrusiveMemoryBlock::IntrusiveMemoryBlock(const std::string& in_name, size_t in
     memory_end = memory + blockSize / sizeof(value_type);
     capacity = blockSize / alignment;
 
-    // set up the free tracking to encompass the whole buffer
-    firstFree = 0;
-
-    // fill in free list
-
     size_t max_slot_size = (1 << 15) - 1;
-    size_t previous_position = 0;
-
-    size_t position = 0;
 
     if (debug()) std::cout<<"    capacity = "<<capacity<<", max_slot_size = "<<max_slot_size<<std::endl;
 
+    // set up the free tracking to encompass the whole buffer
+    freeLists.emplace_back();
+    FreeList& freeList = freeLists.front();
+    freeList.minimum_size = 2 * sizeof(Element);
+    freeList.maximum_size = (max_slot_size - 1) * sizeof(Element);
+    freeList.head = 0;
+    freeList.count = 0;
+
+    size_t previous_position = 0;
+    size_t position = 0;
     for(; position < capacity;)
     {
         size_t next_position = std::min(position + max_slot_size, capacity);
@@ -56,6 +58,7 @@ IntrusiveMemoryBlock::IntrusiveMemoryBlock(const std::string& in_name, size_t in
         memory[position] = element;
         previous_position = position;
         position = next_position;
+        ++freeList.count;
     }
 
     if (debug() && !validate())
@@ -69,7 +72,7 @@ IntrusiveMemoryBlock::IntrusiveMemoryBlock(const std::string& in_name, size_t in
         std::cout<<"memory = "<<memory<<", memory_end ="<<memory_end<<", max slot memory size = "<<max_slot_size*sizeof(Element)<<std::endl;
 
         size_t num_slots = 0;
-        position = firstFree;
+        position = freeList.head;
         for(;;)
         {
             std::cout<<"position = "<<position<<", { "<<memory[position].previous<<", "<<memory[position].next<<", "<<memory[position].status<<"}"<<std::endl;
@@ -88,40 +91,52 @@ IntrusiveMemoryBlock::~IntrusiveMemoryBlock()
     operator delete (memory);
 }
 
+bool IntrusiveMemoryBlock::freeSlotsAvaible(size_t size) const
+{
+    for(auto& freeList : freeLists)
+    {
+        if (freeList.maximum_size >= size && freeList.count > 0) return true;
+    }
+    return false;
+}
+
+
 void* IntrusiveMemoryBlock::allocate(std::size_t size)
 {
-    size_t minimumSize = 4;
 
-    if (firstFree < capacity)
+    FreeList& freeList = freeLists.front();
+    if (freeList.head < capacity)
     {
-        auto& slot = memory[firstFree];
+        size_t minimumSize = freeList.minimum_size / sizeof(Element);
+
+        auto& slot = memory[freeList.head];
         size_t slotSpace = static_cast<size_t>(slot.next) - 1;
         if (size <= slotSpace * sizeof(Element))
         {
 
-            size_t allocationStart = firstFree+1;
+            size_t allocationStart = freeList.head+1;
             size_t alignedSize = (size + sizeof(value_type) - 1) / sizeof(value_type);
 
             if (alignedSize+minimumSize <= slotSpace)
             {
-                size_t newStart = firstFree + 1 + alignedSize;
+                size_t newStart = freeList.head + 1 + alignedSize;
 
                 if (debug())
                 {
-                    std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" Allocated and splitting slot, orignal firstFree = "<<firstFree<<std::endl;
+                    std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" Allocated and splitting slot, orignal freeList.head = "<<freeList.head<<std::endl;
                     std::cout<<"    slot = {"<< slot.previous<<", "<<slot.next<<", "<<slot.status <<std::endl;
-                    std::cout<<"    firstFree = "<< firstFree <<std::endl;
+                    std::cout<<"    freeList.head = "<< freeList.head <<std::endl;
                     std::cout<<"    slotSpace = "<< slotSpace <<std::endl;
                     std::cout<<"    alignedSize = "<< alignedSize<<std::endl;
                     std::cout<<"    newStart = "<< newStart <<std::endl;
                     std::cout<<"    slot.next = "<< slot.next <<std::endl;
                 }
 
-                size_t nextSlotStart = firstFree + slot.next;
+                size_t nextSlotStart = freeList.head + slot.next;
 
                 // set up remaining space as free space
-                memory[newStart] = memory[newStart+1] = Element{newStart-firstFree, firstFree + slot.next - newStart, 1};
-                slot = Element{slot.previous, newStart-firstFree, 0};
+                memory[newStart] = memory[newStart+1] = Element{newStart-freeList.head, freeList.head + slot.next - newStart, 1};
+                slot = Element{slot.previous, newStart-freeList.head, 0};
 
                 if (nextSlotStart < capacity)
                 {
@@ -130,18 +145,19 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
                     if (debug()) std::cout<<"   next_slot.previous = "<<next_slot.previous<<std::endl;
                 }
 
-                firstFree = newStart;
+                freeList.head = newStart;
 
-                if (debug()) std::cout<<"   final firstFree = "<<firstFree<<std::endl;
+                if (debug()) std::cout<<"   final freeList.head = "<<freeList.head<<std::endl;
             }
             else
             {
-                // not enough free space to move firstFree to next location.
-                firstFree += slot.next;
+                // not enough free space to move freeList.head to next location.
+                freeList.head += slot.next;
+                --freeList.count;
 
                 slot = Element{slot.previous, slot.next, 0};
 
-                if (debug()) std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" Allocated but not big enough to split so advancing to : "<<firstFree<<std::endl;
+                if (debug()) std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" Allocated but not big enough to split so advancing to : "<<freeList.head<<std::endl;
             }
             if (debug() && !validate())
             {
@@ -152,7 +168,7 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
         }
     }
 
-    if (debug()) std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" no space left. firstFree = "<<firstFree<<", "<<capacity<<std::endl;
+    if (debug()) std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" no space left. freeList.head = "<<freeList.head<<", "<<capacity<<std::endl;
 
     return nullptr;
 }
