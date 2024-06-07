@@ -89,7 +89,6 @@ bool IntrusiveMemoryBlock::freeSlotsAvaible(size_t size) const
     return false;
 }
 
-#if 1
 void* IntrusiveMemoryBlock::allocate(std::size_t size)
 {
     for(auto& freeList : freeLists)
@@ -97,27 +96,49 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
         // check if freeList has available slots and maximum_size is big enough
         if (freeList.count == 0 || size > freeList.maximum_size) continue;
 
+        if (freeList.head == 0)
+        {
+            report(std::cout);
+
+            std::cout<<"Warning:: Freelist has count "<<freeList.count<<", but head = "<<freeList.head<<std::endl;
+
+            throw "Warning: allocated slot found in freeList";
+        }
+
         size_t freePosition = freeList.head;
-        while (freePosition < capacity)
+        while (freePosition != 0)
         {
             auto& slot = memory[freePosition];
             if (slot.status != 1)
             {
+                report(std::cout);
+
+                std::cout<<"Warning: allocated slot found in freeList, freePosition = "<<freePosition<<", slot{ "<<slot.previous<< ", "<<slot.next<<", "<<slot.status<<" }"<<std::endl;
+
                 throw "Warning: allocated slot found in freeList";
             }
 
             size_t previousFreePosition = memory[freePosition+1].index;
             size_t nextFreePosition = memory[freePosition+2].index;
 
+            if ((previousFreePosition > freePosition) || (nextFreePosition != 0 && freePosition > nextFreePosition))
+            {
+                report(std::cout);
+
+                std::cout<<"Something topysyturvy has happened, previousFreePosition = "<<previousFreePosition<<", freePosition = "<<freePosition<<", nextFreePosition = "<<nextFreePosition<<std::endl;
+
+                throw "Warning: topsyturvy";
+            }
+
             size_t slotSpace = static_cast<size_t>(slot.next);
             size_t nextPosition = freePosition + slotSpace;
             size_t slotSize = sizeof(Element) * (slotSpace - 1);
-            size_t minimumNumElementsInSlot = freeList.minimum_size / sizeof(Element);
+            size_t minimumNumElementsInSlot = 1 + freeList.minimum_size / sizeof(Element);
             if (size <= slotSize)
             {
                 // we can us slot for memory;
                 size_t numElementsToBeUsed = (size + sizeof(Element) - 1) / sizeof(Element);
-                if ((numElementsToBeUsed + minimumNumElementsInSlot) < slotSize)
+                if ((numElementsToBeUsed + minimumNumElementsInSlot) < slotSpace)
                 {
                     // enough space in slot to split, so adjust
                     size_t newSlotPosition = freePosition + 1 + numElementsToBeUsed;
@@ -133,11 +154,6 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
                         // need to update the previous slot in the free list
                         memory[previousFreePosition+2].index = newSlotPosition; // set previous free slots next index to the newly created slot
                     }
-                    else
-                    {
-                        memory[newSlotPosition+1] = 0;
-                    }
-
 
                     if (nextFreePosition != 0)
                     {
@@ -156,15 +172,47 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
                         // slot was at head of freeList so move it to the new slot position
                         freeList.head = newSlotPosition;
                     }
+                    //std::cout<<"split slot "<<freePosition<<", "<<slotSize<<", "<<std::endl;
                 }
                 else
                 {
+
+                    // std::cout<<"Removing slot as it's fully used freePosition = "<<freePosition<<", previousFreePosition = "<<previousFreePosition<<", nextFreePosition = "<<nextFreePosition<<std::endl;
+
                     // not enough space to split up slot, so remove it from freeList
+                    if (previousFreePosition != 0)
+                    {
+                        // need to update the previous slot in the free list
+                        memory[previousFreePosition+2].index = nextFreePosition;
+                    }
+
+
+                    if (nextFreePosition != 0)
+                    {
+                        // need to update the previous slot in the free list
+                        memory[nextFreePosition+1].index = previousFreePosition;
+                    }
+
+                    if (freePosition == freeList.head)
+                    {
+                        // slot was at head of freeList so move it to the new slot position
+                        freeList.head = nextFreePosition;
+                    }
+
+                    // one list free slot availalbe
+                    --freeList.count;
+
+                    //std::cout<<"not enough space to split slot "<<freePosition<<std::endl;
+
+
                 }
 
                 slot.status = 0; // mark slot as allocated
+
                 return &memory[freePosition+1];
             }
+
+            //std::cout<<"Moving to next free slot "<<nextFreePosition<<std::endl;
 
             freePosition = nextFreePosition;
         }
@@ -173,78 +221,6 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
 
     return nullptr;
 }
-#else
-void* IntrusiveMemoryBlock::allocate(std::size_t size)
-{
-    FreeList& freeList = freeLists.front();
-    if (freeList.head < capacity)
-    {
-        size_t minimumSize = freeList.minimum_size / sizeof(Element);
-
-        auto& slot = memory[freeList.head];
-        size_t slotSpace = static_cast<size_t>(slot.next) - 1;
-        if (size <= slotSpace * sizeof(Element))
-        {
-
-            size_t allocationStart = freeList.head+1;
-            size_t alignedSize = (size + sizeof(value_type) - 1) / sizeof(value_type);
-
-            if (alignedSize+minimumSize <= slotSpace)
-            {
-                size_t newStart = freeList.head + 1 + alignedSize;
-
-                if (debug())
-                {
-                    std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" Allocated and splitting slot, orignal freeList.head = "<<freeList.head<<std::endl;
-                    std::cout<<"    slot = {"<< slot.previous<<", "<<slot.next<<", "<<slot.status <<std::endl;
-                    std::cout<<"    freeList.head = "<< freeList.head <<std::endl;
-                    std::cout<<"    slotSpace = "<< slotSpace <<std::endl;
-                    std::cout<<"    alignedSize = "<< alignedSize<<std::endl;
-                    std::cout<<"    newStart = "<< newStart <<std::endl;
-                    std::cout<<"    slot.next = "<< slot.next <<std::endl;
-                }
-
-                size_t nextSlotStart = freeList.head + slot.next;
-
-                // set up remaining space as free space
-                memory[newStart] = memory[newStart+1] = Element{newStart-freeList.head, freeList.head + slot.next - newStart, 1};
-                slot = Element{slot.previous, newStart-freeList.head, 0};
-
-                if (nextSlotStart < capacity)
-                {
-                    auto& next_slot = memory[nextSlotStart];
-                    next_slot.previous = nextSlotStart - newStart;
-                    if (debug()) std::cout<<"   next_slot.previous = "<<next_slot.previous<<std::endl;
-                }
-
-                freeList.head = newStart;
-
-                if (debug()) std::cout<<"   final freeList.head = "<<freeList.head<<std::endl;
-            }
-            else
-            {
-                // not enough free space to move freeList.head to next location.
-                freeList.head += slot.next;
-                --freeList.count;
-
-                slot = Element{slot.previous, slot.next, 0};
-
-                if (debug()) std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" Allocated but not big enough to split so advancing to : "<<freeList.head<<std::endl;
-            }
-            if (debug() && !validate())
-            {
-                report(std::cout);
-                throw "Validation error";
-            }
-            return &(memory[allocationStart]);
-        }
-    }
-
-    if (debug()) std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") "<<this<<" no space left. freeList.head = "<<freeList.head<<", "<<capacity<<std::endl;
-
-    return nullptr;
-}
-#endif
 
 bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
 {
@@ -292,6 +268,22 @@ void IntrusiveMemoryBlock::report(std::ostream& out) const
         if (slot.next == 0) break;
     }
 
+    std::cout<<"   freeList.size() = "<<freeLists.size()<<" { "<<std::endl;
+    for(auto& freeList : freeLists)
+    {
+        std::cout<<"   FreeList ( minimum_size = "<<freeList.minimum_size<<", maximum_size = "<<freeList.maximum_size<<", count = "<<freeList.count<<" , head = "<<freeList.head<<" ) {"<<std::endl;
+
+        size_t freePosition = freeList.head;
+        while(freePosition !=0 && freePosition < capacity)
+        {
+            auto& slot = memory[freePosition];
+            std::cout<<"      slot "<<freePosition<<" { "<<slot.previous<<", "<<slot.next<<", "<<slot.status
+                     <<" } previous = "<<memory[freePosition+1].index<<", next = "<<memory[freePosition+2].index<<std::endl;
+            freePosition = memory[freePosition+2].index;
+        }
+
+        std::cout<<"   }"<<std::endl;
+    }
 }
 
 bool IntrusiveMemoryBlock::validate() const
