@@ -209,6 +209,8 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
 
                 slot.status = 0; // mark slot as allocated
 
+                if (debug()) std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") slot used = "<<freePosition<<", "<<&memory[freePosition+1]<<std::endl;
+
                 return &memory[freePosition+1];
             }
 
@@ -226,16 +228,143 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
 {
     if (within(ptr))
     {
-        size_t slotStart = static_cast<size_t>(static_cast<Element*>(ptr) - memory);
+        size_t slotPosition = static_cast<size_t>(static_cast<Element*>(ptr) - memory) - 1;
 
-        auto& slot = memory[slotStart-1];
+        auto& freeList = freeLists.front();
+        size_t maxSize = 1 + freeList.maximum_size / sizeof(Element);
 
-        if (debug()) std::cout<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") slotStart =  "<<slotStart<<", slot = { "<<slot.previous<<" , "<<slot.next<<", "<<slot.status<<"}"<<std::endl;
+        auto& slot = memory[slotPosition];
+        size_t slotSize = static_cast<size_t>(slot.next);
+
+        if (debug()) std::cout<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") slotPosition =  "<<slotPosition<<", slot = { "<<slot.previous<<" , "<<slot.next<<", "<<slot.status<<"}"<<std::endl;
 
         if (debug() && !validate())
         {
             report(std::cout);
             throw "Validation error";
+        }
+
+        if (slot.status != 0)
+        {
+            report(std::cout);
+            throw "Attempt to deallocatoe already available slot";
+        }
+
+        size_t previousFree = 0;
+        size_t previousSize = 0;
+        size_t nextFree = 0;
+        size_t nextSize = 0;
+
+        if (slot.previous != 0)
+        {
+            size_t previousPosition = slotPosition - slot.previous;
+            auto& previousSlot = memory[previousPosition];
+            if (previousSlot.status != 0)
+            {
+                previousFree = previousPosition;
+                previousSize =  static_cast<size_t>(previousSlot.next);
+            }
+        }
+
+        if (slot.next != 0)
+        {
+            size_t nextPosition = slotPosition + slot.next;
+            auto& nextSlot = memory[nextPosition];
+            if (nextSlot.status != 0)
+            {
+                nextFree = nextPosition;
+                nextSize =  static_cast<size_t>(nextSlot.next);
+            }
+        }
+
+        if (previousFree != 0)
+        {
+            if (nextFree != 0)
+            {
+                // previousFree, slotPosition, nextFree potential candidates for merging
+                if ((previousSize + slotSize + nextSize) <= maxSize)
+                {
+                    // 1. merge slot and nextFree into previousFree
+                    memory[previousFree].next = static_cast<Offset>(previousSize + slotSize + nextSize);
+                    memory[previousFree+2].index = memory[nextFree+2].index;
+
+                    // join the slot after the next free slot to the previousSlot to ensure everything is connected
+                    size_t slotAfterNext = nextFree + memory[nextFree].next;
+                    if (slotAfterNext < capacity) memory[slotAfterNext].previous = memory[previousFree].next;
+
+                    // join the free slot after nextFree back to previousFree to keep the linked list connected
+                    if (memory[nextFree+2].index != 0) memory[memory[nextFree+2].index].index = previousFree;
+
+                    if (debug()) std::cout<<"    case 1 : merge("<<previousFree<< ", "<<slotPosition<<", "<<nextFree<<")"<<std::endl;
+                    return true;
+                }
+                else if ((previousSize + slotSize) <= maxSize)
+                {
+                    // 2. merge slot into into previousFree
+                    memory[previousFree].next = static_cast<Offset>(previousSize + slotSize);
+
+                    // join the slot after the next free slot to the slotPosition to ensure everything is connected
+                    memory[nextFree].previous = memory[previousFree].next;
+
+                    if (debug()) std::cout<<"    case 2 : merge("<<previousFree<< ", "<<slotPosition<<")"<<std::endl;
+                }
+                else if ((slotSize + nextSize) <= maxSize)
+                {
+                    // 3. merge nextFree into slot
+                    memory[slotPosition].next = static_cast<Offset>(slotSize + nextSize);
+
+                    // join the slot and the next slot to newly free slot.
+                    size_t slotAfterNext = nextFree + memory[nextFree].next;
+                    if (slotAfterNext < capacity) memory[slotAfterNext].previous = memory[slotPosition].next;
+
+                    // join the free slot after nextFree back to slotPosition to keep the linked list connected
+                    if (memory[nextFree+2].index != 0) memory[memory[nextFree+2].index].index = slotPosition;
+
+                    if (debug()) std::cout<<"    case 3 : merge("<<slotPosition<< ", "<<nextFree<<")"<<std::endl;
+                }
+                else
+                {
+                    // 4. slot standalone, just insert into free list.
+                    if (debug()) std::cout<<"    case 4 : standalone ("<<slotPosition<<") after previousPosition"<<std::endl;
+                }
+            }
+            else
+            {
+                // previousFree && slotPosition potential candidates for merging
+                if ((previousSize + slotSize) <= maxSize)
+                {
+                    // 5. merge into previousFree
+                    memory[previousFree].next = static_cast<Offset>(previousSize + slotSize);
+                    if (debug()) std::cout<<"    case 5 : merge("<<previousFree<< ", "<<slotPosition<<")"<<std::endl;
+                    return true;
+                }
+                else
+                {
+                    // 6. slot standalone, just into free list
+                    if (debug()) std::cout<<"    case 6 (like 4): standalone ("<<slotPosition<<") after previousPosition."<<std::endl;
+                }
+            }
+        }
+        else if (nextFree != 0)
+        {
+            // slotPosition & nextFree candidates for merging
+            if ((slotSize + nextSize) <= maxSize)
+            {
+                // 7. merge into slotPosition and nextFree then adjust freeList to use slotPosition insterad of nextFree
+                if (debug()) std::cout<<"    case 7 (like 3) : merge("<<slotPosition<< ", "<<nextFree<<")"<<std::endl;
+            }
+            else
+            {
+                // 8. insert slotPosition into freeList before nextFree
+                if (debug()) std::cout<<"    case 8 : standalone ("<<slotPosition<<") before nextFree"<<std::endl;
+            }
+        }
+        else
+        {
+            if (debug()) std::cout<<"slotPosition is isolated so insert it into appropriate FreeList."<<std::endl;
+            // 9. slotPosition isolated
+            // add to back? or insert into freeList based on ordering.
+            if (debug()) std::cout<<"    case 9 : standalone ("<<slotPosition<<")"<<std::endl;
         }
 
         return true;
