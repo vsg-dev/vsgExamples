@@ -250,6 +250,9 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
             throw "Attempt to deallocatoe already available slot";
         }
 
+        // make slot as available
+        slot.status = 1;
+
         size_t previousFree = 0;
         size_t previousSize = 0;
         size_t nextFree = 0;
@@ -285,17 +288,48 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
                 if ((previousSize + slotSize + nextSize) <= maxSize)
                 {
                     // 1. merge slot and nextFree into previousFree
+
+                    size_t PP = memory[previousFree+1].index; // previous's previous free
+                    size_t PN = memory[previousFree+2].index; // previous's next free
+                    size_t NP = memory[nextFree+1].index; // next's previous free
+                    size_t NN = memory[nextFree+2].index; // next's next free
+
+                    if (PN == nextFree)
+                    {
+                        // inorder sequential;
+                        memory[previousFree+2].index = NP;
+                        if (NP != 0) memory[NP+1].index = previousFree;
+                    }
+                    else if (PP == nextFree)
+                    {
+                        // reverse sequential;
+                        if (NP != 0) memory[NP+2].index = previousFree;
+                        memory[previousFree+1] = NP;
+                    }
+                    else
+                    {
+                        // unconected
+                        if (NP != 0) memory[NP+1].index = NN;
+                        if (NN != 0) memory[NN+2].index = NP;
+                    }
+
+                    // expand previousFree to include slotPosition and nextFree
                     memory[previousFree].next = static_cast<Offset>(previousSize + slotSize + nextSize);
-                    memory[previousFree+2].index = memory[nextFree+2].index;
 
                     // join the slot after the next free slot to the previousSlot to ensure everything is connected
                     size_t slotAfterNext = nextFree + memory[nextFree].next;
                     if (slotAfterNext < capacity) memory[slotAfterNext].previous = memory[previousFree].next;
 
-                    // join the free slot after nextFree back to previousFree to keep the linked list connected
-                    if (memory[nextFree+2].index != 0) memory[memory[nextFree+2].index].index = previousFree;
+                    // we've removed the nextFree slot from the freeList so decrement the count.
+                    --freeList.count;
 
-                    if (debug()) std::cout<<"    case 1 : merge("<<previousFree<< ", "<<slotPosition<<", "<<nextFree<<")"<<std::endl;
+                    if (freeList.head == nextFree) freeList.head = previousFree;
+
+                    if (debug())
+                    {
+                        std::cout<<"    PART DONE - case 1 : merge P, C and N ("<<previousFree<< ", "<<slotPosition<<", "<<nextFree<<")"<<std::endl;
+                        report(std::cout);
+                    }
                     return true;
                 }
                 else if ((previousSize + slotSize) <= maxSize)
@@ -304,28 +338,52 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
                     memory[previousFree].next = static_cast<Offset>(previousSize + slotSize);
 
                     // join the slot after the next free slot to the slotPosition to ensure everything is connected
-                    memory[nextFree].previous = memory[previousFree].next;
+                    if (nextFree != 0) memory[nextFree].previous = memory[previousFree].next;
 
-                    if (debug()) std::cout<<"    case 2 : merge("<<previousFree<< ", "<<slotPosition<<")"<<std::endl;
+                    if (debug())
+                    {
+                        std::cout<<"    DONE - case 2 : merge P and C ("<<previousFree<< ", "<<slotPosition<<")"<<std::endl;
+                        report(std::cout);
+                    }
                 }
                 else if ((slotSize + nextSize) <= maxSize)
                 {
                     // 3. merge nextFree into slot
+                    size_t nextFreesNextSlot = nextFree + static_cast<size_t>(memory[nextFree].next);
+                    size_t NP = memory[nextFree + 1].index;
+                    size_t NN = memory[nextFree + 2].index;
+
                     memory[slotPosition].next = static_cast<Offset>(slotSize + nextSize);
+                    if (nextFreesNextSlot < capacity) memory[nextFreesNextSlot].previous = memory[slotPosition].next;
+                    if (NP != 0) memory[NP + 2].index = slotPosition; // NP.N = C;
+                    if (NN != 0) memory[NN + 1].index = slotPosition; // NN.P = C;
+                    if (freeList.head == nextFree) freeList.head = slotPosition;
 
-                    // join the slot and the next slot to newly free slot.
-                    size_t slotAfterNext = nextFree + memory[nextFree].next;
-                    if (slotAfterNext < capacity) memory[slotAfterNext].previous = memory[slotPosition].next;
-
-                    // join the free slot after nextFree back to slotPosition to keep the linked list connected
-                    if (memory[nextFree+2].index != 0) memory[memory[nextFree+2].index].index = slotPosition;
-
-                    if (debug()) std::cout<<"    case 3 : merge("<<slotPosition<< ", "<<nextFree<<")"<<std::endl;
+                    if (debug())
+                    {
+                        std::cout<<"    TODO - case 3 : merge C and N ("<<slotPosition<< ", "<<nextFree<<")"<<std::endl;
+                        report(std::cout);
+                    }
                 }
                 else
                 {
                     // 4. slot standalone, just insert into free list.
-                    if (debug()) std::cout<<"    case 4 : standalone ("<<slotPosition<<") after previousPosition"<<std::endl;
+                    // insert to head of freeList
+                    if (freeList.head != 0) memory[freeList.head+1].index = slotPosition;
+
+                    memory[slotPosition + 1].index = 0;
+                    memory[slotPosition + 2].index = freeList.head;
+
+                    freeList.head = slotPosition;
+
+                    // we've added the slot to the freeList so inccrement the count.
+                    ++freeList.count;
+
+                    if (debug())
+                    {
+                        std::cout<<"    DONE - case 4 : standalone ("<<slotPosition<<") after previousPosition"<<std::endl;
+                        report(std::cout);
+                    }
                 }
             }
             else
@@ -335,13 +393,37 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
                 {
                     // 5. merge into previousFree
                     memory[previousFree].next = static_cast<Offset>(previousSize + slotSize);
-                    if (debug()) std::cout<<"    case 5 : merge("<<previousFree<< ", "<<slotPosition<<")"<<std::endl;
+
+                    // join the slot after the next free slot to the slotPosition to ensure everything is connected
+                    if (nextFree != 0) memory[nextFree].previous = memory[previousFree].next;
+
+                    if (debug())
+                    {
+                        std::cout<<"    DONE - case 5 : merge P and C ("<<previousFree<< ", "<<slotPosition<<")"<<std::endl;
+                        report(std::cout);
+                    }
                     return true;
                 }
                 else
                 {
                     // 6. slot standalone, just into free list
-                    if (debug()) std::cout<<"    case 6 (like 4): standalone ("<<slotPosition<<") after previousPosition."<<std::endl;
+
+                    // insert to head of freeList
+                    if (freeList.head != 0) memory[freeList.head+1].index = slotPosition;
+
+                    memory[slotPosition + 1].index = 0;
+                    memory[slotPosition + 2].index = freeList.head;
+
+                    freeList.head = slotPosition;
+
+                    // we've added the slot to the freeList so inccrement the count.
+                    ++freeList.count;
+
+                    if (debug())
+                    {
+                        std::cout<<"    DONE - case 6 (like 4): standalone ("<<slotPosition<<") after previousPosition."<<std::endl;
+                        report(std::cout);
+                    }
                 }
             }
         }
@@ -350,21 +432,66 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
             // slotPosition & nextFree candidates for merging
             if ((slotSize + nextSize) <= maxSize)
             {
-                // 7. merge into slotPosition and nextFree then adjust freeList to use slotPosition insterad of nextFree
-                if (debug()) std::cout<<"    case 7 (like 3) : merge("<<slotPosition<< ", "<<nextFree<<")"<<std::endl;
+                // 7. merge into slotPosition and nextFree then adjust freeList to use slotPosition instead of nextFree
+
+                size_t nextFreesNextSlot = nextFree + static_cast<size_t>(memory[nextFree].next);
+                size_t NP = memory[nextFree + 1].index;
+                size_t NN = memory[nextFree + 2].index;
+
+                memory[slotPosition].next = static_cast<Offset>(slotSize + nextSize);
+                memory[slotPosition + 1].index = NP;
+                memory[slotPosition + 2].index = NN;
+                if (nextFreesNextSlot < capacity) memory[nextFreesNextSlot].previous = memory[slotPosition].next;
+                if (NP != 0) memory[NP + 2].index = slotPosition; // NP.N = C;
+                if (NN != 0) memory[NN + 1].index = slotPosition; // NN.P = C;
+                if (freeList.head == nextFree) freeList.head = slotPosition;
+
+                if (debug())
+                {
+                    std::cout<<"    DONE - case 7 (like 3) : merge C and N ("<<slotPosition<< ", "<<nextFree<<")"<<std::endl;
+                    report(std::cout);
+                }
             }
             else
             {
                 // 8. insert slotPosition into freeList before nextFree
-                if (debug()) std::cout<<"    case 8 : standalone ("<<slotPosition<<") before nextFree"<<std::endl;
+                if (freeList.head != 0) memory[freeList.head+1].index = slotPosition;
+
+                memory[slotPosition + 1].index = 0;
+                memory[slotPosition + 2].index = freeList.head;
+
+                freeList.head = slotPosition;
+
+                // we've added the slot to the freeList so inccrement the count.
+                ++freeList.count;
+
+                if (debug())
+                {
+                    std::cout<<"    DONE - case 8 : standalone ("<<slotPosition<<") before nextFree"<<std::endl;
+                    report(std::cout);
+                }
             }
         }
         else
         {
-            if (debug()) std::cout<<"slotPosition is isolated so insert it into appropriate FreeList."<<std::endl;
             // 9. slotPosition isolated
-            // add to back? or insert into freeList based on ordering.
-            if (debug()) std::cout<<"    case 9 : standalone ("<<slotPosition<<")"<<std::endl;
+
+            // insert to head of freeList
+            if (freeList.head != 0) memory[freeList.head+1].index = slotPosition;
+
+            memory[slotPosition + 1].index = 0;
+            memory[slotPosition + 2].index = freeList.head;
+
+            freeList.head = slotPosition;
+
+            // we've added the slot to the freeList so inccrement the count.
+            ++freeList.count;
+
+            if (debug())
+            {
+                std::cout<<"    DONE case 9 : standalone ("<<slotPosition<<")"<<std::endl;
+                report(std::cout);
+            }
         }
 
         return true;
