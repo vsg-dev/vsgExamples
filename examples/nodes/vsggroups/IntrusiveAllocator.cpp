@@ -228,15 +228,22 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
 {
     if (within(ptr))
     {
-        size_t slotPosition = static_cast<size_t>(static_cast<Element*>(ptr) - memory) - 1;
-
         auto& freeList = freeLists.front();
         size_t maxSize = 1 + freeList.maximum_size / sizeof(Element);
 
-        auto& slot = memory[slotPosition];
-        size_t slotSize = static_cast<size_t>(slot.next);
+        //
+        // sequential slots around the slot to be deallocated are named:
+        //    PP (Previous' Previous), P (Previous), C (Current slot being deallocated), N (Next), NN (Next's Next)
+        //
+        // the FreeList linked list entries of interest are named:
+        //    PPF (Previous' Previous Free), PNF (Previous's Next Free), NPF (Next's Previous Free), NNF (Next's Next Free)
+        //
 
-        if (debug()) std::cout<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") slotPosition =  "<<slotPosition<<", slot = { "<<slot.previous<<" , "<<slot.next<<", "<<slot.status<<"}"<<std::endl;
+
+        size_t C = static_cast<size_t>(static_cast<Element*>(ptr) - memory) - 1;
+        auto& slot = memory[C];
+
+        if (debug()) std::cout<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") C =  "<<C<<", slot = { "<<slot.previous<<" , "<<slot.next<<", "<<slot.status<<"}"<<std::endl;
 
         if (debug() && !validate())
         {
@@ -253,249 +260,161 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         // make slot as available
         slot.status = 1;
 
-        size_t previousFree = 0;
-        size_t previousSize = 0;
-        size_t nextFree = 0;
-        size_t nextSize = 0;
+        // set up the indices for the previous and next slots
+        size_t P = (slot.previous > 0) ? (C - static_cast<size_t>(slot.previous)) : 0;
+        size_t N = C + static_cast<size_t>(slot.next);
+        if (N >= capacity) N = 0;
 
-        if (slot.previous != 0)
+        // set up the indices for the previous free entry
+        size_t PNF = 0;
+        if (P != 0)
         {
-            size_t previousPosition = slotPosition - slot.previous;
-            auto& previousSlot = memory[previousPosition];
-            if (previousSlot.status != 0)
+            if (memory[P].status != 0)
             {
-                previousFree = previousPosition;
-                previousSize =  static_cast<size_t>(previousSlot.next);
+                PNF = memory[P+2].index;
             }
         }
 
-        if (slot.next != 0)
+        // set up the indices for the next free entries
+        size_t NN = 0;
+        size_t NPF = 0;
+        size_t NNF = 0;
+        if (N != 0)
         {
-            size_t nextPosition = slotPosition + slot.next;
-            auto& nextSlot = memory[nextPosition];
-            if (nextSlot.status != 0)
+            NN = N + static_cast<size_t>(memory[N].next);
+            if (memory[N].status != 0)
             {
-                nextFree = nextPosition;
-                nextSize =  static_cast<size_t>(nextSlot.next);
+                NPF = memory[N + 1].index;
+                NNF = memory[N + 2].index;
             }
         }
 
-        if (previousFree != 0)
+        // 3 way merge of P, C and C
+        auto mergePCN = [&]() -> void
         {
-            if (nextFree != 0)
+            if (debug()) std::cout<<"   mergePCN(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
+
+            // update slots for the merge
+            memory[P].next += memory[C].next + memory[N].next;
+            if (NN != 0) memory[NN].previous = memory[P].next;
+
+            // update freeList linked list entries
+            if (PNF == N) // also implies NPF == P
             {
-                // previousFree, slotPosition, nextFree potential candidates for merging
-                if ((previousSize + slotSize + nextSize) <= maxSize)
-                {
-                    // 1. merge slot and nextFree into previousFree
+                // case 1. in order sequential
+                if (debug()) std::cout<<"       case 1. in order sequential"<<std::endl;
 
-                    size_t PP = memory[previousFree+1].index; // previous's previous free
-                    size_t PN = memory[previousFree+2].index; // previous's next free
-                    size_t NP = memory[nextFree+1].index; // next's previous free
-                    size_t NN = memory[nextFree+2].index; // next's next free
-
-                    if (PN == nextFree)
-                    {
-                        // inorder sequential;
-                        memory[previousFree+2].index = NP;
-                        if (NP != 0) memory[NP+1].index = previousFree;
-                    }
-                    else if (PP == nextFree)
-                    {
-                        // reverse sequential;
-                        if (NP != 0) memory[NP+2].index = previousFree;
-                        memory[previousFree+1] = NP;
-                    }
-                    else
-                    {
-                        // unconected
-                        if (NP != 0) memory[NP+1].index = NN;
-                        if (NN != 0) memory[NN+2].index = NP;
-                    }
-
-                    // expand previousFree to include slotPosition and nextFree
-                    memory[previousFree].next = static_cast<Offset>(previousSize + slotSize + nextSize);
-
-                    // join the slot after the next free slot to the previousSlot to ensure everything is connected
-                    size_t slotAfterNext = nextFree + memory[nextFree].next;
-                    if (slotAfterNext < capacity) memory[slotAfterNext].previous = memory[previousFree].next;
-
-                    // we've removed the nextFree slot from the freeList so decrement the count.
-                    --freeList.count;
-
-                    if (freeList.head == nextFree) freeList.head = previousFree;
-
-                    if (debug())
-                    {
-                        std::cout<<"    PART DONE - case 1 : merge P, C and N ("<<previousFree<< ", "<<slotPosition<<", "<<nextFree<<")"<<std::endl;
-                        report(std::cout);
-                    }
-                    return true;
-                }
-                else if ((previousSize + slotSize) <= maxSize)
-                {
-                    // 2. merge slot into into previousFree
-                    memory[previousFree].next = static_cast<Offset>(previousSize + slotSize);
-
-                    // join the slot after the next free slot to the slotPosition to ensure everything is connected
-                    if (nextFree != 0) memory[nextFree].previous = memory[previousFree].next;
-
-                    if (debug())
-                    {
-                        std::cout<<"    DONE - case 2 : merge P and C ("<<previousFree<< ", "<<slotPosition<<")"<<std::endl;
-                        report(std::cout);
-                    }
-                }
-                else if ((slotSize + nextSize) <= maxSize)
-                {
-                    // 3. merge nextFree into slot
-                    size_t nextFreesNextSlot = nextFree + static_cast<size_t>(memory[nextFree].next);
-                    size_t NP = memory[nextFree + 1].index;
-                    size_t NN = memory[nextFree + 2].index;
-
-                    memory[slotPosition].next = static_cast<Offset>(slotSize + nextSize);
-                    if (nextFreesNextSlot < capacity) memory[nextFreesNextSlot].previous = memory[slotPosition].next;
-                    if (NP != 0) memory[NP + 2].index = slotPosition; // NP.N = C;
-                    if (NN != 0) memory[NN + 1].index = slotPosition; // NN.P = C;
-                    if (freeList.head == nextFree) freeList.head = slotPosition;
-
-                    if (debug())
-                    {
-                        std::cout<<"    TODO - case 3 : merge C and N ("<<slotPosition<< ", "<<nextFree<<")"<<std::endl;
-                        report(std::cout);
-                    }
-                }
-                else
-                {
-                    // 4. slot standalone, just insert into free list.
-                    // insert to head of freeList
-                    if (freeList.head != 0) memory[freeList.head+1].index = slotPosition;
-
-                    memory[slotPosition + 1].index = 0;
-                    memory[slotPosition + 2].index = freeList.head;
-
-                    freeList.head = slotPosition;
-
-                    // we've added the slot to the freeList so inccrement the count.
-                    ++freeList.count;
-
-                    if (debug())
-                    {
-                        std::cout<<"    DONE - case 4 : standalone ("<<slotPosition<<") after previousPosition"<<std::endl;
-                        report(std::cout);
-                    }
-                }
+                memory[P + 2].index = NNF;
+                if (NNF != 0) memory[NNF + 1].index = P;
             }
-            else
+            else if (PNF == N) // also implies NNF == P
             {
-                // previousFree && slotPosition potential candidates for merging
-                if ((previousSize + slotSize) <= maxSize)
-                {
-                    // 5. merge into previousFree
-                    memory[previousFree].next = static_cast<Offset>(previousSize + slotSize);
+                // case 2. reverse sequential
+                if (debug()) std::cout<<"       case 2. reverse sequential"<<std::endl;
 
-                    // join the slot after the next free slot to the slotPosition to ensure everything is connected
-                    if (nextFree != 0) memory[nextFree].previous = memory[previousFree].next;
-
-                    if (debug())
-                    {
-                        std::cout<<"    DONE - case 5 : merge P and C ("<<previousFree<< ", "<<slotPosition<<")"<<std::endl;
-                        report(std::cout);
-                    }
-                    return true;
-                }
-                else
-                {
-                    // 6. slot standalone, just into free list
-
-                    // insert to head of freeList
-                    if (freeList.head != 0) memory[freeList.head+1].index = slotPosition;
-
-                    memory[slotPosition + 1].index = 0;
-                    memory[slotPosition + 2].index = freeList.head;
-
-                    freeList.head = slotPosition;
-
-                    // we've added the slot to the freeList so inccrement the count.
-                    ++freeList.count;
-
-                    if (debug())
-                    {
-                        std::cout<<"    DONE - case 6 (like 4): standalone ("<<slotPosition<<") after previousPosition."<<std::endl;
-                        report(std::cout);
-                    }
-                }
+                memory[P + 2].index = NNF;
+                if (NPF != 0) memory[NPF + 1] = P;
             }
+            else // P and N aren't directly connected within the freeList
+            {
+                // case 3. out of order
+                if (debug()) std::cout<<"       case 3. out of order"<<std::endl;
+                if (NPF != 0) memory[NPF + 2].index = NNF;
+                if (NNF != 0) memory[NNF + 1].index = NPF;
+            }
+
+            // if N was the head then change head to P
+            if (freeList.head == N) freeList.head = P;
+
+            // N slot is nolonger a seperate free slot so decrement free count
+            --freeList.count;
+
+            if (debug()) report(std::cout);
+        };
+
+        // 2 way merge of P and C
+        auto mergePC = [&]() -> void
+        {
+            if (debug()) std::cout<<"    mergePC(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
+
+            // update slots for the merge
+            memory[P].next += memory[C].next;
+            if (N != 0) memory[N].previous = memory[P].next;
+
+            // freeList linked list entries will not need updating.
+
+            if (debug()) report(std::cout);
+        };
+
+        // 2 way merge of C and N
+        auto mergeCN = [&]() -> void
+        {
+            if (debug()) std::cout<<"    mergeCN(), P = "<<P<<", C = "<<C<<", N = "<<N<<", NN = "<<NN<<", NPF ="<<NPF<<", NNF = "<<NNF<<std::endl;
+
+            // update slots for merge
+            memory[C].next += memory[N].next;
+            if (NN != 0) memory[NN].previous = memory[C].next;
+
+            // update freeList linked list entries
+            if (NPF != 0) memory[NPF + 2].index = C;
+            if (NNF != 0) memory[NNF + 1].index = C;
+            memory[C + 1].index = NPF;
+            memory[C + 2].index = NNF;
+
+            // if N was the head then change head to C
+            if (freeList.head == N) freeList.head = C;
+
+            if (debug()) report(std::cout);
+        };
+
+        // standalone insertion of C into head of freeList
+        auto standalone = [&]() -> void
+        {
+            if (debug()) std::cout<<"    standalone(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
+            memory[C + 1].index = 0;
+            memory[C + 2].index = freeList.head;
+
+            if (freeList.head != 0)
+            {
+                memory[freeList.head + 1] = C;  // set previous heads previousFree to C.
+            }
+
+            // set the head to C.
+            freeList.head = C;
+
+            // Inserted new free slot so increment free count
+            ++freeList.count;
+
+            if (debug()) report(std::cout);
+        };
+
+        if (P != 0 && memory[P].status != 0)
+        {
+            if (N != 0 && memory[N].status != 0)
+            {
+                if ((static_cast<size_t>(memory[P].next) + static_cast<size_t>(memory[C].next) + static_cast<size_t>(memory[N].next)) <= maxSize) mergePCN();
+                else if ((static_cast<size_t>(memory[P].next) + static_cast<size_t>(memory[C].next)) <= maxSize) mergePC(); // merge P and C
+                else if ((static_cast<size_t>(memory[C].next) + static_cast<size_t>(memory[N].next)) <= maxSize) mergeCN(); // merge C and N
+                else standalone(); // C is standalone
+            }
+            else if ((static_cast<size_t>(memory[P].next) + static_cast<size_t>(memory[C].next)) <= maxSize) mergePC(); // merge P and C
+            else standalone(); // C is standalone
         }
-        else if (nextFree != 0)
+        else if (N != 0 && memory[N].status != 0)
         {
-            // slotPosition & nextFree candidates for merging
-            if ((slotSize + nextSize) <= maxSize)
-            {
-                // 7. merge into slotPosition and nextFree then adjust freeList to use slotPosition instead of nextFree
-
-                size_t nextFreesNextSlot = nextFree + static_cast<size_t>(memory[nextFree].next);
-                size_t NP = memory[nextFree + 1].index;
-                size_t NN = memory[nextFree + 2].index;
-
-                memory[slotPosition].next = static_cast<Offset>(slotSize + nextSize);
-                memory[slotPosition + 1].index = NP;
-                memory[slotPosition + 2].index = NN;
-                if (nextFreesNextSlot < capacity) memory[nextFreesNextSlot].previous = memory[slotPosition].next;
-                if (NP != 0) memory[NP + 2].index = slotPosition; // NP.N = C;
-                if (NN != 0) memory[NN + 1].index = slotPosition; // NN.P = C;
-                if (freeList.head == nextFree) freeList.head = slotPosition;
-
-                if (debug())
-                {
-                    std::cout<<"    DONE - case 7 (like 3) : merge C and N ("<<slotPosition<< ", "<<nextFree<<")"<<std::endl;
-                    report(std::cout);
-                }
-            }
-            else
-            {
-                // 8. insert slotPosition into freeList before nextFree
-                if (freeList.head != 0) memory[freeList.head+1].index = slotPosition;
-
-                memory[slotPosition + 1].index = 0;
-                memory[slotPosition + 2].index = freeList.head;
-
-                freeList.head = slotPosition;
-
-                // we've added the slot to the freeList so inccrement the count.
-                ++freeList.count;
-
-                if (debug())
-                {
-                    std::cout<<"    DONE - case 8 : standalone ("<<slotPosition<<") before nextFree"<<std::endl;
-                    report(std::cout);
-                }
-            }
+            if (static_cast<size_t>(memory[C].next) + static_cast<size_t>(memory[N].next) <= maxSize) mergeCN(); // merge C and N
+            else standalone(); // standalone
         }
         else
         {
-            // 9. slotPosition isolated
-
-            // insert to head of freeList
-            if (freeList.head != 0) memory[freeList.head+1].index = slotPosition;
-
-            memory[slotPosition + 1].index = 0;
-            memory[slotPosition + 2].index = freeList.head;
-
-            freeList.head = slotPosition;
-
-            // we've added the slot to the freeList so inccrement the count.
-            ++freeList.count;
-
-            if (debug())
-            {
-                std::cout<<"    DONE case 9 : standalone ("<<slotPosition<<")"<<std::endl;
-                report(std::cout);
-            }
+            // C is standalone
+            standalone();
         }
 
         return true;
     }
+
+    if (debug()) std::cout<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") OUTWITH block : "<<this<<std::endl;
 
     return false;
 }
