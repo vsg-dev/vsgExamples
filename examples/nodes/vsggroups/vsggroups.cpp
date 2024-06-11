@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "SharedPtrNode.h"
-#include "CustomAllocator.h"
 #include "IntrusiveAllocator.h"
 
 //#define INLINE_TRAVERSE
@@ -238,6 +237,13 @@ public:
         operator delete (ptr);//, std::align_val_t{default_alignment});
         return true;
     }
+
+    size_t deleteEmptyMemoryBlocks() override { return 0; }
+    size_t totalAvailableSize() const override { return 0; }
+    size_t totalReservedSize() const override { return 0; }
+    size_t totalMemorySize() const override { return 0; }
+    void setMemoryTracking(int) override {}
+    void setBlockSize(vsg::AllocatorAffinity, size_t) {}
 };
 
 const size_t KB = 1024;
@@ -263,10 +269,9 @@ int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
     if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
-    if (arguments.read("--custom")) vsg::Allocator::instance().reset(new experimental::CustomAllocator(std::move(vsg::Allocator::instance())));
-    if (arguments.read({"--in", "--intrusive"})) vsg::Allocator::instance().reset(new experimental::IntrusiveAllocator(std::move(vsg::Allocator::instance())));
+    if (arguments.read({"--in", "--intrusive"})) vsg::Allocator::instance().reset(new vsg::IntrusiveAllocator(std::move(vsg::Allocator::instance())));
 
-    if (arguments.read("--debug")) experimental::debug() = true;
+    if (arguments.read("--debug")) vsg::debug() = true;
 
     auto numLevels = arguments.value(11u, {"-l", "--levels"});
     auto numTraversals = arguments.value(10u, {"-t", "--traversals"});

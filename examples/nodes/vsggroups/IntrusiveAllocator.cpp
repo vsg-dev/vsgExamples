@@ -6,9 +6,19 @@
 #include <algorithm>
 #include <cstddef>
 
-using namespace experimental;
+using namespace vsg;
 
+bool& vsg::debug()
+{
+    static bool s_debug = false;
+    return s_debug;
+}
 
+#if 0
+#define DEBUG_MESSAGE if (debug()) std::cout
+#else
+#define DEBUG_MESSAGE if (false) std::cout
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -19,7 +29,7 @@ IntrusiveMemoryBlock::IntrusiveMemoryBlock(const std::string& in_name, size_t in
     alignment(in_alignment),
     blockSize(in_blockSize)
 {
-    if (debug()) std::cout<<"IntrusiveMemoryBlock::IntrusiveMemoryBlock("<<in_blockSize<<", "<<in_alignment<<")"<<std::endl;
+    DEBUG_MESSAGE<<"IntrusiveMemoryBlock::IntrusiveMemoryBlock("<<in_blockSize<<", "<<in_alignment<<")"<<std::endl;
 
     alignment = std::max(alignment, sizeof(value_type)); // we need to be a multiple of sizeof(value_type)
     block_alignment = std::max(alignment, alignof(std::max_align_t));
@@ -35,7 +45,7 @@ IntrusiveMemoryBlock::IntrusiveMemoryBlock(const std::string& in_name, size_t in
 
     size_t max_slot_size = (1 << 15) - 1;
 
-    if (debug()) std::cout<<"    capacity = "<<capacity<<", max_slot_size = "<<max_slot_size<<std::endl;
+    DEBUG_MESSAGE<<"    capacity = "<<capacity<<", max_slot_size = "<<max_slot_size<<std::endl;
 
     // set up the free tracking to encompass the whole buffer
     freeLists.emplace_back();
@@ -209,7 +219,7 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
 
                 slot.status = 0; // mark slot as allocated
 
-                if (debug()) std::cout<<"IntrusiveMemoryBlock::allocate("<<size<<") slot used = "<<freePosition<<", "<<&memory[freePosition+1]<<std::endl;
+                DEBUG_MESSAGE<<"IntrusiveMemoryBlock::allocate("<<size<<") slot used = "<<freePosition<<", "<<&memory[freePosition+1]<<std::endl;
 
                 return &memory[freePosition+1];
             }
@@ -243,7 +253,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         size_t C = static_cast<size_t>(static_cast<Element*>(ptr) - memory) - 1;
         auto& slot = memory[C];
 
-        if (debug()) std::cout<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") C =  "<<C<<", slot = { "<<slot.previous<<" , "<<slot.next<<", "<<slot.status<<"}"<<std::endl;
+        DEBUG_MESSAGE<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") C =  "<<C<<", slot = { "<<slot.previous<<" , "<<slot.next<<", "<<slot.status<<"}"<<std::endl;
 
         if (debug() && !validate())
         {
@@ -292,7 +302,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         // 3 way merge of P, C and C
         auto mergePCN = [&]() -> void
         {
-            if (debug()) std::cout<<"   mergePCN(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
+            DEBUG_MESSAGE<<"   mergePCN(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
 
             // update slots for the merge
             memory[P].next += memory[C].next + memory[N].next;
@@ -302,7 +312,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
             if (PNF == N) // also implies NPF == P
             {
                 // case 1. in order sequential
-                if (debug()) std::cout<<"       case 1. in order sequential"<<std::endl;
+                DEBUG_MESSAGE<<"       case 1. in order sequential"<<std::endl;
 
                 memory[P + 2].index = NNF;
                 if (NNF != 0) memory[NNF + 1].index = P;
@@ -310,7 +320,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
             else if (PNF == N) // also implies NNF == P
             {
                 // case 2. reverse sequential
-                if (debug()) std::cout<<"       case 2. reverse sequential"<<std::endl;
+                DEBUG_MESSAGE<<"       case 2. reverse sequential"<<std::endl;
 
                 memory[P + 2].index = NNF;
                 if (NPF != 0) memory[NPF + 1] = P;
@@ -318,7 +328,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
             else // P and N aren't directly connected within the freeList
             {
                 // case 3. out of order
-                if (debug()) std::cout<<"       case 3. out of order"<<std::endl;
+                DEBUG_MESSAGE<<"       case 3. out of order"<<std::endl;
                 if (NPF != 0) memory[NPF + 2].index = NNF;
                 if (NNF != 0) memory[NNF + 1].index = NPF;
             }
@@ -335,7 +345,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         // 2 way merge of P and C
         auto mergePC = [&]() -> void
         {
-            if (debug()) std::cout<<"    mergePC(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
+            DEBUG_MESSAGE<<"    mergePC(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
 
             // update slots for the merge
             memory[P].next += memory[C].next;
@@ -349,7 +359,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         // 2 way merge of C and N
         auto mergeCN = [&]() -> void
         {
-            if (debug()) std::cout<<"    mergeCN(), P = "<<P<<", C = "<<C<<", N = "<<N<<", NN = "<<NN<<", NPF ="<<NPF<<", NNF = "<<NNF<<std::endl;
+            DEBUG_MESSAGE<<"    mergeCN(), P = "<<P<<", C = "<<C<<", N = "<<N<<", NN = "<<NN<<", NPF ="<<NPF<<", NNF = "<<NNF<<std::endl;
 
             // update slots for merge
             memory[C].next += memory[N].next;
@@ -370,7 +380,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         // standalone insertion of C into head of freeList
         auto standalone = [&]() -> void
         {
-            if (debug()) std::cout<<"    standalone(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
+            DEBUG_MESSAGE<<"    standalone(), P = "<<P<<", C = "<<C<<", N = "<<N<<std::endl;
             memory[C + 1].index = 0;
             memory[C + 2].index = freeList.head;
 
@@ -414,7 +424,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         return true;
     }
 
-    if (debug()) std::cout<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") OUTWITH block : "<<this<<std::endl;
+    DEBUG_MESSAGE<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") OUTWITH block : "<<this<<std::endl;
 
     return false;
 }
@@ -573,7 +583,7 @@ bool IntrusiveMemoryBlocks::validate() const
 // IntrusiveAllocator
 //
 IntrusiveAllocator::IntrusiveAllocator(std::unique_ptr<Allocator> in_nestedAllocator) :
-    vsg::Allocator(std::move(in_nestedAllocator))
+    Allocator(std::move(in_nestedAllocator))
 {
     default_alignment = 4;
 
@@ -590,15 +600,15 @@ IntrusiveAllocator::IntrusiveAllocator(std::unique_ptr<Allocator> in_nestedAlloc
     callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_NODES].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_NODES", new_blockSize, default_alignment));
     callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_PHYSICS].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_PHYSICS", new_blockSize, 16));
 
-    if (debug()) std::cout << "IntrusiveAllocator()" << this<<std::endl;
+    DEBUG_MESSAGE << "IntrusiveAllocator()" << this<<std::endl;
 }
 
 IntrusiveAllocator::~IntrusiveAllocator()
 {
-    if (debug()) std::cout << "~IntrusiveAllocator() " << this << std::endl;
+    DEBUG_MESSAGE << "~IntrusiveAllocator() " << this << std::endl;
 }
 
-void IntrusiveAllocator::setBlockSize(vsg::AllocatorAffinity allocatorAffinity, size_t blockSize)
+void IntrusiveAllocator::setBlockSize(AllocatorAffinity allocatorAffinity, size_t blockSize)
 {
    std::scoped_lock<std::mutex> lock(mutex);
 
@@ -627,7 +637,7 @@ void IntrusiveAllocator::report(std::ostream& out) const
     validate();
 }
 
-void* IntrusiveAllocator::allocate(std::size_t size, vsg::AllocatorAffinity allocatorAffinity)
+void* IntrusiveAllocator::allocate(std::size_t size, AllocatorAffinity allocatorAffinity)
 {
     std::scoped_lock<std::mutex> lock(mutex);
 
@@ -645,12 +655,12 @@ void* IntrusiveAllocator::allocate(std::size_t size, vsg::AllocatorAffinity allo
         auto mem_ptr = memoryBlock->allocate(size);
         if (mem_ptr)
         {
-            if (debug()) std::cout<<"1 IntrusiveAllocator::allocate("<<size<<", "<<allocatorAffinity<<") ptr = "<<mem_ptr<<std::endl;
+            DEBUG_MESSAGE<<"1 IntrusiveAllocator::allocate("<<size<<", "<<allocatorAffinity<<") ptr = "<<mem_ptr<<std::endl;
             return mem_ptr;
         }
     }
 
-    if (debug()) std::cout<<"2 Fall through IntrusiveAllocator::allocate("<<size<<", "<<allocatorAffinity<<")"<<std::endl;
+    DEBUG_MESSAGE<<"2 Fall through IntrusiveAllocator::allocate("<<size<<", "<<allocatorAffinity<<")"<<std::endl;
 
     return operator new (size); //, std::align_val_t{default_alignment});
 }
@@ -680,12 +690,12 @@ bool IntrusiveAllocator::deallocate(void* ptr, std::size_t size)
             auto& block = itr->second;
             if (block->deallocate(ptr, size))
             {
-                if (debug()) std::cout<<"A Allocator::deallocate("<<ptr<<", "<<size<<") memory = "<<itr->first<<std::endl;
+                DEBUG_MESSAGE<<"A Allocator::deallocate("<<ptr<<", "<<size<<") memory = "<<itr->first<<std::endl;
                 return true;
             }
             else
             {
-                if (debug()) std::cout<<"B failed Allocator::deallocate("<<ptr<<", "<<size<<") memory = "<<itr->first<<std::endl;
+                DEBUG_MESSAGE<<"B failed Allocator::deallocate("<<ptr<<", "<<size<<") memory = "<<itr->first<<std::endl;
             }
         }
         else
@@ -693,12 +703,12 @@ bool IntrusiveAllocator::deallocate(void* ptr, std::size_t size)
             auto& block = itr->second;
             if (block->deallocate(ptr, size))
             {
-                if (debug()) std::cout<<"C Allocator::deallocate("<<ptr<<", "<<size<<") memory = "<<itr->first<<std::endl;
+                DEBUG_MESSAGE<<"C Allocator::deallocate("<<ptr<<", "<<size<<") memory = "<<itr->first<<std::endl;
                 return true;
             }
             else
             {
-                if (debug()) std::cout<<"D failed Allocator::deallocate("<<ptr<<", "<<size<<") memory = "<<itr->first<<std::endl;
+                DEBUG_MESSAGE<<"D failed Allocator::deallocate("<<ptr<<", "<<size<<") memory = "<<itr->first<<std::endl;
             }
         }
     }
@@ -707,12 +717,12 @@ bool IntrusiveAllocator::deallocate(void* ptr, std::size_t size)
         auto& block = memoryBlocks.rbegin()->second;
         if (block->deallocate(ptr, size))
         {
-            if (debug()) std::cout<<"E Allocator::deallocate("<<ptr<<", "<<size<<") memoryBlocks.rbegin()->first = "<<memoryBlocks.rbegin()->first<<std::endl;
+            DEBUG_MESSAGE<<"E Allocator::deallocate("<<ptr<<", "<<size<<") memoryBlocks.rbegin()->first = "<<memoryBlocks.rbegin()->first<<std::endl;
             return true;
         }
         else
         {
-            if (debug()) std::cout<<"F failed Allocator::deallocate("<<ptr<<", "<<size<<") memoryBlocks.rbegin()->first = "<<memoryBlocks.rbegin()->first<<std::endl;
+            DEBUG_MESSAGE<<"F failed Allocator::deallocate("<<ptr<<", "<<size<<") memoryBlocks.rbegin()->first = "<<memoryBlocks.rbegin()->first<<std::endl;
         }
     }
 
@@ -722,11 +732,11 @@ bool IntrusiveAllocator::deallocate(void* ptr, std::size_t size)
 
     if (nestedAllocator && nestedAllocator->deallocate(ptr, size))
     {
-        if (debug()) std::cout<<"G Fall through nestedAllocator->deallocate("<<ptr<<", "<<size<<")"<<std::endl;
+        DEBUG_MESSAGE<<"G Fall through nestedAllocator->deallocate("<<ptr<<", "<<size<<")"<<std::endl;
         return true;
     }
 
-    if (debug()) std::cout<<"H Fall through"<<std::endl;\
+    DEBUG_MESSAGE<<"H Fall through"<<std::endl;\
 
     operator delete (ptr);
     return true;
@@ -742,3 +752,9 @@ bool IntrusiveAllocator::validate() const
     return valid;
 }
 
+
+size_t IntrusiveAllocator::deleteEmptyMemoryBlocks() { vsg::info("IntrusiveAllocator::deleteEmptyMemoryBlocks(..) TODO"); return 0; }
+size_t IntrusiveAllocator::totalAvailableSize() const { vsg::info("IntrusiveAllocator::totalAvailableSize(..) TODO"); return 0; }
+size_t IntrusiveAllocator::totalReservedSize() const { vsg::info("IntrusiveAllocator::totalReservedSize(..) TODO"); return 0; }
+size_t IntrusiveAllocator::totalMemorySize() const { vsg::info("IntrusiveAllocator::totalMemorySize(..) TODO");   return 0; }
+void IntrusiveAllocator::setMemoryTracking(int) { vsg::info("IntrusiveAllocator::setMemoryTracking(..) TODO"); }

@@ -5,13 +5,12 @@
 
 #include <vsg/core/Allocator.h>
 
-#include "CustomAllocator.h"
-
-namespace experimental
+namespace vsg
 {
 
-class IntrusiveAllocator;
+extern bool& debug();
 
+class IntrusiveAllocator;
 
 struct IntrusiveMemoryBlock
 {
@@ -97,25 +96,31 @@ public:
 };
 
 
-class IntrusiveAllocator : public vsg::Allocator
+class IntrusiveAllocator : public Allocator
 {
 public:
     IntrusiveAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {});
 
     ~IntrusiveAllocator();
 
-    void setBlockSize(vsg::AllocatorAffinity allocatorAffinity, size_t blockSize) override;
-
     void report(std::ostream& out) const override;
 
-    void* allocate(std::size_t size, vsg::AllocatorAffinity allocatorAffinity = vsg::ALLOCATOR_AFFINITY_OBJECTS) override;
+    void* allocate(std::size_t size, AllocatorAffinity allocatorAffinity = vsg::ALLOCATOR_AFFINITY_OBJECTS) override;
 
     bool deallocate(void* ptr, std::size_t size) override;
 
     bool validate() const;
 
+    size_t deleteEmptyMemoryBlocks() override;
+    size_t totalAvailableSize() const override;
+    size_t totalReservedSize() const override;
+    size_t totalMemorySize() const override;
+    void setMemoryTracking(int mt) override;
+    void setBlockSize(AllocatorAffinity allocatorAffinity, size_t blockSize) override;
+
+
     std::vector<std::unique_ptr<IntrusiveMemoryBlocks>> callocatorMemoryBlocks;
     std::map<void*, std::shared_ptr<IntrusiveMemoryBlock>> memoryBlocks;
 };
 
-} // namespace experimental
+}
