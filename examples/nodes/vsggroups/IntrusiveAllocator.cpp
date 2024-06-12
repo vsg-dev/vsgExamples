@@ -594,11 +594,11 @@ IntrusiveAllocator::IntrusiveAllocator(std::unique_ptr<Allocator> in_nestedAlloc
     size_t new_blockSize = size_t(1) * Megabyte;
 #endif
 
-    callocatorMemoryBlocks.resize(vsg::ALLOCATOR_AFFINITY_LAST);
-    callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_OBJECTS].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_OBJECTS", new_blockSize, default_alignment));
-    callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_DATA].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_DATA", new_blockSize, default_alignment));
-    callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_NODES].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_NODES", new_blockSize, default_alignment));
-    callocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_PHYSICS].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_PHYSICS", new_blockSize, 16));
+    allocatorMemoryBlocks.resize(vsg::ALLOCATOR_AFFINITY_LAST);
+    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_OBJECTS].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_OBJECTS", new_blockSize, default_alignment));
+    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_DATA].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_DATA", new_blockSize, default_alignment));
+    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_NODES].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_NODES", new_blockSize, default_alignment));
+    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_PHYSICS].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_PHYSICS", new_blockSize, 16));
 
     DEBUG_MESSAGE << "IntrusiveAllocator()" << this<<std::endl;
 }
@@ -612,24 +612,24 @@ void IntrusiveAllocator::setBlockSize(AllocatorAffinity allocatorAffinity, size_
 {
    std::scoped_lock<std::mutex> lock(mutex);
 
-    if (size_t(allocatorAffinity) < callocatorMemoryBlocks.size())
+    if (size_t(allocatorAffinity) < allocatorMemoryBlocks.size())
     {
-        callocatorMemoryBlocks[allocatorAffinity]->blockSize = blockSize;
+        allocatorMemoryBlocks[allocatorAffinity]->blockSize = blockSize;
     }
     else
     {
         auto name = vsg::make_string("MemoryBlocks_", allocatorAffinity);
 
-        callocatorMemoryBlocks.resize(allocatorAffinity + 1);
-        callocatorMemoryBlocks[allocatorAffinity].reset(new IntrusiveMemoryBlocks(this, name, blockSize, default_alignment));
+        allocatorMemoryBlocks.resize(allocatorAffinity + 1);
+        allocatorMemoryBlocks[allocatorAffinity].reset(new IntrusiveMemoryBlocks(this, name, blockSize, default_alignment));
     }
 }
 
 void IntrusiveAllocator::report(std::ostream& out) const
 {
-    out << "IntrusiveAllocator::report() " << callocatorMemoryBlocks.size() << std::endl;
+    out << "IntrusiveAllocator::report() " << allocatorMemoryBlocks.size() << std::endl;
 
-    for (const auto& memoryBlock : callocatorMemoryBlocks)
+    for (const auto& memoryBlock : allocatorMemoryBlocks)
     {
         if (memoryBlock) memoryBlock->report(out);
     }
@@ -642,14 +642,14 @@ void* IntrusiveAllocator::allocate(std::size_t size, AllocatorAffinity allocator
     std::scoped_lock<std::mutex> lock(mutex);
 
     // create a MemoryBlocks entry if one doesn't already exist
-    if (allocatorAffinity > callocatorMemoryBlocks.size())
+    if (allocatorAffinity > allocatorMemoryBlocks.size())
     {
         size_t blockSize = 1024 * 1024; // Megabyte
-        callocatorMemoryBlocks.resize(allocatorAffinity + 1);
-        callocatorMemoryBlocks[allocatorAffinity].reset(new IntrusiveMemoryBlocks(this, "IntrusiveMemoryBlockAffinity", blockSize, default_alignment));
+        allocatorMemoryBlocks.resize(allocatorAffinity + 1);
+        allocatorMemoryBlocks[allocatorAffinity].reset(new IntrusiveMemoryBlocks(this, "IntrusiveMemoryBlockAffinity", blockSize, default_alignment));
     }
 
-    auto& memoryBlock = callocatorMemoryBlocks[allocatorAffinity];
+    auto& memoryBlock = allocatorMemoryBlocks[allocatorAffinity];
     if (memoryBlock)
     {
         auto mem_ptr = memoryBlock->allocate(size);
@@ -671,7 +671,7 @@ bool IntrusiveAllocator::deallocate(void* ptr, std::size_t size)
 
 #if 0
 
-    for (auto& memoryBlocks : callocatorMemoryBlocks)
+    for (auto& memoryBlocks : allocatorMemoryBlocks)
     {
         if (memoryBlocks && memoryBlocks->deallocate(ptr, size))
         {
@@ -745,7 +745,7 @@ bool IntrusiveAllocator::deallocate(void* ptr, std::size_t size)
 bool IntrusiveAllocator::validate() const
 {
     bool valid = true;
-    for(auto& memoryBlock : callocatorMemoryBlocks)
+    for(auto& memoryBlock : allocatorMemoryBlocks)
     {
         valid = memoryBlock->validate() && valid ;
     }

@@ -96,7 +96,7 @@ public:
 };
 
 
-class IntrusiveAllocator : public Allocator
+class VSG_DECLSPEC IntrusiveAllocator : public Allocator
 {
 public:
     IntrusiveAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {});
@@ -118,8 +118,11 @@ public:
     void setMemoryTracking(int mt) override;
     void setBlockSize(AllocatorAffinity allocatorAffinity, size_t blockSize) override;
 
+protected:
 
-    std::vector<std::unique_ptr<IntrusiveMemoryBlocks>> callocatorMemoryBlocks;
+    friend IntrusiveMemoryBlocks;
+
+    std::vector<std::unique_ptr<IntrusiveMemoryBlocks>> allocatorMemoryBlocks;
     std::map<void*, std::shared_ptr<IntrusiveMemoryBlock>> memoryBlocks;
 };
 
