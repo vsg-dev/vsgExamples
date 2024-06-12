@@ -22,14 +22,14 @@ bool& vsg::debug()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// IntrusiveMemoryBlock
+// MemoryBlock
 //
-IntrusiveMemoryBlock::IntrusiveMemoryBlock(const std::string& in_name, size_t in_blockSize, size_t in_alignment) :
+IntrusiveAllocator::MemoryBlock::MemoryBlock(const std::string& in_name, size_t in_blockSize, size_t in_alignment) :
     name(in_name),
     alignment(in_alignment),
     blockSize(in_blockSize)
 {
-    DEBUG_MESSAGE<<"IntrusiveMemoryBlock::IntrusiveMemoryBlock("<<in_blockSize<<", "<<in_alignment<<")"<<std::endl;
+    DEBUG_MESSAGE<<"IntrusiveAllocator::MemoryBlock::MemoryBlock("<<in_blockSize<<", "<<in_alignment<<")"<<std::endl;
 
     alignment = std::max(alignment, sizeof(value_type)); // we need to be a multiple of sizeof(value_type)
     block_alignment = std::max(alignment, alignof(std::max_align_t));
@@ -84,13 +84,13 @@ IntrusiveMemoryBlock::IntrusiveMemoryBlock(const std::string& in_name, size_t in
     }
 }
 
-IntrusiveMemoryBlock::~IntrusiveMemoryBlock()
+IntrusiveAllocator::MemoryBlock::~MemoryBlock()
 {
     //operator delete (memory, std::align_val_t{block_alignment});
     operator delete (memory);
 }
 
-bool IntrusiveMemoryBlock::freeSlotsAvaible(size_t size) const
+bool IntrusiveAllocator::MemoryBlock::freeSlotsAvaible(size_t size) const
 {
     for(auto& freeList : freeLists)
     {
@@ -99,7 +99,7 @@ bool IntrusiveMemoryBlock::freeSlotsAvaible(size_t size) const
     return false;
 }
 
-void* IntrusiveMemoryBlock::allocate(std::size_t size)
+void* IntrusiveAllocator::MemoryBlock::allocate(std::size_t size)
 {
     for(auto& freeList : freeLists)
     {
@@ -219,7 +219,7 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
 
                 slot.status = 0; // mark slot as allocated
 
-                DEBUG_MESSAGE<<"IntrusiveMemoryBlock::allocate("<<size<<") slot used = "<<freePosition<<", "<<&memory[freePosition+1]<<std::endl;
+                DEBUG_MESSAGE<<"IntrusiveAllocator::MemoryBlock::allocate("<<size<<") slot used = "<<freePosition<<", "<<&memory[freePosition+1]<<std::endl;
 
                 return &memory[freePosition+1];
             }
@@ -234,7 +234,7 @@ void* IntrusiveMemoryBlock::allocate(std::size_t size)
     return nullptr;
 }
 
-bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
+bool IntrusiveAllocator::MemoryBlock::deallocate(void* ptr, std::size_t size)
 {
     if (within(ptr))
     {
@@ -253,7 +253,7 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         size_t C = static_cast<size_t>(static_cast<Element*>(ptr) - memory) - 1;
         auto& slot = memory[C];
 
-        DEBUG_MESSAGE<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") C =  "<<C<<", slot = { "<<slot.previous<<" , "<<slot.next<<", "<<slot.status<<"}"<<std::endl;
+        DEBUG_MESSAGE<<"IntrusiveAllocator::MemoryBlock::deallocate(("<<ptr<<", "<<size<<") C =  "<<C<<", slot = { "<<slot.previous<<" , "<<slot.next<<", "<<slot.status<<"}"<<std::endl;
 
         if (debug() && !validate())
         {
@@ -424,12 +424,12 @@ bool IntrusiveMemoryBlock::deallocate(void* ptr, std::size_t size)
         return true;
     }
 
-    DEBUG_MESSAGE<<"IntrusiveMemoryBlock::deallocate(("<<ptr<<", "<<size<<") OUTWITH block : "<<this<<std::endl;
+    DEBUG_MESSAGE<<"IntrusiveAllocator::MemoryBlock::deallocate(("<<ptr<<", "<<size<<") OUTWITH block : "<<this<<std::endl;
 
     return false;
 }
 
-void IntrusiveMemoryBlock::report(std::ostream& out) const
+void IntrusiveAllocator::MemoryBlock::report(std::ostream& out) const
 {
     out << "MemoryBlock "<<this<<" "<<name<<std::endl;
     out << "    alignment = "<<alignment<<std::endl;
@@ -471,7 +471,7 @@ void IntrusiveMemoryBlock::report(std::ostream& out) const
     }
 }
 
-bool IntrusiveMemoryBlock::validate() const
+bool IntrusiveAllocator::MemoryBlock::validate() const
 {
     size_t previous = 0;
     size_t position = 0;
@@ -512,9 +512,9 @@ bool IntrusiveMemoryBlock::validate() const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// IntrusiveMemoryBlocks
+// MemoryBlocks
 //
-IntrusiveMemoryBlocks::IntrusiveMemoryBlocks(IntrusiveAllocator* in_parent, const std::string& in_name, size_t in_blockSize, size_t in_alignment) :
+IntrusiveAllocator::MemoryBlocks::MemoryBlocks(IntrusiveAllocator* in_parent, const std::string& in_name, size_t in_blockSize, size_t in_alignment) :
     parent(in_parent),
     name(in_name),
     alignment(in_alignment),
@@ -522,11 +522,11 @@ IntrusiveMemoryBlocks::IntrusiveMemoryBlocks(IntrusiveAllocator* in_parent, cons
 {
 }
 
-IntrusiveMemoryBlocks::~IntrusiveMemoryBlocks()
+IntrusiveAllocator::MemoryBlocks::~MemoryBlocks()
 {
 }
 
-void* IntrusiveMemoryBlocks::allocate(std::size_t size)
+void* IntrusiveAllocator::MemoryBlocks::allocate(std::size_t size)
 {
     if (memoryBlockWithSpace)
     {
@@ -544,7 +544,7 @@ void* IntrusiveMemoryBlocks::allocate(std::size_t size)
         }
     }
 
-    auto new_block = std::make_shared<IntrusiveMemoryBlock>(name, new_blockSize, alignment);
+    auto new_block = std::make_shared<MemoryBlock>(name, new_blockSize, alignment);
 
     if (parent)
     {
@@ -559,16 +559,16 @@ void* IntrusiveMemoryBlocks::allocate(std::size_t size)
     return ptr;
 }
 
-void IntrusiveMemoryBlocks::report(std::ostream& out) const
+void IntrusiveAllocator::MemoryBlocks::report(std::ostream& out) const
 {
-    std::cout<<"\nIntrusiveMemoryBlocks::report() memoryBlocks.size() = "<<memoryBlocks.size()<<std::endl;
+    std::cout<<"\nIntrusiveAllocator::MemoryBlocks::report() memoryBlocks.size() = "<<memoryBlocks.size()<<std::endl;
     for(auto& memoryBlock : memoryBlocks)
     {
         memoryBlock->report(out);
     }
 }
 
-bool IntrusiveMemoryBlocks::validate() const
+bool IntrusiveAllocator::MemoryBlocks::validate() const
 {
     bool valid = true;
     for(auto& memoryBlock : memoryBlocks)
@@ -595,10 +595,10 @@ IntrusiveAllocator::IntrusiveAllocator(std::unique_ptr<Allocator> in_nestedAlloc
 #endif
 
     allocatorMemoryBlocks.resize(vsg::ALLOCATOR_AFFINITY_LAST);
-    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_OBJECTS].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_OBJECTS", new_blockSize, default_alignment));
-    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_DATA].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_DATA", new_blockSize, default_alignment));
-    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_NODES].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_NODES", new_blockSize, default_alignment));
-    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_PHYSICS].reset(new IntrusiveMemoryBlocks(this, "ALLOCATOR_AFFINITY_PHYSICS", new_blockSize, 16));
+    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_OBJECTS].reset(new MemoryBlocks(this, "ALLOCATOR_AFFINITY_OBJECTS", new_blockSize, default_alignment));
+    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_DATA].reset(new MemoryBlocks(this, "ALLOCATOR_AFFINITY_DATA", new_blockSize, default_alignment));
+    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_NODES].reset(new MemoryBlocks(this, "ALLOCATOR_AFFINITY_NODES", new_blockSize, default_alignment));
+    allocatorMemoryBlocks[vsg::ALLOCATOR_AFFINITY_PHYSICS].reset(new MemoryBlocks(this, "ALLOCATOR_AFFINITY_PHYSICS", new_blockSize, 16));
 
     DEBUG_MESSAGE << "IntrusiveAllocator()" << this<<std::endl;
 }
@@ -621,7 +621,7 @@ void IntrusiveAllocator::setBlockSize(AllocatorAffinity allocatorAffinity, size_
         auto name = vsg::make_string("MemoryBlocks_", allocatorAffinity);
 
         allocatorMemoryBlocks.resize(allocatorAffinity + 1);
-        allocatorMemoryBlocks[allocatorAffinity].reset(new IntrusiveMemoryBlocks(this, name, blockSize, default_alignment));
+        allocatorMemoryBlocks[allocatorAffinity].reset(new MemoryBlocks(this, name, blockSize, default_alignment));
     }
 }
 
@@ -646,7 +646,7 @@ void* IntrusiveAllocator::allocate(std::size_t size, AllocatorAffinity allocator
     {
         size_t blockSize = 1024 * 1024; // Megabyte
         allocatorMemoryBlocks.resize(allocatorAffinity + 1);
-        allocatorMemoryBlocks[allocatorAffinity].reset(new IntrusiveMemoryBlocks(this, "IntrusiveMemoryBlockAffinity", blockSize, default_alignment));
+        allocatorMemoryBlocks[allocatorAffinity].reset(new MemoryBlocks(this, "MemoryBlockAffinity", blockSize, default_alignment));
     }
 
     auto& memoryBlock = allocatorMemoryBlocks[allocatorAffinity];
