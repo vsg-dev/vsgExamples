@@ -37,7 +37,7 @@ public:
 
     void* allocate(std::size_t size, vsg::AllocatorAffinity allocatorAffinity = vsg::ALLOCATOR_AFFINITY_OBJECTS) override
     {
-        void* ptr = Allocator::allocate(size, allocatorAffinity);
+        void* ptr = OriginalBlockAllocator::allocate(size, allocatorAffinity);
         if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
         {
             std::cout << "CustomAllocator::allocate(" << size << ", " << allocatorAffinity << ") ptr = " << ptr << std::endl;
@@ -51,7 +51,7 @@ public:
         {
             std::cout << "CustomAllocator::deallocate(" << ptr << ")" << std::endl;
         }
-        return Allocator::deallocate(ptr, size);
+        return OriginalBlockAllocator::deallocate(ptr, size);
     }
 
     size_t deleteEmptyMemoryBlocks() override { return OriginalBlockAllocator::deleteEmptyMemoryBlocks(); }
