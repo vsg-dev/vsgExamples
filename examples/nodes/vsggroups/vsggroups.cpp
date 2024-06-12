@@ -336,7 +336,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    std::cout<<"Finished created\n"<<std::endl;
+    std::cout<<"Finished creattion\n"<<std::endl;
 
     clock::time_point after_construction = clock::now();
 
