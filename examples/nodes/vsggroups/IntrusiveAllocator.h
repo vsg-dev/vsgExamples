@@ -120,13 +120,6 @@ protected:
         bool validate() const;
     };
 
-
-
-
-protected:
-
-    friend MemoryBlocks;
-
     std::vector<std::unique_ptr<MemoryBlocks>> allocatorMemoryBlocks;
     std::map<void*, std::shared_ptr<MemoryBlock>> memoryBlocks;
 };
