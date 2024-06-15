@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "SharedPtrNode.h"
-#include "IntrusiveAllocator.h"
 
 //#define INLINE_TRAVERSE
 
@@ -270,8 +269,6 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
     if (arguments.read({"--in", "--intrusive"})) vsg::Allocator::instance().reset(new vsg::IntrusiveAllocator(std::move(vsg::Allocator::instance())));
-
-    if (arguments.read("--debug")) vsg::debug() = true;
 
     auto numLevels = arguments.value(11u, {"-l", "--levels"});
     auto numTraversals = arguments.value(10u, {"-t", "--traversals"});
