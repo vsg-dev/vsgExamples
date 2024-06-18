@@ -13,26 +13,6 @@
 
 //#define INLINE_TRAVERSE
 
-std::atomic_size_t allocated = 0;
-
-#if 1
-void * operator new(std::size_t n) noexcept(false)
-{
-  allocated += n;
-  return std::malloc(n);
-}
-
-void operator delete(void * p) noexcept(false)
-{
-  std::free(p);
-}
-
-void operator delete(void * p, std::size_t) noexcept(false)
-{
-  std::free(p);
-}
-#endif
-
 class VsgVisitor : public vsg::Visitor
 {
 public:
@@ -333,6 +313,21 @@ int main(int argc, char** argv)
         return 1;
     }
 
+
+    std::list<void*> largeAllocations;
+    largeAllocations.push_back(vsg::allocate(16*GB));
+    largeAllocations.push_back(vsg::allocate(131068));
+    largeAllocations.push_back(vsg::allocate(131067));
+    largeAllocations.push_back(vsg::allocate(131066));
+    largeAllocations.push_back(vsg::allocate(131065));
+    largeAllocations.push_back(vsg::allocate(131064));
+    largeAllocations.push_back(vsg::allocate(131063));
+
+    for(auto& ptrs : largeAllocations)
+    {
+        std::cout<<"large allocation "<<ptrs<<std::endl;
+    }
+
     std::cout<<"Finished creation\n"<<std::endl;
 
     clock::time_point after_construction = clock::now();
@@ -413,6 +408,13 @@ int main(int argc, char** argv)
     vsg_root = 0;
     shared_root = 0;
 
+
+    for(auto& ptrs : largeAllocations)
+    {
+        vsg::deallocate(ptrs);
+        std::cout<<"large dellocation "<<ptrs<<std::endl;
+    }
+
     clock::time_point after_destruction = clock::now();
 
     if (report)
@@ -446,14 +448,5 @@ int main(int argc, char** argv)
         std::cout << "Nodes destructed per second : " << double(numNodes) / std::chrono::duration<double>(after_destruction - after_traversal).count() << std::endl;
     }
 
-    std::cout<<"Total allocated = "<<Units(allocated)<<std::endl;
-#if 0
-    size_t v = 1;
-    for(size_t i=0; i<64;++i)
-    {
-        std::cout<<"    i = "<<i<<" "<<Units(v)<<std::endl;
-        v <<= 1;
-    }
-#endif
     return 0;
 }
