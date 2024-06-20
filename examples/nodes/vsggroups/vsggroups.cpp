@@ -249,6 +249,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
     if (arguments.read({"--in", "--intrusive"})) vsg::Allocator::instance().reset(new vsg::IntrusiveAllocator(std::move(vsg::Allocator::instance())));
+    if (arguments.read({"--old"})) vsg::Allocator::instance().reset(new vsg::OriginalBlockAllocator(std::move(vsg::Allocator::instance())));
 
     auto numLevels = arguments.value(11u, {"-l", "--levels"});
     auto numTraversals = arguments.value(10u, {"-t", "--traversals"});
@@ -311,21 +312,6 @@ int main(int argc, char** argv)
     {
         std::cout << "Error invalid type=" << type << std::endl;
         return 1;
-    }
-
-
-    std::list<void*> largeAllocations;
-    largeAllocations.push_back(vsg::allocate(16*GB));
-    largeAllocations.push_back(vsg::allocate(131068));
-    largeAllocations.push_back(vsg::allocate(131067));
-    largeAllocations.push_back(vsg::allocate(131066));
-    largeAllocations.push_back(vsg::allocate(131065));
-    largeAllocations.push_back(vsg::allocate(131064));
-    largeAllocations.push_back(vsg::allocate(131063));
-
-    for(auto& ptrs : largeAllocations)
-    {
-        std::cout<<"large allocation "<<ptrs<<std::endl;
     }
 
     std::cout<<"Finished creation\n"<<std::endl;
@@ -407,13 +393,6 @@ int main(int argc, char** argv)
 
     vsg_root = 0;
     shared_root = 0;
-
-
-    for(auto& ptrs : largeAllocations)
-    {
-        vsg::deallocate(ptrs);
-        std::cout<<"large dellocation "<<ptrs<<std::endl;
-    }
 
     clock::time_point after_destruction = clock::now();
 
