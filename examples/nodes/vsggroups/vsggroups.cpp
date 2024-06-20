@@ -221,7 +221,6 @@ public:
     size_t totalAvailableSize() const override { return 0; }
     size_t totalReservedSize() const override { return 0; }
     size_t totalMemorySize() const override { return 0; }
-    void setMemoryTracking(int) override {}
     void setBlockSize(vsg::AllocatorAffinity, size_t) {}
 };
 
@@ -249,7 +248,10 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
     if (arguments.read({"--in", "--intrusive"})) vsg::Allocator::instance().reset(new vsg::IntrusiveAllocator(std::move(vsg::Allocator::instance())));
+
+#ifdef ORIGINAl_BLOCK_ALLOCATOR
     if (arguments.read({"--old"})) vsg::Allocator::instance().reset(new vsg::OriginalBlockAllocator(std::move(vsg::Allocator::instance())));
+#endif
 
     auto numLevels = arguments.value(11u, {"-l", "--levels"});
     auto numTraversals = arguments.value(10u, {"-t", "--traversals"});
@@ -259,7 +261,6 @@ int main(int argc, char** argv)
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     size_t unit = arguments.value<size_t>(MB, "--unit");
-    if (int mt; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
     if (int allocatorType; arguments.read("--allocator", allocatorType)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(allocatorType);
     if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize * unit);
     if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize * unit);
