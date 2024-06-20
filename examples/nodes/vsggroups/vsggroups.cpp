@@ -180,15 +180,83 @@ std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned in
     return t;
 }
 
+
+// consider tcmalloc? https://goog-perftools.sourceforge.net/doc/tcmalloc.html
+// consider Alloc https://www.codeproject.com/Articles/1084801/Replace-malloc-free-with-a-Fast-Fixed-Block-Memory
+class StdAllocator : public vsg::Allocator
+{
+public:
+    StdAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
+        vsg::Allocator(std::move(in_nestedAllocator))
+    {
+    }
+
+    ~StdAllocator()
+    {
+    }
+
+    void report(std::ostream& out) const override
+    {
+        out << "StdAllocator::report() " << std::endl;
+    }
+
+    void* allocate(std::size_t size, vsg::AllocatorAffinity) override
+    {
+        return operator new (size); //, std::align_val_t{default_alignment});
+    }
+
+    bool deallocate(void* ptr, std::size_t size) override
+    {
+        if (nestedAllocator && nestedAllocator->deallocate(ptr, size)) return true;
+
+        operator delete (ptr);//, std::align_val_t{default_alignment});
+        return true;
+    }
+
+    size_t deleteEmptyMemoryBlocks() override { return 0; }
+    size_t totalAvailableSize() const override { return 0; }
+    size_t totalReservedSize() const override { return 0; }
+    size_t totalMemorySize() const override { return 0; }
+    void setBlockSize(vsg::AllocatorAffinity, size_t) {}
+};
+
+const size_t KB = 1024;
+const size_t MB = 1024 * KB;
+const size_t GB = 1024 * MB;
+
+struct Units
+{
+    Units(size_t v) : value(v) {}
+
+    size_t value;
+};
+
+std::ostream& operator<<(std::ostream& out, const Units& size)
+{
+    if (size.value>GB) out << static_cast<double>(size.value)/static_cast<double>(GB) << " gigabytes";
+    else if (size.value>MB) out << static_cast<double>(size.value)/static_cast<double>(MB) << " megabytes";
+    else if (size.value>KB) out << static_cast<double>(size.value)/static_cast<double>(KB) <<" kilobytes";
+    else out << size.value<<" bytes";
+    return out;
+}
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
+    if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
+
     auto numLevels = arguments.value(11u, {"-l", "--levels"});
     auto numTraversals = arguments.value(10u, {"-t", "--traversals"});
     auto type = arguments.value(std::string("vsg::Group"), "--type");
     auto quiet = arguments.read("-q");
     auto inputFilename = arguments.value<vsg::Path>("", "-i");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
+
+    size_t unit = arguments.value<size_t>(MB, "--unit");
+    if (int allocatorType; arguments.read("--allocator", allocatorType)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(allocatorType);
+    if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize * unit);
+    if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize * unit);
+    if (size_t dataBlockSize; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_DATA, dataBlockSize * unit);
+
     vsg::ref_ptr<vsg::RecordTraversal> vsg_recordTraversal(arguments.read("-d") ? new vsg::RecordTraversal : nullptr);
     vsg::ref_ptr<VsgConstVisitor> vsg_ConstVisitor(arguments.read("-c") ? new VsgConstVisitor : nullptr);
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);

@@ -9,51 +9,43 @@
 #include <iostream>
 #include <thread>
 
-class CustomAllocator : public vsg::Allocator
+class StdAllocator : public vsg::Allocator
 {
 public:
-    CustomAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
+    StdAllocator(std::unique_ptr<Allocator> in_nestedAllocator = {}) :
         vsg::Allocator(std::move(in_nestedAllocator))
     {
-        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
-        {
-            std::cout << "CustomAllocator()" << this << std::endl;
-        }
     }
 
-    ~CustomAllocator()
+    ~StdAllocator()
     {
-        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
-        {
-            std::cout << "~CustomAllocator() " << this << std::endl;
-        }
     }
 
     void report(std::ostream& out) const override
     {
-        std::cout << "CustomAllocator::report() " << allocatorMemoryBlocks.size() << std::endl;
-        vsg::Allocator::report(out);
+        out << "StdAllocator::report() " << std::endl;
     }
 
-    void* allocate(std::size_t size, vsg::AllocatorAffinity allocatorAffinity = vsg::ALLOCATOR_AFFINITY_OBJECTS) override
+    void* allocate(std::size_t size, vsg::AllocatorAffinity) override
     {
-        void* ptr = Allocator::allocate(size, allocatorAffinity);
-        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
-        {
-            std::cout << "CustomAllocator::allocate(" << size << ", " << allocatorAffinity << ") ptr = " << ptr << std::endl;
-        }
-        return ptr;
+        return operator new (size); //, std::align_val_t{default_alignment});
     }
 
     bool deallocate(void* ptr, std::size_t size) override
     {
-        if (memoryTracking & vsg::MEMORY_TRACKING_REPORT_ACTIONS)
-        {
-            std::cout << "CustomAllocator::deallocate(" << ptr << ")" << std::endl;
-        }
-        return Allocator::deallocate(ptr, size);
+        if (nestedAllocator && nestedAllocator->deallocate(ptr, size)) return true;
+
+        operator delete (ptr);//, std::align_val_t{default_alignment});
+        return true;
     }
+
+    size_t deleteEmptyMemoryBlocks() override { return 0; }
+    size_t totalAvailableSize() const override { return 0; }
+    size_t totalReservedSize() const override { return 0; }
+    size_t totalMemorySize() const override { return 0; }
+    void setBlockSize(vsg::AllocatorAffinity, size_t) {}
 };
+
 
 struct SceneStatistics : public vsg::Inherit<vsg::ConstVisitor, SceneStatistics>
 {
@@ -77,8 +69,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     // Allocaotor related command line settings
-    if (arguments.read("--custom")) vsg::Allocator::instance().reset(new CustomAllocator(std::move(vsg::Allocator::instance())));
-    if (int mt; arguments.read({"--memory-tracking", "--mt"}, mt)) vsg::Allocator::instance()->setMemoryTracking(mt);
+    if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
     if (int type; arguments.read("--allocator", type)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(type);
     if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize);
     if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize);
