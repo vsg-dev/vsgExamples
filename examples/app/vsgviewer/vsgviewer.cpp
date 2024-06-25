@@ -43,6 +43,22 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     pbr->defaultShaderHints = shaderHints;
 }
 
+class MyTrackball : public vsg::Inherit<vsg::Trackball, MyTrackball>
+{
+public:
+
+    explicit MyTrackball(vsg::ref_ptr<vsg::Camera> camera, vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel = {}) :
+        Inherit(camera, ellipsoidModel)
+    {
+    }
+
+    void rotate(double angle, const vsg::dvec3& axis)
+    {
+        vsg::info("MyTrackball::rotate(double angle = ", angle, ", const dvec3& axis = ", axis, " )");
+        vsg::Trackball::rotate(angle, axis);
+    }
+};
+
 int main(int argc, char** argv)
 {
     try
@@ -247,7 +263,7 @@ int main(int argc, char** argv)
             if (reportAverageFrameRate) maxTime = cameraAnimation->animation->maxTime();
         }
 
-        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
+        viewer->addEventHandler(MyTrackball::create(camera, ellipsoidModel));
 
         // if required preload specific number of PagedLOD levels.
         if (loadLevels > 0)
