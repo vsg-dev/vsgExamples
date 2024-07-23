@@ -1,0 +1,31 @@
+// Draw a glowing spot around the mouse position
+
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // Normalized coordinates (from 0 to 1)
+    vec2 uv = fragCoord / iResolution.xy;
+    
+    // Correct uv using the aspect ratio to ensure the circle's aspect ratio is maintained
+    float aspectRatio = 1.0*iResolution.x / iResolution.y;
+    vec2 correctedUV = vec2(uv.x * aspectRatio, uv.y);
+    
+    // Background gradient: black at the bottom, dark blue at the top
+    vec3 bgColor = mix(vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 0.4), uv.y);
+    
+    // Mouse position in normalized coordinates, corrected for aspect ratio
+    vec2 mousePos = iMouse.xy / iResolution.xy;
+    vec2 correctedMousePos = vec2(mousePos.x * aspectRatio, mousePos.y);
+    
+    // Calculate distance from current fragment to mouse position, corrected for aspect ratio
+    float distanceToMouse = distance(correctedUV, correctedMousePos);
+    
+    // Glow effect based on distance to mouse position
+    float glowIntensity = 0.1 / sqrt(distanceToMouse);
+    vec3 glowColor = vec3(1.0, 0.0, 0.0) * glowIntensity;
+    
+    // Combine background and glow color
+    vec3 color = bgColor + glowColor;
+    
+    // Output the color
+    fragColor = vec4(color, 1.0);
+}
