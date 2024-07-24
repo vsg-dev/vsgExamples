@@ -19,8 +19,6 @@
 #include <vsg/all.h>
 #include <chrono>
 
-using namespace std;
-
 struct ToyUniform {
     vsg::ivec2 iResolution;
     vsg::vec2 iMouse;
@@ -59,20 +57,21 @@ void main()
 )";
 
 
-string readFile(const string& filename)
+std::string readFile(const vsg::Path& filename)
 {
-    ifstream fh(filename);
+    std::ifstream fh(filename);
 
     if (!fh.good())
-        throw runtime_error(std::string("Error opening file \"") + filename + "\"  for input!");
+        throw std::runtime_error(std::string("Error opening file \"") + filename + "\"  for input!");
 
-    string ret;
-    ret.assign((istreambuf_iterator<char>(fh)), istreambuf_iterator<char>());
+    std::string ret;
+    ret.assign((std::istreambuf_iterator<char>(fh)),
+               std::istreambuf_iterator<char>());
     fh.close();
     return ret;
 }
 
-const string defaultShader = R"(
+const std::string defaultShader = R"(
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
     // Normalized coordinates
@@ -86,7 +85,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 }
 )";
 
-string shaderToyToFragmentShader(const string& toyShader)
+std::string shaderToyToFragmentShader(const std::string& toyShader)
 {
   return R"(
 #version 450
@@ -119,8 +118,8 @@ void main()
 }
 
 
-// Create a vsg node containing an image
-vsg::ref_ptr<vsg::Node> createToyNode(string toyShader,
+// Create a vsg node containing the shadertoy command
+vsg::ref_ptr<vsg::Node> createToyNode(const std::string& toyShader,
                                       // output
                                       vsg::ref_ptr<ToyUniformValue>& toyUniform)
 {
@@ -165,14 +164,9 @@ vsg::ref_ptr<vsg::Node> createToyNode(string toyShader,
         vsg::ColorBlendState::create(),
         vsg::DepthStencilState::create()};
 
-    // Do I need this when having a constant V,M, and P?
-    vsg::PushConstantRanges pushConstantRanges{
-        {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
-    };
-
     auto toyUniformDescriptor = vsg::DescriptorBuffer::create(toyUniform, 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
+    auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges {});
     auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
     auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
@@ -254,11 +248,12 @@ int main(int argc, char** argv)
         windowTraits->windowTitle = "vsgshadertoy";
         toyShader = defaultShader;
     }
-    else {
-        toyShader = readFile(argv[1]);
+    else
+    {
         vsg::Path filePath(argv[1]);
+        toyShader = readFile(filePath);
 
-        windowTraits->windowTitle = vsg::simpleFilename(filePath) + vsg::fileExtension(filePath);
+        windowTraits->windowTitle = std::string("vsgshadertoy: ") + vsg::simpleFilename(filePath) + vsg::fileExtension(filePath);
     }
 
     
