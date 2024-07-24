@@ -86,7 +86,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 }
 )";
 
-// The default shader is composed of three dancing spheres
 string shaderToyToFragmentShader(const string& toyShader)
 {
   return R"(
@@ -257,15 +256,9 @@ int main(int argc, char** argv)
     }
     else {
         toyShader = readFile(argv[1]);
-        string title;
-        // extract the filename from the path
-        auto pos = string(argv[1]).find_last_of("/");
-        if (pos != string::npos)
-            title = string(argv[1]).substr(pos+1);
-        else
-            title = argv[1];
-        
-        windowTraits->windowTitle = title;
+        vsg::Path filePath(argv[1]);
+
+        windowTraits->windowTitle = vsg::simpleFilename(filePath) + vsg::fileExtension(filePath);
     }
 
     
