@@ -38,21 +38,20 @@ layout(set = 0, binding = 0) uniform UBO {
     int iFrame;
 } ubo;
 
-layout(location = 0) in vec2 inVertex;
-layout(location = 1) in vec2 inTexture;
-
 layout(location = 0) out vec2 fragCoord;
 
 out gl_PerVertex{ vec4 gl_Position; };
 
 void main()
 {
-    vec4 vertex = vec4(inVertex, 0, 1.0);
+    // fragCord is from (0→w,0→h)
+    fragCoord = vec2((gl_VertexIndex << 1) & 2,
+                     (gl_VertexIndex & 2)) * ubo.iResolution;
 
-    gl_Position = vec4(inVertex.x, -inVertex.y, 0.5, 1.0);
-
-    fragCoord = vec2(inTexture.x * ubo.iResolution.x,
-                     (1-inTexture.y) * ubo.iResolution.y);
+    // gl_Position is from (-1→1,-1→1)
+    gl_Position = vec4(fragCoord.x/ubo.iResolution.x * 2.0 - 1.0,
+                       (1.0-fragCoord.y/ubo.iResolution.y) * 2.0 - 1.0,
+                       0.5, 1.0);
 }
 )";
 
@@ -141,23 +140,13 @@ vsg::ref_ptr<vsg::Node> createToyNode(const std::string& toyShader,
 
     // set up graphics pipeline
     vsg::DescriptorSetLayoutBindings descriptorBindings{
-        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
+      {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorType, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
 
-    vsg::VertexInputState::Bindings vertexBindingsDescriptions{
-        VkVertexInputBindingDescription{0, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}, // vertex data
-        VkVertexInputBindingDescription{1, sizeof(vsg::vec2), VK_VERTEX_INPUT_RATE_VERTEX}  // tex coord data
-    };
-
-    vsg::VertexInputState::Attributes vertexAttributeDescriptions{
-        VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32_SFLOAT, 0}, // vertex data
-        VkVertexInputAttributeDescription{1, 1, VK_FORMAT_R32G32_SFLOAT, 0}     // tex coord data
-    };
-
     vsg::GraphicsPipelineStates pipelineStates{
-        vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
+        vsg::VertexInputState::create(), // No vertices for shader toy
         vsg::InputAssemblyState::create(),
         vsg::RasterizationState::create(),
         vsg::MultisampleState::create(),
@@ -178,28 +167,9 @@ vsg::ref_ptr<vsg::Node> createToyNode(const std::string& toyShader,
     node->add(bindGraphicsPipeline);
     node->add(bindDescriptorSet);
 
-    // set up vertex and index arrays
-    auto vertices = vsg::vec2Array::create(
-        {{-1.0f, -1.0f},
-         {1.0f, -1.0f},
-         {1.0f, 1.0f},
-         {-1.0f, 1.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_INSTANCE, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto texcoords = vsg::vec2Array::create(
-        {{0.0f, 1.0f},
-         {1.0f, 1.0f},
-         {1.0f, 0.0f},
-         {0.0f, 0.0f}}); // VK_FORMAT_R32G32_SFLOAT, VK_VERTEX_INPUT_RATE_VERTEX, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
-    auto indices = vsg::ushortArray::create(
-        {0, 1, 2,
-         2, 3, 0}); // VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE
-
     // setup geometry
     auto drawCommands = vsg::Commands::create();
-    drawCommands->addChild(vsg::BindVertexBuffers::create(0, vsg::DataList{vertices, texcoords}));
-    drawCommands->addChild(vsg::BindIndexBuffer::create(indices));
-    drawCommands->addChild(vsg::DrawIndexed::create(6, 1, 0, 0, 0));
+    drawCommands->addChild(vsg::Draw::create(3, 1, 0, 0)); // Draw without vertices, as they are generated from gl_VertexIndex
 
     // add drawCommands to transform
     node->addChild(drawCommands);
@@ -213,10 +183,11 @@ public:
     void apply(vsg::PointerEvent& pointerEvent) override
     {
         lastPointerEvent = &pointerEvent;
+        isPressed = pointerEvent.mask != vsg::BUTTON_MASK_OFF;
     }
     
-
     vsg::ref_ptr<vsg::PointerEvent> lastPointerEvent;
+    bool isPressed = false;
 };
 
 int main(int argc, char** argv)
@@ -305,7 +276,9 @@ int main(int argc, char** argv)
         toyUniform->value().iResolution = {(int)extent.width, (int)extent.height};
         toyUniform->value().iTime = std::chrono::duration<float>(std::chrono::steady_clock::now()-t0).count();
         toyUniform->value().iFrame += 1;
-        toyUniform->value().iMouse = mouseHandler->lastPointerEvent ? vsg::vec2(mouseHandler->lastPointerEvent->x, extent.height-mouseHandler->lastPointerEvent->y) : vsg::vec2(0,0);
+
+        if (mouseHandler->isPressed)
+            toyUniform->value().iMouse = mouseHandler->lastPointerEvent ? vsg::vec2(mouseHandler->lastPointerEvent->x, extent.height-mouseHandler->lastPointerEvent->y) : vsg::vec2(0,0);
 
         toyUniform->dirty();
 
