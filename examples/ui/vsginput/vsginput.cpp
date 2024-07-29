@@ -1,6 +1,172 @@
 #include <iostream>
 #include <vsg/all.h>
 
+std::map<vsg::KeySymbol, std::string> keySymbolName =  {
+    {vsg::KEY_Space, "KEY_Space"},
+    {vsg::KEY_Exclaim, "KEY_Exclaim"},
+    {vsg::KEY_Quotedbl, "KEY_Quotedbl"},
+    {vsg::KEY_Hash, "KEY_Hash"},
+    {vsg::KEY_Dollar, "KEY_Dollar"},
+    {vsg::KEY_Percent, "KEY_Percent"},
+    {vsg::KEY_Ampersand, "KEY_Ampersand"},
+    {vsg::KEY_Quote, "KEY_Quote"},
+    {vsg::KEY_Leftparen, "KEY_Leftparen"},
+    {vsg::KEY_Rightparen, "KEY_Rightparen"},
+    {vsg::KEY_Asterisk, "KEY_Asterisk"},
+    {vsg::KEY_Plus, "KEY_Plus"},
+    {vsg::KEY_Comma, "KEY_Comma"},
+    {vsg::KEY_Minus, "KEY_Minus"},
+    {vsg::KEY_Period, "KEY_Period"},
+    {vsg::KEY_Slash, "KEY_Slash"},
+    {vsg::KEY_Colon, "KEY_Colon"},
+    {vsg::KEY_Semicolon, "KEY_Semicolon"},
+    {vsg::KEY_Less, "KEY_Less"},
+    {vsg::KEY_Equals, "KEY_Equals"},
+    {vsg::KEY_Greater, "KEY_Greater"},
+    {vsg::KEY_Question, "KEY_Question"},
+    {vsg::KEY_At, "KEY_At"},
+    {vsg::KEY_Leftbracket, "KEY_Leftbracket"},
+    {vsg::KEY_Backslash, "KEY_Backslash"},
+    {vsg::KEY_Rightbracket, "KEY_Rightbracket"},
+    {vsg::KEY_Caret, "KEY_Caret"},
+    {vsg::KEY_Underscore, "KEY_Underscore"},
+    {vsg::KEY_Backquote, "KEY_Backquote"},
+    {vsg::KEY_Leftcurlybracket, "KEY_Leftcurlybracket"},
+    {vsg::KEY_Verticalslash, "KEY_Verticalslash"},
+    {vsg::KEY_Rightcurlybracket, "KEY_Rightcurlybracket"},
+    {vsg::KEY_Tilde, "KEY_Tilde"},
+
+    {vsg::KEY_BackSpace, "KEY_BackSpace"},
+    {vsg::KEY_Tab, "KEY_Tab"},
+    {vsg::KEY_Linefeed, "KEY_Linefeed"},
+    {vsg::KEY_Clear, "KEY_Clear"},
+    {vsg::KEY_Return, "KEY_Return"},
+    {vsg::KEY_Pause, "KEY_Pause"},
+    {vsg::KEY_Scroll_Lock, "KEY_Scroll_Lock"},
+    {vsg::KEY_Sys_Req, "KEY_Sys_Req"},
+    {vsg::KEY_Escape, "KEY_Escape"},
+    {vsg::KEY_Delete, "KEY_Delete"},
+
+    {vsg::KEY_Home, "KEY_Home"},
+    {vsg::KEY_Left, "KEY_Left"},
+    {vsg::KEY_Up, "KEY_Up"},
+    {vsg::KEY_Right, "KEY_Right"},
+    {vsg::KEY_Down, "KEY_Down"},
+    {vsg::KEY_Prior, "KEY_Prior"},
+    {vsg::KEY_Page_Up, "KEY_Page_Up"},
+    {vsg::KEY_Next, "KEY_Next"},
+    {vsg::KEY_Page_Down, "KEY_Page_Down"},
+    {vsg::KEY_End, "KEY_End"},
+    {vsg::KEY_Begin, "KEY_Begin"},
+
+    {vsg::KEY_Select, "KEY_Select"},
+    {vsg::KEY_Print, "KEY_Print"},
+    {vsg::KEY_Execute, "KEY_Execute"},
+    {vsg::KEY_Insert, "KEY_Insert"},
+    {vsg::KEY_Undo, "KEY_Undo"},
+    {vsg::KEY_Redo, "KEY_Redo"},
+    {vsg::KEY_Menu, "KEY_Menu"},
+    {vsg::KEY_Find, "KEY_Find"},
+    {vsg::KEY_Cancel, "KEY_Cancel"},
+    {vsg::KEY_Help, "KEY_Help"},
+    {vsg::KEY_Break, "KEY_Break"},
+    {vsg::KEY_Mode_switch, "KEY_Mode_switch"},
+    {vsg::KEY_Script_switch, "KEY_Script_switch"},
+    {vsg::KEY_Num_Lock, "KEY_Num_Lock"},
+
+    {vsg::KEY_KP_Space, "KEY_KP_Space"},
+    {vsg::KEY_KP_Tab, "KEY_KP_Tab"},
+    {vsg::KEY_KP_Enter, "KEY_KP_Enter"},
+    {vsg::KEY_KP_F1, "KEY_KP_F1"},
+    {vsg::KEY_KP_F2, "KEY_KP_F2"},
+    {vsg::KEY_KP_F3, "KEY_KP_F3"},
+    {vsg::KEY_KP_F4, "KEY_KP_F4"},
+    {vsg::KEY_KP_Home, "KEY_KP_Home"},
+    {vsg::KEY_KP_Left, "KEY_KP_Left"},
+    {vsg::KEY_KP_Up, "KEY_KP_Up"},
+    {vsg::KEY_KP_Right, "KEY_KP_Right"},
+    {vsg::KEY_KP_Down, "KEY_KP_Down"},
+    {vsg::KEY_KP_Prior, "KEY_KP_Prior"},
+    {vsg::KEY_KP_Page_Up, "KEY_KP_Page_Up"},
+    {vsg::KEY_KP_Next, "KEY_KP_Next"},
+    {vsg::KEY_KP_Page_Down, "KEY_KP_Page_Down"},
+    {vsg::KEY_KP_End, "KEY_KP_End"},
+    {vsg::KEY_KP_Begin, "KEY_KP_Begin"},
+    {vsg::KEY_KP_Insert, "KEY_KP_Insert"},
+    {vsg::KEY_KP_Delete, "KEY_KP_Delete"},
+    {vsg::KEY_KP_Equal, "KEY_KP_Equal"},
+    {vsg::KEY_KP_Multiply, "KEY_KP_Multiply"},
+    {vsg::KEY_KP_Add, "KEY_KP_Add"},
+    {vsg::KEY_KP_Separator, "KEY_KP_Separator"},
+    {vsg::KEY_KP_Subtract, "KEY_KP_Subtract"},
+    {vsg::KEY_KP_Decimal, "KEY_KP_Decimal"},
+    {vsg::KEY_KP_Divide, "KEY_KP_Divide"},
+
+    {vsg::KEY_KP_0, "KEY_KP_0"},
+    {vsg::KEY_KP_1, "KEY_KP_1"},
+    {vsg::KEY_KP_2, "KEY_KP_2"},
+    {vsg::KEY_KP_3, "KEY_KP_3"},
+    {vsg::KEY_KP_4, "KEY_KP_4"},
+    {vsg::KEY_KP_5, "KEY_KP_5"},
+    {vsg::KEY_KP_6, "KEY_KP_6"},
+    {vsg::KEY_KP_7, "KEY_KP_7"},
+    {vsg::KEY_KP_8, "KEY_KP_8"},
+    {vsg::KEY_KP_9, "KEY_KP_9"},
+
+    {vsg::KEY_F1, "KEY_F1"},
+    {vsg::KEY_F2, "KEY_F2"},
+    {vsg::KEY_F3, "KEY_F3"},
+    {vsg::KEY_F4, "KEY_F4"},
+    {vsg::KEY_F5, "KEY_F5"},
+    {vsg::KEY_F6, "KEY_F6"},
+    {vsg::KEY_F7, "KEY_F7"},
+    {vsg::KEY_F8, "KEY_F8"},
+    {vsg::KEY_F9, "KEY_F9"},
+    {vsg::KEY_F10, "KEY_F10"},
+    {vsg::KEY_F11, "KEY_F11"},
+    {vsg::KEY_F12, "KEY_F12"},
+    {vsg::KEY_F13, "KEY_F13"},
+    {vsg::KEY_F14, "KEY_F14"},
+    {vsg::KEY_F15, "KEY_F15"},
+    {vsg::KEY_F16, "KEY_F16"},
+    {vsg::KEY_F17, "KEY_F17"},
+    {vsg::KEY_F18, "KEY_F18"},
+    {vsg::KEY_F19, "KEY_F19"},
+    {vsg::KEY_F20, "KEY_F20"},
+    {vsg::KEY_F21, "KEY_F21"},
+    {vsg::KEY_F22, "KEY_F22"},
+    {vsg::KEY_F23, "KEY_F23"},
+    {vsg::KEY_F24, "KEY_F24"},
+    {vsg::KEY_F25, "KEY_F25"},
+    {vsg::KEY_F26, "KEY_F26"},
+    {vsg::KEY_F27, "KEY_F27"},
+    {vsg::KEY_F28, "KEY_F28"},
+    {vsg::KEY_F29, "KEY_F29"},
+    {vsg::KEY_F30, "KEY_F30"},
+    {vsg::KEY_F31, "KEY_F31"},
+    {vsg::KEY_F32, "KEY_F32"},
+    {vsg::KEY_F33, "KEY_F33"},
+    {vsg::KEY_F34, "KEY_F34"},
+    {vsg::KEY_F35, "KEY_F35"},
+
+    {vsg::KEY_Shift_L, "KEY_Shift_L"},
+    {vsg::KEY_Shift_R, "KEY_Shift_R"},
+    {vsg::KEY_Control_L, "KEY_Control_L"},
+    {vsg::KEY_Control_R, "KEY_Control_R"},
+    {vsg::KEY_Caps_Lock, "KEY_Caps_Lock"},
+    {vsg::KEY_Shift_Lock, "KEY_Shift_Lock"},
+
+    {vsg::KEY_Meta_L, "KEY_Meta_L"},
+    {vsg::KEY_Meta_R, "KEY_Meta_R"},
+    {vsg::KEY_Alt_L, "KEY_Alt_L"},
+    {vsg::KEY_Alt_R, "KEY_Alt_R"},
+    {vsg::KEY_Super_L, "KEY_Super_L"},
+    {vsg::KEY_Super_R, "KEY_Super_R"},
+    {vsg::KEY_Hyper_L, "KEY_Hyper_L"},
+    {vsg::KEY_Hyper_R, "KEY_Hyper_R"}
+};
+
+
 class InputHandler : public vsg::Inherit<vsg::Visitor, InputHandler>
 {
 public:
@@ -43,12 +209,18 @@ public:
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
-        assign(*keyboard_text, vsg::make_string(keyPress.className(), ", keyBase=", keyPress.keyBase, " ", char(keyPress.keyBase), ", keyModified=", keyPress.keyModified, " ", char(keyPress.keyModified)));
+        std::string keyName{char(keyPress.keyBase)};
+        if (auto itr = keySymbolName.find(keyPress.keyBase); itr != keySymbolName.end()) keyName = itr->second;
+
+        assign(*keyboard_text, vsg::make_string(keyPress.className(), ", keyBase=", keyPress.keyBase, ", keyName=", keyName, ", keyModified=", keyPress.keyModified, " ", char(keyPress.keyModified)));
     }
 
     void apply(vsg::KeyReleaseEvent& keyRelease) override
     {
-        assign(*keyboard_text, vsg::make_string(keyRelease.className(), ", keyBase=", keyRelease.keyBase, " ", char(keyRelease.keyBase), ", keyModified=", keyRelease.keyModified, " ", char(keyRelease.keyModified)));
+        std::string keyName{char(keyRelease.keyBase)};
+        if (auto itr = keySymbolName.find(keyRelease.keyBase); itr != keySymbolName.end()) keyName = itr->second;
+
+        assign(*keyboard_text, vsg::make_string(keyRelease.className(), ", keyBase=", keyRelease.keyBase, ", keyName ", keyName, ", keyModified=", keyRelease.keyModified, " ", char(keyRelease.keyModified)));
     }
 
     void apply(vsg::MoveEvent& moveEvent) override
@@ -169,7 +341,7 @@ int main(int argc, char** argv)
     }
 
     double aspectRatio = double(windowTraits->width) / double(windowTraits->height);
-    double projectionHeight = 25.0;
+    double projectionHeight = 40.0;
 
     vsg::vec3 position(2.0f, static_cast<float>(projectionHeight) - 2.0f, 0.0f);
     vsg::vec3 delta(0.0f, -2.0f, 0.0f);
