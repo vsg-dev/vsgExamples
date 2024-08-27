@@ -113,6 +113,19 @@ int main(int argc, char** argv)
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        vsg::ref_ptr<vsg::ResourceHints> resourceHints;
+        if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
+        {
+            resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceHintsFilename, options);
+        }
+
+        if (auto outputResourceHintsFilename = arguments.value<vsg::Path>("", "--orh"))
+        {
+            if (!resourceHints) resourceHints = vsg::ResourceHints::create();
+            vsg::write(resourceHints, outputResourceHintsFilename, options);
+            return 0;
+        }
+
         if (arguments.read({"--shader-debug-info", "--sdi"}))
         {
             enableGenerateDebugInfo(options);
@@ -120,6 +133,8 @@ int main(int argc, char** argv)
         }
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+
+        auto logFilename = arguments.value<vsg::Path>("", "--log");
 
         vsg::ref_ptr<vsg::Instrumentation> instrumentation;
         if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
@@ -143,7 +158,6 @@ int main(int argc, char** argv)
             arguments.read("--cpu", settings->cpu_instrumentation_level);
             arguments.read("--gpu", settings->gpu_instrumentation_level);
             arguments.read("--log-size", settings->log_size);
-            arguments.read("--gpu-size", settings->gpu_timestamp_size);
 
             // create the profiler
             instrumentation = vsg::Profiler::create(settings);
@@ -267,7 +281,7 @@ int main(int argc, char** argv)
 
         if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
-        viewer->compile();
+        viewer->compile(resourceHints);
 
         if (maxPagedLOD > 0)
         {
@@ -313,7 +327,15 @@ int main(int argc, char** argv)
         if (auto profiler = instrumentation.cast<vsg::Profiler>())
         {
             instrumentation->finish();
-            profiler->log->report(std::cout);
+            if (logFilename)
+            {
+                std::ofstream fout(logFilename);
+                profiler->log->report(fout);
+            }
+            else
+            {
+                profiler->log->report(std::cout);
+            }
         }
     }
     catch (const vsg::Exception& ve)
@@ -326,3 +348,4 @@ int main(int argc, char** argv)
     // clean up done automatically thanks to ref_ptr<>
     return 0;
 }
+
