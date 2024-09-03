@@ -115,6 +115,15 @@ int main(int argc, char** argv)
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        bool depthClamp = arguments.read({"--dc", "--depthClamp"});
+        if (depthClamp)
+        {
+            std::cout << "Enabled depth clamp." << std::endl;
+            auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+            deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+            deviceFeatures->get().depthClamp = VK_TRUE;
+        }
+
         vsg::ref_ptr<vsg::ResourceHints> resourceHints;
         if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
         {
