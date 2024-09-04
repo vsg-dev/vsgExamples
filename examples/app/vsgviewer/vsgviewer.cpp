@@ -285,7 +285,10 @@ int main(int argc, char** argv)
             std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        auto renderGraph = vsg::createRenderGraphForView(window, camera, vsg_scene, VK_SUBPASS_CONTENTS_INLINE, false);
+        auto commandGraph = vsg::CommandGraph::create(window);
+        commandGraph->addChild(renderGraph);
+
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         if (instrumentation) viewer->assignInstrumentation(instrumentation);
@@ -311,6 +314,22 @@ int main(int argc, char** argv)
             }
         }
 
+
+        struct FindLights : public vsg::Visitor
+        {
+            std::list<vsg::ref_ptr<vsg::Light>> lights;
+            void apply(vsg::Object& object) override { object.traverse(*this); }
+            void apply(vsg::Light& light) override { lights.emplace_back(&light); }
+        };
+
+        auto lights = vsg::visit<FindLights>(vsg_scene).lights;
+
+        std::vector<vsg::vec4> colours = {
+            vsg::vec4(1.0, 0.0, 0.0, 1.0),
+            vsg::vec4(1.0, 1.0, 0.0, 1.0),
+            vsg::vec4(1.0, 0.0, 1.0, 1.0)
+        };
+
         viewer->start_point() = vsg::clock::now();
 
         // rendering main loop
@@ -319,11 +338,21 @@ int main(int argc, char** argv)
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
+            auto current_colour = colours[viewer->getFrameStamp()->frameCount % 3];
+            window->clearColor() = current_colour;
+            renderGraph->setClearValues(current_colour);
+            for(auto& light : lights)
+            {
+                light->color.set(current_colour.r, current_colour.g, current_colour.b);
+            }
+
             viewer->update();
 
             viewer->recordAndSubmit();
 
             viewer->present();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
 
         if (reportAverageFrameRate)
