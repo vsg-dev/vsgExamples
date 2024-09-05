@@ -225,7 +225,7 @@ int main(int argc, char** argv)
                     // for updates every frame it's best to declare the dataVaraince as DYANMIC_DATA
                     for (auto& tasks : viewer->recordAndSubmitTasks)
                     {
-                        auto transferTask = tasks->earlyTransferTask;
+                        auto transferTask = tasks->transferTask;
                         for (auto& bufferInfo : fdv.bufferInfoSet)
                         {
                             transferTask->assign(vsg::BufferInfoList{bufferInfo});
