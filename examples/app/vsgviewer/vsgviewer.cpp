@@ -332,19 +332,13 @@ int main(int argc, char** argv)
 
         viewer->start_point() = vsg::clock::now();
 
+        auto sleep_ms = arguments.value(0, "--sleep");
+
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
         {
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
-
-            auto current_colour = colours[viewer->getFrameStamp()->frameCount % 3];
-            window->clearColor() = current_colour;
-            renderGraph->setClearValues(current_colour);
-            for(auto& light : lights)
-            {
-                light->color.set(current_colour.r, current_colour.g, current_colour.b);
-            }
 
             viewer->update();
 
@@ -352,8 +346,10 @@ int main(int argc, char** argv)
 
             viewer->present();
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         if (reportAverageFrameRate)
         {
@@ -361,8 +357,6 @@ int main(int argc, char** argv)
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
             std::cout << "Average frame rate = " << fps << " fps" << std::endl;
         }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
         if (auto profiler = instrumentation.cast<vsg::Profiler>())
         {
