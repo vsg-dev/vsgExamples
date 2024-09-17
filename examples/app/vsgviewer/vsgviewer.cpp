@@ -113,6 +113,15 @@ int main(int argc, char** argv)
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        bool depthClamp = arguments.read({"--dc", "--depthClamp"});
+        if (depthClamp)
+        {
+            std::cout << "Enabled depth clamp." << std::endl;
+            auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+            deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+            deviceFeatures->get().depthClamp = VK_TRUE;
+        }
+
         vsg::ref_ptr<vsg::ResourceHints> resourceHints;
         if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
         {
@@ -276,7 +285,10 @@ int main(int argc, char** argv)
             std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        auto renderGraph = vsg::createRenderGraphForView(window, camera, vsg_scene, VK_SUBPASS_CONTENTS_INLINE, false);
+        auto commandGraph = vsg::CommandGraph::create(window);
+        commandGraph->addChild(renderGraph);
+
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         if (instrumentation) viewer->assignInstrumentation(instrumentation);
@@ -302,7 +314,25 @@ int main(int argc, char** argv)
             }
         }
 
+
+        struct FindLights : public vsg::Visitor
+        {
+            std::list<vsg::ref_ptr<vsg::Light>> lights;
+            void apply(vsg::Object& object) override { object.traverse(*this); }
+            void apply(vsg::Light& light) override { lights.emplace_back(&light); }
+        };
+
+        auto lights = vsg::visit<FindLights>(vsg_scene).lights;
+
+        std::vector<vsg::vec4> colours = {
+            vsg::vec4(1.0, 0.0, 0.0, 1.0),
+            vsg::vec4(1.0, 1.0, 0.0, 1.0),
+            vsg::vec4(1.0, 0.0, 1.0, 1.0)
+        };
+
         viewer->start_point() = vsg::clock::now();
+
+        auto sleep_ms = arguments.value(0, "--sleep");
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
@@ -315,7 +345,11 @@ int main(int argc, char** argv)
             viewer->recordAndSubmit();
 
             viewer->present();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
         if (reportAverageFrameRate)
         {
