@@ -92,6 +92,7 @@ int main(int argc, char** argv)
             reportAverageFrameRate = true;
         }
 
+        bool multiThreading = arguments.read("--mt");
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
@@ -266,6 +267,11 @@ int main(int argc, char** argv)
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         if (instrumentation) viewer->assignInstrumentation(instrumentation);
+
+        if (multiThreading)
+        {
+            viewer->setupThreading();
+        }
 
         viewer->compile();
 
