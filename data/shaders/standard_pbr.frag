@@ -285,9 +285,9 @@ vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, float perceptualRou
     color *= ao;
 
 #ifdef VSG_EMISSIVE_MAP
-    vec3 emissive = SRGBtoLINEAR(texture(emissiveMap, texCoord0)).rgb * pbr.emissiveFactor.rgb;
+    vec3 emissive = SRGBtoLINEAR(texture(emissiveMap, texCoord0)).rgb * SRGBtoLINEAR(pbr.emissiveFactor).rgb;
 #else
-    vec3 emissive = pbr.emissiveFactor.rgb;
+    vec3 emissive = SRGBtoLINEAR(pbr.emissiveFactor).rgb;
 #endif
     color += emissive;
 
@@ -326,13 +326,13 @@ void main()
 
 #ifdef VSG_DIFFUSE_MAP
     #ifdef VSG_GREYSCALE_DIFFUSE_MAP
-        float v = texture(diffuseMap, texCoord0.st).s * pbr.baseColorFactor;
+        float v = texture(diffuseMap, texCoord0.st).s * SRGBtoLINEAR(pbr.baseColorFactor);
         baseColor = vertexColor * vec4(v, v, v, 1.0);
     #else
-        baseColor = vertexColor * SRGBtoLINEAR(texture(diffuseMap, texCoord0)) * pbr.baseColorFactor;
+        baseColor = vertexColor * SRGBtoLINEAR(texture(diffuseMap, texCoord0)) * SRGBtoLINEAR(pbr.baseColorFactor);
     #endif
 #else
-    baseColor = vertexColor * pbr.baseColorFactor;
+    baseColor = vertexColor * SRGBtoLINEAR(pbr.baseColorFactor);
 #endif
 
 #ifdef VSG_ALPHA_TEST
@@ -361,7 +361,7 @@ void main()
         metallic = convertMetallic(diffuse.rgb, specular, maxSpecular);
 
         const float epsilon = 1e-6;
-        vec3 baseColorDiffusePart = diffuse.rgb * ((1.0 - maxSpecular) / (1 - c_MinRoughness) / max(1 - metallic, epsilon)) * pbr.diffuseFactor.rgb;
+        vec3 baseColorDiffusePart = diffuse.rgb * ((1.0 - maxSpecular) / (1 - c_MinRoughness) / max(1 - metallic, epsilon)) * SRGBtoLINEAR(pbr.diffuseFactor).rgb;
         vec3 baseColorSpecularPart = specular - (vec3(c_MinRoughness) * (1 - metallic) * (1 / max(metallic, epsilon))) * pbr.specularFactor.rgb;
         baseColor = vec4(mix(baseColorDiffusePart, baseColorSpecularPart, metallic * metallic), diffuse.a);
 #else
