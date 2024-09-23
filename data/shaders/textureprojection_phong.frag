@@ -42,9 +42,11 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
-layout(set = VIEW_DESCRIPTOR_SET, binding = 0) buffer LightData
+
+layout(constant_id = 3) const int lightDataSize = 256;
+layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 {
-    vec4 values[];
+    vec4 values[lightDataSize];
 } lightData;
 
 // Custom state
