@@ -174,9 +174,16 @@ public:
 
         lastIntersection = intersector->intersections.front();
     }
+
     void intersection_PolytopeIntersector(vsg::PointerEvent& pointerEvent)
     {
-        auto intersector = vsg::PolytopeIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
+        double size = 5.0;
+        double xMin = static_cast<double>(pointerEvent.x) - size;
+        double xMax = static_cast<double>(pointerEvent.x) + size;
+        double yMin = static_cast<double>(pointerEvent.y) - size;
+        double yMax = static_cast<double>(pointerEvent.y) + size;
+
+        auto intersector = vsg::PolytopeIntersector::create(*camera, xMin, yMin, xMax, yMax);
         scenegraph->accept(*intersector);
 
         if (verbose) std::cout << "intersection_PolytopeIntersector(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
