@@ -28,6 +28,7 @@ public:
         ellipsoidModel(in_ellipsoidModel),
         scale(in_scale)
     {
+        geom.cullNode = true;
         builder->verbose = verbose;
         if (scale > 10.0) scale = 10.0;
     }
@@ -86,10 +87,6 @@ public:
             {
                 scenegraph->addChild(builder->createCone(geom, state));
             }
-            else if (keyPress.keyBase == 'o')
-            {
-                vsg::write(scenegraph, "builder.vsgt");
-            }
         }
 
         if (state.billboard)
@@ -97,6 +94,11 @@ public:
             // switch off billboarding so other shapes aren't affected.
             state.billboard = false;
             geom.positions = {};
+        }
+
+        if (keyPress.keyBase == 'o')
+        {
+            vsg::write(scenegraph, "builder.vsgt");
         }
     }
 
@@ -189,9 +191,6 @@ public:
         if (verbose) std::cout << "intersection_PolytopeIntersector(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
 
         if (intersector->intersections.empty()) return;
-
-        // sort the intersections front to back
-        std::sort(intersector->intersections.begin(), intersector->intersections.end(), [](auto& lhs, auto& rhs) { return lhs->ratio < rhs->ratio; });
 
         for (auto& intersection : intersector->intersections)
         {
@@ -293,6 +292,7 @@ int main(int argc, char** argv)
     if (scene->children.empty())
     {
         vsg::GeometryInfo info;
+        info.cullNode = true;
         info.dx.set(100.0f, 0.0f, 0.0f);
         info.dy.set(0.0f, 100.0f, 0.0f);
         info.dz.set(0.0f, 0.0f, 100.0f);
