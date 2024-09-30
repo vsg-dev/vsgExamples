@@ -28,6 +28,7 @@ public:
         ellipsoidModel(in_ellipsoidModel),
         scale(in_scale)
     {
+        geom.cullNode = true;
         builder->verbose = verbose;
         if (scale > 10.0) scale = 10.0;
     }
@@ -36,7 +37,7 @@ public:
     {
         if (lastPointerEvent)
         {
-            intersection(*lastPointerEvent);
+            intersection_LineSegmentIntersector(*lastPointerEvent);
             if (!lastIntersection) return;
 
             vsg::info("keyPress.keyModifier = ", keyPress.keyModifier, " keyPress.keyBase = ", keyPress.keyBase);
@@ -86,10 +87,6 @@ public:
             {
                 scenegraph->addChild(builder->createCone(geom, state));
             }
-            else if (keyPress.keyBase == 'o')
-            {
-                vsg::write(scenegraph, "builder.vsgt");
-            }
         }
 
         if (state.billboard)
@@ -97,6 +94,11 @@ public:
             // switch off billboarding so other shapes aren't affected.
             state.billboard = false;
             geom.positions = {};
+        }
+
+        if (keyPress.keyBase == 'o')
+        {
+            vsg::write(scenegraph, "builder.vsgt");
         }
     }
 
@@ -106,7 +108,11 @@ public:
 
         if (buttonPressEvent.button == 1)
         {
-            intersection(buttonPressEvent);
+            intersection_LineSegmentIntersector(buttonPressEvent);
+        }
+        else if (buttonPressEvent.button == 2)
+        {
+            intersection_PolytopeIntersector(buttonPressEvent);
         }
     }
 
@@ -115,12 +121,12 @@ public:
         lastPointerEvent = &pointerEvent;
     }
 
-    void intersection(vsg::PointerEvent& pointerEvent)
+    void intersection_LineSegmentIntersector(vsg::PointerEvent& pointerEvent)
     {
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
         scenegraph->accept(*intersector);
 
-        if (verbose) std::cout << "intersection(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
+        if (verbose) std::cout << "intersection_LineSegmentIntersector(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
 
         if (intersector->intersections.empty()) return;
 
@@ -169,6 +175,63 @@ public:
         }
 
         lastIntersection = intersector->intersections.front();
+    }
+
+    void intersection_PolytopeIntersector(vsg::PointerEvent& pointerEvent)
+    {
+        double size = 5.0;
+        double xMin = static_cast<double>(pointerEvent.x) - size;
+        double xMax = static_cast<double>(pointerEvent.x) + size;
+        double yMin = static_cast<double>(pointerEvent.y) - size;
+        double yMax = static_cast<double>(pointerEvent.y) + size;
+
+        auto intersector = vsg::PolytopeIntersector::create(*camera, xMin, yMin, xMax, yMax);
+        scenegraph->accept(*intersector);
+
+        if (verbose) std::cout << "intersection_PolytopeIntersector(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
+
+        if (intersector->intersections.empty()) return;
+
+        for (auto& intersection : intersector->intersections)
+        {
+            if (verbose) std::cout << "intersection = world(" << intersection->worldIntersection << "), instanceIndex " << intersection->instanceIndex;
+
+            if (ellipsoidModel)
+            {
+                std::cout.precision(10);
+                auto location = ellipsoidModel->convertECEFToLatLongAltitude(intersection->worldIntersection);
+                if (verbose) std::cout << " lat = " << location[0] << ", long = " << location[1] << ", height = " << location[2];
+            }
+
+            if (lastIntersection)
+            {
+                if (verbose) std::cout << ", distance from previous intersection = " << vsg::length(intersection->worldIntersection - lastIntersection->worldIntersection);
+            }
+
+            if (verbose)
+            {
+                std::string name;
+                for (auto& node : intersection->nodePath)
+                {
+                    std::cout << ", " << node->className();
+                    if (node->getValue("name", name)) std::cout << ":name=" << name;
+                }
+
+                std::cout << ", Arrays[ ";
+                for (auto& array : intersection->arrays)
+                {
+                    std::cout << array << " ";
+                }
+                std::cout << "] [";
+                for (auto& index : intersection->indices)
+                {
+                    std::cout << index<<" ";
+                }
+                std::cout << "]";
+
+                std::cout << std::endl;
+            }
+        }
     }
 
 protected:
@@ -229,6 +292,7 @@ int main(int argc, char** argv)
     if (scene->children.empty())
     {
         vsg::GeometryInfo info;
+        info.cullNode = true;
         info.dx.set(100.0f, 0.0f, 0.0f);
         info.dy.set(0.0f, 100.0f, 0.0f);
         info.dz.set(0.0f, 0.0f, 100.0f);
