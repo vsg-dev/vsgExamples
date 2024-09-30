@@ -223,9 +223,9 @@ public:
                     std::cout << array << " ";
                 }
                 std::cout << "] [";
-                for (auto& ir : intersection->indexRatios)
+                for (auto& index : intersection->indices)
                 {
-                    std::cout << "{" << ir.index << ", " << ir.ratio << "} ";
+                    std::cout << index<<" ";
                 }
                 std::cout << "]";
 
