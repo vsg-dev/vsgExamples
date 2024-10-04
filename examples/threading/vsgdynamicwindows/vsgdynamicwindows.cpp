@@ -158,6 +158,7 @@ int main(int argc, char** argv)
         windowTraits->windowTitle = "vsgdynamicwindows";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        windowTraits->synchronizationLayer = arguments.read("--sync");
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         arguments.read("--screen", windowTraits->screenNum);
