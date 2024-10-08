@@ -336,7 +336,7 @@ void main()
 #endif
 
 #ifdef VSG_ALPHA_TEST
-    if (material.alphaMask == 1.0f && diffuseColor.a < material.alphaMaskCutoff) discard;
+    if (pbr.alphaMask == 1.0f && baseColor.a < pbr.alphaMaskCutoff) discard;
 #endif
 
 #ifdef VSG_WORKFLOW_SPECGLOSS
