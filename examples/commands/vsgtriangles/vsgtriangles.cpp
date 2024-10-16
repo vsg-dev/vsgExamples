@@ -206,6 +206,9 @@ int main(int argc, char** argv)
     try
     {
         vsg::CommandLine arguments(&argc, argv);
+
+        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+
         auto numPipelines = arguments.value(1u, {"--numPipelines", "-p"});
         auto numDrawCalls = arguments.value(1u, {"--numDrawCalls", "-c"});
         auto numTriangles = arguments.value(vsg::uivec3{10, 10, 10}, {"--numTriangles", "-n"});
