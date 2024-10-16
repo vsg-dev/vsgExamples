@@ -559,5 +559,5 @@ void main()
         }
     }
 
-    outColor = LINEARtoSRGB(vec4(color, baseColor.a)) ;
+    outColor = vec4(color, baseColor.a);
 }

@@ -27,6 +27,12 @@ layout(location = 3) in vec2 texCoord0;
 
 layout(location = 0) out vec4 outColor;
 
+vec4 SRGBtoLINEAR(vec4 srgbIn)
+{
+    vec3 linOut = pow(srgbIn.xyz, vec3(2.2));
+    return vec4(linOut,srgbIn.w);
+}
+
 void main()
 {
 #ifdef VSG_POINT_SPRITE
@@ -40,7 +46,7 @@ void main()
         float v = texture(diffuseMap, texCoord0.st).s;
         diffuseColor *= vec4(v, v, v, 1.0);
     #else
-        diffuseColor *= texture(diffuseMap, texCoord0.st);
+        diffuseColor *= SRGBtoLINEAR(texture(diffuseMap, texCoord0.st));
     #endif
 #endif
 
