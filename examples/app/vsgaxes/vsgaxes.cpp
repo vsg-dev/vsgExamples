@@ -103,10 +103,9 @@ vsg::ref_ptr<vsg::View> createAxesView(vsg::ref_ptr<vsg::Camera> camera,
     double camWidth = 10;
     double camXOffs = -8;
     double camYOffs = -8;
-    auto ortho = vsg::Orthographic::create(
-      camXOffs,camXOffs+camWidth,  // left, right
-      camYOffs/aspectRatio,(camYOffs+camWidth)/aspectRatio, // bottom, top
-      -1000,1000); // near, far
+    auto ortho = vsg::Orthographic::create(camXOffs,camXOffs+camWidth,  // left, right
+                                           camYOffs/aspectRatio,(camYOffs+camWidth)/aspectRatio, // bottom, top
+                                           -1000,1000); // near, far
 
     auto gizmoCamera = vsg::Camera::create(
       ortho,
