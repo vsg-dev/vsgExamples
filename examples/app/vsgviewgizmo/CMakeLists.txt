@@ -1,14 +1,14 @@
 set(SOURCES
-    vsgviewgizmo.cpp
+    vsgaxes.cpp
 )
 
-add_executable(vsgviewgizmo ${SOURCES})
+add_executable(vsgaxes ${SOURCES})
 
-target_link_libraries(vsgviewgizmo vsg::vsg)
+target_link_libraries(vsgaxes vsg::vsg)
 
 if (vsgXchange_FOUND)
-    target_compile_definitions(vsgviewgizmo PRIVATE vsgXchange_FOUND)
-    target_link_libraries(vsgviewgizmo vsgXchange::vsgXchange)
+    target_compile_definitions(vsgaxes PRIVATE vsgXchange_FOUND)
+    target_link_libraries(vsgaxes vsgXchange::vsgXchange)
 endif()
 
-install(TARGETS vsgviewgizmo RUNTIME DESTINATION bin)
+install(TARGETS vsgaxes RUNTIME DESTINATION bin)
