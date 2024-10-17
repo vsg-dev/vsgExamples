@@ -322,6 +322,13 @@ int main(int argc, char** argv)
     }
     else if (affinity)
     {
+        std::cout << "vsg::setAffinity(";
+        for(auto cpu_num : affinity.cpus)
+        {
+            std::cout<<" "<<cpu_num;
+        }
+        std::cout<<" )"<< std::endl;
+
         vsg::setAffinity(affinity);
     }
 

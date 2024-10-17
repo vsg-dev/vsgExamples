@@ -16,6 +16,7 @@ add_subdirectory(vsgwindows)
 add_subdirectory(vsgcameras)
 add_subdirectory(vsgvalidate)
 add_subdirectory(vsgshadertoy)
+add_subdirectory(vsgaxes)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsghelloworld)

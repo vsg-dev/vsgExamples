@@ -149,6 +149,14 @@ int main(int argc, char** argv)
             instrumentation = vsg::Profiler::create(settings);
         }
 
+        vsg::Affinity affinity;
+        uint32_t cpu = 0;
+        while (arguments.read("-c", cpu))
+        {
+            affinity.cpus.insert(cpu);
+        }
+
+
         // should animations be automatically played
         auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
 
@@ -270,6 +278,38 @@ int main(int argc, char** argv)
         if (multiThreading)
         {
             viewer->setupThreading();
+
+            if (affinity)
+            {
+                auto cpu_itr = affinity.cpus.begin();
+
+                // set affinity of main thread
+                if (cpu_itr != affinity.cpus.end())
+                {
+                    std::cout << "vsg::setAffinity() " << *cpu_itr << std::endl;
+                    vsg::setAffinity(vsg::Affinity(*cpu_itr++));
+                }
+
+                for (auto& thread : viewer->threads)
+                {
+                    if (thread.joinable() && cpu_itr != affinity.cpus.end())
+                    {
+                        std::cout << "vsg::setAffinity(" << thread.get_id() << ") " << *cpu_itr << std::endl;
+                        vsg::setAffinity(thread, vsg::Affinity(*cpu_itr++));
+                    }
+                }
+            }
+        }
+        else if (affinity)
+        {
+            std::cout << "vsg::setAffinity(";
+            for(auto cpu_num : affinity.cpus)
+            {
+                std::cout<<" "<<cpu_num;
+            }
+            std::cout<<" )"<< std::endl;
+
+            vsg::setAffinity(affinity);
         }
 
         viewer->compile();
