@@ -47,12 +47,13 @@ vsg::ref_ptr<vsg::Node> createArrow(vsg::vec3 pos, vsg::vec3 dir, vsg::vec4 colo
 
     // If we don't point in the z-direction, then rotate the arrow
     if (vsg::length(vsg::cross(vsg::vec3{0,0,1}, dir)) > 0.0001)
-        {
-            vsg::vec3 axis = vsg::cross(vsg::vec3{0,0,1}, dir);
-            float angle = acos(vsg::dot(vsg::vec3{0,0,1}, dir));
-            geomInfo.transform = vsg::rotate(angle, axis) * geomInfo.transform;
-        }
-    auto axisTransfor = geomInfo.transform;
+    {
+        vsg::vec3 axis = vsg::cross(vsg::vec3{0,0,1}, dir);
+        float angle = acos(vsg::dot(vsg::vec3{0,0,1}, dir));
+        geomInfo.transform = vsg::rotate(angle, axis) * geomInfo.transform;
+    }
+
+    auto axisTransform = geomInfo.transform;
     geomInfo.transform = geomInfo.transform * vsg::scale(0.1f, 0.1f, 1.0f);
     
     // Rotate geomInfo from pos in the direction of dir
@@ -62,7 +63,7 @@ vsg::ref_ptr<vsg::Node> createArrow(vsg::vec3 pos, vsg::vec3 dir, vsg::vec4 colo
     // The cone
     geomInfo.color = color;
     // This would have been cleaner with a pre_translate transform
-    geomInfo.transform = vsg::scale(0.3f, 0.3f, 0.3f) * axisTransfor * vsg::translate(0.0f, 0.0f, 1.0f/0.3f);
+    geomInfo.transform = vsg::scale(0.3f, 0.3f, 0.3f) * axisTransform * vsg::translate(0.0f, 0.0f, 1.0f/0.3f);
     node = builder.createCone(geomInfo, stateInfo);
     arrow->addChild(node);
 
@@ -90,9 +91,9 @@ vsg::ref_ptr<vsg::Node> createGizmo()
     return gizmo;
 }
 
-// Create a tracking overlay with a gizmo that shows the orientation
-// of the camera view matrix
-vsg::ref_ptr<vsg::View> createViewGizmo(vsg::ref_ptr<vsg::Camera> camera,
+// Create a tracking overlay with a axes view that shows the orientation
+// of the main camera view matrix
+vsg::ref_ptr<vsg::View> createAxesView(vsg::ref_ptr<vsg::Camera> camera,
                                         double aspectRatio)
 {
     auto viewMat = RotationTrackingMatrix::create(camera->viewMatrix);
@@ -203,7 +204,7 @@ int main(int argc, char** argv)
     view->addChild(vsg::createHeadlight());
     view->addChild(scenegraph);
     renderGraph->addChild(view);
-    renderGraph->addChild(createViewGizmo(camera, aspectRatio));
+    renderGraph->addChild(createAxesView(camera, aspectRatio));
 
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
