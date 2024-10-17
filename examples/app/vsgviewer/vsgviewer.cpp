@@ -403,4 +403,3 @@ int main(int argc, char** argv)
     // clean up done automatically thanks to ref_ptr<>
     return 0;
 }
-
