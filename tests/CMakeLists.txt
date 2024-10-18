@@ -1,1 +1,2 @@
 add_subdirectory(vsgcompilemanager)
+add_subdirectory(vsgreallocations)
