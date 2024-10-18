@@ -13,7 +13,7 @@ void main() { gl_Position = (projection * modelView) * vec4(vertex, 1.0); }
 
 std::string FRAG0{R"(
 #version 450
-layout(set = 0, binding = 0) buffer CellColors { vec4[] cellColors; };
+layout(set = 0, binding = 0) readonly buffer CellColors { vec4[] cellColors; };
 layout(location = 0) out vec4 color;
 void main() { color = cellColors[gl_PrimitiveID]; }
 )"};

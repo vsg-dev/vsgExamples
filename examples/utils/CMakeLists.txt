@@ -1,5 +1,4 @@
 add_subdirectory(vsgbuilder)
-add_subdirectory(vsgcompilemanager)
 add_subdirectory(vsggraphicspipelineconfigurator)
 add_subdirectory(vsgshaderset)
 add_subdirectory(vsgintersection)
