@@ -88,4 +88,7 @@ add_subdirectory(examples/utils)
 add_subdirectory(examples/vk)
 add_subdirectory(examples/volume)
 
+# VSG tests
+add_subdirectory(tests)
+
 vsg_add_feature_summary()
