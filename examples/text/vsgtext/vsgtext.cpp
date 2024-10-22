@@ -225,7 +225,7 @@ int main(int argc, char** argv)
         layout->position = vsg::vec3(0.0, 0.0, 0.0);
         layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
         layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-        layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+        layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
 
         std::set<uint32_t> characters;
         for (auto c : *(font->charmap))

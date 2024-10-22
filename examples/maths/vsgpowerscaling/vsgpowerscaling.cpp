@@ -40,7 +40,6 @@ int main(int argc, char** argv)
     auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
     if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
     arguments.read("--file-cache", options->fileCache);
-    bool osgEarthStyleMouseButtons = arguments.read({"--osgearth", "-e"});
 
     VkClearColorValue clearColor{{0.0f, 0.0f, 0.0f, 1.0f}};
 
@@ -73,7 +72,7 @@ int main(int argc, char** argv)
         settings->noX = 2;
         settings->noY = 1;
         settings->maxLevel = 10;
-        settings->originTopLeft = false;
+        settings->originTopLeft = true;
         settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
         // settings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
     }
@@ -87,7 +86,7 @@ int main(int argc, char** argv)
         settings->noY = 1;
         settings->maxLevel = 17;
         settings->originTopLeft = true;
-        settings->lighting = false;
+        settings->lighting = true;
         settings->projection = "EPSG:3857"; // Spherical Mecator
         settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
     }
@@ -100,8 +99,6 @@ int main(int argc, char** argv)
 
     arguments.read("-t", settings->lodTransitionScreenHeightRatio);
     arguments.read("-m", settings->maxLevel);
-
-    auto ellipsoidModel = settings->ellipsoidModel;
 
 
     auto builder = vsg::Builder::create();
@@ -142,9 +139,17 @@ int main(int argc, char** argv)
     geom.dz.set(0.0f, 0.0f, 2.0f*sun_radius);
     geom.color.set(1.0f, 1.0f, 0.9f, 1.0f);
 
+    state.lighting = false;
+
     auto sun_one = builder->createSphere(geom, state);
 
     solar_system_one->addChild(sun_one);
+
+    auto light = vsg::PointLight::create();
+    light->intensity = earth_to_sun_distance*earth_to_sun_distance;
+    light->position.set(0.0f, 0.0f, 0.0f);
+    light->color.set(1.0f, 1.0f, 1.0f);
+    solar_system_one->addChild(light);
 
     universe->addChild(solar_system_one);
 
@@ -194,36 +199,13 @@ int main(int argc, char** argv)
     viewer->addEventHandler(cameraAnimation);
     if (cameraAnimation->animation) cameraAnimation->play();
 
-    if (ellipsoidModel)
-    {
-        auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
-        trackball->addKeyViewpoint(vsg::KeySymbol('1'), 51.50151088842245, -0.14181489107549874, 2000.0, 2.0); // Greenwich Observatory
-        trackball->addKeyViewpoint(vsg::KeySymbol('2'), 55.948642740309324, -3.199226855522667, 2000.0, 2.0);  // Edinburgh Castle
-        trackball->addKeyViewpoint(vsg::KeySymbol('3'), 48.858264952330764, 2.2945039609604665, 2000.0, 2.0);  // Eiffel Town, Paris
-        trackball->addKeyViewpoint(vsg::KeySymbol('4'), 52.5162603714634, 13.377684902745642, 2000.0, 2.0);    // Brandenburg Gate, Berlin
-        trackball->addKeyViewpoint(vsg::KeySymbol('5'), 30.047448591298807, 31.236319571791213, 10000.0, 2.0); // Cairo
-        trackball->addKeyViewpoint(vsg::KeySymbol('6'), 35.653099536061156, 139.74704060056993, 10000.0, 2.0); // Tokyo
-        trackball->addKeyViewpoint(vsg::KeySymbol('7'), 37.38701052699002, -122.08555895549424, 10000.0, 2.0); // Mountain View, California
-        trackball->addKeyViewpoint(vsg::KeySymbol('8'), 40.689618207006355, -74.04465595488215, 10000.0, 2.0); // Empire State Building
-        trackball->addKeyViewpoint(vsg::KeySymbol('9'), 25.997055873649554, -97.15543476551771, 1000.0, 2.0);  // Boca Chica, Taxas
+    viewer->addEventHandler(vsg::Trackball::create(camera));
 
-        if (osgEarthStyleMouseButtons)
-        {
-            trackball->panButtonMask = vsg::BUTTON_MASK_1;
-            trackball->rotateButtonMask = vsg::BUTTON_MASK_2;
-            trackball->zoomButtonMask = vsg::BUTTON_MASK_3;
-        }
+    auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
+    renderGraph->setClearValues(clearColor);
 
-        viewer->addEventHandler(trackball);
-    }
-    else
-    {
-        viewer->addEventHandler(vsg::Trackball::create(camera));
-    }
-    auto rendergraph = vsg::createRenderGraphForView(window, camera, universe);
-    rendergraph->setClearValues(clearColor);
+    auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
 
-    auto commandGraph = vsg::CommandGraph::create(window, rendergraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
