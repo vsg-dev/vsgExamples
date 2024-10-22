@@ -1,1 +1,2 @@
 add_subdirectory(vsgmaths)
+add_subdirectory(vsgpowerscaling)
