@@ -18,18 +18,58 @@ struct SolarSystemSettings
 
 vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
 {
-    auto solar_system_one = vsg::MatrixTransform::create();
+    auto solar_system = vsg::MatrixTransform::create();
+
+    double day = 24.0 * 60.0 * 60.0;
+    double year = 365.25 * day;
 
     // create earth one
-    auto earth_one = vsg::TileDatabase::create();
-    earth_one->settings = settings.tileDatabaseSettings;
-    earth_one->readDatabase(settings.options);
+    auto earth = vsg::TileDatabase::create();
+    earth->settings = settings.tileDatabaseSettings;
+    earth->readDatabase(settings.options);
 
-    auto earth_transform_one = vsg::MatrixTransform::create();
-    earth_transform_one->addChild(earth_one);
-    earth_transform_one->matrix = vsg::translate(settings.earth_to_sun_distance, 0.0, 0.0);
+    auto earth_transform = vsg::MatrixTransform::create();
+    earth_transform->addChild(earth);
+    earth_transform->matrix = vsg::translate(settings.earth_to_sun_distance, 0.0, 0.0);
 
-    solar_system_one->addChild(earth_transform_one);
+    auto earth_orbit_transform = vsg::MatrixTransform::create();
+    earth_orbit_transform->addChild(earth);
+    earth_orbit_transform->addChild(earth_transform);
+    solar_system->addChild(earth_orbit_transform);
+
+    // animate the earths rotation around it's axis
+    auto earth_keyframes = vsg::TransformKeyframes::create();
+    earth_keyframes->add(0.0, vsg::dvec3(settings.earth_to_sun_distance, 0.0, 0.0), vsg::dquat(vsg::radians(0.0), vsg::dvec3(0.0, 0.0, 1.0)));
+    earth_keyframes->add(day*0.5, vsg::dvec3(settings.earth_to_sun_distance, 0.0, 0.0), vsg::dquat(vsg::radians(180.0), vsg::dvec3(0.0, 0.0, 1.0)));
+    earth_keyframes->add(day, vsg::dvec3(settings.earth_to_sun_distance, 0.0, 0.0), vsg::dquat(vsg::radians(360.0), vsg::dvec3(0.0, 0.0, 1.0)));
+
+    auto earth_transformSampler = vsg::TransformSampler::create();
+    earth_transformSampler->keyframes = earth_keyframes;
+    earth_transformSampler->object = earth_transform;
+
+    auto earth_animation = vsg::Animation::create();
+    earth_animation->samplers.push_back(earth_transformSampler);
+
+
+    // animate the earths rotation around the sun
+    auto orbit_keyframes = vsg::TransformKeyframes::create();
+    orbit_keyframes->add(0.0, vsg::dvec3(0.0, 0.0, 0.0), vsg::dquat(vsg::radians(0.0), vsg::dvec3(0.0, 0.0, 1.0)));
+    orbit_keyframes->add(year*0.5, vsg::dvec3(0.0, 0.0, 0.0), vsg::dquat(vsg::radians(180.0), vsg::dvec3(0.0, 0.0, 1.0)));
+    orbit_keyframes->add(year, vsg::dvec3(0.0, 0.0, 0.0), vsg::dquat(vsg::radians(360.0), vsg::dvec3(0.0, 0.0, 1.0)));
+
+    auto orbit_transformSampler = vsg::TransformSampler::create();
+    orbit_transformSampler->keyframes = orbit_keyframes;
+    orbit_transformSampler->object = earth_orbit_transform;
+
+    auto oribit_animation = vsg::Animation::create();
+    oribit_animation->samplers.push_back(orbit_transformSampler);
+
+
+    auto animationGroup = vsg::AnimationGroup::create();
+    animationGroup->animations.push_back(earth_animation);
+    animationGroup->animations.push_back(oribit_animation);
+
+    solar_system->addChild(animationGroup);
 
     // create sun one
 
@@ -46,17 +86,17 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
 
     state.lighting = false;
 
-    auto sun_one = settings.builder->createSphere(geom, state);
+    auto sun = settings.builder->createSphere(geom, state);
 
-    solar_system_one->addChild(sun_one);
+    solar_system->addChild(sun);
 
     auto light = vsg::PointLight::create();
     light->intensity = settings.earth_to_sun_distance * settings.earth_to_sun_distance;
     light->position.set(0.0f, 0.0f, 0.0f);
     light->color.set(1.0f, 1.0f, 1.0f);
-    solar_system_one->addChild(light);
+    solar_system->addChild(light);
 
-    return solar_system_one;
+    return solar_system;
 }
 
 int main(int argc, char** argv)
@@ -89,11 +129,13 @@ int main(int argc, char** argv)
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value<vsg::Path>("", "-p");
-    auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
     if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
     arguments.read("--file-cache", options->fileCache);
 
     VkClearColorValue clearColor{{0.0f, 0.0f, 0.0f, 1.0f}};
+
+
+    double speed = arguments.value<double>(1.0, "--speed");
 
     // set up the solar system paramaters
     SolarSystemSettings settings;
@@ -229,13 +271,11 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
-    if (maxPagedLOD > 0)
+    auto animations = vsg::visit<vsg::FindAnimations>(universe).animations;
+    for(auto& animation : animations)
     {
-        // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-        for (auto& task : viewer->recordAndSubmitTasks)
-        {
-            if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
-        }
+        animation->speed = speed;
+        viewer->animationManager->play(animation);
     }
 
     // rendering main loop
