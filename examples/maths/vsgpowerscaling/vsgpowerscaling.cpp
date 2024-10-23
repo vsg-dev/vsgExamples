@@ -7,6 +7,58 @@
 #include <iostream>
 #include <thread>
 
+struct SolarSystemSettings
+{
+    vsg::ref_ptr<vsg::Builder> builder;
+    vsg::ref_ptr<vsg::Options> options;
+    vsg::ref_ptr<vsg::TileDatabaseSettings> tileDatabaseSettings;
+    double earth_to_sun_distance = 1.49e11;
+    double sun_radius = 6.9547e8;
+};
+
+vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
+{
+    auto solar_system_one = vsg::MatrixTransform::create();
+
+    // create earth one
+    auto earth_one = vsg::TileDatabase::create();
+    earth_one->settings = settings.tileDatabaseSettings;
+    earth_one->readDatabase(settings.options);
+
+    auto earth_transform_one = vsg::MatrixTransform::create();
+    earth_transform_one->addChild(earth_one);
+    earth_transform_one->matrix = vsg::translate(settings.earth_to_sun_distance, 0.0, 0.0);
+
+    solar_system_one->addChild(earth_transform_one);
+
+    // create sun one
+
+    vsg::GeometryInfo geom;
+    vsg::StateInfo state;
+
+
+    // vsg::Builder uses floats for sizing as it's intended for small local objects,
+    // we'll ignore limitations for now as we won't be going close to sun's surface'
+    geom.dx.set(2.0f*settings.sun_radius, 0.0f, 0.0f);
+    geom.dy.set(0.0f, 2.0f*settings.sun_radius, 0.0f);
+    geom.dz.set(0.0f, 0.0f, 2.0f*settings.sun_radius);
+    geom.color.set(1.0f, 1.0f, 0.9f, 1.0f);
+
+    state.lighting = false;
+
+    auto sun_one = settings.builder->createSphere(geom, state);
+
+    solar_system_one->addChild(sun_one);
+
+    auto light = vsg::PointLight::create();
+    light->intensity = settings.earth_to_sun_distance * settings.earth_to_sun_distance;
+    light->position.set(0.0f, 0.0f, 0.0f);
+    light->color.set(1.0f, 1.0f, 1.0f);
+    solar_system_one->addChild(light);
+
+    return solar_system_one;
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -43,7 +95,15 @@ int main(int argc, char** argv)
 
     VkClearColorValue clearColor{{0.0f, 0.0f, 0.0f, 1.0f}};
 
-    vsg::ref_ptr<vsg::TileDatabaseSettings> settings;
+    // set up the solar system paramaters
+    SolarSystemSettings settings;
+
+    settings.options = options;
+    settings.builder = vsg::Builder::create();
+    settings.builder->options = options;
+
+    settings.sun_radius = arguments.value<double>(6.957e7, "--sun-radius");
+    settings.earth_to_sun_distance = arguments.value<double>(1.49e8, {"--earth-to-sun-distance", "--sd"}); //1.49e11;
 
     if (arguments.read("--bing-maps"))
     {
@@ -61,48 +121,45 @@ int main(int argc, char** argv)
         vsg::info("culture = ", culture);
         vsg::info("key = ", key);
 
-        settings = vsg::createBingMapsSettings(imagerySet, culture, key, options);
+        settings.tileDatabaseSettings = vsg::createBingMapsSettings(imagerySet, culture, key, options);
     }
 
     if (arguments.read("--rm"))
     {
         // setup ready map settings
-        settings = vsg::TileDatabaseSettings::create();
-        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        settings->noX = 2;
-        settings->noY = 1;
-        settings->maxLevel = 10;
-        settings->originTopLeft = true;
-        settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
-        // settings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+        settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
+        settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings.tileDatabaseSettings->noX = 2;
+        settings.tileDatabaseSettings->noY = 1;
+        settings.tileDatabaseSettings->maxLevel = 10;
+        settings.tileDatabaseSettings->originTopLeft = true;
+        settings.tileDatabaseSettings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
+        // settings.tileDatabaseSettings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
     }
 
-    if (arguments.read("--osm") || !settings)
+    if (arguments.read("--osm") || !settings.tileDatabaseSettings)
     {
         // setup OpenStreetMap settings
-        settings = vsg::TileDatabaseSettings::create();
-        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        settings->noX = 1;
-        settings->noY = 1;
-        settings->maxLevel = 17;
-        settings->originTopLeft = true;
-        settings->lighting = true;
-        settings->projection = "EPSG:3857"; // Spherical Mecator
-        settings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+        settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
+        settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings.tileDatabaseSettings->noX = 1;
+        settings.tileDatabaseSettings->noY = 1;
+        settings.tileDatabaseSettings->maxLevel = 17;
+        settings.tileDatabaseSettings->originTopLeft = true;
+        settings.tileDatabaseSettings->lighting = true;
+        settings.tileDatabaseSettings->projection = "EPSG:3857"; // Spherical Mecator
+        settings.tileDatabaseSettings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
     }
 
-    if (!settings)
+    if (!settings.tileDatabaseSettings)
     {
         std::cout << "No TileDatabaseSettings assigned." << std::endl;
         return 1;
     }
 
-    arguments.read("-t", settings->lodTransitionScreenHeightRatio);
-    arguments.read("-m", settings->maxLevel);
+    arguments.read("-t", settings.tileDatabaseSettings->lodTransitionScreenHeightRatio);
+    arguments.read("-m", settings.tileDatabaseSettings->maxLevel);
 
-
-    auto builder = vsg::Builder::create();
-    builder->options = options;
 
     auto universe = vsg::Group::create();
 
@@ -110,46 +167,8 @@ int main(int argc, char** argv)
     // create solar system one
     //
 
-    double sun_radius = 6.957 * 10e6;
-    double earth_to_sun_distance = 1.49e8; //1.49e11;
+    auto solar_system_one = creteSolarSystem(settings);
 
-    auto solar_system_one = vsg::MatrixTransform::create();
-
-    // create earth one
-    auto earth_one = vsg::TileDatabase::create();
-    earth_one->settings = settings;
-    earth_one->readDatabase(options);
-
-    auto earth_transform_one = vsg::MatrixTransform::create();
-    earth_transform_one->addChild(earth_one);
-    earth_transform_one->matrix = vsg::translate(earth_to_sun_distance, 0.0, 0.0);
-
-    solar_system_one->addChild(earth_transform_one);
-
-    // create sun one
-
-    vsg::GeometryInfo geom;
-    vsg::StateInfo state;
-
-
-    // vsg::Builder uses floats for sizing as it's intended for small local objects,
-    // we'll ignore limitations for now as we won't be going close to sun's surface'
-    geom.dx.set(2.0f*sun_radius, 0.0f, 0.0f);
-    geom.dy.set(0.0f, 2.0f*sun_radius, 0.0f);
-    geom.dz.set(0.0f, 0.0f, 2.0f*sun_radius);
-    geom.color.set(1.0f, 1.0f, 0.9f, 1.0f);
-
-    state.lighting = false;
-
-    auto sun_one = builder->createSphere(geom, state);
-
-    solar_system_one->addChild(sun_one);
-
-    auto light = vsg::PointLight::create();
-    light->intensity = earth_to_sun_distance*earth_to_sun_distance;
-    light->position.set(0.0f, 0.0f, 0.0f);
-    light->color.set(1.0f, 1.0f, 1.0f);
-    solar_system_one->addChild(light);
 
     universe->addChild(solar_system_one);
 
