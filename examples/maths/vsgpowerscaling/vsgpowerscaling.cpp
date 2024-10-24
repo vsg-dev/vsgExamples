@@ -7,6 +7,34 @@
 #include <iostream>
 #include <thread>
 
+
+vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars)
+{
+    auto stategroup =  vsg::StateGroup::create();
+
+    // set up the star positions
+    auto vertices = vsg::vec3Array::create(numStars);
+    for(auto& v : *vertices)
+    {
+        // lazy when to ensure vertices lie within sphere - just keep recomputing the position if the position is outside the maxRadius
+        do
+        {
+            v.x = maxRadius * static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
+            v.y = maxRadius * static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
+            v.z = maxRadius * static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
+        } while (vsg::length(v) > maxRadius);
+    }
+
+    auto vertexDraw = vsg::VertexDraw::create();
+    vertexDraw->assignArrays({vertices});
+    vertexDraw->vertexCount = numStars;
+
+    stategroup->addChild(vertexDraw);
+
+    return stategroup;
+}
+
+
 struct SolarSystemSettings
 {
     vsg::ref_ptr<vsg::Builder> builder;
@@ -138,6 +166,9 @@ int main(int argc, char** argv)
     double distance_between_systems = arguments.value<double>(1.0e9, "--distance");
     double speed = arguments.value<double>(1.0, "--speed");
 
+    auto starfieldRadius = arguments.value(1e10, {"--starfield-radius", "--sr"});
+    auto numStars = arguments.value(1e6, {"--numstars", "--ns"});
+
     // set up the solar system paramaters
     SolarSystemSettings settings;
 
@@ -205,6 +236,15 @@ int main(int argc, char** argv)
 
 
     auto universe = vsg::Group::create();
+
+
+    // create starfield
+
+    if (auto starfield = createStarfield(starfieldRadius, numStars))
+    {
+        universe->addChild(starfield);
+    }
+
 
     //
     // create solar system one
