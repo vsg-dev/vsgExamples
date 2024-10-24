@@ -14,9 +14,10 @@ struct SolarSystemSettings
     vsg::ref_ptr<vsg::TileDatabaseSettings> tileDatabaseSettings;
     double earth_to_sun_distance = 1.49e11;
     double sun_radius = 6.9547e8;
+    vsg::vec4 sun_color = {1.0f, 1.0f, 0.5f, 1.0f};
 };
 
-vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
+vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& settings)
 {
     auto solar_system = vsg::MatrixTransform::create();
 
@@ -64,7 +65,6 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     auto oribit_animation = vsg::Animation::create();
     oribit_animation->samplers.push_back(orbit_transformSampler);
 
-
     auto animationGroup = vsg::AnimationGroup::create();
     animationGroup->animations.push_back(earth_animation);
     animationGroup->animations.push_back(oribit_animation);
@@ -82,7 +82,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     geom.dx.set(2.0f*settings.sun_radius, 0.0f, 0.0f);
     geom.dy.set(0.0f, 2.0f*settings.sun_radius, 0.0f);
     geom.dz.set(0.0f, 0.0f, 2.0f*settings.sun_radius);
-    geom.color.set(1.0f, 1.0f, 0.9f, 1.0f);
+    geom.color = settings.sun_color;
 
     state.lighting = false;
 
@@ -93,7 +93,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     auto light = vsg::PointLight::create();
     light->intensity = settings.earth_to_sun_distance * settings.earth_to_sun_distance;
     light->position.set(0.0f, 0.0f, 0.0f);
-    light->color.set(1.0f, 1.0f, 1.0f);
+    light->color = settings.sun_color.rgb;
     solar_system->addChild(light);
 
     return solar_system;
@@ -135,6 +135,7 @@ int main(int argc, char** argv)
     VkClearColorValue clearColor{{0.0f, 0.0f, 0.0f, 1.0f}};
 
 
+    double distance_between_systems = arguments.value<double>(1.0e9, "--distance");
     double speed = arguments.value<double>(1.0, "--speed");
 
     // set up the solar system paramaters
@@ -208,11 +209,15 @@ int main(int argc, char** argv)
     //
     // create solar system one
     //
-
+    settings.sun_color.set(1.0f, 1.0f, 0.2f, 1.0f);
     auto solar_system_one = creteSolarSystem(settings);
 
+    settings.sun_color.set(1.0f, 0.5f, 0.2f, 1.0f);
+    auto solar_system_two = creteSolarSystem(settings);
+    solar_system_two->matrix = vsg::translate(distance_between_systems, 0.0, 0.0);
 
     universe->addChild(solar_system_one);
+    universe->addChild(solar_system_two);
 
     //
     // end of creating solar system one
