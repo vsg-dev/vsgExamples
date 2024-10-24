@@ -8,33 +8,6 @@
 #include <thread>
 
 
-vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars)
-{
-    auto stategroup =  vsg::StateGroup::create();
-
-    // set up the star positions
-    auto vertices = vsg::vec3Array::create(numStars);
-    for(auto& v : *vertices)
-    {
-        // lazy when to ensure vertices lie within sphere - just keep recomputing the position if the position is outside the maxRadius
-        do
-        {
-            v.x = maxRadius * static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
-            v.y = maxRadius * static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
-            v.z = maxRadius * static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX);
-        } while (vsg::length(v) > maxRadius);
-    }
-
-    auto vertexDraw = vsg::VertexDraw::create();
-    vertexDraw->assignArrays({vertices});
-    vertexDraw->vertexCount = numStars;
-
-    stategroup->addChild(vertexDraw);
-
-    return stategroup;
-}
-
-
 struct SolarSystemSettings
 {
     vsg::ref_ptr<vsg::Builder> builder;
@@ -43,7 +16,85 @@ struct SolarSystemSettings
     double earth_to_sun_distance = 1.49e11;
     double sun_radius = 6.9547e8;
     vsg::vec4 sun_color = {1.0f, 1.0f, 0.5f, 1.0f};
+
+    vsg::ref_ptr<vsg::ShaderSet> flatShaderSet;
+    vsg::ref_ptr<vsg::ShaderSet> phongShaderSet;
+    vsg::ref_ptr<vsg::ShaderSet> pbrShaderSet;
 };
+
+vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars, vsg::ref_ptr<vsg::ShaderSet> shaderSet)
+{
+    // set up the star positions
+    auto vertices = vsg::vec3Array::create(numStars);
+    auto colors = vsg::vec4Array::create(numStars);
+    for(auto& v : *vertices)
+    {
+        // lazy when to ensure vertices lie within sphere - just keep recomputing the position if the position is outside the maxRadius
+        do
+        {
+            v.x = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
+            v.y = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
+            v.z = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
+        } while (vsg::length(v) > maxRadius);
+    }
+
+    for(auto& c : *colors)
+    {
+        float brightness = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+        c.set(brightness, brightness, brightness, 1.0);
+    }
+
+    auto normals = vsg::vec3Value::create(vsg::vec3(0.0f, 0.0f, 1.0f));
+    auto texcoords = vsg::vec2Value::create(vsg::vec2(1.0f, 1.0f));
+
+
+    // configure the state and array layouts to assign to the scene graph
+    auto graphicsPipelineConfig = vsg::GraphicsPipelineConfigurator::create(shaderSet);
+
+
+    vsg::DataList vertexArrays;
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, vertices);
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Normals", VK_VERTEX_INPUT_RATE_INSTANCE, normals);
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_TexCoord0", VK_VERTEX_INPUT_RATE_INSTANCE, texcoords);
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colors);
+
+    // set up passing of material
+    auto mat = vsg::PhongMaterialValue::create();
+    graphicsPipelineConfig->assignDescriptor("material", mat);
+
+    struct SetPipelineStates : public vsg::Visitor
+    {
+
+        void apply(vsg::Object& object) override
+        {
+            object.traverse(*this);
+        }
+
+        void apply(vsg::InputAssemblyState& ias) override
+        {
+            ias.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        }
+    } sps;
+
+    graphicsPipelineConfig->accept(sps);
+
+    auto vertexDraw = vsg::VertexDraw::create();
+    vertexDraw->assignArrays(vertexArrays);
+    vertexDraw->vertexCount = numStars;
+    vertexDraw->instanceCount = 1;
+    vertexDraw->firstBinding = graphicsPipelineConfig->baseAttributeBinding;
+
+    graphicsPipelineConfig->init();
+
+    // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
+    auto stateGroup = vsg::StateGroup::create();
+
+    graphicsPipelineConfig->copyTo(stateGroup);
+
+    stateGroup->addChild(vertexDraw);
+
+    return stateGroup;
+}
 
 vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& settings)
 {
@@ -99,19 +150,19 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
 
     solar_system->addChild(animationGroup);
 
-    // create sun one
+    // create sun
 
-    vsg::GeometryInfo geom;
-    vsg::StateInfo state;
-
+    settings.builder->shaderSet = settings.flatShaderSet;
 
     // vsg::Builder uses floats for sizing as it's intended for small local objects,
     // we'll ignore limitations for now as we won't be going close to sun's surface'
+    vsg::GeometryInfo geom;
     geom.dx.set(2.0f*settings.sun_radius, 0.0f, 0.0f);
     geom.dy.set(0.0f, 2.0f*settings.sun_radius, 0.0f);
     geom.dz.set(0.0f, 0.0f, 2.0f*settings.sun_radius);
     geom.color = settings.sun_color;
 
+    vsg::StateInfo state;
     state.lighting = false;
 
     auto sun = settings.builder->createSphere(geom, state);
@@ -167,10 +218,15 @@ int main(int argc, char** argv)
     double speed = arguments.value<double>(1.0, "--speed");
 
     auto starfieldRadius = arguments.value(1e10, {"--starfield-radius", "--sr"});
-    auto numStars = arguments.value(1e6, {"--numstars", "--ns"});
+    auto numStars = arguments.value(1e5, {"--numstars", "--ns"});
+
 
     // set up the solar system paramaters
     SolarSystemSettings settings;
+
+    settings.flatShaderSet = vsg::createFlatShadedShaderSet(options);
+    settings.phongShaderSet = vsg::createPhongShaderSet(options);
+    settings.pbrShaderSet = vsg::createPhysicsBasedRenderingShaderSet(options);
 
     settings.options = options;
     settings.builder = vsg::Builder::create();
@@ -231,16 +287,17 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    settings.tileDatabaseSettings->shaderSet = settings.phongShaderSet;
+
     arguments.read("-t", settings.tileDatabaseSettings->lodTransitionScreenHeightRatio);
     arguments.read("-m", settings.tileDatabaseSettings->maxLevel);
-
 
     auto universe = vsg::Group::create();
 
 
     // create starfield
 
-    if (auto starfield = createStarfield(starfieldRadius, numStars))
+    if (auto starfield = createStarfield(starfieldRadius, numStars, settings.flatShaderSet))
     {
         universe->addChild(starfield);
     }
