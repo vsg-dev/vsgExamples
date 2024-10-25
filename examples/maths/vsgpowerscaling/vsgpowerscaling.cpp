@@ -178,6 +178,30 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
     return solar_system;
 }
 
+class FindViewpoints : public vsg::Visitor
+{
+public:
+
+    std::multimap<std::string, vsg::RefObjectPath> viewpoints;
+    vsg::ObjectPath objectPath;
+
+    void apply(vsg::Object& object)
+    {
+        objectPath.push_back(&object);
+
+        std::string name;
+        if (object.getValue("viewpoint", name))
+        {
+            viewpoints.emplace(name, vsg::RefObjectPath(objectPath.begin(), objectPath.end()));
+        }
+
+        object.traverse(*this);
+
+        objectPath.pop_back();
+
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -308,13 +332,16 @@ int main(int argc, char** argv)
     //
     settings.sun_color.set(1.0f, 1.0f, 0.2f, 1.0f);
     auto solar_system_one = creteSolarSystem(settings);
+    solar_system_one->setValue("viewpoint", "solar_system_one");
 
     settings.sun_color.set(1.0f, 0.5f, 0.2f, 1.0f);
     auto solar_system_two = creteSolarSystem(settings);
     solar_system_two->matrix = vsg::translate(distance_between_systems, 0.0, 0.0);
+    solar_system_two->setValue("viewpoint", "solar_system_two");
 
     universe->addChild(solar_system_one);
     universe->addChild(solar_system_two);
+    universe->setValue("viewpoint", "universe");
 
     //
     // end of creating solar system one
@@ -326,6 +353,15 @@ int main(int argc, char** argv)
     {
         vsg::write(universe, outputFilename);
         return 0;
+    }
+
+    // get the viewpoints
+    auto viewpoints = vsg::visit<FindViewpoints>(universe).viewpoints;
+    for(auto& [name, objectPath] : viewpoints)
+    {
+        std::cout<<"viewoint ["<<name<<"] ";
+        for(auto& obj : objectPath) std::cout<<obj<<" ";
+        std::cout<<std::endl;
     }
 
     // create the viewer and assign window(s) to it
