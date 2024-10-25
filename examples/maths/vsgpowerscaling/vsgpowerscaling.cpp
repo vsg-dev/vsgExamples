@@ -10,6 +10,7 @@
 
 struct SolarSystemSettings
 {
+    std::string name;
     vsg::ref_ptr<vsg::Builder> builder;
     vsg::ref_ptr<vsg::Options> options;
     vsg::ref_ptr<vsg::TileDatabaseSettings> tileDatabaseSettings;
@@ -100,11 +101,14 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
 {
     auto solar_system = vsg::MatrixTransform::create();
 
+    if (!settings.name.empty()) solar_system->setValue("viewpoint", settings.name+"_system");
+
     double day = 24.0 * 60.0 * 60.0;
     double year = 365.25 * day;
 
     // create earth one
     auto earth = vsg::TileDatabase::create();
+    earth->setValue("viewpoint", settings.name+"_earth");
     earth->settings = settings.tileDatabaseSettings;
     earth->readDatabase(settings.options);
 
@@ -113,9 +117,10 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
     earth_transform->matrix = vsg::translate(settings.earth_to_sun_distance, 0.0, 0.0);
 
     auto earth_orbit_transform = vsg::MatrixTransform::create();
-    earth_orbit_transform->addChild(earth);
+    earth_orbit_transform->setValue("viewpoint", settings.name+"_orbit");
     earth_orbit_transform->addChild(earth_transform);
     solar_system->addChild(earth_orbit_transform);
+
 
     // animate the earths rotation around it's axis
     auto earth_keyframes = vsg::TransformKeyframes::create();
@@ -166,6 +171,8 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
     state.lighting = false;
 
     auto sun = settings.builder->createSphere(geom, state);
+
+    sun->setValue("viewpoint", settings.name+"_sun");
 
     solar_system->addChild(sun);
 
@@ -243,7 +250,7 @@ int main(int argc, char** argv)
 
     auto starfieldRadius = arguments.value(1e10, {"--starfield-radius", "--sr"});
     auto numStars = arguments.value(1e5, {"--numstars", "--ns"});
-
+    auto active_viewpoint = arguments.value<std::string>("", {"--viewpoint"});
 
     // set up the solar system paramaters
     SolarSystemSettings settings;
@@ -330,14 +337,14 @@ int main(int argc, char** argv)
     //
     // create solar system one
     //
+    settings.name = "first";
     settings.sun_color.set(1.0f, 1.0f, 0.2f, 1.0f);
     auto solar_system_one = creteSolarSystem(settings);
-    solar_system_one->setValue("viewpoint", "solar_system_one");
 
+    settings.name = "second";
     settings.sun_color.set(1.0f, 0.5f, 0.2f, 1.0f);
     auto solar_system_two = creteSolarSystem(settings);
     solar_system_two->matrix = vsg::translate(distance_between_systems, 0.0, 0.0);
-    solar_system_two->setValue("viewpoint", "solar_system_two");
 
     universe->addChild(solar_system_one);
     universe->addChild(solar_system_two);
@@ -394,11 +401,19 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
+    auto animations = vsg::visit<vsg::FindAnimations>(universe).animations;
+    for(auto& animation : animations)
+    {
+        animation->speed = speed;
+        viewer->animationManager->play(animation);
+    }
+
+
     auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
     viewer->addEventHandler(cameraAnimation);
     if (cameraAnimation->animation) cameraAnimation->play();
 
-    viewer->addEventHandler(vsg::Trackball::create(camera));
+    if (active_viewpoint.empty()) viewer->addEventHandler(vsg::Trackball::create(camera));
 
     auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
     renderGraph->setClearValues(clearColor);
@@ -409,18 +424,22 @@ int main(int argc, char** argv)
 
     viewer->compile();
 
-    auto animations = vsg::visit<vsg::FindAnimations>(universe).animations;
-    for(auto& animation : animations)
-    {
-        animation->speed = speed;
-        viewer->animationManager->play(animation);
-    }
-
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
+
+        if (!active_viewpoint.empty())
+        {
+            auto itr = viewpoints.find(active_viewpoint);
+            if (itr != viewpoints.end())
+            {
+                auto matrix = vsg::computeTransform(itr->second);
+                std::cout<<"matrix = "<<matrix;
+                lookAt->set(matrix);
+            }
+        }
 
         viewer->update();
 
