@@ -105,6 +105,7 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
 
     double day = 24.0 * 60.0 * 60.0;
     double year = 365.25 * day;
+    double earth_radius = settings.tileDatabaseSettings->ellipsoidModel->radiusEquator();
 
     // create earth one
     auto earth = vsg::TileDatabase::create();
@@ -112,28 +113,44 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
     earth->settings = settings.tileDatabaseSettings;
     earth->readDatabase(settings.options);
 
-    auto earth_transform = vsg::MatrixTransform::create();
-    earth_transform->addChild(earth);
-    earth_transform->matrix = vsg::translate(settings.earth_to_sun_distance, 0.0, 0.0);
+    auto earth_view = vsg::MatrixTransform::create();
+    earth_view->setValue("viewpoint", settings.name+"_earth_view");
+    earth_view->matrix = vsg::translate(0.0, -earth_radius * 5.0, 0.0) *  vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0);
+    earth_view->matrix = vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
+
+    auto earth_rotation_about_axis = vsg::MatrixTransform::create();
+    earth_rotation_about_axis->addChild(earth);
+    earth_rotation_about_axis->addChild(earth_view);
+
+
+    auto orbit_view = vsg::MatrixTransform::create();
+    orbit_view->setValue("viewpoint", settings.name+"_orbit_view");
+    orbit_view->matrix = vsg::rotate(vsg::radians(45.0), 0.0, 0.0, 1.0) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
+
+    auto earth_position_from_sun = vsg::MatrixTransform::create();
+    earth_position_from_sun->addChild(earth_rotation_about_axis);
+    earth_position_from_sun->addChild(orbit_view);
+    earth_position_from_sun->matrix = vsg::translate(settings.earth_to_sun_distance, 0.0, 0.0);
+
 
     auto earth_orbit_transform = vsg::MatrixTransform::create();
     earth_orbit_transform->setValue("viewpoint", settings.name+"_orbit");
-    earth_orbit_transform->addChild(earth_transform);
+    earth_orbit_transform->addChild(earth_position_from_sun);
     solar_system->addChild(earth_orbit_transform);
-
 
     // animate the earths rotation around it's axis
     auto earth_keyframes = vsg::TransformKeyframes::create();
-    earth_keyframes->add(0.0, vsg::dvec3(settings.earth_to_sun_distance, 0.0, 0.0), vsg::dquat(vsg::radians(0.0), vsg::dvec3(0.0, 0.0, 1.0)));
-    earth_keyframes->add(day*0.5, vsg::dvec3(settings.earth_to_sun_distance, 0.0, 0.0), vsg::dquat(vsg::radians(180.0), vsg::dvec3(0.0, 0.0, 1.0)));
-    earth_keyframes->add(day, vsg::dvec3(settings.earth_to_sun_distance, 0.0, 0.0), vsg::dquat(vsg::radians(360.0), vsg::dvec3(0.0, 0.0, 1.0)));
+    earth_keyframes->add(0.0, vsg::dvec3(0.0, 0.0, 0.0), vsg::dquat(vsg::radians(0.0), vsg::dvec3(0.0, 0.0, 1.0)));
+    earth_keyframes->add(day*0.5, vsg::dvec3(0.0, 0.0, 0.0), vsg::dquat(vsg::radians(180.0), vsg::dvec3(0.0, 0.0, 1.0)));
+    earth_keyframes->add(day, vsg::dvec3(0.0, 0.0, 0.0), vsg::dquat(vsg::radians(360.0), vsg::dvec3(0.0, 0.0, 1.0)));
 
-    auto earth_transformSampler = vsg::TransformSampler::create();
-    earth_transformSampler->keyframes = earth_keyframes;
-    earth_transformSampler->object = earth_transform;
+    auto earth_rotation_about_axisSampler = vsg::TransformSampler::create();
+    earth_rotation_about_axisSampler->keyframes = earth_keyframes;
+    earth_rotation_about_axisSampler->object = earth_rotation_about_axis;
 
     auto earth_animation = vsg::Animation::create();
-    earth_animation->samplers.push_back(earth_transformSampler);
+    earth_animation->samplers.push_back(earth_rotation_about_axisSampler);
+
 
 
     // animate the earths rotation around the sun
@@ -338,11 +355,11 @@ int main(int argc, char** argv)
     // create solar system one
     //
     settings.name = "first";
-    settings.sun_color.set(1.0f, 1.0f, 0.2f, 1.0f);
+    settings.sun_color.set(1.0f, 1.0f, 0.7f, 1.0f);
     auto solar_system_one = creteSolarSystem(settings);
 
     settings.name = "second";
-    settings.sun_color.set(1.0f, 0.5f, 0.2f, 1.0f);
+    settings.sun_color.set(1.0f, 0.8f, 0.7f, 1.0f);
     auto solar_system_two = creteSolarSystem(settings);
     solar_system_two->matrix = vsg::translate(distance_between_systems, 0.0, 0.0);
 
@@ -436,10 +453,15 @@ int main(int argc, char** argv)
             if (itr != viewpoints.end())
             {
                 auto matrix = vsg::computeTransform(itr->second);
-                std::cout<<"matrix = "<<matrix;
+#if 0
+                lookAt->set(vsg::inverse(matrix));
+#else
                 lookAt->set(matrix);
+#endif
             }
         }
+
+        //std::cout<<"lookAt eye = "<<lookAt->eye<< ", center = "<<lookAt->center<<", up = "<<lookAt->up<<std::endl;
 
         viewer->update();
 
@@ -450,3 +472,4 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
