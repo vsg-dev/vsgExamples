@@ -263,6 +263,58 @@ public:
     }
 };
 
+class StellarManipulator : public vsg::Inherit<vsg::Visitor, StellarManipulator>
+{
+public:
+
+    vsg::ref_ptr<StellarView> stellarView;
+    vsg::time_point previousTime;
+    std::multimap<std::string, vsg::RefObjectPath> viewpoints;
+    vsg::RefObjectPath currentFocus;
+
+    StellarManipulator(vsg::ref_ptr<StellarView> in_stellarView) :
+        stellarView(in_stellarView)
+    {
+        previousTime = vsg::clock::now();
+    }
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        currentFocus.clear();
+
+        if (keyPress.keyBase >= vsg::KEY_1 && keyPress.keyBase <= vsg::KEY_9)
+        {
+            if (viewpoints.empty()) return;
+
+            uint16_t key = vsg::KEY_1;
+            auto itr = viewpoints.begin();
+            while(key < keyPress.keyBase  && itr != viewpoints.end())
+            {
+                ++itr;
+                ++key;
+            }
+
+            if (itr == viewpoints.end()) return;
+
+            currentFocus = itr->second;
+
+            //auto matrix = vsg::computeTransform(itr->second);
+            //stellarView->set(matrix);
+        }
+    }
+
+
+    void apply(vsg::FrameEvent& /*frame*/) override
+    {
+        if (!currentFocus.empty())
+        {
+            auto matrix = vsg::computeTransform(currentFocus);
+            stellarView->set(matrix);
+        }
+    }
+};
+
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -292,7 +344,6 @@ int main(int argc, char** argv)
     if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
     auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value<vsg::Path>("", "-p");
     if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
     arguments.read("--file-cache", options->fileCache);
 
@@ -448,18 +499,10 @@ int main(int argc, char** argv)
     vsg::info("universe bounds computeBounds.bounds = ", computeBounds.bounds);
 
     // set up the camera
-#define STELLA_VIEW 1
-
-#if STELLA_VIEW
     auto stellarView = StellarView::create();
     stellarView->position = centre + vsg::dvec3(0.0, -radius * 3.5, 0.0);
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
     auto camera = vsg::Camera::create(perspective, stellarView, vsg::ViewportState::create(window->extent2D()));
-#else
-    auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
-    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-#endif
 
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
@@ -472,11 +515,19 @@ int main(int argc, char** argv)
     }
 
 
-    auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
-    viewer->addEventHandler(cameraAnimation);
-    if (cameraAnimation->animation) cameraAnimation->play();
+    auto stellarManipulator = StellarManipulator::create(stellarView);
+    stellarManipulator->viewpoints = viewpoints;
+    viewer->addEventHandler(stellarManipulator);
 
-    if (active_viewpoint.empty()) viewer->addEventHandler(vsg::Trackball::create(camera));
+    if (!active_viewpoint.empty())
+    {
+        auto itr = viewpoints.find(active_viewpoint);
+        if (itr != viewpoints.end())
+        {
+            stellarManipulator->currentFocus = itr->second;
+        }
+    }
+
 
     auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
     renderGraph->setClearValues(clearColor);
@@ -492,22 +543,6 @@ int main(int argc, char** argv)
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
-
-        if (!active_viewpoint.empty())
-        {
-            auto itr = viewpoints.find(active_viewpoint);
-            if (itr != viewpoints.end())
-            {
-                auto matrix = vsg::computeTransform(itr->second);
-#if STELLA_VIEW
-                stellarView->set(matrix);
-#else
-                lookAt->set(matrix);
-#endif
-            }
-        }
-
-        //std::cout<<"lookAt eye = "<<lookAt->eye<< ", center = "<<lookAt->center<<", up = "<<lookAt->up<<std::endl;
 
         viewer->update();
 
