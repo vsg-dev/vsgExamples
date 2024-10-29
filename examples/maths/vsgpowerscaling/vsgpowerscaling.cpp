@@ -226,6 +226,43 @@ public:
     }
 };
 
+
+class StellarView : public vsg::Inherit<vsg::ViewMatrix, StellarView>
+{
+public:
+
+    StellarView() :
+        position(0.0, 0.0, 0.0),
+        rotation{},
+        scale(1.0, 1.0, 1.0)
+    {
+    }
+
+    StellarView(const StellarView& view, const vsg::CopyOp& copyop = {}) :
+        Inherit(view, copyop),
+        position(view.position),
+        rotation(view.rotation),
+        scale(view.scale)
+    {
+    }
+
+    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override { return StellarView::create(*this, copyop); }
+
+    vsg::dvec3 position;
+    vsg::dquat rotation;
+    vsg::dvec3 scale;
+
+    void set(const vsg::dmat4& matrix)
+    {
+        vsg::decompose(matrix, position, rotation, scale);
+    }
+
+    vsg::dmat4 transform() const override
+    {
+        return vsg::scale(1.0/scale.x, 1.0/scale.y, 1.0/scale.z) * vsg::rotate(-rotation) * vsg::translate(-position);
+    }
+};
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -411,9 +448,18 @@ int main(int argc, char** argv)
     vsg::info("universe bounds computeBounds.bounds = ", computeBounds.bounds);
 
     // set up the camera
+#define STELLA_VIEW 1
+
+#if STELLA_VIEW
+    auto stellarView = StellarView::create();
+    stellarView->position = centre + vsg::dvec3(0.0, -radius * 3.5, 0.0);
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+    auto camera = vsg::Camera::create(perspective, stellarView, vsg::ViewportState::create(window->extent2D()));
+#else
     auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+#endif
 
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
@@ -453,8 +499,8 @@ int main(int argc, char** argv)
             if (itr != viewpoints.end())
             {
                 auto matrix = vsg::computeTransform(itr->second);
-#if 0
-                lookAt->set(vsg::inverse(matrix));
+#if STELLA_VIEW
+                stellarView->set(matrix);
 #else
                 lookAt->set(matrix);
 #endif
