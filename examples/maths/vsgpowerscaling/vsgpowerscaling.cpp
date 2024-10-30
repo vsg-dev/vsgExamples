@@ -101,7 +101,11 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
 {
     auto solar_system = vsg::MatrixTransform::create();
 
-    if (!settings.name.empty()) solar_system->setValue("viewpoint", settings.name+"_system");
+    auto sun_view = vsg::MatrixTransform::create();
+    sun_view->setValue("viewpoint", settings.name+"sun_view");
+    sun_view->matrix =  vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, settings.earth_to_sun_distance*3.0);
+
+    solar_system->addChild(sun_view);
 
     double day = 24.0 * 60.0 * 60.0;
     double year = 365.25 * day;
@@ -113,8 +117,7 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
     earth->readDatabase(settings.options);
 
     auto earth_view = vsg::MatrixTransform::create();
-    earth_view->setValue("viewpoint", settings.name+"_earth_view");
-    earth_view->matrix = vsg::translate(0.0, -earth_radius * 5.0, 0.0) *  vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0);
+    earth_view->setValue("viewpoint", settings.name+"earth_view");
     earth_view->matrix = vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
 
     auto earth_rotation_about_axis = vsg::MatrixTransform::create();
@@ -123,7 +126,7 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
 
 
     auto orbit_view = vsg::MatrixTransform::create();
-    orbit_view->setValue("viewpoint", settings.name+"_orbit_view");
+    orbit_view->setValue("viewpoint", settings.name+"orbit_view");
     orbit_view->matrix = vsg::rotate(vsg::radians(45.0), 0.0, 0.0, 1.0) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
 
     auto earth_position_from_sun = vsg::MatrixTransform::create();
@@ -186,8 +189,6 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
     state.lighting = false;
 
     auto sun = settings.builder->createSphere(geom, state);
-
-    sun->setValue("viewpoint", settings.name+"_sun");
 
     solar_system->addChild(sun);
 
@@ -440,28 +441,24 @@ int main(int argc, char** argv)
     //
     // create solar system one
     //
-    settings.name = "first";
+    settings.name = "1. ";
     settings.sun_color.set(1.0f, 1.0f, 0.7f, 1.0f);
     auto solar_system_one = creteSolarSystem(settings);
     solar_system_one->matrix = vsg::translate(-distance_between_systems * 0.5, 0.0, 0.0);
 
-    settings.name = "second";
+    settings.name = "2. ";
     settings.sun_color.set(1.0f, 0.8f, 0.7f, 1.0f);
     auto solar_system_two = creteSolarSystem(settings);
     solar_system_two->matrix = vsg::translate(distance_between_systems * 0.5, 0.0, 0.0);
 
     auto universe_view = vsg::MatrixTransform::create();
-    universe_view->setValue("viewpoint", " _universe_view");
+    universe_view->setValue("viewpoint", "0. universe_view");
     universe_view->matrix =  vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, distance_between_systems*3.0);
 
     universe->addChild(solar_system_one);
     universe->addChild(solar_system_two);
     universe->addChild(universe_view);
 
-
-
-
-    universe->setValue("viewpoint", "universe_view");
 
     //
     // end of creating solar system one
