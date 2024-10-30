@@ -443,15 +443,25 @@ int main(int argc, char** argv)
     settings.name = "first";
     settings.sun_color.set(1.0f, 1.0f, 0.7f, 1.0f);
     auto solar_system_one = creteSolarSystem(settings);
+    solar_system_one->matrix = vsg::translate(-distance_between_systems * 0.5, 0.0, 0.0);
 
     settings.name = "second";
     settings.sun_color.set(1.0f, 0.8f, 0.7f, 1.0f);
     auto solar_system_two = creteSolarSystem(settings);
-    solar_system_two->matrix = vsg::translate(distance_between_systems, 0.0, 0.0);
+    solar_system_two->matrix = vsg::translate(distance_between_systems * 0.5, 0.0, 0.0);
+
+    auto universe_view = vsg::MatrixTransform::create();
+    universe_view->setValue("viewpoint", " _universe_view");
+    universe_view->matrix =  vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, distance_between_systems*3.0);
 
     universe->addChild(solar_system_one);
     universe->addChild(solar_system_two);
-    universe->setValue("viewpoint", "universe");
+    universe->addChild(universe_view);
+
+
+
+
+    universe->setValue("viewpoint", "universe_view");
 
     //
     // end of creating solar system one
