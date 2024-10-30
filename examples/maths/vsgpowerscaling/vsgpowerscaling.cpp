@@ -267,20 +267,21 @@ class StellarManipulator : public vsg::Inherit<vsg::Visitor, StellarManipulator>
 public:
 
     vsg::ref_ptr<StellarView> stellarView;
-    vsg::time_point previousTime;
     std::multimap<std::string, vsg::RefObjectPath> viewpoints;
     vsg::RefObjectPath currentFocus;
+
+    double animationDuration = 5.0;
+    vsg::time_point startTime;
+    vsg::RefObjectPath startViewpoint;
+    vsg::RefObjectPath targetViewpoint;
 
     StellarManipulator(vsg::ref_ptr<StellarView> in_stellarView) :
         stellarView(in_stellarView)
     {
-        previousTime = vsg::clock::now();
     }
 
     void apply(vsg::KeyPressEvent& keyPress) override
     {
-        currentFocus.clear();
-
         if (keyPress.keyBase >= vsg::KEY_1 && keyPress.keyBase <= vsg::KEY_9)
         {
             if (viewpoints.empty()) return;
@@ -295,7 +296,16 @@ public:
 
             if (itr == viewpoints.end()) return;
 
-            currentFocus = itr->second;
+            if (animationDuration<=0.0 || currentFocus.empty())
+            {
+                currentFocus = itr->second;
+            }
+            else
+            {
+                startTime = keyPress.time;
+                startViewpoint = currentFocus;
+                targetViewpoint = itr->second;
+            }
 
             //auto matrix = vsg::computeTransform(itr->second);
             //stellarView->set(matrix);
@@ -303,12 +313,47 @@ public:
     }
 
 
-    void apply(vsg::FrameEvent& /*frame*/) override
+    void apply(vsg::FrameEvent& frame) override
     {
+        if (!targetViewpoint.empty() && !startViewpoint.empty())
+        {
+            double timeSinceAnimationStart = std::chrono::duration<double, std::chrono::seconds::period>(frame.time - startTime).count();
+
+            if (timeSinceAnimationStart >= animationDuration)
+            {
+                currentFocus = targetViewpoint;
+                stellarView->set(vsg::computeTransform(currentFocus));
+
+                startViewpoint.clear();
+                targetViewpoint.clear();
+
+                return;
+            }
+
+            auto startMatrix = vsg::computeTransform(startViewpoint);
+            auto targetMatrix = vsg::computeTransform(targetViewpoint);
+
+            vsg::dvec3 startTranslation, startScale, targetTranslation, targetScale;
+            vsg::dquat startRotation, targetRotation;
+
+            vsg::decompose(startMatrix, startTranslation, startRotation, startScale);
+            vsg::decompose(targetMatrix, targetTranslation, targetRotation, targetScale);
+
+            double tr = (timeSinceAnimationStart /animationDuration);
+            double r = 1.0 - (1.0+cos(tr * vsg::PI))*0.5;
+
+            stellarView->position = vsg::mix(startTranslation, targetTranslation, r);
+            stellarView->rotation = vsg::mix(startRotation, targetRotation, r);
+            stellarView->scale = vsg::mix(startScale, targetScale, r);
+
+            return;
+        }
+
         if (!currentFocus.empty())
         {
-            auto matrix = vsg::computeTransform(currentFocus);
-            stellarView->set(matrix);
+            stellarView->set(vsg::computeTransform(currentFocus));
+            startViewpoint.clear();
+            targetViewpoint.clear();
         }
     }
 };
