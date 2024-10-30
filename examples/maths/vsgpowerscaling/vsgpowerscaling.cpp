@@ -109,7 +109,6 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
 
     // create earth one
     auto earth = vsg::TileDatabase::create();
-    earth->setValue("viewpoint", settings.name+"_earth");
     earth->settings = settings.tileDatabaseSettings;
     earth->readDatabase(settings.options);
 
@@ -134,7 +133,6 @@ vsg::ref_ptr<vsg::MatrixTransform> creteSolarSystem(SolarSystemSettings& setting
 
 
     auto earth_orbit_transform = vsg::MatrixTransform::create();
-    earth_orbit_transform->setValue("viewpoint", settings.name+"_orbit");
     earth_orbit_transform->addChild(earth_position_from_sun);
     solar_system->addChild(earth_orbit_transform);
 
@@ -524,8 +522,14 @@ int main(int argc, char** argv)
         auto itr = viewpoints.find(active_viewpoint);
         if (itr != viewpoints.end())
         {
+            vsg::info("initial viewpoint : ", itr->first);
             stellarManipulator->currentFocus = itr->second;
         }
+    }
+    else if (!viewpoints.empty())
+    {
+        stellarManipulator->currentFocus = viewpoints.begin()->second;
+        vsg::info("initial viewpoint : ", viewpoints.begin()->first);
     }
 
 
