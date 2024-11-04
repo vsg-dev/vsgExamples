@@ -397,7 +397,7 @@ int main(int argc, char** argv)
     double distance_between_systems = arguments.value<double>(1.0e9, "--distance");
     double speed = arguments.value<double>(1.0, "--speed");
 
-    auto starfieldRadius = arguments.value(1e10, {"--starfield-radius", "--sr"});
+    auto starfieldRadius = arguments.value(distance_between_systems * 2.0, {"--starfield-radius", "--sr"});
     auto numStars = arguments.value(1e5, {"--numstars", "--ns"});
     auto active_viewpoint = arguments.value<std::string>("", {"--viewpoint"});
 
