@@ -391,6 +391,15 @@ int main(int argc, char** argv)
     if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
     arguments.read("--file-cache", options->fileCache);
 
+    bool depthClamp = arguments.read({"--dc", "--depthClamp"});
+    if (depthClamp)
+    {
+        std::cout << "Enabled depth clamp." << std::endl;
+        auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+        deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+        deviceFeatures->get().depthClamp = VK_TRUE;
+    }
+
     VkClearColorValue clearColor{{0.0f, 0.0f, 0.0f, 1.0f}};
 
 
@@ -407,6 +416,23 @@ int main(int argc, char** argv)
     settings.flatShaderSet = vsg::createFlatShadedShaderSet(options);
     settings.phongShaderSet = vsg::createPhongShaderSet(options);
     settings.pbrShaderSet = vsg::createPhysicsBasedRenderingShaderSet(options);
+
+
+    if (depthClamp)
+    {
+        auto setUpDepthClamp = [](vsg::ShaderSet& shaderSet) -> void
+        {
+            auto rasterizationState = vsg::RasterizationState::create();
+            rasterizationState->depthClampEnable = VK_TRUE;
+            shaderSet.defaultGraphicsPipelineStates.push_back(rasterizationState);
+        };
+
+
+        setUpDepthClamp(*settings.flatShaderSet);
+        setUpDepthClamp(*settings.phongShaderSet);
+        setUpDepthClamp(*settings.pbrShaderSet);
+    }
+
 
     settings.options = options;
     settings.builder = vsg::Builder::create();
