@@ -30,13 +30,9 @@ vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars, vsg::
     auto colors = vsg::vec4Array::create(numStars);
     for(auto& v : *vertices)
     {
-        // lazy when to ensure vertices lie within sphere - just keep recomputing the position if the position is outside the maxRadius
-        do
-        {
-            v.x = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
-            v.y = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
-            v.z = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
-        } while (vsg::length(v) > maxRadius);
+        v.x = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
+        v.y = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
+        v.z = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
     }
 
     for(auto& c : *colors)
