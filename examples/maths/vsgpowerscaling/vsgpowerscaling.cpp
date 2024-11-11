@@ -376,6 +376,11 @@ void powerscale_test()
     std::cout<<"psc_linear_dv1 = ("<<psc_linear_dv1<<")"<<std::endl;
     std::cout<<"psc_linear_dv2 = ("<<psc_linear_dv2<<")"<<std::endl;
     std::cout<<"psc_linear_dv3 = ("<<psc_linear_dv3<<")"<<std::endl;
+
+    std::cout<<std::endl;
+    std::cout<<"std::numeric_limits<float>::max() = "<<std::numeric_limits<float>::max()<<std::endl;
+    std::cout<<"std::numeric_limits<double>::max() = "<<std::numeric_limits<double>::max()<<std::endl;
+    std::cout<<"std::numeric_limits<long double>::max() = "<<std::numeric_limits<long double>::max()<<std::endl;
 }
 
 int main(int argc, char** argv)
