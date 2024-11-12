@@ -355,8 +355,27 @@ public:
 };
 
 
+template<typename T>
+T precision(T v)
+{
+    T delta = v;
+    while (v < (v+delta))
+    {
+        delta /= static_cast<T>(2.0);
+    }
+
+    while (v == (v+delta))
+    {
+        delta *= static_cast<T>(1.001);
+    }
+
+    return delta;
+}
+
+
 void powerscale_test()
 {
+#ifdef VSG_SUPPORTS_PowerScale
     vsg::dvec3 dv1(1.0, 2.0, 3.0);
     vsg::dvec4 dv2(1.0, 2.0, 3.0, 4.0);
 
@@ -369,27 +388,36 @@ void powerscale_test()
     auto psc_linear_dv2 = psc_to_linear(psc_dv2);
     auto psc_linear_dv3 = psc_to_linear(psc_dv3);
 
-    std::cout<<"dv1 = ("<<dv1<<")"<<std::endl;
-    std::cout<<"dv2 = ("<<dv2<<")"<<std::endl;
-    std::cout<<"psc_dv3 = ("<<psc_dv3<<")"<<std::endl;
+    std::cout<<"powerscale tests"<<std::endl;
+    std::cout<<"    dv1 = ("<<dv1<<")"<<std::endl;
+    std::cout<<"    dv2 = ("<<dv2<<")"<<std::endl;
+    std::cout<<"    psc_dv3 = ("<<psc_dv3<<")"<<std::endl;
 
-    std::cout<<"psc_linear_dv1 = ("<<psc_linear_dv1<<")"<<std::endl;
-    std::cout<<"psc_linear_dv2 = ("<<psc_linear_dv2<<")"<<std::endl;
-    std::cout<<"psc_linear_dv3 = ("<<psc_linear_dv3<<")"<<std::endl;
+    std::cout<<"    psc_linear_dv1 = ("<<psc_linear_dv1<<")"<<std::endl;
+    std::cout<<"    psc_linear_dv2 = ("<<psc_linear_dv2<<")"<<std::endl;
+    std::cout<<"    psc_linear_dv3 = ("<<psc_linear_dv3<<")"<<std::endl;
+#endif
 
-    std::cout<<std::endl;
-    std::cout<<"std::numeric_limits<float>::max() = "<<std::numeric_limits<float>::max()<<std::endl;
-    std::cout<<"std::numeric_limits<double>::max() = "<<std::numeric_limits<double>::max()<<std::endl;
-    std::cout<<"std::numeric_limits<long double>::max() = "<<std::numeric_limits<long double>::max()<<std::endl;
+    std::cout<<"\nnumeric_limits<>"<<std::endl;
+    std::cout<<"std::numeric_limits<float>::max() = "<<std::numeric_limits<float>::max()<<", digits "<<std::numeric_limits<float>::digits<<", digits10 "<<std::numeric_limits<float>::digits10<<", sizeof<float> = "<<sizeof(float)<<std::endl;
+    std::cout<<"std::numeric_limits<double>::max() = "<<std::numeric_limits<double>::max()<<", digits "<<std::numeric_limits<double>::digits<<", digits10 "<<std::numeric_limits<double>::digits10<<", sizeof<double> = "<<sizeof(double)<<std::endl;
+    std::cout<<"std::numeric_limits<long double>::max() = "<<std::numeric_limits<long double>::max()<<", digits "<<std::numeric_limits<long double>::digits<<", digits10 "<<std::numeric_limits<long double>::digits10<<", sizeof<long double> = "<<sizeof(long double)<<std::endl;
+
+    std::cout<<"\nprecision around offset "<<std::endl;
+    std::cout<<"    precision<float>(1e26) = "<<precision<float>(1.0e26)<<std::endl;
+    std::cout<<"    precision<double>(1e26) = "<<precision<double>(1.0e26)<<std::endl;
+    std::cout<<"    precision<double>(1e26) = "<<precision<long double>(1.0e26)<<std::endl;
 }
 
 int main(int argc, char** argv)
 {
+#ifdef VSG_SUPPORTS_PowerScale
     if (vsg::isPowerScaleSupported())
     {
         std::cout<<"PowerScale is supported."<<std::endl;
     }
     else
+#endif
     {
         std::cout<<"PowerScale is not supported by the VulkanSceneGraph that this example was built against. This example will not have handle power scaling matrices and result in visual errors."<<std::endl;
         std::cout<<"Please enable PowerScale support in the VulkanSceneGraph by building with VSG_SUPPORTS_PowerScale CMake variable set to 1, then rebuild all dependencies and this example.\n"<<std::endl;

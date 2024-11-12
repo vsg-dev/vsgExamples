@@ -21,7 +21,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-find_package(vsg 1.1.9)
+find_package(vsg 1.1.8)
 
 vsg_setup_dir_vars()
 vsg_setup_build_vars()
