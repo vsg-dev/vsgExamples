@@ -3,6 +3,7 @@ add_subdirectory(vsggroups)
 add_subdirectory(vsgtransform)
 add_subdirectory(vsgtextureprojection)
 add_subdirectory(vsglayers)
+add_subdirectory(vsgcoordinateframe)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsgpagedlod)
