@@ -241,39 +241,37 @@ public:
 };
 
 
-class StellarView : public vsg::Inherit<vsg::ViewMatrix, StellarView>
+class LookDirection : public vsg::Inherit<vsg::ViewMatrix, LookDirection>
 {
 public:
 
-    StellarView() :
+    LookDirection() :
         position(0.0, 0.0, 0.0),
-        rotation{},
-        scale(1.0, 1.0, 1.0)
+        rotation()
     {
     }
 
-    StellarView(const StellarView& view, const vsg::CopyOp& copyop = {}) :
+    LookDirection(const LookDirection& view, const vsg::CopyOp& copyop = {}) :
         Inherit(view, copyop),
         position(view.position),
-        rotation(view.rotation),
-        scale(view.scale)
+        rotation(view.rotation)
     {
     }
 
-    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override { return StellarView::create(*this, copyop); }
+    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override { return LookDirection::create(*this, copyop); }
 
     vsg::dvec3 position;
     vsg::dquat rotation;
-    vsg::dvec3 scale;
 
     void set(const vsg::dmat4& matrix)
     {
+        vsg::dvec3 scale;
         vsg::decompose(matrix, position, rotation, scale);
     }
 
     vsg::dmat4 transform() const override
     {
-        return vsg::scale(1.0/scale.x, 1.0/scale.y, 1.0/scale.z) * vsg::rotate(-rotation) * vsg::translate(-position);
+        return vsg::rotate(-rotation) * vsg::translate(-position);
     }
 };
 
@@ -281,7 +279,7 @@ class StellarManipulator : public vsg::Inherit<vsg::Visitor, StellarManipulator>
 {
 public:
 
-    vsg::ref_ptr<StellarView> stellarView;
+    vsg::ref_ptr<LookDirection> stellarView;
     std::multimap<std::string, vsg::RefObjectPath> viewpoints;
     vsg::RefObjectPath currentFocus;
 
@@ -290,7 +288,7 @@ public:
     vsg::RefObjectPath startViewpoint;
     vsg::RefObjectPath targetViewpoint;
 
-    StellarManipulator(vsg::ref_ptr<StellarView> in_stellarView) :
+    StellarManipulator(vsg::ref_ptr<LookDirection> in_stellarView) :
         stellarView(in_stellarView)
     {
     }
@@ -359,7 +357,6 @@ public:
 
             stellarView->position = vsg::mix(startTranslation, targetTranslation, r);
             stellarView->rotation = vsg::mix(startRotation, targetRotation, r);
-            stellarView->scale = vsg::mix(startScale, targetScale, r);
 
             return;
         }
@@ -663,7 +660,7 @@ int main(int argc, char** argv)
     vsg::info("universe bounds computeBounds.bounds = ", computeBounds.bounds);
 
     // set up the camera
-    auto stellarView = StellarView::create();
+    auto stellarView = LookDirection::create();
     stellarView->position = centre + vsg::dvec3(0.0, -radius * 3.5, 0.0);
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
     auto camera = vsg::Camera::create(perspective, stellarView, vsg::ViewportState::create(window->extent2D()));
