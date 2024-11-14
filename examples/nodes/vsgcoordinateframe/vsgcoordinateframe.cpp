@@ -196,6 +196,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
         solar_system->addChild(earth_orbit_transform);
         solar_system->addChild(animationGroup);
 
+        solar_system->name = settings.name;
         solar_system->origin = settings.position;
 
         return solar_system;
@@ -269,10 +270,47 @@ public:
         vsg::decompose(matrix, position, rotation, scale);
     }
 
-    vsg::dmat4 transform() const override
+    vsg::dmat4 transform(const vsg::dvec3& offset={}) const override
     {
-        return vsg::rotate(-rotation) * vsg::translate(-position);
+        return vsg::rotate(-rotation) * vsg::translate(offset-origin-position);
     }
+};
+
+struct MyComputeTransform : public vsg::ConstVisitor
+{
+    vsg::dvec3 origin;
+    vsg::dmat4 matrix;
+
+    void apply(const vsg::Transform& transform) override
+    {
+        matrix = transform.transform(matrix);
+    }
+
+    void apply(const vsg::CoordinateFrame& cf) override
+    {
+        origin = cf.origin;
+        matrix = {};
+    }
+
+    void apply(const vsg::MatrixTransform& mt) override
+    {
+        matrix = matrix * mt.matrix;
+    }
+
+    void apply(const vsg::Camera& camera) override
+    {
+        if (camera.viewMatrix)
+        {
+            matrix = matrix * camera.viewMatrix->inverse();
+        }
+    }
+
+    template<typename T>
+    void apply(const T& nodePath)
+    {
+        for(auto& node : nodePath) node->accept(*this);
+    }
+
 };
 
 class StellarManipulator : public vsg::Inherit<vsg::Visitor, StellarManipulator>
@@ -319,9 +357,6 @@ public:
                 startViewpoint = currentFocus;
                 targetViewpoint = itr->second;
             }
-
-            //auto matrix = vsg::computeTransform(itr->second);
-            //stellarView->set(matrix);
         }
     }
 
@@ -332,38 +367,42 @@ public:
         {
             double timeSinceAnimationStart = std::chrono::duration<double, std::chrono::seconds::period>(frame.time - startTime).count();
 
-            if (timeSinceAnimationStart >= animationDuration)
+            if (timeSinceAnimationStart < animationDuration)
             {
-                currentFocus = targetViewpoint;
-                stellarView->set(vsg::computeTransform(currentFocus));
+                MyComputeTransform startTransform;
+                startTransform.apply(startViewpoint);
 
-                startViewpoint.clear();
-                targetViewpoint.clear();
+                MyComputeTransform targetTransform;
+                targetTransform.apply(targetViewpoint);
+
+                vsg::dvec3 startTranslation, startScale, targetTranslation, targetScale;
+                vsg::dquat startRotation, targetRotation;
+
+                vsg::decompose(startTransform.matrix, startTranslation, startRotation, startScale);
+                vsg::decompose(targetTransform.matrix, targetTranslation, targetRotation, targetScale);
+
+                double tr = (timeSinceAnimationStart /animationDuration);
+                double r = 1.0 - (1.0+cos(tr * vsg::PI))*0.5;
+
+                stellarView->origin = vsg::mix(startTransform.origin, targetTransform.origin, r);
+                stellarView->position = vsg::mix(startTranslation, targetTranslation, r);
+                stellarView->rotation = vsg::mix(startRotation, targetRotation, r);
 
                 return;
             }
-
-            auto startMatrix = vsg::computeTransform(startViewpoint);
-            auto targetMatrix = vsg::computeTransform(targetViewpoint);
-
-            vsg::dvec3 startTranslation, startScale, targetTranslation, targetScale;
-            vsg::dquat startRotation, targetRotation;
-
-            vsg::decompose(startMatrix, startTranslation, startRotation, startScale);
-            vsg::decompose(targetMatrix, targetTranslation, targetRotation, targetScale);
-
-            double tr = (timeSinceAnimationStart /animationDuration);
-            double r = 1.0 - (1.0+cos(tr * vsg::PI))*0.5;
-
-            stellarView->position = vsg::mix(startTranslation, targetTranslation, r);
-            stellarView->rotation = vsg::mix(startRotation, targetRotation, r);
-
-            return;
+            else
+            {
+                currentFocus = targetViewpoint;
+            }
         }
 
         if (!currentFocus.empty())
         {
-            stellarView->set(vsg::computeTransform(currentFocus));
+            MyComputeTransform mct;
+            mct.apply(currentFocus);
+
+            stellarView->set(mct.matrix);
+            stellarView->origin = mct.origin;
             startViewpoint.clear();
             targetViewpoint.clear();
         }
@@ -657,12 +696,20 @@ int main(int argc, char** argv)
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
     double nearFarRatio = 0.0005;
 
+    double near_z = nearFarRatio * radius;
+    double far_z = radius * 4.5;
+
+    arguments.read({"--near-far", "--nf"}, near_z, far_z);
+    arguments.read({"--near", "-n"}, near_z);
+    arguments.read({"--far", "-f"}, far_z);
+
     vsg::info("universe bounds computeBounds.bounds = ", computeBounds.bounds);
 
     // set up the camera
     auto stellarView = LookDirection::create();
+    stellarView->origin.set(0.0, 0.0, 0.0);
     stellarView->position = centre + vsg::dvec3(0.0, -radius * 3.5, 0.0);
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), near_z, far_z);
     auto camera = vsg::Camera::create(perspective, stellarView, vsg::ViewportState::create(window->extent2D()));
 
     // add close handler to respond to the close window button and pressing escape
