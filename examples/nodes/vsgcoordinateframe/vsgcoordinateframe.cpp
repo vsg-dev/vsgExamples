@@ -141,7 +141,6 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     earth_animation->samplers.push_back(earth_rotation_about_axisSampler);
 
 
-
     // animate the earths rotation around the sun
     auto orbit_keyframes = vsg::TransformKeyframes::create();
     orbit_keyframes->add(0.0, vsg::dvec3(0.0, 0.0, 0.0), vsg::dquat(vsg::radians(0.0), vsg::dvec3(0.0, 0.0, 1.0)));
@@ -170,6 +169,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     geom.dy.set(0.0f, 2.0f*settings.sun_radius, 0.0f);
     geom.dz.set(0.0f, 0.0f, 2.0f*settings.sun_radius);
     geom.color = settings.sun_color;
+    //geom.cullNode = false;
 
     vsg::StateInfo state;
     state.lighting = false;
@@ -240,40 +240,6 @@ public:
     }
 };
 
-
-class LookDirection : public vsg::Inherit<vsg::ViewMatrix, LookDirection>
-{
-public:
-
-    LookDirection() :
-        position(0.0, 0.0, 0.0),
-        rotation()
-    {
-    }
-
-    LookDirection(const LookDirection& view, const vsg::CopyOp& copyop = {}) :
-        Inherit(view, copyop),
-        position(view.position),
-        rotation(view.rotation)
-    {
-    }
-
-    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override { return LookDirection::create(*this, copyop); }
-
-    vsg::dvec3 position;
-    vsg::dquat rotation;
-
-    void set(const vsg::dmat4& matrix)
-    {
-        vsg::dvec3 scale;
-        vsg::decompose(matrix, position, rotation, scale);
-    }
-
-    vsg::dmat4 transform(const vsg::dvec3& offset={}) const override
-    {
-        return vsg::rotate(-rotation) * vsg::translate(offset-origin-position);
-    }
-};
 
 struct MyComputeTransform : public vsg::ConstVisitor
 {
@@ -384,7 +350,7 @@ public:
                 double tr = (timeSinceAnimationStart /animationDuration);
                 double r = 1.0 - (1.0+cos(tr * vsg::PI))*0.5;
 
-                if (auto lookDirection = vsg::cast<LookDirection>(viewMatrix))
+                if (auto lookDirection = vsg::cast<vsg::LookDirection>(viewMatrix))
                 {
                     lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, r);
                     lookDirection->position = vsg::mix(startTranslation, targetTranslation, r);
@@ -422,7 +388,7 @@ public:
             mct.apply(currentFocus);
 
             viewMatrix->origin = mct.origin;
-            if (auto lookDirection = vsg::cast<LookDirection>(viewMatrix))
+            if (auto lookDirection = vsg::cast<vsg::LookDirection>(viewMatrix))
             {
                 lookDirection->set(mct.matrix);
             }
@@ -749,7 +715,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        auto lookDirection = LookDirection::create();
+        auto lookDirection = vsg::LookDirection::create();
         lookDirection->origin.set(0.0, 0.0, 0.0);
         lookDirection->position = eye;
         viewMatrix = lookDirection;
