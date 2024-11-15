@@ -7,7 +7,6 @@
 #include <iostream>
 #include <thread>
 
-
 struct SolarSystemSettings
 {
     std::string name;
@@ -317,7 +316,8 @@ class StellarManipulator : public vsg::Inherit<vsg::Visitor, StellarManipulator>
 {
 public:
 
-    vsg::ref_ptr<LookDirection> stellarView;
+    vsg::ref_ptr<vsg::ViewMatrix> viewMatrix;
+
     std::multimap<std::string, vsg::RefObjectPath> viewpoints;
     vsg::RefObjectPath currentFocus;
 
@@ -326,8 +326,8 @@ public:
     vsg::RefObjectPath startViewpoint;
     vsg::RefObjectPath targetViewpoint;
 
-    StellarManipulator(vsg::ref_ptr<LookDirection> in_stellarView) :
-        stellarView(in_stellarView)
+    StellarManipulator(vsg::ref_ptr<vsg::ViewMatrix> in_viewMatrix) :
+        viewMatrix(in_viewMatrix)
     {
     }
 
@@ -384,9 +384,29 @@ public:
                 double tr = (timeSinceAnimationStart /animationDuration);
                 double r = 1.0 - (1.0+cos(tr * vsg::PI))*0.5;
 
-                stellarView->origin = vsg::mix(startTransform.origin, targetTransform.origin, r);
-                stellarView->position = vsg::mix(startTranslation, targetTranslation, r);
-                stellarView->rotation = vsg::mix(startRotation, targetRotation, r);
+                if (auto lookDirection = vsg::cast<LookDirection>(viewMatrix))
+                {
+                    lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, r);
+                    lookDirection->position = vsg::mix(startTranslation, targetTranslation, r);
+                    lookDirection->rotation = vsg::mix(startRotation, targetRotation, r);
+                }
+                else if (auto lookAt = vsg::cast<vsg::LookAt>(viewMatrix))
+                {
+                    vsg::dvec3 position = vsg::mix(startTranslation, targetTranslation, r);
+                    vsg::dquat rotation = vsg::mix(startRotation, targetRotation, r);
+
+                    vsg::dvec3 lookVector(0.0, 0.0, -1.0);
+                    vsg::dvec3 upVector(0.0, 1.0, 0.0);
+                    double lookDistance = vsg::length(lookAt->center - lookAt->eye);
+
+                    lookVector = rotation * lookVector;
+                    upVector = rotation * upVector;
+
+                    lookAt->origin = vsg::mix(startTransform.origin, targetTransform.origin, r);
+                    lookAt->eye = position;
+                    lookAt->center = position + lookVector * lookDistance;
+                    lookAt->up = upVector;
+                }
 
                 return;
             }
@@ -401,8 +421,15 @@ public:
             MyComputeTransform mct;
             mct.apply(currentFocus);
 
-            stellarView->set(mct.matrix);
-            stellarView->origin = mct.origin;
+            viewMatrix->origin = mct.origin;
+            if (auto lookDirection = vsg::cast<LookDirection>(viewMatrix))
+            {
+                lookDirection->set(mct.matrix);
+            }
+            else if (auto lookAt = vsg::cast<vsg::LookAt>(viewMatrix))
+            {
+                lookAt->set(mct.matrix);
+            }
             startViewpoint.clear();
             targetViewpoint.clear();
         }
@@ -692,8 +719,10 @@ int main(int argc, char** argv)
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
     universe->accept(computeBounds);
-    vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+    vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+    vsg::dvec3 eye = center + vsg::dvec3(0.0, -radius * 3.5, 0.0);
+
     double nearFarRatio = 0.0005;
 
     double near_z = nearFarRatio * radius;
@@ -705,12 +734,29 @@ int main(int argc, char** argv)
 
     vsg::info("universe bounds computeBounds.bounds = ", computeBounds.bounds);
 
+
+
     // set up the camera
-    auto stellarView = LookDirection::create();
-    stellarView->origin.set(0.0, 0.0, 0.0);
-    stellarView->position = centre + vsg::dvec3(0.0, -radius * 3.5, 0.0);
+    vsg::ref_ptr<vsg::ViewMatrix> viewMatrix;
+    if (arguments.read("--lookAt"))
+    {
+        auto lookAt = vsg::LookAt::create();
+        lookAt->origin.set(0.0, 0.0, 0.0);
+        lookAt->eye = eye;
+        lookAt->center = center;
+        lookAt->up.set(0.0, 0.0, 1.0);
+        viewMatrix = lookAt;
+    }
+    else
+    {
+        auto lookDirection = LookDirection::create();
+        lookDirection->origin.set(0.0, 0.0, 0.0);
+        lookDirection->position = eye;
+        viewMatrix = lookDirection;
+    }
+
     auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), near_z, far_z);
-    auto camera = vsg::Camera::create(perspective, stellarView, vsg::ViewportState::create(window->extent2D()));
+    auto camera = vsg::Camera::create(perspective, viewMatrix, vsg::ViewportState::create(window->extent2D()));
 
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
@@ -723,7 +769,7 @@ int main(int argc, char** argv)
     }
 
 
-    auto stellarManipulator = StellarManipulator::create(stellarView);
+    auto stellarManipulator = StellarManipulator::create(viewMatrix);
     stellarManipulator->viewpoints = viewpoints;
     viewer->addEventHandler(stellarManipulator);
 
