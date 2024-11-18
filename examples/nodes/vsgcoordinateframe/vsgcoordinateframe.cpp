@@ -520,6 +520,8 @@ int main(int argc, char** argv)
 
 
     double distance_between_systems = arguments.value<double>(1.0e9, "--distance");
+    if (arguments.read({"--worst-cast", "--wc"})) distance_between_systems = 8.514e25;
+
     double speed = arguments.value<double>(1.0, "--speed");
 
     auto starfieldRadius = arguments.value(distance_between_systems * 4.0, {"--starfield-radius", "--sr"});
