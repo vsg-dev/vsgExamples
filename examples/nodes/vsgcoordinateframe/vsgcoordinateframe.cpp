@@ -421,30 +421,8 @@ T precision(T v)
 }
 
 
-void powerscale_test()
+void numerical_test()
 {
-#ifdef VSG_SUPPORTS_PowerScale
-    vsg::dvec3 dv1(1.0, 2.0, 3.0);
-    vsg::dvec4 dv2(1.0, 2.0, 3.0, 4.0);
-
-    auto psc_dv1 = vsg::psc_normalize(dv1);
-    auto psc_dv2 = vsg::psc_normalize(dv2);
-
-    auto psc_dv3 = psc_add(psc_dv1, psc_dv2);
-
-    auto psc_linear_dv1 = psc_to_linear(psc_dv1);
-    auto psc_linear_dv2 = psc_to_linear(psc_dv2);
-    auto psc_linear_dv3 = psc_to_linear(psc_dv3);
-
-    std::cout<<"powerscale tests"<<std::endl;
-    std::cout<<"    dv1 = ("<<dv1<<")"<<std::endl;
-    std::cout<<"    dv2 = ("<<dv2<<")"<<std::endl;
-    std::cout<<"    psc_dv3 = ("<<psc_dv3<<")"<<std::endl;
-
-    std::cout<<"    psc_linear_dv1 = ("<<psc_linear_dv1<<")"<<std::endl;
-    std::cout<<"    psc_linear_dv2 = ("<<psc_linear_dv2<<")"<<std::endl;
-    std::cout<<"    psc_linear_dv3 = ("<<psc_linear_dv3<<")"<<std::endl;
-#endif
 
     std::cout<<"\nnumeric_limits<>"<<std::endl;
     std::cout<<"std::numeric_limits<float>::max() = "<<std::numeric_limits<float>::max()<<", digits "<<std::numeric_limits<float>::digits<<", digits10 "<<std::numeric_limits<float>::digits10<<", sizeof<float> = "<<sizeof(float)<<std::endl;
@@ -459,24 +437,12 @@ void powerscale_test()
 
 int main(int argc, char** argv)
 {
-#ifdef VSG_SUPPORTS_PowerScale
-    if (vsg::isPowerScaleSupported())
-    {
-        std::cout<<"PowerScale is supported."<<std::endl;
-    }
-    else
-#endif
-    {
-        std::cout<<"PowerScale is not supported by the VulkanSceneGraph that this example was built against. This example will not have handle power scaling matrices and result in visual errors."<<std::endl;
-        std::cout<<"Please enable PowerScale support in the VulkanSceneGraph by building with VSG_SUPPORTS_PowerScale CMake variable set to 1, then rebuild all dependencies and this example.\n"<<std::endl;
-    }
-
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    if (arguments.read({"--psc-test", "-p"}))
+    if (arguments.read({"--numerical-test", "--nt"}))
     {
-        powerscale_test();
+        numerical_test();
         return 0;
     }
 
@@ -491,7 +457,7 @@ int main(int argc, char** argv)
     arguments.read(options);
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgpowerscaling";
+    windowTraits->windowTitle = "vsgcoordinateframe";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     windowTraits->synchronizationLayer = arguments.read("--sync");
