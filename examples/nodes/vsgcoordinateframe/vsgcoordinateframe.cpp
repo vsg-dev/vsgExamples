@@ -352,7 +352,7 @@ public:
 
                 if (auto lookDirection = vsg::cast<vsg::LookDirection>(viewMatrix))
                 {
-                    lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, r);
+                    lookDirection->origin = vsg::mix(vsg::ldvec3(startTransform.origin), vsg::ldvec3(targetTransform.origin), static_cast<long double>(r));
                     lookDirection->position = vsg::mix(startTranslation, targetTranslation, r);
                     lookDirection->rotation = vsg::mix(startRotation, targetRotation, r);
                 }
