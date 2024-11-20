@@ -659,9 +659,7 @@ int main(int argc, char** argv)
     vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     vsg::dvec3 eye = center + vsg::dvec3(0.0, -radius * 3.5, 0.0);
 
-    double nearFarRatio = 0.0005;
-
-    double near_z = nearFarRatio * radius;
+    double near_z = 1000.0;
     double far_z = radius * 4.5;
 
     arguments.read({"--near-far", "--nf"}, near_z, far_z);
