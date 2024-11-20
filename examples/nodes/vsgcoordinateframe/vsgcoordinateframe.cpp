@@ -411,7 +411,7 @@ T precision(T v)
     {
         delta /= static_cast<T>(2.0);
     }
-
+//
     while (v == (v+delta))
     {
         delta *= static_cast<T>(1.001);
@@ -526,7 +526,7 @@ int main(int argc, char** argv)
 
     settings.sun_radius = arguments.value<double>(6.957e7, "--sun-radius");
     settings.earth_to_sun_distance = arguments.value<double>(1.49e8, {"--earth-to-sun-distance", "--sd"}); //1.49e11;
-    settings.useCoordinateFrame = arguments.read("--cf");
+    settings.useCoordinateFrame = !arguments.read("--mt");
 
     if (arguments.read("--bing-maps"))
     {
