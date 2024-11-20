@@ -485,6 +485,8 @@ int main(int argc, char** argv)
     VkClearColorValue clearColor{{0.0f, 0.0f, 0.0f, 1.0f}};
 
 
+    bool playAnimations = arguments.read("--play");
+
     double distance_between_systems = arguments.value<double>(1.0e9, "--distance");
     if (arguments.read({"--worst-cast", "--wc"})) distance_between_systems = 8.514e25;
 
@@ -695,13 +697,15 @@ int main(int argc, char** argv)
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-    auto animations = vsg::visit<vsg::FindAnimations>(universe).animations;
-    for(auto& animation : animations)
+    if (playAnimations)
     {
-        animation->speed = speed;
-        viewer->animationManager->play(animation);
+        auto animations = vsg::visit<vsg::FindAnimations>(universe).animations;
+        for(auto& animation : animations)
+        {
+            animation->speed = speed;
+            viewer->animationManager->play(animation);
+        }
     }
-
 
     auto stellarManipulator = StellarManipulator::create(viewMatrix);
     stellarManipulator->viewpoints = viewpoints;
