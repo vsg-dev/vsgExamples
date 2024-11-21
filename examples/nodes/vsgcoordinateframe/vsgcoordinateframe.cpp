@@ -243,7 +243,7 @@ public:
 
 struct MyComputeTransform : public vsg::ConstVisitor
 {
-    vsg::dvec3 origin;
+    vsg::ldvec3 origin;
     vsg::dmat4 matrix;
 
     void apply(const vsg::Transform& transform) override
@@ -352,7 +352,7 @@ public:
 
                 if (auto lookDirection = vsg::cast<vsg::LookDirection>(viewMatrix))
                 {
-                    lookDirection->origin = vsg::mix(vsg::ldvec3(startTransform.origin), vsg::ldvec3(targetTransform.origin), static_cast<long double>(r));
+                    lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<long double>(r));
                     lookDirection->position = vsg::mix(startTranslation, targetTranslation, r);
                     lookDirection->rotation = vsg::mix(startRotation, targetRotation, r);
                 }
@@ -368,7 +368,7 @@ public:
                     lookVector = rotation * lookVector;
                     upVector = rotation * upVector;
 
-                    lookAt->origin = vsg::mix(startTransform.origin, targetTransform.origin, r);
+                    lookAt->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<long double>(r));
                     lookAt->eye = position;
                     lookAt->center = position + lookVector * lookDistance;
                     lookAt->up = upVector;
