@@ -107,7 +107,8 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
 
     auto earth_view = vsg::MatrixTransform::create();
     earth_view->setValue("viewpoint", settings.name+"earth_view");
-    earth_view->matrix = vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
+    earth_view->setObject("projection", vsg::Perspective::create(0.005, 1.4, 1e4, 1e10)); // min FOV 0.005
+    earth_view->matrix = vsg::rotate(vsg::radians(-51.315), 0.0, 1.0, 0.0) * vsg::rotate(vsg::radians(89.915), 0.0, 0.0, 1.0) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
 
     auto earth_rotation_about_axis = vsg::MatrixTransform::create();
     earth_rotation_about_axis->addChild(earth);
@@ -246,24 +247,41 @@ struct MyComputeTransform : public vsg::ConstVisitor
     vsg::ldvec3 origin;
     vsg::dmat4 matrix;
 
+    vsg::ref_ptr<const vsg::ProjectionMatrix> projection;
+
+    void apply(const vsg::Object& object) override
+    {
+        if (auto user_projection = object.getObject<vsg::ProjectionMatrix>("projection")) projection = user_projection;
+    }
+
     void apply(const vsg::Transform& transform) override
     {
+        apply(static_cast<const vsg::Object&>(transform));
+
         matrix = transform.transform(matrix);
     }
 
     void apply(const vsg::CoordinateFrame& cf) override
     {
+        apply(static_cast<const vsg::Object&>(cf));
+
         origin = cf.origin;
         matrix = {};
     }
 
     void apply(const vsg::MatrixTransform& mt) override
     {
+        apply(static_cast<const vsg::Object&>(mt));
+
         matrix = matrix * mt.matrix;
     }
 
     void apply(const vsg::Camera& camera) override
     {
+        if (camera.projectionMatrix)
+        {
+            projection = camera.projectionMatrix;
+        }
         if (camera.viewMatrix)
         {
             matrix = matrix * camera.viewMatrix->inverse();
@@ -282,7 +300,9 @@ class StellarManipulator : public vsg::Inherit<vsg::Visitor, StellarManipulator>
 {
 public:
 
+    vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::ViewMatrix> viewMatrix;
+    vsg::ref_ptr<vsg::ProjectionMatrix> projectionMatrix;
 
     std::multimap<std::string, vsg::RefObjectPath> viewpoints;
     vsg::RefObjectPath currentFocus;
@@ -292,9 +312,11 @@ public:
     vsg::RefObjectPath startViewpoint;
     vsg::RefObjectPath targetViewpoint;
 
-    StellarManipulator(vsg::ref_ptr<vsg::ViewMatrix> in_viewMatrix) :
-        viewMatrix(in_viewMatrix)
+    StellarManipulator(vsg::ref_ptr<vsg::Camera> in_camera) :
+        camera(in_camera)
     {
+        viewMatrix = camera->viewMatrix;
+        projectionMatrix = camera->projectionMatrix;
     }
 
     void apply(vsg::KeyPressEvent& keyPress) override
@@ -341,6 +363,9 @@ public:
                 MyComputeTransform targetTransform;
                 targetTransform.apply(targetViewpoint);
 
+                std::cout<<"startTransform.projection = "<<startTransform.projection<<std::endl;
+                std::cout<<"targetTransform.projection = "<<targetTransform.projection<<std::endl;
+
                 vsg::dvec3 startTranslation, startScale, targetTranslation, targetScale;
                 vsg::dquat startRotation, targetRotation;
 
@@ -352,7 +377,11 @@ public:
 
                 if (auto lookDirection = vsg::cast<vsg::LookDirection>(viewMatrix))
                 {
+#if 1
                     lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<long double>(r));
+#else
+                    lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<double>(r));
+#endif
                     lookDirection->position = vsg::mix(startTranslation, targetTranslation, r);
                     lookDirection->rotation = vsg::mix(startRotation, targetRotation, r);
                 }
@@ -368,7 +397,11 @@ public:
                     lookVector = rotation * lookVector;
                     upVector = rotation * upVector;
 
+#if 1
                     lookAt->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<long double>(r));
+#else
+                    lookAt->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<double>(r));
+#endif
                     lookAt->eye = position;
                     lookAt->center = position + lookVector * lookDistance;
                     lookAt->up = upVector;
@@ -396,6 +429,10 @@ public:
             {
                 lookAt->set(mct.matrix);
             }
+
+            if (mct.projection) camera->projectionMatrix = const_cast<vsg::ProjectionMatrix*>(mct.projection.get());
+
+
             startViewpoint.clear();
             targetViewpoint.clear();
         }
@@ -587,6 +624,13 @@ int main(int argc, char** argv)
 
     auto universe = vsg::Group::create();
 
+    float ambientLightIntensity = arguments.value<float>(0.0f, "--ambient");
+    if (ambientLightIntensity > 0.0f)
+    {
+        auto ambientLight = vsg::AmbientLight::create();
+        ambientLight->intensity = ambientLightIntensity;
+        universe->addChild(ambientLight);
+    }
 
     // create starfield
 
@@ -639,6 +683,7 @@ int main(int argc, char** argv)
         std::cout<<std::endl;
     }
 
+
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
     auto window = vsg::Window::create(windowTraits);
@@ -648,9 +693,12 @@ int main(int argc, char** argv)
         return 1;
     }
 
+
     window->clearColor().set(0.0f, 0.0f, 0.0f, 1.0f);
 
     viewer->addWindow(window);
+
+
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;
@@ -689,8 +737,9 @@ int main(int argc, char** argv)
         viewMatrix = lookDirection;
     }
 
-    auto perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), near_z, far_z);
-    auto camera = vsg::Camera::create(perspective, viewMatrix, vsg::ViewportState::create(window->extent2D()));
+
+    auto perspectve = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), near_z, far_z);
+    auto camera = vsg::Camera::create(perspectve, viewMatrix, vsg::ViewportState::create(window->extent2D()));
 
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
@@ -705,7 +754,8 @@ int main(int argc, char** argv)
         }
     }
 
-    auto stellarManipulator = StellarManipulator::create(viewMatrix);
+
+    auto stellarManipulator = StellarManipulator::create(camera);
     stellarManipulator->viewpoints = viewpoints;
     viewer->addEventHandler(stellarManipulator);
 
@@ -724,11 +774,12 @@ int main(int argc, char** argv)
         vsg::info("initial viewpoint : ", viewpoints.begin()->first);
     }
 
-
     auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
     renderGraph->setClearValues(clearColor);
 
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
+
+
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
