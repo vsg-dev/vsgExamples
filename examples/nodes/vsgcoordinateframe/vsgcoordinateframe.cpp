@@ -17,6 +17,7 @@ struct SolarSystemSettings
     double sun_radius = 6.9547e8;
     vsg::vec4 sun_color = {1.0f, 1.0f, 0.5f, 1.0f};
     vsg::dvec3 position;
+    vsg::dquat rotation;
     bool useCoordinateFrame = false;
 
     vsg::ref_ptr<vsg::ShaderSet> flatShaderSet;
@@ -198,6 +199,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
 
         solar_system->name = settings.name;
         solar_system->origin = settings.position;
+        solar_system->rotation = settings.rotation;
 
         return solar_system;
     }
@@ -211,7 +213,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
         solar_system->addChild(earth_orbit_transform);
         solar_system->addChild(animationGroup);
 
-        solar_system->matrix = vsg::translate(settings.position);
+        solar_system->matrix = vsg::translate(settings.position) * vsg::rotate(settings.rotation);
 
         return solar_system;
     }
@@ -266,7 +268,9 @@ struct MyComputeTransform : public vsg::ConstVisitor
         apply(static_cast<const vsg::Object&>(cf));
 
         origin = cf.origin;
-        matrix = {};
+        matrix = vsg::rotate(cf.rotation);
+
+        vsg::info("MyComputeTransform::apply(cf) rotation = ", cf.rotation, ", matrix = ", matrix);
     }
 
     void apply(const vsg::MatrixTransform& mt) override
@@ -651,6 +655,7 @@ int main(int argc, char** argv)
     settings.name = "2. ";
     settings.sun_color.set(1.0f, 0.8f, 0.7f, 1.0f);
     settings.position.set(distance_between_systems * 0.5, 0.0, 0.0);
+    settings.rotation.set(vsg::radians(90.0), vsg::dvec3(1.0, 0.0, 0.0));
     auto solar_system_two = creteSolarSystem(settings);
 
     auto universe_view = vsg::MatrixTransform::create();
