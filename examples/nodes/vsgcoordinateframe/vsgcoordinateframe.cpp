@@ -269,8 +269,6 @@ struct MyComputeTransform : public vsg::ConstVisitor
 
         origin = cf.origin;
         matrix = vsg::rotate(cf.rotation);
-
-        vsg::info("MyComputeTransform::apply(cf) rotation = ", cf.rotation, ", matrix = ", matrix);
     }
 
     void apply(const vsg::MatrixTransform& mt) override
