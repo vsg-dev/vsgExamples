@@ -459,6 +459,18 @@ T precision(T v)
     return delta;
 }
 
+template<typename T>
+void print_bytes(std::ostream& out, T value)
+{
+    out <<value<<" {\t";
+    uint8_t* ptr = reinterpret_cast<uint8_t*>(&value);
+    for(size_t i=0; i<sizeof(T); ++i)
+    {
+        out<<static_cast<uint32_t>(*(ptr+i))<<"\t";
+    }
+    out <<"}"<<std::endl;
+}
+
 
 void numerical_test()
 {
@@ -472,6 +484,71 @@ void numerical_test()
     std::cout<<"    precision<float>(1e26) = "<<precision<float>(1.0e26)<<std::endl;
     std::cout<<"    precision<double>(1e26) = "<<precision<double>(1.0e26)<<std::endl;
     std::cout<<"    precision<double>(1e26) = "<<precision<long double>(1.0e26)<<std::endl;
+
+    double d_0 = 0.0L;
+    double d_half = 0.5L;
+    double d_1 = 1.0L;
+    double d_2 = 2.0L;
+    double d_1024 = 1024.0L;
+    double d_max = std::numeric_limits<double>::max();
+
+    double d_n0 = -0.0L;
+    double d_nhalf = -0.5L;
+    double d_n1 = -1.0L;
+    double d_n2 = -2.0L;
+    double d_n1024 = -1024.0L;
+    double d_lowest = std::numeric_limits<double>::lowest();
+
+    std::cout<<"\ndoubles:"<<std::endl;
+
+    print_bytes(std::cout,d_0);
+    print_bytes(std::cout,d_half);
+    print_bytes(std::cout,d_1);
+    print_bytes(std::cout,d_2);
+    print_bytes(std::cout,d_1024);
+
+    print_bytes(std::cout,d_n0);
+    print_bytes(std::cout,d_nhalf);
+    print_bytes(std::cout,d_n1);
+    print_bytes(std::cout,d_n2);
+    print_bytes(std::cout,d_n1024);
+
+    print_bytes(std::cout,d_max);
+    print_bytes(std::cout,d_lowest);
+    print_bytes(std::cout,std::numeric_limits<double>::max());
+
+
+    std::cout<<"\nlong doubles:"<<std::endl;
+    long double ld_0 = 0.0L;
+    long double ld_half = 0.5L;
+    long double ld_1 = 1.0L;
+    long double ld_2 = 2.0L;
+    long double ld_1024 = 1024.0L;
+    long double ld_max = std::numeric_limits<long double>::max();
+
+    long double ld_n0 = -0.0L;
+    long double ld_nhalf = -0.5L;
+    long double ld_n1 = -1.0L;
+    long double ld_n2 = -2.0L;
+    long double ld_n1024 = -1024.0L;
+    long double ld_lowest = std::numeric_limits<long double>::lowest();
+
+    print_bytes(std::cout, ld_0);
+    print_bytes(std::cout, ld_half);
+    print_bytes(std::cout, ld_1);
+    print_bytes(std::cout, ld_2);
+    print_bytes(std::cout, ld_1024);
+
+    print_bytes(std::cout, ld_n0);
+    print_bytes(std::cout, ld_nhalf);
+    print_bytes(std::cout, ld_n1);
+    print_bytes(std::cout, ld_n2);
+    print_bytes(std::cout, ld_n1024);
+
+    print_bytes(std::cout,ld_max);
+    print_bytes(std::cout,ld_lowest);
+    print_bytes(std::cout,std::numeric_limits<long double>::max());
+
 }
 
 int main(int argc, char** argv)
