@@ -471,9 +471,10 @@ void print_bytes(std::ostream& out, T value)
     out <<"}"<<std::endl;
 }
 
-
 void numerical_test()
 {
+
+    std::cout<<"\nnative_long_double_bits() = "<<vsg::native_long_double_bits()<<std::endl;
 
     std::cout<<"\nnumeric_limits<>"<<std::endl;
     std::cout<<"std::numeric_limits<float>::max() = "<<std::numeric_limits<float>::max()<<", digits "<<std::numeric_limits<float>::digits<<", digits10 "<<std::numeric_limits<float>::digits10<<", sizeof<float> = "<<sizeof(float)<<std::endl;
@@ -549,6 +550,8 @@ void numerical_test()
     print_bytes(std::cout,ld_lowest);
     print_bytes(std::cout,std::numeric_limits<long double>::max());
 
+    std::cout<<"sizeof(double) = "<<sizeof(double)<<", "<<typeid(double).name()<<std::endl;
+    std::cout<<"sizeof(long double) = "<<sizeof(long double)<<", "<<typeid(long double).name()<<std::endl;
 }
 
 int main(int argc, char** argv)
