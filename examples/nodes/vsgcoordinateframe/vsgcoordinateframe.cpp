@@ -19,6 +19,9 @@ struct SolarSystemSettings
     vsg::dvec3 position;
     vsg::dquat rotation;
     bool useCoordinateFrame = false;
+    double windowAspectRatio = 1.25;
+    double z_near = 1e2;
+    double z_far = 1e15;
 
     vsg::ref_ptr<vsg::ShaderSet> flatShaderSet;
     vsg::ref_ptr<vsg::ShaderSet> phongShaderSet;
@@ -108,7 +111,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
 
     auto earth_view = vsg::MatrixTransform::create();
     earth_view->setValue("viewpoint", settings.name+"earth_view");
-    earth_view->setObject("projection", vsg::Perspective::create(0.005, 1.4, 1e4, 1e10)); // min FOV 0.005
+    earth_view->setObject("projection", vsg::Perspective::create(0.005, settings.windowAspectRatio, settings.z_near, settings.z_far)); // min FOV 0.005
     earth_view->matrix = vsg::rotate(vsg::radians(-51.315), 0.0, 1.0, 0.0) * vsg::rotate(vsg::radians(89.915), 0.0, 0.0, 1.0) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
 
     auto earth_rotation_about_axis = vsg::MatrixTransform::create();
@@ -118,6 +121,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
 
     auto orbit_view = vsg::MatrixTransform::create();
     orbit_view->setValue("viewpoint", settings.name+"orbit_view");
+    orbit_view->setObject("projection", vsg::Perspective::create(90, settings.windowAspectRatio, settings.z_near, settings.z_far)); // min FOV 0.005
     orbit_view->matrix = vsg::rotate(vsg::radians(45.0), 0.0, 0.0, 1.0) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
 
     auto earth_position_from_sun = vsg::MatrixTransform::create();
@@ -180,6 +184,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
 
     auto sun_view = vsg::MatrixTransform::create();
     sun_view->setValue("viewpoint", settings.name+"sun_view");
+    sun_view->setObject("projection", vsg::Perspective::create(60, settings.windowAspectRatio, settings.z_near, settings.z_far)); // min FOV 0.005
     sun_view->matrix =  vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, settings.earth_to_sun_distance*3.0);
 
     auto light = vsg::PointLight::create();
@@ -305,6 +310,7 @@ public:
     vsg::ref_ptr<vsg::Camera> camera;
     vsg::ref_ptr<vsg::ViewMatrix> viewMatrix;
     vsg::ref_ptr<vsg::ProjectionMatrix> projectionMatrix;
+    double windowAspectRatio = 1.0;
 
     std::multimap<std::string, vsg::RefObjectPath> viewpoints;
     vsg::RefObjectPath currentFocus;
@@ -319,6 +325,9 @@ public:
     {
         viewMatrix = camera->viewMatrix;
         projectionMatrix = camera->projectionMatrix;
+
+        auto viewport = camera->getViewport();
+        windowAspectRatio = static_cast<double>(viewport.width) / static_cast<double>(viewport.height);
     }
 
     void apply(vsg::KeyPressEvent& keyPress) override
@@ -348,6 +357,12 @@ public:
                 targetViewpoint = itr->second;
             }
         }
+    }
+
+    void apply(vsg::ConfigureWindowEvent& congfigureWindow) override
+    {
+        windowAspectRatio = static_cast<double>(congfigureWindow.width) / static_cast<double>(congfigureWindow.height);
+        vsg::info("windowAspectRatio = ", windowAspectRatio);
     }
 
 
@@ -432,7 +447,16 @@ public:
                 lookAt->set(mct.matrix);
             }
 
-            if (mct.projection) camera->projectionMatrix = const_cast<vsg::ProjectionMatrix*>(mct.projection.get());
+
+            if (mct.projection)
+            {
+                auto projection = const_cast<vsg::ProjectionMatrix*>(mct.projection.get());
+
+                auto perspective = dynamic_cast<vsg::Perspective*>(projection);
+                if (perspective) perspective->aspectRatio = windowAspectRatio;
+
+                camera->projectionMatrix = projection;
+            }
 
 
             startViewpoint.clear();
@@ -639,6 +663,7 @@ int main(int argc, char** argv)
     }
 
 
+    settings.windowAspectRatio = static_cast<double>(windowTraits->width) / static_cast<double>(windowTraits->height);
     settings.options = options;
     settings.builder = vsg::Builder::create();
     settings.builder->options = options;
@@ -646,6 +671,13 @@ int main(int argc, char** argv)
     settings.sun_radius = arguments.value<double>(6.957e7, "--sun-radius");
     settings.earth_to_sun_distance = arguments.value<double>(1.49e8, {"--earth-to-sun-distance", "--sd"}); //1.49e11;
     settings.useCoordinateFrame = !arguments.read("--mt");
+
+    settings.z_near = 1e3; // 1000m
+    settings.z_far = starfieldRadius * 2.0;
+
+    arguments.read({"--near-far", "--nf"}, settings.z_near, settings.z_far);
+    arguments.read({"--near", "-n"}, settings.z_near);
+    arguments.read({"--far", "-f"}, settings.z_far);
 
     if (arguments.read("--bing-maps"))
     {
@@ -738,6 +770,7 @@ int main(int argc, char** argv)
 
     auto universe_view = vsg::MatrixTransform::create();
     universe_view->setValue("viewpoint", "0. universe_view");
+    universe_view->setObject("projection", vsg::Perspective::create(60, settings.windowAspectRatio, settings.z_near, settings.z_far)); // min FOV 0.005
     universe_view->matrix =  vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, distance_between_systems*3.0);
 
     universe->addChild(solar_system_one);
@@ -790,15 +823,7 @@ int main(int argc, char** argv)
     vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     vsg::dvec3 eye = center + vsg::dvec3(0.0, -radius * 3.5, 0.0);
 
-    double near_z = 1000.0;
-    double far_z = radius * 4.5;
-
-    arguments.read({"--near-far", "--nf"}, near_z, far_z);
-    arguments.read({"--near", "-n"}, near_z);
-    arguments.read({"--far", "-f"}, far_z);
-
     vsg::info("universe bounds computeBounds.bounds = ", computeBounds.bounds);
-
 
 
     // set up the camera
@@ -820,8 +845,9 @@ int main(int argc, char** argv)
         viewMatrix = lookDirection;
     }
 
+    settings.windowAspectRatio = static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height);
 
-    auto perspectve = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), near_z, far_z);
+    auto perspectve = vsg::Perspective::create(30.0, settings.windowAspectRatio, settings.z_near, settings.z_far);
     auto camera = vsg::Camera::create(perspectve, viewMatrix, vsg::ViewportState::create(window->extent2D()));
 
     // add close handler to respond to the close window button and pressing escape
