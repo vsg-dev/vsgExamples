@@ -26,16 +26,18 @@ vec2 glyph_alpha(vec2 texcoord, vec2 dx, vec2 dy)
     float min_distance_from_edge = distance_from_edge - delta;
     float max_distance_from_edge = distance_from_edge + delta;
 
-    //min_distance_from_edge += 0.0;
     min_distance_from_edge += innerCutOff;
     float inner_alpha = 0.0;
     if (min_distance_from_edge >= 0.0) inner_alpha = 1.0;
     else if (max_distance_from_edge >= 0.0) inner_alpha = max_distance_from_edge/(max_distance_from_edge-min_distance_from_edge);
 
-    min_distance_from_edge += outlineWidth;
     float outer_alpha = 0.0;
-    if (min_distance_from_edge >= 0.0) outer_alpha = 1.0;
-    else if (max_distance_from_edge >= 0.0) outer_alpha = max_distance_from_edge/(max_distance_from_edge-min_distance_from_edge);
+    if (outlineWidth > 0.0)
+    {
+        min_distance_from_edge += outlineWidth;
+        if (min_distance_from_edge >= 0.0) outer_alpha = 1.0;
+        else if (max_distance_from_edge >= 0.0) outer_alpha = max_distance_from_edge/(max_distance_from_edge-min_distance_from_edge);
+    }
 
     return vec2(inner_alpha, outer_alpha);
 }
