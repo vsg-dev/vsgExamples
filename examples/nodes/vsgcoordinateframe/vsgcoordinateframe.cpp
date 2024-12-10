@@ -368,6 +368,8 @@ public:
 
     void apply(vsg::FrameEvent& frame) override
     {
+        using origin_value_type = decltype(MyComputeTransform::origin)::value_type;
+
         if (!targetViewpoint.empty() && !startViewpoint.empty())
         {
             double timeSinceAnimationStart = std::chrono::duration<double, std::chrono::seconds::period>(frame.time - startTime).count();
@@ -397,13 +399,10 @@ public:
                     perspective->fieldOfViewY = vsg::mix(startPerspective->fieldOfViewY, targetPerspective->fieldOfViewY, r);
                 }
 
+
                 if (auto lookDirection = vsg::cast<vsg::LookDirection>(viewMatrix))
                 {
-#if 1
-                    lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<long double>(r));
-#else
-                    lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<double>(r));
-#endif
+                    lookDirection->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<origin_value_type>(r));
                     lookDirection->position = vsg::mix(startTranslation, targetTranslation, r);
                     lookDirection->rotation = vsg::mix(startRotation, targetRotation, r);
                 }
@@ -419,11 +418,7 @@ public:
                     lookVector = rotation * lookVector;
                     upVector = rotation * upVector;
 
-#if 1
-                    lookAt->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<long double>(r));
-#else
-                    lookAt->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<double>(r));
-#endif
+                    lookAt->origin = vsg::mix(startTransform.origin, targetTransform.origin, static_cast<origin_value_type>(r));
                     lookAt->eye = position;
                     lookAt->center = position + lookVector * lookDistance;
                     lookAt->up = upVector;
