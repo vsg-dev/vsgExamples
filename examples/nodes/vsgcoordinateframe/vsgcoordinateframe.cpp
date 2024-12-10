@@ -249,41 +249,41 @@ public:
 };
 
 
-struct MyComputeTransform : public vsg::ConstVisitor
+struct MyComputeTransform : public vsg::Visitor
 {
     vsg::ldvec3 origin;
     vsg::dmat4 matrix;
 
-    vsg::ref_ptr<const vsg::ProjectionMatrix> projection;
+    vsg::ref_ptr<vsg::ProjectionMatrix> projection;
 
-    void apply(const vsg::Object& object) override
+    void apply(vsg::Object& object) override
     {
         if (auto user_projection = object.getObject<vsg::ProjectionMatrix>("projection")) projection = user_projection;
     }
 
-    void apply(const vsg::Transform& transform) override
+    void apply(vsg::Transform& transform) override
     {
-        apply(static_cast<const vsg::Object&>(transform));
+        apply(static_cast<vsg::Object&>(transform));
 
         matrix = transform.transform(matrix);
     }
 
-    void apply(const vsg::CoordinateFrame& cf) override
+    void apply(vsg::CoordinateFrame& cf) override
     {
-        apply(static_cast<const vsg::Object&>(cf));
+        apply(static_cast<vsg::Object&>(cf));
 
         origin = cf.origin;
         matrix = vsg::rotate(cf.rotation);
     }
 
-    void apply(const vsg::MatrixTransform& mt) override
+    void apply(vsg::MatrixTransform& mt) override
     {
-        apply(static_cast<const vsg::Object&>(mt));
+        apply(static_cast<vsg::Object&>(mt));
 
         matrix = matrix * mt.matrix;
     }
 
-    void apply(const vsg::Camera& camera) override
+    void apply(vsg::Camera& camera) override
     {
         if (camera.projectionMatrix)
         {
@@ -296,7 +296,7 @@ struct MyComputeTransform : public vsg::ConstVisitor
     }
 
     template<typename T>
-    void apply(const T& nodePath)
+    void apply(T& nodePath)
     {
         for(auto& node : nodePath) node->accept(*this);
     }
@@ -380,9 +380,6 @@ public:
                 MyComputeTransform targetTransform;
                 targetTransform.apply(targetViewpoint);
 
-                std::cout<<"startTransform.projection = "<<startTransform.projection<<std::endl;
-                std::cout<<"targetTransform.projection = "<<targetTransform.projection<<std::endl;
-
                 vsg::dvec3 startTranslation, startScale, targetTranslation, targetScale;
                 vsg::dquat startRotation, targetRotation;
 
@@ -391,6 +388,14 @@ public:
 
                 double tr = (timeSinceAnimationStart /animationDuration);
                 double r = 1.0 - (1.0+cos(tr * vsg::PI))*0.5;
+
+                auto perspective = vsg::cast<vsg::Perspective>(projectionMatrix);
+                auto startPerspective = vsg::cast<vsg::Perspective>(startTransform.projection);
+                auto targetPerspective = vsg::cast<vsg::Perspective>(targetTransform.projection);
+                if (perspective && startPerspective && targetPerspective)
+                {
+                    perspective->fieldOfViewY = vsg::mix(startPerspective->fieldOfViewY, targetPerspective->fieldOfViewY, r);
+                }
 
                 if (auto lookDirection = vsg::cast<vsg::LookDirection>(viewMatrix))
                 {
@@ -447,16 +452,13 @@ public:
                 lookAt->set(mct.matrix);
             }
 
-
-            if (mct.projection)
+            auto perspective = vsg::cast<vsg::Perspective>(projectionMatrix);
+            auto targetPerspective = vsg::cast<vsg::Perspective>(mct.projection.get());
+            if (targetPerspective)
             {
-                auto projection = const_cast<vsg::ProjectionMatrix*>(mct.projection.get());
-
-                auto perspective = dynamic_cast<vsg::Perspective*>(projection);
-                if (perspective) perspective->aspectRatio = windowAspectRatio;
-
-                camera->projectionMatrix = projection;
+                perspective->fieldOfViewY = targetPerspective->fieldOfViewY;
             }
+            if (perspective) perspective->aspectRatio = windowAspectRatio;
 
 
             startViewpoint.clear();
