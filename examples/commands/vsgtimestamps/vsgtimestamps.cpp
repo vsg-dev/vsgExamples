@@ -145,7 +145,7 @@ int main(int argc, char** argv)
 
     if (pathFilename)
     {
-        auto cameraAnimation = vsg::CameraAnimation::create(camera, pathFilename, options);
+        auto cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
         viewer->addEventHandler(cameraAnimation);
         if (cameraAnimation->animation) cameraAnimation->play();
     }

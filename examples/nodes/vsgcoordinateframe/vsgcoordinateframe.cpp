@@ -864,13 +864,13 @@ int main(int argc, char** argv)
     if (arguments.read("--tour"))
     {
         // set up camera animation to take you between each viewpoint
-        auto cameraAnimation = vsg::CameraAnimation::create();
-        cameraAnimation->animation = vsg::Animation::create();
-        cameraAnimation->object = camera;
+        auto cameraAnimationHandler = vsg::CameraAnimationHandler::create();
+        cameraAnimationHandler->animation = vsg::Animation::create();
+        cameraAnimationHandler->object = camera;
 
-        auto cameraSampler = cameraAnimation->cameraSampler = vsg::CameraSampler::create();
+        auto cameraSampler = cameraAnimationHandler->cameraSampler = vsg::CameraSampler::create();
         cameraSampler->object = camera;
-        cameraAnimation->animation->samplers.push_back(cameraSampler);
+        cameraAnimationHandler->animation->samplers.push_back(cameraSampler);
 
         auto cameraKeyframes = cameraSampler->keyframes = vsg::CameraKeyframes::create();
         double time = 0.0;
@@ -893,11 +893,11 @@ int main(int argc, char** argv)
             time += (time_pause + time_moving);
         }
 
-        vsg::write(cameraAnimation->animation, "test.vsgt", options);
+        vsg::write(cameraAnimationHandler->animation, "test.vsgt", options);
 
-        cameraAnimation->play();
+        cameraAnimationHandler->play();
 
-        viewer->addEventHandler(cameraAnimation);
+        viewer->addEventHandler(cameraAnimationHandler);
     }
     else
     {
