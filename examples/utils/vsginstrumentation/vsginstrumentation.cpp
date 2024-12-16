@@ -234,7 +234,7 @@ int main(int argc, char** argv)
         // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-        auto animationPathHandler = vsg::CameraAnimation::create(camera, pathFilename, options);
+        auto animationPathHandler = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
         if (animationPathHandler->animation) animationPathHandler->play();
         viewer->addEventHandler(animationPathHandler);
 

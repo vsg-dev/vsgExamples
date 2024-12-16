@@ -791,10 +791,11 @@ int main(int argc, char** argv)
     auto viewpoints = vsg::visit<FindViewpoints>(universe).viewpoints;
     for(auto& [name, objectPath] : viewpoints)
     {
-        std::cout<<"viewoint ["<<name<<"] ";
+        std::cout<<"viewpoint ["<<name<<"] ";
         for(auto& obj : objectPath) std::cout<<obj<<" ";
         std::cout<<std::endl;
     }
+
 
 
     // create the viewer and assign window(s) to it
@@ -860,24 +861,65 @@ int main(int argc, char** argv)
         }
     }
 
-
-    auto stellarManipulator = StellarManipulator::create(camera);
-    stellarManipulator->viewpoints = viewpoints;
-    viewer->addEventHandler(stellarManipulator);
-
-    if (!active_viewpoint.empty())
+    if (arguments.read("--tour"))
     {
-        auto itr = viewpoints.find(active_viewpoint);
-        if (itr != viewpoints.end())
+        // set up camera animation to take you between each viewpoint
+        auto cameraAnimationHandler = vsg::CameraAnimationHandler::create();
+        cameraAnimationHandler->animation = vsg::Animation::create();
+        cameraAnimationHandler->object = camera;
+
+        auto cameraSampler = cameraAnimationHandler->cameraSampler = vsg::CameraSampler::create();
+        cameraSampler->object = camera;
+        cameraAnimationHandler->animation->samplers.push_back(cameraSampler);
+
+        auto cameraKeyframes = cameraSampler->keyframes = vsg::CameraKeyframes::create();
+        double time = 0.0;
+        double time_pause = 3.0;
+        double time_moving = 6.0;
+        for(auto& [name, objectPath] : viewpoints)
         {
-            vsg::info("initial viewpoint : ", itr->first);
-            stellarManipulator->currentFocus = itr->second;
+            cameraKeyframes->tracking.push_back(vsg::time_path{time, objectPath});
+            cameraKeyframes->tracking.push_back(vsg::time_path{time+time_pause, objectPath});
+
+            for(auto& object :objectPath)
+            {
+                if (auto perspective = object->getRefObject<vsg::Perspective>("projection"))
+                {
+                    cameraKeyframes->fieldOfViews.push_back(vsg::time_double{time, perspective->fieldOfViewY});
+                    cameraKeyframes->fieldOfViews.push_back(vsg::time_double{time+time_pause, perspective->fieldOfViewY});
+                }
+            }
+
+            time += (time_pause + time_moving);
         }
+
+        vsg::write(cameraAnimationHandler->animation, "test.vsgt", options);
+
+        cameraAnimationHandler->play();
+
+        viewer->addEventHandler(cameraAnimationHandler);
     }
-    else if (!viewpoints.empty())
+    else
     {
-        stellarManipulator->currentFocus = viewpoints.begin()->second;
-        vsg::info("initial viewpoint : ", viewpoints.begin()->first);
+        // set up manipulator for interactively moving between viewpoints
+        auto stellarManipulator = StellarManipulator::create(camera);
+        stellarManipulator->viewpoints = viewpoints;
+        viewer->addEventHandler(stellarManipulator);
+
+        if (!active_viewpoint.empty())
+        {
+            auto itr = viewpoints.find(active_viewpoint);
+            if (itr != viewpoints.end())
+            {
+                vsg::info("initial viewpoint : ", itr->first);
+                stellarManipulator->currentFocus = itr->second;
+            }
+        }
+        else if (!viewpoints.empty())
+        {
+            stellarManipulator->currentFocus = viewpoints.begin()->second;
+            vsg::info("initial viewpoint : ", viewpoints.begin()->first);
+        }
     }
 
     auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
