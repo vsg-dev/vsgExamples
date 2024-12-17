@@ -893,8 +893,6 @@ int main(int argc, char** argv)
             time += (time_pause + time_moving);
         }
 
-        vsg::write(cameraAnimationHandler->animation, "test.vsgt", options);
-
         cameraAnimationHandler->play();
 
         viewer->addEventHandler(cameraAnimationHandler);
@@ -928,7 +926,6 @@ int main(int argc, char** argv)
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
 
 
-
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
@@ -936,10 +933,11 @@ int main(int argc, char** argv)
     // rendering main loop
     while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
+        // update all the node positions, do this first as event handlers update the camera based on these positions
+        viewer->update();
+
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
-
-        viewer->update();
 
         viewer->recordAndSubmit();
 
