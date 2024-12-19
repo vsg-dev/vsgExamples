@@ -15,7 +15,7 @@ struct SolarSystemSettings
     vsg::ref_ptr<vsg::TileDatabaseSettings> tileDatabaseSettings;
     double earth_to_sun_distance = 1.49e11;
     double sun_radius = 6.9547e8;
-    vsg::vec4 sun_color = {1.0f, 1.0f, 0.5f, 1.0f};
+    vsg::vec4 sun_color = vsg::sRGB_to_linear(1.0f, 1.0f, 0.5f, 1.0f);
     vsg::dvec3 position;
     vsg::dquat rotation;
     bool useCoordinateFrame = false;
@@ -43,7 +43,7 @@ vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars, vsg::
     for(auto& c : *colors)
     {
         float brightness = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-        c.set(brightness, brightness, brightness, 1.0);
+        c = vsg::sRGB_to_linear(brightness, brightness, brightness, 1.0f);
     }
 
     auto normals = vsg::vec3Value::create(vsg::vec3(0.0f, 0.0f, 1.0f));
@@ -755,12 +755,12 @@ int main(int argc, char** argv)
     // create solar system one
     //
     settings.name = "1. ";
-    settings.sun_color.set(1.0f, 1.0f, 0.7f, 1.0f);
+    settings.sun_color = vsg::sRGB_to_linear(1.0f, 1.0f, 0.7f, 1.0f);
     settings.position.set(-distance_between_systems * 0.5, 0.0, 0.0);
     auto solar_system_one = creteSolarSystem(settings);
 
     settings.name = "2. ";
-    settings.sun_color.set(1.0f, 0.8f, 0.7f, 1.0f);
+    settings.sun_color = vsg::sRGB_to_linear(1.0f, 0.8f, 0.7f, 1.0f);
     settings.position.set(distance_between_systems * 0.5, 0.0, 0.0);
     settings.rotation.set(vsg::radians(90.0), vsg::dvec3(1.0, 0.0, 0.0));
     auto solar_system_two = creteSolarSystem(settings);
