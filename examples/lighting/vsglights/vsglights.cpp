@@ -187,12 +187,12 @@ int main(int argc, char** argv)
             auto ambientLight = vsg::AmbientLight::create();
             ambientLight->name = "ambient";
             ambientLight->color.set(1.0f, 1.0f, 1.0f);
-            ambientLight->intensity = 0.1f;
+            ambientLight->intensity = 0.0044f;
 
             auto directionalLight = vsg::DirectionalLight::create();
             directionalLight->name = "head light";
             directionalLight->color.set(1.0f, 1.0f, 1.0f);
-            directionalLight->intensity = 0.9f;
+            directionalLight->intensity = 0.9956f;
             directionalLight->direction.set(0.0f, 0.0f, -1.0f);
 
             auto absoluteTransform = vsg::AbsoluteTransform::create();

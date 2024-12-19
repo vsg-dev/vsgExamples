@@ -62,7 +62,7 @@ public:
             }
 
             ImGui::SliderFloat("float", &params->dist, 0.0f, 1.0f);        // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&params->clearColor); // Edit 3 floats representing a color
+            ImGui::ColorEdit3("clear color", (float*)&params->clearColor); // Edit 3 floats representing a color. Beware: the color space will match the rendering color space, typically linear, whereas colour pickers are typically sRGB.
 
             if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
                 params->counter++;
@@ -129,7 +129,7 @@ public:
             if (params->showImagesWindow)
             {
                 ImGui::Begin("Image Window", &params->showImagesWindow);
-                ImGui::Text("An texture:");
+                ImGui::Text("A texture:");
                 // The logo texture is big, show it at half size
 
                 ImGui::Image(texture->id(cb.deviceID), ImVec2(texture->width / 2.0f, texture->height / 2.0f));

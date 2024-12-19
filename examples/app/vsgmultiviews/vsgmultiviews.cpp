@@ -158,7 +158,7 @@ int main(int argc, char** argv)
 
     // clear the depth buffer before view2 gets rendered
     VkClearValue colorClearValue{};
-    colorClearValue.color = {{0.2f, 0.2f, 0.2f, 1.0f}};
+    colorClearValue.color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
     VkClearAttachment color_attachment{VK_IMAGE_ASPECT_COLOR_BIT, 0, colorClearValue};
 
     VkClearValue depthClearValue{};

@@ -59,18 +59,18 @@ vsg::ref_ptr<vsg::Node> createTestScene(const ModelSettings& settings)
     vsg::StateInfo stateInfo;
     if (settings.textureFile) stateInfo.image = vsg::read_cast<vsg::Data>(settings.textureFile, settings.options);
 
-    geomInfo.color.set(1.0f, 1.0f, 0.5f, 1.0f);
+    geomInfo.color = vsg::sRGB_to_linear(1.0f, 1.0f, 0.5f, 1.0f);
     scene->addChild(decorateIfRequired(builder->createBox(geomInfo, stateInfo), settings));
 
-    geomInfo.color.set(1.0f, 0.5f, 1.0f, 1.0f);
+    geomInfo.color = vsg::sRGB_to_linear(1.0f, 0.5f, 1.0f, 1.0f);
     geomInfo.position += geomInfo.dx * 1.5f;
     scene->addChild(decorateIfRequired(builder->createSphere(geomInfo, stateInfo), settings));
 
-    geomInfo.color.set(0.0f, 1.0f, 1.0f, 1.0f);
+    geomInfo.color = vsg::sRGB_to_linear(0.0f, 1.0f, 1.0f, 1.0f);
     geomInfo.position += geomInfo.dx * 1.5f;
     scene->addChild(decorateIfRequired(builder->createCylinder(geomInfo, stateInfo), settings));
 
-    geomInfo.color.set(0.5f, 1.0f, 0.5f, 1.0f);
+    geomInfo.color = vsg::sRGB_to_linear(0.5f, 1.0f, 0.5f, 1.0f);
     geomInfo.position += geomInfo.dx * 1.5f;
     scene->addChild(decorateIfRequired(builder->createCapsule(geomInfo, stateInfo), settings));
 
@@ -81,7 +81,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(const ModelSettings& settings)
         geomInfo.position.set(static_cast<float>((bounds.min.x + bounds.max.x) * 0.5), static_cast<float>((bounds.min.y + bounds.max.y) * 0.5), static_cast<float>(bounds.min.z));
         geomInfo.dx.set(diameter, 0.0f, 0.0f);
         geomInfo.dy.set(0.0f, diameter, 0.0f);
-        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+        geomInfo.color = vsg::sRGB_to_linear(1.0f, 1.0f, 1.0f, 1.0f);
 
         stateInfo.two_sided = true;
 
@@ -123,10 +123,10 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
         geomInfo.dy.set(0.0f, length, 0.0f);
         geomInfo.dz.set(0.0f, 0.0f, length);
 
-        geomInfo.color.set(float(std::rand()) / float(RAND_MAX),
-                           float(std::rand()) / float(RAND_MAX),
-                           float(std::rand()) / float(RAND_MAX),
-                           1.0f);
+        geomInfo.color = vsg::sRGB_to_linear(float(std::rand()) / float(RAND_MAX),
+                                             float(std::rand()) / float(RAND_MAX),
+                                             float(std::rand()) / float(RAND_MAX),
+                                             1.0f);
     };
 
     for (uint32_t bi = 0; bi < numBoxes; ++bi)
@@ -160,7 +160,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
         geomInfo.dx.set(diameter, 0.0f, 0.0f);
         geomInfo.dy.set(0.0f, diameter, 0.0f);
         geomInfo.dz.set(0.0f, 0.0f, 1.0f);
-        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+        geomInfo.color = vsg::sRGB_to_linear(1.0f, 1.0f, 1.0f, 1.0f);
 
         stateInfo.two_sided = true;
 
@@ -538,7 +538,7 @@ int main(int argc, char** argv)
         directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0f, 1.0f, 1.0f);
-        directionalLight->intensity = 0.9f;
+        directionalLight->intensity = 0.98f;
         directionalLight->direction = direction;
         directionalLight->angleSubtended = angleSubtended;
         directionalLight->shadowSettings = shadowSettings;
@@ -552,7 +552,7 @@ int main(int argc, char** argv)
         ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0f, 1.0f, 1.0f);
-        ambientLight->intensity = 0.2f;
+        ambientLight->intensity = 0.02f;
         group->addChild(ambientLight);
     }
 

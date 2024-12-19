@@ -328,6 +328,7 @@ vsg::ref_ptr<vsg::Node> TileReader::createECEFTile(const vsg::dbox& tile_extents
     auto worldToLocal = vsg::inverse(localToWorld);
 
     // create texture image and associated DescriptorSets and binding
+    textureData->properties.format = vsg::uNorm_to_sRGB(textureData->properties.format);
     auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});

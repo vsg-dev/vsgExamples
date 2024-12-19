@@ -45,8 +45,9 @@ int main(int argc, char** argv)
     arguments.read("--file-cache", options->fileCache);
     bool osgEarthStyleMouseButtons = arguments.read({"--osgearth", "-e"});
 
-    VkClearColorValue clearColor{{0.2f, 0.2f, 0.4f, 1.0f}};
-    arguments.read({"--bc", "--background-color"}, clearColor.float32[0], clearColor.float32[1], clearColor.float32[2], clearColor.float32[3]);
+    vsg::vec4 clearColorSrgb{0.2f, 0.2f, 0.4f, 1.0f};
+    arguments.read({"--bc", "--background-color"}, clearColorSrgb.r, clearColorSrgb.g, clearColorSrgb.b, clearColorSrgb.a);
+    VkClearColorValue clearColor = vsg::sRGB_to_linear(clearColorSrgb);
 
     uint32_t numOperationThreads = 0;
     if (arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);

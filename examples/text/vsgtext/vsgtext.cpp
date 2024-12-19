@@ -49,7 +49,7 @@ vsg::ref_ptr<vsg::Node> createQuad(const vsg::vec3& origin, const vsg::vec3& hor
             else
             {
                 auto image = vsg::vec4Array2D::create(1, 1, vsg::Data::Properties{VK_FORMAT_R32G32B32A32_SFLOAT});
-                image->set(0, 0, vsg::vec4(0.5f, 1.0f, 0.5f, 1.0f));
+                image->set(0, 0, vsg::sRGB_to_linear(0.5f, 1.0f, 0.5f, 1.0f));
                 textureData = image;
             }
 
@@ -179,7 +179,7 @@ int main(int argc, char** argv)
     auto render_all_glyphs = arguments.read("--all");
     auto enable_tests = arguments.read("--test");
     auto numFrames = arguments.value(-1, "--nf");
-    auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
+    auto clearColor = vsg::sRGB_to_linear(arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear"));
     bool disableDepthTest = arguments.read({"--ddt", "--disable-depth-test"});
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -225,7 +225,7 @@ int main(int argc, char** argv)
         layout->position = vsg::vec3(0.0, 0.0, 0.0);
         layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
         layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-        layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+        layout->color = vsg::sRGB_to_linear(1.0, 1.0, 1.0, 1.0);
 
         std::set<uint32_t> characters;
         for (auto c : *(font->charmap))
@@ -275,7 +275,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(6.0, 0.0, 0.0);
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 1.0, 0.0);
-            layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(1.0, 1.0, 1.0, 1.0);
             layout->outlineWidth = 0.1f;
             layout->billboard = true;
 
@@ -299,7 +299,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(-1.0, 0.0, 2.0);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 0.0, 0.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(1.0, 0.0, 0.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("VERTICAL_LAYOUT");
@@ -321,7 +321,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(-1.0, 0.0, 2.0);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(0.0, 1.0, 0.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(0.0, 1.0, 0.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("LEFT_TO_RIGHT_LAYOUT");
@@ -343,7 +343,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(13.0, 0.0, 2.0);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(0.0, 0.0, 1.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(0.0, 0.0, 1.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("RIGHT_TO_LEFT_LAYOUT");
@@ -365,7 +365,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(2.0, 0.0, -8.0);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(1.0, 0.0, 1.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("horizontalAlignment\nCENTER_ALIGNMENT");
@@ -387,7 +387,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(2.0, 0.0, -9.0);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(1.0, 1.0, 0.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("horizontalAlignment\nLEFT_ALIGNMENT");
@@ -409,7 +409,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(2.0, 0.0, -10.0);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(0.0, 1.0, 1.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("horizontalAlignment\nRIGHT_ALIGNMENT");
@@ -432,7 +432,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(10.0, 0.0, -8.5);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(0.0, 1.0, 1.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("verticalAlignment\nBOTTOM_ALIGNMENT");
@@ -455,7 +455,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(10.0, 0.0, -9.0);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(1.0, 0.0, 1.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("verticalAlignment\nCENTER_ALIGNMENT");
@@ -478,7 +478,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(10.0, 0.0, -9.5);
             layout->horizontal = vsg::vec3(0.5, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 0.5);
-            layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(1.0, 1.0, 0.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("verticalAlignment\nTOP_ALIGNMENT");
@@ -509,8 +509,8 @@ int main(int argc, char** argv)
                         for (int i = 0; i < 4; ++i)
                         {
                             quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
-                            quad.colors[i].r = 0.5f + 0.5f * sin(quad.vertices[i].x);
-                            quad.outlineColors[i] = vsg::vec4(cos(0.5f * quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
+                            quad.colors[i].r = vsg::sRGB_to_linear_component(0.5f + 0.5f * sin(quad.vertices[i].x));
+                            quad.outlineColors[i] = vsg::sRGB_to_linear(cos(0.5f * quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
                             quad.outlineWidths[i] = 0.1f + 0.15f * (1.0f + sin(quad.vertices[i].x));
                         }
                     }
@@ -521,7 +521,7 @@ int main(int argc, char** argv)
             layout->position = vsg::vec3(0.0, 0.0, -3.0);
             layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
-            layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
+            layout->color = vsg::sRGB_to_linear(1.0, 0.5, 1.0, 1.0);
 
             auto text = vsg::Text::create();
             text->text = vsg::stringValue::create("You can use Outlines\nand your own CustomLayout.");
@@ -542,7 +542,7 @@ int main(int argc, char** argv)
             dynamic_text_layout->position = vsg::vec3(0.0, 0.0, -6.0);
             dynamic_text_layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
             dynamic_text_layout->vertical = dynamic_text_layout->billboard ? vsg::vec3(0.0, 1.0, 0.0) : vsg::vec3(0.0, 0.0, 1.0);
-            dynamic_text_layout->color = vsg::vec4(1.0f, 0.9f, 1.0f, 1.0f);
+            dynamic_text_layout->color = vsg::sRGB_to_linear(1.0f, 0.9f, 1.0f, 1.0f);
             dynamic_text_layout->outlineWidth = 0.1f;
 
             dynamic_text->text = dynamic_text_label;

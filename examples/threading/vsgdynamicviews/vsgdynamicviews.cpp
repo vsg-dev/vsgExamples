@@ -92,7 +92,7 @@ struct LoadViewOperation : public vsg::Inherit<vsg::Operation, LoadViewOperation
             view->addChild(vsg::createHeadlight());
 
             auto renderGraph = vsg::RenderGraph::create(ref_window, view);
-            renderGraph->setClearValues({{0.2f, 0.2f, 0.2f, 1.0f}});
+            renderGraph->setClearValues(vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f));
 
             // need to add view to compileManager
             ref_viewer->compileManager->add(*ref_window, view);

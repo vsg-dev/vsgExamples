@@ -49,8 +49,8 @@ int main(int argc, char** argv)
      * a very large array that would exceed the uniform buffer size limits.
      */
     auto cellColors = vsg::vec4Array::create({
-        {0.176f, 0.408f, 0.376f, 1.0f}, // Powderkeg Blue (triangle 0)
-        {0.949f, 0.663f, 0.000f, 1.0f}, // Westwood Gold  (triangle 1)
+        vsg::sRGB_to_linear(0.176f, 0.408f, 0.376f, 1.0f), // Powderkeg Blue (triangle 0)
+        vsg::sRGB_to_linear(0.949f, 0.663f, 0.000f, 1.0f), // Westwood Gold  (triangle 1)
     });
 
     /// actually assigning a storage buffer (not a uniform buffer)

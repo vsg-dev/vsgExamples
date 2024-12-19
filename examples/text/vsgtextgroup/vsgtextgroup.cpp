@@ -17,7 +17,7 @@ int main(int argc, char** argv)
     auto font_filename = arguments.value(std::string("fonts/times.vsgb"), "-f");
     auto output_filename = arguments.value(std::string(), "-o");
     auto numFrames = arguments.value(-1, "--nf");
-    auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
+    auto clearColor = vsg::sRGB_to_linear(arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear"));
     if (arguments.read("-t"))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(6.0, 0.0, 0.0);
                 layout->horizontal = horizontal;
                 layout->vertical = vertical;
-                layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(1.0, 1.0, 1.0, 1.0);
                 layout->outlineWidth = 0.1f;
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(-1.0, 0.0, 2.0);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(1.0, 0.0, 0.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(1.0, 0.0, 0.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(-1.0, 0.0, 2.0);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(0.0, 1.0, 0.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(0.0, 1.0, 0.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(13.0, 0.0, 2.0);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(0.0, 0.0, 1.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(0.0, 0.0, 1.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -158,7 +158,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(2.0, 0.0, -8.0);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(1.0, 0.0, 1.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -176,7 +176,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(2.0, 0.0, -9.0);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(1.0, 1.0, 0.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -194,7 +194,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(2.0, 0.0, -10.0);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(0.0, 1.0, 1.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(10.0, 0.0, -8.5);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(0.0, 1.0, 1.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(0.0, 1.0, 1.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -232,7 +232,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(10.0, 0.0, -9.0);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(1.0, 0.0, 1.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -251,7 +251,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(10.0, 0.0, -9.5);
                 layout->horizontal = horizontal * 0.5f;
                 layout->vertical = vertical * 0.5f;
-                layout->color = vsg::vec4(1.0, 1.0, 0.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(1.0, 1.0, 0.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 
@@ -280,8 +280,8 @@ int main(int argc, char** argv)
                             for (int i = 0; i < 4; ++i)
                             {
                                 quad.vertices[i].z += 0.5f * sin(quad.vertices[i].x);
-                                quad.colors[i].r = 0.5f + 0.5f * sin(quad.vertices[i].x);
-                                quad.outlineColors[i] = vsg::vec4(cos(0.5f * quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
+                                quad.colors[i].r = vsg::sRGB_to_linear_component(0.5f + 0.5f * sin(quad.vertices[i].x));
+                                quad.outlineColors[i] = vsg::sRGB_to_linear(cos(0.5f * quad.vertices[i].x), 0.1f, 0.0f, 1.0f);
                                 quad.outlineWidths[i] = 0.1f + 0.15f * (1.0f + sin(quad.vertices[i].x));
                             }
                         }
@@ -292,7 +292,7 @@ int main(int argc, char** argv)
                 layout->position = local_origin + vsg::vec3(0.0, 0.0, -3.0);
                 layout->horizontal = horizontal;
                 layout->vertical = vertical;
-                layout->color = vsg::vec4(1.0, 0.5, 1.0, 1.0);
+                layout->color = vsg::sRGB_to_linear(1.0, 0.5, 1.0, 1.0);
                 layout->billboard = billboard;
                 layout->billboardAutoScaleDistance = billboardAutoScaleDistance;
 

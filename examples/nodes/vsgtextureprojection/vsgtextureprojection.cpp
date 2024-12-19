@@ -37,10 +37,10 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
         geomInfo.dy.set(0.0f, 10.0f, 0.0f);
         geomInfo.dz.set(0.0f, 0.0f, 10.0f);
 
-        geomInfo.color.set(float(std::rand()) / float(RAND_MAX),
-                           float(std::rand()) / float(RAND_MAX),
-                           float(std::rand()) / float(RAND_MAX),
-                           1.0f);
+        geomInfo.color = vsg::sRGB_to_linear(float(std::rand()) / float(RAND_MAX),
+                                             float(std::rand()) / float(RAND_MAX),
+                                             float(std::rand()) / float(RAND_MAX),
+                                             1.0f);
     };
 
     for (uint32_t bi = 0; bi < numBoxes; ++bi)
@@ -71,7 +71,7 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(vsg::ref_ptr<vsg::Options> options,
         geomInfo.dx.set(diameter, 0.0f, 0.0f);
         geomInfo.dy.set(0.0f, diameter, 0.0f);
         geomInfo.dz.set(0.0f, 0.0f, 1.0f);
-        geomInfo.color.set(1.0f, 1.0f, 1.0f, 1.0f);
+        geomInfo.color = vsg::sRGB_to_linear(1.0f, 1.0f, 1.0f, 1.0f);
 
         stateInfo.two_sided = true;
 
@@ -100,7 +100,7 @@ vsg::ref_ptr<vsg::Node> createDroneModel(vsg::ref_ptr<vsg::Options> options, flo
     geomInfo.dx.set(droneSize * 0.5f, 0.0f, 0.0f);
     geomInfo.dy.set(0.0f, droneSize * 0.5f, 0.0f);
     geomInfo.dz.set(0.0f, 0.0f, droneSize * 0.05f);
-    geomInfo.color.set(1.0f, 0.8f, 0.4f, 1.0f);
+    geomInfo.color = vsg::sRGB_to_linear(1.0f, 0.8f, 0.4f, 1.0f);
 
     // rotors
     geomInfo.position.set(-droneSize * 0.5f, -droneSize * 0.5f, 0.0f);
@@ -312,6 +312,7 @@ int main(int argc, char** argv)
     }
 
     auto shaderHints = shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
+    shaderHints->defines.insert("VSG_ALPHA_TEST");
 
     //    if (numShadowMapsPerLight>0)
     //    {
@@ -344,7 +345,8 @@ int main(int argc, char** argv)
         vsg::Path filename = argv[i];
         if (auto data = vsg::read_cast<vsg::Data>(filename, options))
         {
-            if (data->properties.format == VK_FORMAT_R8G8B8A8_UNORM)
+            data->properties.format = vsg::uNorm_to_sRGB(data->properties.format);
+            if (data->properties.format == VK_FORMAT_R8G8B8A8_SRGB)
             {
                 if (!firstImage)
                 {
@@ -364,7 +366,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::cout << "Image file : " << filename << " loaded, but does not match required VK_FORMAT_R8G8B8A8_UNORM format." << std::endl;
+                std::cout << "Image file : " << filename << " loaded, but does not match required VK_FORMAT_R8G8B8A8_SRGB format." << std::endl;
             }
         }
         else
@@ -456,7 +458,7 @@ int main(int argc, char** argv)
     auto texgenMatrices = vsg::mat4Array::create(depth);
     texgenMatrices->properties.dataVariance = vsg::DYNAMIC_DATA;
 
-    auto texture2DArray = vsg::ubvec4Array3D::create(firstImage->width(), firstImage->height(), depth, vsg::ubvec4(255, 255, 255, 255), vsg::Data::Properties{VK_FORMAT_R8G8B8A8_UNORM});
+    auto texture2DArray = vsg::ubvec4Array3D::create(firstImage->width(), firstImage->height(), depth, vsg::ubvec4(255, 255, 255, 255), vsg::Data::Properties{VK_FORMAT_R8G8B8A8_SRGB});
     texture2DArray->properties.imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
     texgenDescritor->bufferInfoList.push_back(vsg::BufferInfo::create(texgenMatrices));
@@ -562,7 +564,7 @@ int main(int argc, char** argv)
         auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.9f;
+        directionalLight->intensity = 0.98f;
         directionalLight->direction = direction;
         if (numShadowMapsPerLight > 0)
         {
@@ -573,7 +575,7 @@ int main(int argc, char** argv)
         auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.2f;
+        ambientLight->intensity = 0.02f;
         group->addChild(ambientLight);
     }
 

@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
 
 // define by default for backwards compatibility
 #define VSG_SHADOWS_HARD
@@ -42,7 +42,6 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
-
 layout(constant_id = 3) const int lightDataSize = 256;
 layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 {
@@ -72,6 +71,12 @@ layout(location = 3) in vec2 texCoord0;
 layout(location = 5) in vec3 viewDir;
 
 layout(location = 0) out vec4 outColor;
+
+vec4 SRGBtoLINEAR(vec4 srgbIn)
+{
+    vec3 linOut = pow(srgbIn.xyz, vec3(2.2));
+    return vec4(linOut,srgbIn.w);
+}
 
 // include the calculateShadowCoverageForDirectionalLight(..) implementation
 #include "shadows.glsl"
@@ -164,7 +169,7 @@ void main()
         float v = texture(diffuseMap, texCoord0.st).s;
         diffuseColor *= vec4(v, v, v, 1.0);
     #else
-        diffuseColor *= texture(diffuseMap, texCoord0.st);
+        diffuseColor *= SRGBtoLINEAR(texture(diffuseMap, texCoord0.st));
     #endif
     }
 #endif
@@ -175,14 +180,12 @@ void main()
     float shininess = material.shininess;
     float ambientOcclusion = 1.0;
 
-    if (material.alphaMask == 1.0f)
-    {
-        if (diffuseColor.a < material.alphaMaskCutoff)
-            discard;
-    }
+#ifdef VSG_ALPHA_TEST
+    if (material.alphaMask == 1.0f && diffuseColor.a < material.alphaMaskCutoff) discard;
+#endif
 
 #ifdef VSG_EMISSIVE_MAP
-    emissiveColor *= texture(emissiveMap, texCoord0.st);
+    emissiveColor *= SRGBtoLINEAR(texture(emissiveMap, texCoord0.st));
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
@@ -190,7 +193,7 @@ void main()
 #endif
 
 #ifdef VSG_SPECULAR_MAP
-    specularColor *= texture(specularMap, texCoord0.st);
+    specularColor *= SRGBtoLINEAR(texture(specularMap, texCoord0.st));
 #endif
 
     vec3 nd = getNormal();
@@ -237,6 +240,14 @@ void main()
 
             float brightness = lightColor.a;
 
+            // if light is too dim to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
+            float unclamped_LdotN = dot(direction, nd);
+
+            float diff = max(unclamped_LdotN, 0.0);
+            brightness *= diff;
+
             int shadowMapCount = int(lightData.values[lightDataIndex].r);
             if (shadowMapCount > 0)
             {
@@ -249,13 +260,9 @@ void main()
             else
                 lightDataIndex++;
 
-            // if light is too dim/shadowed to effect the rendering skip it
+            // if light is too shadowed to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;
-
-            float unclamped_LdotN = dot(direction, nd);
-
-            float diff = max(unclamped_LdotN, 0.0);
-            color.rgb += (diffuseColor.rgb * lightColor.rgb) * (diff * brightness);
+            color.rgb += (diffuseColor.rgb * lightColor.rgb) * (brightness);
 
             if (shininess > 0.0 && diff > 0.0)
             {
@@ -298,6 +305,15 @@ void main()
 
     if (numSpotLights>0)
     {
+        vec3 q1 = dFdx(eyePos);
+        vec3 q2 = dFdy(eyePos);
+        vec2 st1 = dFdx(texCoord0);
+        vec2 st2 = dFdy(texCoord0);
+
+        vec3 N = normalize(normalDir);
+        vec3 T = normalize(q1 * st2.t - q2 * st1.t);
+        vec3 B = -normalize(cross(N, T));
+
         // spot light
         for(int i = 0; i<numSpotLights; ++i)
         {
@@ -307,15 +323,33 @@ void main()
 
             float brightness = lightColor.a;
 
-            // if light is too dim/shadowed to effect the rendering skip it
+            // if light is too dim to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;
 
             vec3 delta = position_cosInnerAngle.xyz - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
-            vec3 direction = delta / sqrt(distance2);
+            float dist = sqrt(distance2);
+
+            vec3 direction = delta / dist;
 
             float dot_lightdirection = dot(lightDirection_cosOuterAngle.xyz, -direction);
-            float scale = (brightness  * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
+
+            int shadowMapCount = int(lightData.values[lightDataIndex].r);
+            if (shadowMapCount > 0)
+            {
+                if (lightDirection_cosOuterAngle.w < dot_lightdirection)
+                    brightness *= (1.0-calculateShadowCoverageForSpotLight(lightDataIndex, shadowMapIndex, T, B, dist, color));
+
+                lightDataIndex += 1 + 8 * shadowMapCount;
+                shadowMapIndex += shadowMapCount;
+            }
+            else
+                lightDataIndex++;
+
+            // if light is too shadowed to effect the rendering skip it
+            if (brightness <= brightnessCutoff ) continue;
+
+            float scale = (brightness * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
 
             float unclamped_LdotN = dot(direction, nd);
 

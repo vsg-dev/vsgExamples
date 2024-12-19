@@ -140,7 +140,7 @@ int main(int argc, char** argv)
 
     auto main_RenderGraph = vsg::RenderGraph::create(window1, main_view);
     auto secondary_RenderGraph = vsg::RenderGraph::create(window2, secondary_view);
-    secondary_RenderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.2f, 1.0f}};
+    secondary_RenderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
 
     auto commandGraph1 = vsg::CommandGraph::create(window1);
     commandGraph1->addChild(main_RenderGraph);

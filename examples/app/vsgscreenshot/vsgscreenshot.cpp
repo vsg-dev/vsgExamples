@@ -106,7 +106,7 @@ public:
         vkGetPhysicalDeviceFormatProperties(*(physicalDevice), sourceImageFormat, &srcFormatProperties);
 
         VkFormatProperties destFormatProperties;
-        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), VK_FORMAT_R8G8B8A8_UNORM, &destFormatProperties);
+        vkGetPhysicalDeviceFormatProperties(*(physicalDevice), VK_FORMAT_R8G8B8A8_SRGB, &destFormatProperties);
 
         bool supportsBlit = ((srcFormatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) != 0) &&
                             ((destFormatProperties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) != 0);
@@ -114,7 +114,7 @@ public:
         if (supportsBlit)
         {
             // we can automatically convert the image format when blit, so take advantage of it to ensure RGBA
-            targetImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+            targetImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
         }
 
         vsg::info("supportsBlit = ", supportsBlit);

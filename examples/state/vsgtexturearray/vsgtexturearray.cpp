@@ -204,7 +204,7 @@ int main(int argc, char** argv)
     for (uint32_t i = 0; i < numTiles; ++i)
     {
         auto textureData = vsg::ubvec4Array2D::create(256, 256);
-        textureData->properties.format = VK_FORMAT_R8G8B8A8_UNORM;
+        textureData->properties.format = VK_FORMAT_R8G8B8A8_SRGB;
         if (update) textureData->properties.dataVariance = vsg::DYNAMIC_DATA;
 
         updateBaseTexture(*textureData, 1.0f);

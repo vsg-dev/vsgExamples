@@ -252,7 +252,7 @@ int main(int argc, char** argv)
 
         auto secondary_view = vsg::View::create(secondary_camera, scenegraph);
         auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
-        secondary_RenderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.2f, 1.0f}};
+        secondary_RenderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
         commandGraph->addChild(secondary_RenderGraph);
 
         y += secondary_height + margin;

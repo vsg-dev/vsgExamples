@@ -26,7 +26,7 @@ class NamedGroup : public vsg::Inherit<experimental::Annotation<vsg::Group>, Nam
 public:
     NamedGroup()
     {
-        debugColor = vsg::vec4(.8f, .8f, .8f, 1.0f);
+        debugColor = vsg::sRGB_to_linear(.8f, .8f, .8f, 1.0f);
     }
 
     using experimental::Annotation<vsg::Group>::accept;
