@@ -12,7 +12,7 @@ layout(push_constant) uniform PushConstants {
 } pc;
 
 #ifdef VSG_DISPLACEMENT_MAP
-layout(set = MATERIAL_DESCRIPTOR_SET, binding = 6) uniform sampler2D displacementMap;
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 7) uniform sampler2D displacementMap;
 #endif
 
 layout(location = 0) in vec3 vsg_Vertex;
