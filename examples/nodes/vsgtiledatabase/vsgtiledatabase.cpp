@@ -108,16 +108,14 @@ int main(int argc, char** argv)
     if (arguments.read("--detail", settings->detailLayer))
     {
 
-        auto detailCallback = [](vsg::ref_ptr<vsg::Data> data) -> vsg::ref_ptr<vsg::Data>
-        {
-
+        auto detailCallback = [](vsg::ref_ptr<vsg::Data> data) -> vsg::ref_ptr<vsg::Data> {
             struct SetAlpha : public vsg::Visitor
             {
                 void apply(vsg::ubvec4Array2D& data) override
                 {
-                    for(auto& texel : data)
+                    for (auto& texel : data)
                     {
-                        if (texel==vsg::ubvec4(242, 239, 233, 255)) texel.a = 0;
+                        if (texel == vsg::ubvec4(242, 239, 233, 255)) texel.a = 0;
                     }
                 }
             } setAlpha;

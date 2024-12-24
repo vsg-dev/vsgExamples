@@ -9,26 +9,28 @@
 
 // A rotation tracking view matrix. It returns the rotation component
 // of another viewMatrix.
-class RotationTrackingMatrix : public vsg::Inherit<vsg::ViewMatrix, RotationTrackingMatrix> {
-    public:
+class RotationTrackingMatrix : public vsg::Inherit<vsg::ViewMatrix, RotationTrackingMatrix>
+{
+public:
     RotationTrackingMatrix(vsg::ref_ptr<vsg::ViewMatrix> parentTransform) :
         parentTransform_(parentTransform) {}
-      
+
     // The transform() returns the rotation part of the tracked matrix
-    vsg::dmat4 transform(const vsg::dvec3&) const override {
+    vsg::dmat4 transform(const vsg::dvec3&) const override
+    {
 
         vsg::dvec3 translation, scale;
-        vsg::dquat rotation; 
+        vsg::dquat rotation;
         vsg::decompose(parentTransform_->transform(),
                        // output
                        translation,
                        rotation,
                        scale);
-  
+
         return vsg::rotate(rotation);
     }
-  
-    private:
+
+private:
     vsg::ref_ptr<vsg::ViewMatrix> parentTransform_;
 };
 
@@ -42,21 +44,21 @@ vsg::ref_ptr<vsg::Node> createArrow(vsg::vec3 pos, vsg::vec3 dir, vsg::vec4 colo
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
 
-    geomInfo.color = vsg::vec4{1,1,1,1};
+    geomInfo.color = vsg::vec4{1, 1, 1, 1};
     geomInfo.position = pos;
     geomInfo.transform = vsg::translate(0.0f, 0.0f, 0.5f);
 
     // If we don't point in the z-direction, then rotate the arrow
-    if (vsg::length(vsg::cross(vsg::vec3{0,0,1}, dir)) > 0.0001)
+    if (vsg::length(vsg::cross(vsg::vec3{0, 0, 1}, dir)) > 0.0001)
     {
-        vsg::vec3 axis = vsg::cross(vsg::vec3{0,0,1}, dir);
-        float angle = acos(vsg::dot(vsg::vec3{0,0,1}, dir));
+        vsg::vec3 axis = vsg::cross(vsg::vec3{0, 0, 1}, dir);
+        float angle = acos(vsg::dot(vsg::vec3{0, 0, 1}, dir));
         geomInfo.transform = vsg::rotate(angle, axis) * geomInfo.transform;
     }
 
     auto axisTransform = geomInfo.transform;
     geomInfo.transform = geomInfo.transform * vsg::scale(0.1f, 0.1f, 1.0f);
-    
+
     // Rotate geomInfo from pos in the direction of dir
     auto node = builder.createCylinder(geomInfo, stateInfo);
     arrow->addChild(node);
@@ -64,7 +66,7 @@ vsg::ref_ptr<vsg::Node> createArrow(vsg::vec3 pos, vsg::vec3 dir, vsg::vec4 colo
     // The cone
     geomInfo.color = color;
     // This would have been cleaner with a pre_translate transform
-    geomInfo.transform = vsg::scale(0.3f, 0.3f, 0.3f) * axisTransform * vsg::translate(0.0f, 0.0f, 1.0f/0.3f);
+    geomInfo.transform = vsg::scale(0.3f, 0.3f, 0.3f) * axisTransform * vsg::translate(0.0f, 0.0f, 1.0f / 0.3f);
     node = builder.createCone(geomInfo, stateInfo);
     arrow->addChild(node);
 
@@ -76,14 +78,14 @@ vsg::ref_ptr<vsg::Node> createGizmo()
 {
     vsg::ref_ptr<vsg::Group> gizmo = vsg::Group::create();
 
-    gizmo->addChild(createArrow(vsg::vec3{0,0,0}, vsg::vec3{1,0,0}, vsg::vec4{1,0,0,1}));
-    gizmo->addChild(createArrow(vsg::vec3{0,0,0}, vsg::vec3{0,1,0}, vsg::vec4{0,1,0,1}));
-    gizmo->addChild(createArrow(vsg::vec3{0,0,0}, vsg::vec3{0,0,1}, vsg::vec4{0,0,1,1}));
+    gizmo->addChild(createArrow(vsg::vec3{0, 0, 0}, vsg::vec3{1, 0, 0}, vsg::vec4{1, 0, 0, 1}));
+    gizmo->addChild(createArrow(vsg::vec3{0, 0, 0}, vsg::vec3{0, 1, 0}, vsg::vec4{0, 1, 0, 1}));
+    gizmo->addChild(createArrow(vsg::vec3{0, 0, 0}, vsg::vec3{0, 0, 1}, vsg::vec4{0, 0, 1, 1}));
 
     vsg::Builder builder;
     vsg::GeometryInfo geomInfo;
     vsg::StateInfo stateInfo;
-    geomInfo.color = vsg::vec4{1,1,1,1};
+    geomInfo.color = vsg::vec4{1, 1, 1, 1};
     geomInfo.transform = vsg::scale(0.1f, 0.1f, 0.1f);
 
     auto sphere = builder.createSphere(geomInfo, stateInfo);
@@ -95,7 +97,7 @@ vsg::ref_ptr<vsg::Node> createGizmo()
 // Create a tracking overlay with a axes view that shows the orientation
 // of the main camera view matrix
 vsg::ref_ptr<vsg::View> createAxesView(vsg::ref_ptr<vsg::Camera> camera,
-                                        double aspectRatio)
+                                       double aspectRatio)
 {
     auto viewMat = RotationTrackingMatrix::create(camera->viewMatrix);
 
@@ -104,14 +106,14 @@ vsg::ref_ptr<vsg::View> createAxesView(vsg::ref_ptr<vsg::Camera> camera,
     double camWidth = 10;
     double camXOffs = -8;
     double camYOffs = -8;
-    auto ortho = vsg::Orthographic::create(camXOffs,camXOffs+camWidth,  // left, right
-                                           camYOffs/aspectRatio,(camYOffs+camWidth)/aspectRatio, // bottom, top
-                                           -1000,1000); // near, far
+    auto ortho = vsg::Orthographic::create(camXOffs, camXOffs + camWidth,                               // left, right
+                                           camYOffs / aspectRatio, (camYOffs + camWidth) / aspectRatio, // bottom, top
+                                           -1000, 1000);                                                // near, far
 
     auto gizmoCamera = vsg::Camera::create(
-      ortho,
-      viewMat,
-      camera->viewportState);
+        ortho,
+        viewMat,
+        camera->viewportState);
 
     auto scene = vsg::Group::create();
     scene->addChild(createGizmo());
@@ -194,7 +196,7 @@ int main(int argc, char** argv)
 
     uint32_t width = window->extent2D().width;
     uint32_t height = window->extent2D().height;
-    double aspectRatio = (double)width/height;
+    double aspectRatio = (double)width / height;
 
     auto renderGraph = vsg::RenderGraph::create(window);
 
