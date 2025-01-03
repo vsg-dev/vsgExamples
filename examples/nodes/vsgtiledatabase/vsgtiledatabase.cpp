@@ -82,7 +82,19 @@ int main(int argc, char** argv)
         settings->maxLevel = 10;
         settings->originTopLeft = false;
         settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
-        // settings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+    }
+    if (arguments.read("--rme"))
+    {
+        // setup ready map settings
+        settings = vsg::TileDatabaseSettings::create();
+        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings->noX = 2;
+        settings->noY = 1;
+        settings->maxLevel = 10;
+        settings->originTopLeft = false;
+        settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/22/{z}/{x}/{y}.jpeg";
+        settings->elevationLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+        settings->elevationScale = 32868.0; // .tif elevation data is signed short
     }
 
     if (arguments.read("--osm") || !settings)
