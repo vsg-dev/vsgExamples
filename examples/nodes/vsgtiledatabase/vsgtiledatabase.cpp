@@ -142,6 +142,7 @@ int main(int argc, char** argv)
 
     arguments.read("-t", settings->lodTransitionScreenHeightRatio);
     arguments.read("-m", settings->maxLevel);
+    arguments.read({"--mtd", "--maxTileDimension"}, settings->maxTileDimension);
 
     auto ellipsoidModel = settings->ellipsoidModel;
 
