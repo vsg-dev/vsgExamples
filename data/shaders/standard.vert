@@ -11,15 +11,18 @@ layout(push_constant) uniform PushConstants {
     mat4 modelView;
 } pc;
 
-#ifdef VSG_DISPLACEMENT_MAP
-layout(set = MATERIAL_DESCRIPTOR_SET, binding = 6) uniform sampler2D displacementMap;
-#endif
-
 layout(location = 0) in vec3 vsg_Vertex;
 layout(location = 1) in vec3 vsg_Normal;
 layout(location = 2) in vec2 vsg_TexCoord0;
 layout(location = 3) in vec4 vsg_Color;
 
+#ifdef VSG_DISPLACEMENT_MAP
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 7) uniform sampler2D displacementMap;
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 8) uniform DisplacementMapScale
+{
+    vec3 value;
+} displacementMapScale;
+#endif
 
 #ifdef VSG_BILLBOARD
 layout(location = 4) in vec4 vsg_position_scaleDistance;
@@ -71,8 +74,11 @@ void main()
     vec4 normal = vec4(vsg_Normal, 0.0);
 
 #ifdef VSG_DISPLACEMENT_MAP
-    // TODO need to pass as as uniform or per instance attributes
+#if 0
     vec3 scale = vec3(1.0, 1.0, 1.0);
+#else
+    vec3 scale = displacementMapScale.value;
+#endif
 
     vertex.xyz = vertex.xyz + vsg_Normal * (texture(displacementMap, vsg_TexCoord0.st).s * scale.z);
 

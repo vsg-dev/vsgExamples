@@ -26,11 +26,11 @@ vsg::ref_ptr<vsg::StateGroup> createScene0()
     shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
 
     shaderSet->addDescriptorBinding("cellColors", "", 0, 0,
-        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
-        vsg::vec4Array::create({{1,0,0,1}}));
+                                    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
+                                    vsg::vec4Array::create({{1, 0, 0, 1}}));
 
     shaderSet->addAttributeBinding("vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT,
-        vsg::vec3Array::create(1));
+                                   vsg::vec3Array::create(1));
 
     auto gpConf = vsg::GraphicsPipelineConfigurator::create(shaderSet);
 
@@ -40,16 +40,14 @@ vsg::ref_ptr<vsg::StateGroup> createScene0()
      * a very large array that would exceed the uniform buffer size limits.
      */
     auto cellColors = vsg::vec4Array::create({
-        {0.176, 0.408, 0.376, 1.0},  // Powderkeg Blue (triangle 0)
-        {0.949, 0.663, 0.000, 1.0},  // Westwood Gold  (triangle 1)
+        {0.176, 0.408, 0.376, 1.0}, // Powderkeg Blue (triangle 0)
+        {0.949, 0.663, 0.000, 1.0}, // Westwood Gold  (triangle 1)
     });
 
     gpConf->assignDescriptor("cellColors", cellColors);
 
     /// single quad
-    auto vertices = vsg::vec3Array::create({
-        {-1, 0, -1}, { 1, 0, -1}, { 1, 0,  1}, {-1, 0,  1}
-    });
+    auto vertices = vsg::vec3Array::create({{-1, 0, -1}, {1, 0, -1}, {1, 0, 1}, {-1, 0, 1}});
     auto indices = vsg::uintArray::create({0, 1, 2, 0, 2, 3});
     vsg::DataList vertexArrays;
     gpConf->assignArray(vertexArrays, "vertex", VK_VERTEX_INPUT_RATE_VERTEX, vertices);
@@ -83,14 +81,12 @@ vsg::ref_ptr<vsg::StateGroup> createScene1()
     shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
 
     shaderSet->addAttributeBinding("vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT,
-        vsg::vec3Array::create(1));
+                                   vsg::vec3Array::create(1));
 
     auto gpConf = vsg::GraphicsPipelineConfigurator::create(shaderSet);
 
     /// single quad
-    auto vertices = vsg::vec3Array::create({
-        {-1, 0, -1}, { 1, 0, -1}, { 1, 0,  1}, {-1, 0,  1}
-    });
+    auto vertices = vsg::vec3Array::create({{-1, 0, -1}, {1, 0, -1}, {1, 0, 1}, {-1, 0, 1}});
     auto indices = vsg::uintArray::create({0, 1, 2, 0, 2, 3});
     vsg::DataList vertexArrays;
     gpConf->assignArray(vertexArrays, "vertex", VK_VERTEX_INPUT_RATE_VERTEX, vertices);
@@ -115,7 +111,7 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vsgcompilemanager";
     auto requestFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
-    requestFeatures->get().geometryShader = VK_TRUE;  // for gl_PrimitiveID
+    requestFeatures->get().geometryShader = VK_TRUE; // for gl_PrimitiveID
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
@@ -124,10 +120,9 @@ int main(int argc, char** argv)
 
     auto window = vsg::Window::create(windowTraits);
     auto lookAt = vsg::LookAt::create(
-        vsg::dvec3{2,-5,-1},
+        vsg::dvec3{2, -5, -1},
         vsg::dvec3{0, 0, 0},
-        vsg::dvec3{0, 0, 1}
-    );
+        vsg::dvec3{0, 0, 1});
     auto perspective = vsg::Perspective::create();
     auto viewportState = vsg::ViewportState::create(window->extent2D());
     auto camera = vsg::Camera::create(perspective, lookAt, viewportState);
@@ -149,13 +144,17 @@ int main(int argc, char** argv)
     int frameCount{0};
     while (viewer->advanceToNextFrame())
     {
-        if ((++frameCount % 60) == 0) {
+        if ((++frameCount % 60) == 0)
+        {
             viewer->deviceWaitIdle();
             sceneGraph->children.clear();
-            if (sceneNumber == 0) {
+            if (sceneNumber == 0)
+            {
                 sceneNumber = 1;
                 stateGroup = createScene1();
-            } else {
+            }
+            else
+            {
                 sceneNumber = 0;
                 stateGroup = createScene0();
             }

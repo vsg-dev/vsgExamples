@@ -82,7 +82,19 @@ int main(int argc, char** argv)
         settings->maxLevel = 10;
         settings->originTopLeft = false;
         settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
-        // settings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+    }
+    if (arguments.read("--rme"))
+    {
+        // setup ready map settings
+        settings = vsg::TileDatabaseSettings::create();
+        settings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings->noX = 2;
+        settings->noY = 1;
+        settings->maxLevel = 10;
+        settings->originTopLeft = false;
+        settings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/22/{z}/{x}/{y}.jpeg";
+        settings->elevationLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+        settings->elevationScale = 32868.0; // .tif elevation data is signed short
     }
 
     if (arguments.read("--osm") || !settings)
@@ -105,8 +117,32 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    if (arguments.read("--detail", settings->detailLayer))
+    {
+
+        auto detailCallback = [](vsg::ref_ptr<vsg::Data> data) -> vsg::ref_ptr<vsg::Data> {
+            struct SetAlpha : public vsg::Visitor
+            {
+                void apply(vsg::ubvec4Array2D& data) override
+                {
+                    for (auto& texel : data)
+                    {
+                        if (texel == vsg::ubvec4(242, 239, 233, 255)) texel.a = 0;
+                    }
+                }
+            } setAlpha;
+
+            if (data) data->accept(setAlpha);
+
+            return data;
+        };
+
+        settings->detailLayerCallback = detailCallback;
+    }
+
     arguments.read("-t", settings->lodTransitionScreenHeightRatio);
     arguments.read("-m", settings->maxLevel);
+    arguments.read({"--mtd", "--maxTileDimension"}, settings->maxTileDimension);
 
     auto ellipsoidModel = settings->ellipsoidModel;
 

@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
 
 // define by default for backwards compatibility
 #define VSG_SHADOWS_HARD
@@ -12,6 +12,10 @@ const float PI = radians(180);
 
 #ifdef VSG_DIFFUSE_MAP
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
+#endif
+
+#ifdef VSG_DETAIL_MAP
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 1) uniform sampler2D detailMap;
 #endif
 
 #ifdef VSG_NORMAL_MAP
@@ -129,6 +133,11 @@ void main()
     #else
         diffuseColor *= texture(diffuseMap, texCoord0.st);
     #endif
+#endif
+
+#ifdef VSG_DETAIL_MAP
+    vec4 detailColor = texture(detailMap, texCoord0.st);
+    diffuseColor.rgb = mix(diffuseColor.rgb, detailColor.rgb, detailColor.a);
 #endif
 
     vec4 ambientColor = diffuseColor * material.ambientColor * material.ambientColor.a;

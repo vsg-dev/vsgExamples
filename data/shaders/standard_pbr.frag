@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
+#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
 
 // define by default for backwards compatibility
 #define VSG_SHADOWS_HARD
@@ -18,8 +18,8 @@ const float c_MinRoughness = 0.04;
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
 #endif
 
-#ifdef VSG_METALLROUGHNESS_MAP
-layout(set = MATERIAL_DESCRIPTOR_SET, binding = 1) uniform sampler2D mrMap;
+#ifdef VSG_DETAIL_MAP
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 1) uniform sampler2D detailMap;
 #endif
 
 #ifdef VSG_NORMAL_MAP
@@ -36,6 +36,10 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 4) uniform sampler2D emissiveMap
 
 #ifdef VSG_SPECULAR_MAP
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMap;
+#endif
+
+#ifdef VSG_METALLROUGHNESS_MAP
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 6) uniform sampler2D mrMap;
 #endif
 
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform PbrData
@@ -334,6 +338,13 @@ void main()
 #else
     baseColor = vertexColor * pbr.baseColorFactor;
 #endif
+
+
+#ifdef VSG_DETAIL_MAP
+    vec4 detailColor = texture(detailMap, texCoord0.st);
+    baseColor.rgb = mix(baseColor.rgb, detailColor.rgb, detailColor.a);
+#endif
+
 
 #ifdef VSG_ALPHA_TEST
     if (pbr.alphaMask == 1.0f && baseColor.a < pbr.alphaMaskCutoff) discard;

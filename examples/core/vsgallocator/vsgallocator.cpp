@@ -28,14 +28,14 @@ public:
 
     void* allocate(std::size_t size, vsg::AllocatorAffinity) override
     {
-        return operator new (size); //, std::align_val_t{default_alignment});
+        return operator new(size); //, std::align_val_t{default_alignment});
     }
 
     bool deallocate(void* ptr, std::size_t size) override
     {
         if (nestedAllocator && nestedAllocator->deallocate(ptr, size)) return true;
 
-        operator delete (ptr);//, std::align_val_t{default_alignment});
+        operator delete(ptr); //, std::align_val_t{default_alignment});
         return true;
     }
 
@@ -45,7 +45,6 @@ public:
     size_t totalMemorySize() const override { return 0; }
     void setBlockSize(vsg::AllocatorAffinity, size_t) {}
 };
-
 
 struct SceneStatistics : public vsg::Inherit<vsg::ConstVisitor, SceneStatistics>
 {

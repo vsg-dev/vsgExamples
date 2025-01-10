@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 #include "vsg/all.h"
 
@@ -89,7 +89,6 @@ vsg::ref_ptr<vsg::BindGraphicsPipeline> createBindGraphicsPipeline()
     return vsg::BindGraphicsPipeline::create(graphicsPipeline);
 }
 
-
 vsg::ref_ptr<vsg::VertexIndexDraw> createDrawCommands(
     vsg::uivec3 numTriangles,
     vsg::vec3 posMin,
@@ -108,13 +107,16 @@ vsg::ref_ptr<vsg::VertexIndexDraw> createDrawCommands(
     size_t i{0};
     float cx, cy, cz;
     float x, y, z;
-    for (size_t xi{0}; xi<numTriangles.x; ++xi) {
+    for (size_t xi{0}; xi < numTriangles.x; ++xi)
+    {
         cx = static_cast<float>(xi) / static_cast<float>(numTriangles.x);
         x = posMin.x + cx * posRng.x;
-        for (size_t yi{0}; yi<numTriangles.y; ++yi) {
+        for (size_t yi{0}; yi < numTriangles.y; ++yi)
+        {
             cy = static_cast<float>(yi) / static_cast<float>(numTriangles.y);
             y = posMin.y + cy * posRng.y;
-            for (size_t zi{0}; zi<numTriangles.z; ++zi) {
+            for (size_t zi{0}; zi < numTriangles.z; ++zi)
+            {
                 cz = static_cast<float>(zi) / static_cast<float>(numTriangles.z);
                 z = posMin.z + cz * posRng.z;
 
@@ -158,7 +160,8 @@ vsg::ref_ptr<vsg::Group> createScene(
     size_t totalVertices{0};
     size_t totalBytes{0};
 
-    for (size_t pi{0}; pi<numPipelines; ++pi) {
+    for (size_t pi{0}; pi < numPipelines; ++pi)
+    {
 
         /// Graphics Pipeline State Group
         auto stateGroup = vsg::StateGroup::create();
@@ -168,7 +171,8 @@ vsg::ref_ptr<vsg::Group> createScene(
         /// Draw Commands
         ///     pipelines are slabs over y
         ///     individual draw calls are slabs over z
-        for (size_t di{0}; di<numDrawCalls; ++di) {
+        for (size_t di{0}; di < numDrawCalls; ++di)
+        {
             vsg::uivec3 numTri{
                 numTrianglesVec.x,
                 static_cast<uint32_t>(std::ceil(numTrianglesVec.y / numPipelines)),

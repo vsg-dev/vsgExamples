@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vsg/all.h>
 
-std::map<vsg::KeySymbol, std::string> keySymbolName =  {
+std::map<vsg::KeySymbol, std::string> keySymbolName = {
     {vsg::KEY_Space, "KEY_Space"},
     {vsg::KEY_Exclaim, "KEY_Exclaim"},
     {vsg::KEY_Quotedbl, "KEY_Quotedbl"},
@@ -163,9 +163,7 @@ std::map<vsg::KeySymbol, std::string> keySymbolName =  {
     {vsg::KEY_Super_L, "KEY_Super_L"},
     {vsg::KEY_Super_R, "KEY_Super_R"},
     {vsg::KEY_Hyper_L, "KEY_Hyper_L"},
-    {vsg::KEY_Hyper_R, "KEY_Hyper_R"}
-};
-
+    {vsg::KEY_Hyper_R, "KEY_Hyper_R"}};
 
 class InputHandler : public vsg::Inherit<vsg::Visitor, InputHandler>
 {

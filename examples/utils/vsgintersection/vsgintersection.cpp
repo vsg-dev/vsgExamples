@@ -225,7 +225,7 @@ public:
                 std::cout << "] [";
                 for (auto& index : intersection->indices)
                 {
-                    std::cout << index<<" ";
+                    std::cout << index << " ";
                 }
                 std::cout << "]";
 
