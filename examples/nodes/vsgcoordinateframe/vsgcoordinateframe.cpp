@@ -108,7 +108,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     earth->readDatabase(settings.options);
 
     auto earth_view = vsg::MatrixTransform::create();
-    earth_view->setValue("viewpoint", settings.name + "earth_view");
+    earth_view->setValue("viewpoint", settings.name + "_3_palace_view");
     earth_view->setObject("projection", vsg::Perspective::create(0.005, settings.windowAspectRatio, settings.z_near, settings.z_far)); // min FOV 0.005
     earth_view->matrix = vsg::rotate(vsg::radians(-51.315), 0.0, 1.0, 0.0) * vsg::rotate(vsg::radians(89.915), 0.0, 0.0, 1.0) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
 
@@ -117,8 +117,8 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     earth_rotation_about_axis->addChild(earth_view);
 
     auto orbit_view = vsg::MatrixTransform::create();
-    orbit_view->setValue("viewpoint", settings.name + "orbit_view");
-    orbit_view->setObject("projection", vsg::Perspective::create(90, settings.windowAspectRatio, settings.z_near, settings.z_far)); // min FOV 0.005
+    orbit_view->setValue("viewpoint", settings.name + "_2_orbit_view");
+    orbit_view->setObject("projection", vsg::Perspective::create(90, settings.windowAspectRatio, settings.z_near, settings.z_far));
     orbit_view->matrix = vsg::rotate(vsg::radians(45.0), 0.0, 0.0, 1.0) * vsg::rotate(vsg::radians(90.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, earth_radius * 5.0);
 
     auto earth_position_from_sun = vsg::MatrixTransform::create();
@@ -178,7 +178,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     auto sun = settings.builder->createSphere(geom, state);
 
     auto sun_view = vsg::MatrixTransform::create();
-    sun_view->setValue("viewpoint", settings.name + "sun_view");
+    sun_view->setValue("viewpoint", settings.name + "_1_sun_view");
     sun_view->setObject("projection", vsg::Perspective::create(60, settings.windowAspectRatio, settings.z_near, settings.z_far)); // min FOV 0.005
     sun_view->matrix = vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, settings.earth_to_sun_distance * 3.0);
 
