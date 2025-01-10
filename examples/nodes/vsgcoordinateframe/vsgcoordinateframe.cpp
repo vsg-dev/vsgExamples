@@ -683,9 +683,21 @@ int main(int argc, char** argv)
         settings.tileDatabaseSettings->noX = 2;
         settings.tileDatabaseSettings->noY = 1;
         settings.tileDatabaseSettings->maxLevel = 10;
-        settings.tileDatabaseSettings->originTopLeft = true;
+        settings.tileDatabaseSettings->originTopLeft = false;
         settings.tileDatabaseSettings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
-        // settings.tileDatabaseSettings->terrainLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+    }
+
+    if (arguments.read("--rme"))
+    {
+        // setup ready map settings
+        settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
+        settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+        settings.tileDatabaseSettings->noX = 2;
+        settings.tileDatabaseSettings->noY = 1;
+        settings.tileDatabaseSettings->maxLevel = 10;
+        settings.tileDatabaseSettings->originTopLeft = false;
+        settings.tileDatabaseSettings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
+        settings.tileDatabaseSettings->elevationLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
     }
 
     if (arguments.read("--osm") || !settings.tileDatabaseSettings)
