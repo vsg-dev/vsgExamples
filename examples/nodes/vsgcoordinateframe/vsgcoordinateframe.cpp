@@ -757,7 +757,7 @@ int main(int argc, char** argv)
     auto solar_system_two = creteSolarSystem(settings);
 
     auto universe_view = vsg::MatrixTransform::create();
-    universe_view->setValue("viewpoint", "1. universe_view");
+    universe_view->setValue("viewpoint", "0. universe_view");
     universe_view->setObject("projection", vsg::Perspective::create(60, settings.windowAspectRatio, settings.z_near, settings.z_far));
     universe_view->matrix = vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, distance_between_systems * 3.0);
 
