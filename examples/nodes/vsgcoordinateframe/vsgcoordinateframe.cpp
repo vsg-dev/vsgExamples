@@ -582,6 +582,7 @@ int main(int argc, char** argv)
     arguments.read(options);
 
     auto windowTraits = vsg::WindowTraits::create();
+    windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
     windowTraits->windowTitle = "vsgcoordinateframe";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
