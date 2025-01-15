@@ -1,4 +1,4 @@
-#vsga 0.7.3
+#vsga 1.1.9
 Root id=1 vsg::MatrixTransform
 {
   userObjects 1
@@ -9,10 +9,16 @@ Root id=1 vsg::MatrixTransform
     properties 0 0 0 1 1 1 0 -1 0
     value "saved_model.osg"
   }
+  matrix 50 0 0 0 0 50 0 0 0 0 50 0
+   0 0 0 1
+  subgraphRequiresLocalFrustum 1
   children 3
   vsg::Node id=3 vsg::MatrixTransform
   {
     userObjects 0
+    matrix 1 0 0 0 0 1 0 0 0 0 1 0
+     0 0 0 1
+    subgraphRequiresLocalFrustum 1
     children 8
     vsg::Node id=4 vsg::Group
     {
@@ -109,6 +115,7 @@ Root id=1 vsg::MatrixTransform
               vsg::ShaderStage id=17 vsg::ShaderStage
               {
                 userObjects 0
+                mask 18446744073709551615
                 stage 1
                 entryPointName "main"
                 module id=18 vsg::ShaderModule
@@ -299,6 +306,7 @@ void main()
               vsg::ShaderStage id=19 vsg::ShaderStage
               {
                 userObjects 0
+                mask 18446744073709551615
                 stage 16
                 entryPointName "main"
                 module id=20 vsg::ShaderModule
@@ -456,6 +464,7 @@ void main()
               vsg::GraphicsPipelineState id=21 vsg::VertexInputState
               {
                 userObjects 0
+                mask 18446744073709551615
                 NumBindings 4
                 binding 0
                 stride 12
@@ -490,12 +499,14 @@ void main()
               vsg::GraphicsPipelineState id=22 vsg::InputAssemblyState
               {
                 userObjects 0
+                mask 18446744073709551615
                 topology 3
                 primitiveRestartEnable 0
               }
               vsg::GraphicsPipelineState id=23 vsg::RasterizationState
               {
                 userObjects 0
+                mask 18446744073709551615
                 depthClampEnable 0
                 rasterizerDiscardEnable 0
                 polygonMode 0
@@ -510,6 +521,7 @@ void main()
               vsg::GraphicsPipelineState id=24 vsg::MultisampleState
               {
                 userObjects 0
+                mask 18446744073709551615
                 rasterizationSamples 1
                 sampleShadingEnable 0
                 minSampleShading 0
@@ -520,6 +532,7 @@ void main()
               vsg::GraphicsPipelineState id=25 vsg::ColorBlendState
               {
                 userObjects 0
+                mask 18446744073709551615
                 logicOp 3
                 logicOpEnable 0
                 attachments 1
@@ -536,6 +549,7 @@ void main()
               vsg::GraphicsPipelineState id=26 vsg::DepthStencilState
               {
                 userObjects 0
+                mask 18446744073709551615
                 depthTestEnable 1
                 depthWriteEnable 1
                 depthCompareOp 4
@@ -12381,9 +12395,6 @@ void main()
         }
       }
     }
-    matrix 1 0 0 0 0 1 0 0 0 0 1 0
-     0 0 0 1
-    subgraphRequiresLocalFrustum 1
   }
   vsg::Node id=799 vsg::Group
   {
@@ -13770,6 +13781,7 @@ void main()
             vsg::ShaderStage id=811 vsg::ShaderStage
             {
               userObjects 0
+              mask 18446744073709551615
               stage 1
               entryPointName "main"
               module id=812 vsg::ShaderModule
@@ -13924,6 +13936,7 @@ void main()
             vsg::ShaderStage id=813 vsg::ShaderStage
             {
               userObjects 0
+              mask 18446744073709551615
               stage 16
               entryPointName "main"
               module id=814 vsg::ShaderModule
@@ -14081,6 +14094,7 @@ void main()
             vsg::GraphicsPipelineState id=815 vsg::VertexInputState
             {
               userObjects 0
+              mask 18446744073709551615
               NumBindings 3
               binding 0
               stride 12
@@ -14108,12 +14122,14 @@ void main()
             vsg::GraphicsPipelineState id=816 vsg::InputAssemblyState
             {
               userObjects 0
+              mask 18446744073709551615
               topology 3
               primitiveRestartEnable 0
             }
             vsg::GraphicsPipelineState id=817 vsg::RasterizationState
             {
               userObjects 0
+              mask 18446744073709551615
               depthClampEnable 0
               rasterizerDiscardEnable 0
               polygonMode 0
@@ -14128,6 +14144,7 @@ void main()
             vsg::GraphicsPipelineState id=818 vsg::MultisampleState
             {
               userObjects 0
+              mask 18446744073709551615
               rasterizationSamples 1
               sampleShadingEnable 0
               minSampleShading 0
@@ -14138,6 +14155,7 @@ void main()
             vsg::GraphicsPipelineState id=819 vsg::ColorBlendState
             {
               userObjects 0
+              mask 18446744073709551615
               logicOp 3
               logicOpEnable 0
               attachments 1
@@ -14154,6 +14172,7 @@ void main()
             vsg::GraphicsPipelineState id=820 vsg::DepthStencilState
             {
               userObjects 0
+              mask 18446744073709551615
               depthTestEnable 1
               depthWriteEnable 1
               depthCompareOp 4
@@ -36195,6 +36214,7 @@ void main()
             vsg::ShaderStage id=837 vsg::ShaderStage
             {
               userObjects 0
+              mask 18446744073709551615
               stage 1
               entryPointName "main"
               module id=838 vsg::ShaderModule
@@ -36345,6 +36365,7 @@ void main()
             vsg::ShaderStage id=839 vsg::ShaderStage
             {
               userObjects 0
+              mask 18446744073709551615
               stage 16
               entryPointName "main"
               module id=840 vsg::ShaderModule
@@ -36499,6 +36520,7 @@ void main()
             vsg::GraphicsPipelineState id=841 vsg::VertexInputState
             {
               userObjects 0
+              mask 18446744073709551615
               NumBindings 2
               binding 0
               stride 12
@@ -36519,12 +36541,14 @@ void main()
             vsg::GraphicsPipelineState id=842 vsg::InputAssemblyState
             {
               userObjects 0
+              mask 18446744073709551615
               topology 3
               primitiveRestartEnable 0
             }
             vsg::GraphicsPipelineState id=843 vsg::RasterizationState
             {
               userObjects 0
+              mask 18446744073709551615
               depthClampEnable 0
               rasterizerDiscardEnable 0
               polygonMode 0
@@ -36539,6 +36563,7 @@ void main()
             vsg::GraphicsPipelineState id=844 vsg::MultisampleState
             {
               userObjects 0
+              mask 18446744073709551615
               rasterizationSamples 1
               sampleShadingEnable 0
               minSampleShading 0
@@ -36549,6 +36574,7 @@ void main()
             vsg::GraphicsPipelineState id=845 vsg::ColorBlendState
             {
               userObjects 0
+              mask 18446744073709551615
               logicOp 3
               logicOpEnable 0
               attachments 1
@@ -36565,6 +36591,7 @@ void main()
             vsg::GraphicsPipelineState id=846 vsg::DepthStencilState
             {
               userObjects 0
+              mask 18446744073709551615
               depthTestEnable 1
               depthWriteEnable 1
               depthCompareOp 4
@@ -38009,7 +38036,4 @@ void main()
       }
     }
   }
-  matrix 50 0 0 0 0 50 0 0 0 0 50 0
-   0 0 0 1
-  subgraphRequiresLocalFrustum 1
 }
