@@ -1,4 +1,4 @@
-#vsga 0.7.1
+#vsga 1.1.9
 Root id=1 vsg::TileDatabase
 {
   userObjects 1
@@ -6,8 +6,8 @@ Root id=1 vsg::TileDatabase
   object id=2 vsg::EllipsoidModel
   {
     userObjects 0
-    radiusEquator 6.37814e+06
-    radiusPolar 6.35675e+06
+    radiusEquator 6378140
+    radiusPolar 6356750
   }
   settings id=3 vsg::TileDatabaseSettings
   {
@@ -20,7 +20,11 @@ Root id=1 vsg::TileDatabase
     projection "EPSG:3857"
     ellipsoidModel id=2
     imageLayer "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-    terrainLayer ""
+    detailLayer ""
+    elevationLayer ""
+    elevationScale 32868
+    skirtRatio 0.02
+    maxTileDimension 1024
     mipmapLevelsHint 16
     lighting 0
     shaderSet id=0

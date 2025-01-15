@@ -1,4 +1,4 @@
-#vsga 0.4.3
+#vsga 1.1.9
 Root id=1 vsg::MatrixTransform
 {
   userObjects 1
@@ -10,7 +10,7 @@ Root id=1 vsg::MatrixTransform
     vsg::Object id=3 vsg::vec3Array
     {
       userObjects 0
-      Layout 0 12 0 1 1 1 0 -1
+      properties 0 12 0 1 1 1 0 -1 0
       size 3670
       storage id=0
       data 0.0970687 0 0.000543749 -0 0 0 0.0958184 -0.015927 0.000543749 0.1758 0 0.0021
@@ -935,7 +935,7 @@ Root id=1 vsg::MatrixTransform
     vsg::Object id=4 vsg::vec3Array
     {
       userObjects 0
-      Layout 0 12 0 1 1 1 0 -1
+      properties 0 12 0 1 1 1 0 -1 0
       size 3670
       storage id=0
       data 0.0130356 0 -0.999915 -0 0 -1 0.0128701 -0.0020402 -0.999915 0.0300678 0 -0.999548
@@ -1860,7 +1860,7 @@ Root id=1 vsg::MatrixTransform
     vsg::Object id=5 vsg::vec4Array
     {
       userObjects 0
-      Layout 0 16 0 1 1 1 0 -1
+      properties 0 16 0 1 1 1 0 -1 0
       size 3670
       storage id=0
       data 0.0782448 0.996934 0.00102005 -1 0.078258 0.996933 0 -1 0.156809 0.987629 0 -1
@@ -3091,7 +3091,7 @@ Root id=1 vsg::MatrixTransform
     vsg::Object id=6 vsg::vec2Array
     {
       userObjects 0
-      Layout 0 8 0 1 1 1 0 -1
+      properties 0 8 0 1 1 1 0 -1 0
       size 3670
       storage id=0
       data 2 0.04 1.9 -7.45058e-09 1.9 0.04 2 0.08 1.9 0.08 2 0.12
@@ -3710,7 +3710,7 @@ Root id=1 vsg::MatrixTransform
     vsg::Object id=7 vsg::ushortArray
     {
       userObjects 0
-      Layout 0 2 0 1 1 1 0 -1
+      properties 0 2 0 1 1 1 0 -1 0
       size 18960
       storage id=0
       data 2 1 0 2 0 3 3 4 2 4 3 5
@@ -5295,10 +5295,16 @@ Root id=1 vsg::MatrixTransform
        3663 3666 3667 3666 3665 3668 3668 3667 3666 3667 3668 3669
     }
   }
+  matrix 1 0 0 0 0 1 0 0 0 0 1 0
+   0 0 0 1
+  subgraphRequiresLocalFrustum 1
   children 1
   vsg::Node id=8 vsg::MatrixTransform
   {
     userObjects 0
+    matrix 1 0 0 0 0 1 0 0 0 0 1 0
+     0 0 0 1
+    subgraphRequiresLocalFrustum 1
     children 1
     vsg::Node id=9 vsg::StateGroup
     {
@@ -5351,6 +5357,7 @@ Root id=1 vsg::MatrixTransform
           vsg::ShaderStage id=15 vsg::ShaderStage
           {
             userObjects 0
+            mask 18446744073709551615
             stage 1
             entryPointName "main"
             module id=16 vsg::ShaderModule
@@ -5515,6 +5522,7 @@ void main()
           vsg::ShaderStage id=17 vsg::ShaderStage
           {
             userObjects 0
+            mask 18446744073709551615
             stage 16
             entryPointName "main"
             module id=18 vsg::ShaderModule
@@ -5698,6 +5706,7 @@ void main()
           vsg::GraphicsPipelineState id=19 vsg::VertexInputState
           {
             userObjects 0
+            mask 18446744073709551615
             NumBindings 4
             binding 0
             stride 12
@@ -5732,12 +5741,14 @@ void main()
           vsg::GraphicsPipelineState id=20 vsg::InputAssemblyState
           {
             userObjects 0
+            mask 18446744073709551615
             topology 3
             primitiveRestartEnable 0
           }
           vsg::GraphicsPipelineState id=21 vsg::RasterizationState
           {
             userObjects 0
+            mask 18446744073709551615
             depthClampEnable 0
             rasterizerDiscardEnable 0
             polygonMode 0
@@ -5752,19 +5763,21 @@ void main()
           vsg::GraphicsPipelineState id=22 vsg::MultisampleState
           {
             userObjects 0
+            mask 18446744073709551615
             rasterizationSamples 1
             sampleShadingEnable 0
             minSampleShading 0
-            NumSampleMask 0
+            sampleMasks 0
             alphaToCoverageEnable 0
             alphaToOneEnable 0
           }
           vsg::GraphicsPipelineState id=23 vsg::ColorBlendState
           {
             userObjects 0
+            mask 18446744073709551615
             logicOp 3
             logicOpEnable 0
-            NumColorBlendAttachments 1
+            attachments 1
             blendEnable 0
             srcColorBlendFactor 0
             dstColorBlendFactor 0
@@ -5778,6 +5791,7 @@ void main()
           vsg::GraphicsPipelineState id=24 vsg::DepthStencilState
           {
             userObjects 0
+            mask 18446744073709551615
             depthTestEnable 1
             depthWriteEnable 1
             depthCompareOp 4
@@ -5807,6 +5821,7 @@ void main()
       {
         userObjects 0
         slot 1
+        pipelineBindPoint 0
         layout id=13
         firstSet 0
         descriptorSet id=26 vsg::DescriptorSet
@@ -5823,19 +5838,14 @@ void main()
             data id=28 vsg::vec4Value
             {
               userObjects 0
-              Layout 0 0 0 1 1 1 0 -1
-              Value 1 0.929412 0.137255 1
+              properties 0 0 0 1 1 1 0 -1 0
+              value 1 0.929412 0.137255 1
             }
           }
         }
+        dynamicOffsets 0
       }
       prototypeArrayState id=0
     }
-    matrix 1 0 0 0 0 1 0 0 0 0 1 0
-    0 0 0 1
-    subgraphRequiresLocalFrustum 1
   }
-  matrix 1 0 0 0 0 1 0 0 0 0 1 0
-   0 0 0 1
-  subgraphRequiresLocalFrustum 1
 }
