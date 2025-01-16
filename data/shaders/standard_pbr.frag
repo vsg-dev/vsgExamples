@@ -90,7 +90,6 @@ struct PBRInfo
     vec3 specularColor;           // color contribution from specular lighting
 };
 
-
 vec4 SRGBtoLINEAR(vec4 srgbIn)
 {
     vec3 linOut = pow(srgbIn.xyz, vec3(2.2));
@@ -341,7 +340,7 @@ void main()
 
 
 #ifdef VSG_DETAIL_MAP
-    vec4 detailColor = texture(detailMap, texCoord0.st);
+    vec4 detailColor = SRGBtoLINEAR(texture(detailMap, texCoord0.st));
     baseColor.rgb = mix(baseColor.rgb, detailColor.rgb, detailColor.a);
 #endif
 
