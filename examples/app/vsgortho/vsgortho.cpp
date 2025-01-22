@@ -1,5 +1,9 @@
 #include <vsg/all.h>
 
+#ifdef vsgXchange_FOUND
+#    include <vsgXchange/all.h>
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -29,6 +33,12 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
+
     vsg::Path filename = arguments[1];
 
     auto vsg_scene = vsg::read_cast<vsg::Node>(filename, options);

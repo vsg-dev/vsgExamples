@@ -50,7 +50,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     // create image for color attachment
     auto colorImage = vsg::Image::create();
     colorImage->imageType = VK_IMAGE_TYPE_2D;
-    colorImage->format = VK_FORMAT_R8G8B8A8_UNORM;
+    colorImage->format = VK_FORMAT_R8G8B8A8_SRGB;
     colorImage->extent = attachmentExtent;
     colorImage->mipLevels = 1;
     colorImage->arrayLayers = 1;
@@ -104,7 +104,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     // attachment descriptions
     vsg::RenderPass::Attachments attachments(2);
     // Color attachment
-    attachments[0].format = VK_FORMAT_R8G8B8A8_UNORM;
+    attachments[0].format = VK_FORMAT_R8G8B8A8_SRGB;
     attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
     attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -166,7 +166,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     rendergraph->framebuffer = fbuf;
 
     rendergraph->clearValues.resize(2);
-    rendergraph->clearValues[0].color = {{0.4f, 0.2f, 0.4f, 1.0f}};
+    rendergraph->clearValues[0].color = vsg::sRGB_to_linear(0.4f, 0.2f, 0.4f, 1.0f);
     rendergraph->clearValues[1].depthStencil = VkClearDepthStencilValue{0.0f, 0};
 
     return rendergraph;
