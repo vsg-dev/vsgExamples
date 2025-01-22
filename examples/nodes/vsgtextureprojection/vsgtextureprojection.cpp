@@ -344,7 +344,8 @@ int main(int argc, char** argv)
         vsg::Path filename = argv[i];
         if (auto data = vsg::read_cast<vsg::Data>(filename, options))
         {
-            if (data->properties.format == VK_FORMAT_R8G8B8A8_UNORM)
+            data->properties.format = vsg::uNorm_to_sRGB(data->properties.format);
+            if (data->properties.format == VK_FORMAT_R8G8B8A8_SRGB)
             {
                 if (!firstImage)
                 {
@@ -364,7 +365,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::cout << "Image file : " << filename << " loaded, but does not match required VK_FORMAT_R8G8B8A8_UNORM format." << std::endl;
+                std::cout << "Image file : " << filename << " loaded, but does not match required VK_FORMAT_R8G8B8A8_SRGB format." << std::endl;
             }
         }
         else
@@ -456,7 +457,7 @@ int main(int argc, char** argv)
     auto texgenMatrices = vsg::mat4Array::create(depth);
     texgenMatrices->properties.dataVariance = vsg::DYNAMIC_DATA;
 
-    auto texture2DArray = vsg::ubvec4Array3D::create(firstImage->width(), firstImage->height(), depth, vsg::ubvec4(255, 255, 255, 255), vsg::Data::Properties{VK_FORMAT_R8G8B8A8_UNORM});
+    auto texture2DArray = vsg::ubvec4Array3D::create(firstImage->width(), firstImage->height(), depth, vsg::ubvec4(255, 255, 255, 255), vsg::Data::Properties{VK_FORMAT_R8G8B8A8_SRGB});
     texture2DArray->properties.imageViewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
     texgenDescritor->bufferInfoList.push_back(vsg::BufferInfo::create(texgenMatrices));
@@ -562,7 +563,7 @@ int main(int argc, char** argv)
         auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.9f;
+        directionalLight->intensity = 0.98f;
         directionalLight->direction = direction;
         if (numShadowMapsPerLight > 0)
         {
@@ -573,7 +574,7 @@ int main(int argc, char** argv)
         auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
-        ambientLight->intensity = 0.2f;
+        ambientLight->intensity = 0.02f;
         group->addChild(ambientLight);
     }
 
