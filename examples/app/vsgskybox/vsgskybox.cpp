@@ -188,7 +188,7 @@ int main(int argc, char** argv)
     arguments.read("--samples", windowTraits->samples);
     auto numFrames = arguments.value(-1, "-f");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-    auto skyboxFilename = arguments.value<vsg::Path>("", "--skybox");
+    auto skyboxFilename = arguments.value<vsg::Path>("textures/skybox.dds", "--skybox");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);

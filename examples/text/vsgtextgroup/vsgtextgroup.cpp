@@ -326,7 +326,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    window->clearColor() = VkClearColorValue{{clearColor.r, clearColor.g, clearColor.b, clearColor.a}};
+    window->clearColor() = vsg::sRGB_to_linear(clearColor);
 
     viewer->addWindow(window);
 

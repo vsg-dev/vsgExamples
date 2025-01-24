@@ -407,7 +407,7 @@ int main(int argc, char** argv)
         auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0f, 1.0f, 1.0f);
-        directionalLight->intensity = 0.9f;
+        directionalLight->intensity = 0.98f;
         directionalLight->direction = direction;
         directionalLight->shadowSettings = shadowSettings;
 
@@ -416,7 +416,7 @@ int main(int argc, char** argv)
         auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0f, 1.0f, 1.0f);
-        ambientLight->intensity = 0.1f;
+        ambientLight->intensity = 0.02f;
         scene->addChild(ambientLight);
     }
 

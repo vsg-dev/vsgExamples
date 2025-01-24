@@ -62,7 +62,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPreInst, LPSTR lpszCmdLine, i
     // register the vsgWin32::Win32_Window object so that we can have events processed by the VSG event handler
     SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window.get()));
 
-    window->clearColor() = VkClearColorValue{{0.2f, 0.2f, 0.2f, 0}};
+    window->clearColor() = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 0.0f);
     auto viewer = vsg::Viewer::create();
     viewer->addWindow(window);
 

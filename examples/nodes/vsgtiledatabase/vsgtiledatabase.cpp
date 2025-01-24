@@ -45,8 +45,7 @@ int main(int argc, char** argv)
     arguments.read("--file-cache", options->fileCache);
     bool osgEarthStyleMouseButtons = arguments.read({"--osgearth", "-e"});
 
-    VkClearColorValue clearColor{{0.2f, 0.2f, 0.4f, 1.0f}};
-    arguments.read({"--bc", "--background-color"}, clearColor.float32[0], clearColor.float32[1], clearColor.float32[2], clearColor.float32[3]);
+    auto clearColor = arguments.value(vsg::vec4(0.2f, 0.2f, 0.4f, 1.0f), "--clear");
 
     uint32_t numOperationThreads = 0;
     if (arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
@@ -266,7 +265,7 @@ int main(int argc, char** argv)
     }
 
     auto rendergraph = vsg::createRenderGraphForView(window, camera, vsg_scene);
-    rendergraph->setClearValues(clearColor);
+    rendergraph->setClearValues(vsg::sRGB_to_linear(clearColor));
 
     auto commandGraph = vsg::CommandGraph::create(window, rendergraph);
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});

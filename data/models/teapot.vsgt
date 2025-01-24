@@ -5839,7 +5839,7 @@ void main()
             {
               userObjects 0
               properties 0 0 0 1 1 1 0 -1 0
-              value 1 0.929412 0.137255 1
+              value 1 0.846874 0.0168074 1
             }
           }
         }

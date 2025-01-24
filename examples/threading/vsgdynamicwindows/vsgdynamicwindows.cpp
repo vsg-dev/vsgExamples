@@ -114,7 +114,7 @@ struct LoadWindowOperation : public vsg::Inherit<vsg::Operation, LoadWindowOpera
             view->addChild(vsg::createHeadlight());
 
             auto renderGraph = vsg::RenderGraph::create(second_window, view);
-            renderGraph->clearValues[0].color = {{0.2f, 0.2f, 0.2f, 1.0f}};
+            renderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
 
             auto commandGraph = vsg::CommandGraph::create(second_window);
             commandGraph->addChild(renderGraph);

@@ -608,7 +608,7 @@ int main(int argc, char** argv)
         deviceFeatures->get().depthClamp = VK_TRUE;
     }
 
-    VkClearColorValue clearColor{{0.0f, 0.0f, 0.0f, 1.0f}};
+    auto clearColor = arguments.value(vsg::vec4(0.0f, 0.0f, 0.0f, 1.0f), "--clear");
 
     bool playAnimations = arguments.read("--play");
 
@@ -796,8 +796,6 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    window->clearColor().set(0.0f, 0.0f, 0.0f, 1.0f);
-
     viewer->addWindow(window);
 
     // compute the bounds of the scene graph to help position camera
@@ -906,7 +904,7 @@ int main(int argc, char** argv)
     }
 
     auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
-    renderGraph->setClearValues(clearColor);
+    renderGraph->setClearValues(vsg::sRGB_to_linear(clearColor));
 
     auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
 

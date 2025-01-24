@@ -168,7 +168,7 @@ vsg::ref_ptr<vsg::RenderGraph> createOffscreenRendergraph(vsg::Context& context,
     rendergraph->framebuffer = fbuf;
 
     rendergraph->clearValues.resize(2);
-    rendergraph->clearValues[0].color = {{0.4f, 0.2f, 0.4f, 1.0f}};
+    rendergraph->clearValues[0].color = vsg::sRGB_to_linear(0.4f, 0.2f, 0.4f, 1.0f);
     rendergraph->clearValues[1].depthStencil = VkClearDepthStencilValue{0.0f, 0};
 
     return rendergraph;
@@ -579,7 +579,7 @@ int main(int argc, char** argv)
         VkExtent2D targetExtent{512, 512};
 
         // create the color and depth image 2D arrays to render to/read from.
-        auto colorImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+        auto colorImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
         auto depthImage = createImage(*context, targetExtent.width, targetExtent.height, numLayers, VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
         // use the TraverseChildrenOfNode to decorate the main view3D so it's children can be travesed by the render to texture without invoking the view3D camera/ViewDependentState

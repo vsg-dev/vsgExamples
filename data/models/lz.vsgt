@@ -615,7 +615,7 @@ void main()
                 image id=31 vsg::ubvec4Array2D
                 {
                   userObjects 0
-                  properties 37 4 1 1 1 1 2 -1 0
+                  properties 43 4 1 1 1 1 2 -1 0
                   width 128
                   height 128
                   storage id=0
@@ -14238,7 +14238,7 @@ void main()
               image id=825 vsg::ubvec4Array2D
               {
                 userObjects 0
-                properties 37 4 1 1 1 1 2 -1 0
+                properties 43 4 1 1 1 1 2 -1 0
                 width 256
                 height 256
                 storage id=0
@@ -36657,7 +36657,7 @@ void main()
               image id=851 vsg::ubvec4Array2D
               {
                 userObjects 0
-                properties 37 4 1 1 1 1 2 -1 0
+                properties 43 4 1 1 1 1 2 -1 0
                 width 64
                 height 64
                 storage id=0
