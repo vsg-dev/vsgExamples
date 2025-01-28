@@ -143,8 +143,8 @@ int main(int argc, char** argv)
 
         uint32_t i = 1;
         uint32_t columns = static_cast<uint32_t>(std::sqrt(static_cast<double>(swapChainSupportDetails.formats.size())))+1;
-        uint32_t dx = windowTraits->width;
-        uint32_t dy = windowTraits->height;
+        uint32_t dx = windowTraits->width + 32;
+        uint32_t dy = windowTraits->height + 32;
 
         for(auto& format : swapChainSupportDetails.formats)
         {
