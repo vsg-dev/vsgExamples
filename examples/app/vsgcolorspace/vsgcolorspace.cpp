@@ -25,6 +25,45 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vs
     return builder->createQuad(geom, state);
 }
 
+vsg::ref_ptr<vsg::Node> createLabelledSubgraph(const vsg::dvec3& position, const vsg::dvec3& dimensions, vsg::ref_ptr<vsg::Object> object, const std::string& label, vsg::ref_ptr<vsg::Options> options)
+{
+    vsg::ref_ptr<vsg::Node> subgraph;
+    if (auto data = object.cast<vsg::Data>()) subgraph = createTextureQuad(data, options);
+    else subgraph = object.cast<vsg::Node>();
+
+    if (!subgraph) return {};
+
+    // compute the bounds of the scene graph to help position camera
+    auto bounds = vsg::visit<vsg::ComputeBounds>(subgraph).bounds;
+
+    auto transform = vsg::MatrixTransform::create();
+    transform->matrix = vsg::translate(position) * vsg::scale(vsg::length(dimensions) / vsg::length(bounds.max - bounds.min)) * vsg::translate(-(bounds.max.x+bounds.min.x)*0.5, -bounds.min.y, -bounds.min.z);
+    transform->addChild(subgraph);
+
+    auto text = vsg::Text::create();
+
+    vsg::Path font_filename("fonts/times.vsgb");
+    text->font = vsg::read_cast<vsg::Font>(font_filename, options);
+
+    auto layout = vsg::StandardLayout::create();
+    layout->position = position;
+    layout->horizontal = vsg::vec3(1.0, 0.0, 0.0);
+    layout->vertical = vsg::vec3(0.0, 0.0, 1.0);
+    layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+    layout->horizontalAlignment = vsg::StandardLayout::CENTER_ALIGNMENT;
+    text->layout = layout;
+
+    text->text = vsg::stringValue::create(label);
+    text->setup(0, options);
+
+    auto group = vsg::Group::create();
+    group->addChild(transform);
+    group->addChild(text);
+
+    return group;
+}
+
+
 int main(int argc, char** argv)
 {
     try
@@ -130,13 +169,6 @@ int main(int argc, char** argv)
             std::cout<<"    VkSurfaceFormatKHR{ VkFormat format = "<<format.format<<", VkColorSpaceKHR colorSpace = "<<format.colorSpace<<"}"<<std::endl;
         }
 
-        if (argc <= 1)
-        {
-            std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
-            return 1;
-        }
-
-
         std::vector<vsg::ref_ptr<vsg::Window>> windows;
 
         windows.push_back(initial_window);
@@ -170,40 +202,41 @@ int main(int argc, char** argv)
 
         std::cout<<"windows.size() = "<<windows.size()<<std::endl;
 
-        vsg::Path filename = arguments[1];
-        auto object = vsg::read(filename, options);
+        auto vsg_scene = vsg::Group::create();
 
-        vsg::ref_ptr<vsg::Node> vsg_scene;
-        if (auto data = object.cast<vsg::Data>())
+        vsg::dvec3 position(0.0, 0.0, 0.0);
+        vsg::dvec3 dimensions(20.0, 20.0, 20.0);
+
+        for (int ai = 1; ai < argc; ++ai)
         {
-            if (auto textureGeometry = createTextureQuad(data, options))
+            vsg::Path filename = arguments[ai];
+            auto object = vsg::read(filename, options);
+            std::cout<<"loaded "<<filename<<" as "<<object<<std::endl;
+            if (auto subgraph = createLabelledSubgraph(position, dimensions, object, vsg::make_string("model: ", filename), options))
             {
-                vsg_scene = textureGeometry;
-            }
-        }
-        else
-        {
-            vsg_scene = object.cast<vsg::Node>();
-        }
+                std::cout<<"   added "<<subgraph<<std::endl;
+                vsg_scene->addChild(subgraph);
 
-        if (!vsg_scene)
-        {
-            std::cout<<"No model loaded, please specify a model to load on command line."<<std::endl;
-            return 1;
+                position.x += dimensions.x;
+            }
+            else
+            {
+                std::cout << "Unable to view object of type " << object->className() << std::endl;
+            }
         }
 
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
 
-
         vsg::CommandGraphs commandGraphs;
 
         // compute the bounds of the scene graph to help position camera
-        vsg::ComputeBounds computeBounds;
-        vsg_scene->accept(computeBounds);
-        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+        auto bounds = vsg::visit<vsg::ComputeBounds>(vsg_scene).bounds;
+        vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+        double radius = vsg::length(bounds.max - bounds.min) * 0.5;
+
+        std::cout<<"center = "<<centre<<", radius "<<radius<<std::endl;
 
         // For each created window assign the each window assocaited views and trackball camera manipulator to the viewer
         for(auto& window : windows)
