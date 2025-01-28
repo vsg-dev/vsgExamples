@@ -147,6 +147,9 @@ int main(int argc, char** argv)
             {
                 auto local_windowTraits = vsg::WindowTraits::create();
                 local_windowTraits->windowTitle = vsg::make_string("Alternate swapchain VkSurfaceFormatKHR{ VkFormat format = ", format.format, ", VkColorSpaceKHR colorSpace = ", format.colorSpace,"}");
+                local_windowTraits->width = windowTraits->width;
+                local_windowTraits->height = windowTraits->height;
+                local_windowTraits->fullscreen = windowTraits->fullscreen;
                 local_windowTraits->swapchainPreferences.surfaceFormat = format;
                 local_windowTraits->device = initial_window->getOrCreateDevice();
 
