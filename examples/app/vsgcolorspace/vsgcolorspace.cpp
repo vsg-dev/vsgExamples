@@ -49,7 +49,6 @@ int main(int argc, char** argv)
         arguments.read(options);
 
         auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgcolorspace";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         windowTraits->synchronizationLayer = arguments.read("--sync");
@@ -81,8 +80,8 @@ int main(int argc, char** argv)
         auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
 
         if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
-        if (arguments.read("--sRGB")) windowTraits->swapchainPreferences.surfaceFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-        if (arguments.read("--RGB")) windowTraits->swapchainPreferences.surfaceFormat = {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+
+        windowTraits->windowTitle = vsg::make_string("Default swapchain preferences VkSurfaceFormatKHR{ VkFormat format = ", windowTraits->swapchainPreferences.surfaceFormat.format, ", VkColorSpaceKHR colorSpace = ", windowTraits->swapchainPreferences.surfaceFormat.colorSpace,"}");
 
         arguments.read("--screen", windowTraits->screenNum);
         arguments.read("--display", windowTraits->display);
@@ -90,7 +89,6 @@ int main(int argc, char** argv)
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
-        auto loadLevels = arguments.value(0, "--load-levels");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
@@ -113,19 +111,15 @@ int main(int argc, char** argv)
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         // create the basic window so can then get the various Vulkan related connections like vkSurface + vkPhysicalDevice
-        auto window = vsg::Window::create(windowTraits);
-        if (!window)
+        auto initial_window = vsg::Window::create(windowTraits);
+        if (!initial_window)
         {
             std::cout << "Could not create window." << std::endl;
             return 1;
         }
 
-        auto physicalDevice = window->getOrCreatePhysicalDevice();
-        auto surface = window->getOrCreateSurface();
-
-        std::cout<<"window->getInstance() "<<window->getInstance()<<std::endl;
-        std::cout<<"window->getSurface() "<<window->getSurface()<<std::endl;
-        std::cout<<"window->getPhysicalDevice() "<<window->getPhysicalDevice()<<std::endl;
+        auto physicalDevice = initial_window->getOrCreatePhysicalDevice();
+        auto surface = initial_window->getOrCreateSurface();
 
         // https://registry.khronos.org/vulkan/specs/latest/man/html/VkFormat.html
         // https://registry.khronos.org/vulkan/specs/latest/man/html/VkColorSpaceKHR.html
@@ -141,6 +135,27 @@ int main(int argc, char** argv)
             std::cout << "Please specify a 3d model or image file on the command line." << std::endl;
             return 1;
         }
+
+
+        std::vector<vsg::ref_ptr<vsg::Window>> windows;
+
+        windows.push_back(initial_window);
+
+        for(auto& format : swapChainSupportDetails.formats)
+        {
+            if (vsg::compare_memory(windowTraits->swapchainPreferences.surfaceFormat, format) != 0)
+            {
+                auto local_windowTraits = vsg::WindowTraits::create();
+                local_windowTraits->windowTitle = vsg::make_string("Alternate swapchain preferences VkSurfaceFormatKHR{ VkFormat format = ", format.format, ", VkColorSpaceKHR colorSpace = ", format.colorSpace,"}");
+                local_windowTraits->swapchainPreferences.surfaceFormat = format;
+                local_windowTraits->device = initial_window->getOrCreateDevice();
+
+                auto local_window = vsg::Window::create(local_windowTraits);
+                if (local_window) windows.push_back(local_window);
+            }
+        }
+
+        std::cout<<"windows.size() = "<<windows.size()<<std::endl;
 
         vsg::Path filename = arguments[1];
         auto object = vsg::read(filename, options);
@@ -168,7 +183,8 @@ int main(int argc, char** argv)
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
 
-        viewer->addWindow(window);
+
+        vsg::CommandGraphs commandGraphs;
 
         // compute the bounds of the scene graph to help position camera
         vsg::ComputeBounds computeBounds;
@@ -176,50 +192,40 @@ int main(int argc, char** argv)
         vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
         double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
 
-        // set up the camera
-        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-
-        vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
-        if (ellipsoidModel)
+        // For each created window assign the each window assocaited views and trackball camera manipulator to the viewer
+        for(auto& window : windows)
         {
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
-        }
-        else
-        {
-            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
-        }
+            viewer->addWindow(window);
 
-        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+            // set up the camera
+            auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+
+            vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+            auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
+            if (ellipsoidModel)
+            {
+                perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+            }
+            else
+            {
+                perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            }
+
+            auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+
+            auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+            commandGraphs.push_back(commandGraph);
+
+            auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
+            trackball->addWindow(window);
+
+            viewer->addEventHandler(trackball);
+        }
 
         // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-        auto cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
-        viewer->addEventHandler(cameraAnimation);
-        if (autoPlay && cameraAnimation->animation)
-        {
-            cameraAnimation->play();
-            if (reportAverageFrameRate) maxTime = cameraAnimation->animation->maxTime();
-        }
-
-        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
-
-        // if required preload specific number of PagedLOD levels.
-        if (loadLevels > 0)
-        {
-            vsg::LoadPagedLOD loadPagedLOD(camera, loadLevels);
-
-            auto startTime = vsg::clock::now();
-
-            vsg_scene->accept(loadPagedLOD);
-
-            auto time = std::chrono::duration<float, std::chrono::milliseconds::period>(vsg::clock::now() - startTime).count();
-            std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
-        }
-
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+        viewer->assignRecordAndSubmitTaskAndPresentation(commandGraphs);
 
         viewer->compile();
 
