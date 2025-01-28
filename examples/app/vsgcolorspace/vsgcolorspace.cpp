@@ -141,17 +141,27 @@ int main(int argc, char** argv)
 
         windows.push_back(initial_window);
 
+        uint32_t i = 1;
+        uint32_t columns = static_cast<uint32_t>(std::sqrt(static_cast<double>(swapChainSupportDetails.formats.size())))+1;
+        uint32_t dx = windowTraits->width;
+        uint32_t dy = windowTraits->height;
+
         for(auto& format : swapChainSupportDetails.formats)
         {
             if (vsg::compare_memory(windowTraits->swapchainPreferences.surfaceFormat, format) != 0)
             {
                 auto local_windowTraits = vsg::WindowTraits::create();
                 local_windowTraits->windowTitle = vsg::make_string("Alternate swapchain VkSurfaceFormatKHR{ VkFormat format = ", format.format, ", VkColorSpaceKHR colorSpace = ", format.colorSpace,"}");
+                local_windowTraits->x = dx * (i % columns);
+                local_windowTraits->y = dy * (i / columns);
                 local_windowTraits->width = windowTraits->width;
                 local_windowTraits->height = windowTraits->height;
                 local_windowTraits->fullscreen = windowTraits->fullscreen;
                 local_windowTraits->swapchainPreferences.surfaceFormat = format;
+                local_windowTraits->overrideRedirect = windowTraits->overrideRedirect;
                 local_windowTraits->device = initial_window->getOrCreateDevice();
+
+                ++i;
 
                 auto local_window = vsg::Window::create(local_windowTraits);
                 if (local_window) windows.push_back(local_window);
