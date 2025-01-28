@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 
         if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
 
-        windowTraits->windowTitle = vsg::make_string("Default swapchain preferences VkSurfaceFormatKHR{ VkFormat format = ", windowTraits->swapchainPreferences.surfaceFormat.format, ", VkColorSpaceKHR colorSpace = ", windowTraits->swapchainPreferences.surfaceFormat.colorSpace,"}");
+        windowTraits->windowTitle = vsg::make_string("Default swapchain VkSurfaceFormatKHR{ VkFormat format = ", windowTraits->swapchainPreferences.surfaceFormat.format, ", VkColorSpaceKHR colorSpace = ", windowTraits->swapchainPreferences.surfaceFormat.colorSpace,"}");
 
         arguments.read("--screen", windowTraits->screenNum);
         arguments.read("--display", windowTraits->display);
@@ -146,7 +146,7 @@ int main(int argc, char** argv)
             if (vsg::compare_memory(windowTraits->swapchainPreferences.surfaceFormat, format) != 0)
             {
                 auto local_windowTraits = vsg::WindowTraits::create();
-                local_windowTraits->windowTitle = vsg::make_string("Alternate swapchain preferences VkSurfaceFormatKHR{ VkFormat format = ", format.format, ", VkColorSpaceKHR colorSpace = ", format.colorSpace,"}");
+                local_windowTraits->windowTitle = vsg::make_string("Alternate swapchain VkSurfaceFormatKHR{ VkFormat format = ", format.format, ", VkColorSpaceKHR colorSpace = ", format.colorSpace,"}");
                 local_windowTraits->swapchainPreferences.surfaceFormat = format;
                 local_windowTraits->device = initial_window->getOrCreateDevice();
 
