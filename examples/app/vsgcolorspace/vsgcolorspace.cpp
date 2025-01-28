@@ -25,24 +25,6 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vs
     return builder->createQuad(geom, state);
 }
 
-void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
-{
-    auto shaderHints = vsg::ShaderCompileSettings::create();
-    shaderHints->generateDebugInfo = true;
-
-    auto& text = options->shaderSets["text"] = vsg::createTextShaderSet(options);
-    text->defaultShaderHints = shaderHints;
-
-    auto& flat = options->shaderSets["flat"] = vsg::createFlatShadedShaderSet(options);
-    flat->defaultShaderHints = shaderHints;
-
-    auto& phong = options->shaderSets["phong"] = vsg::createPhongShaderSet(options);
-    phong->defaultShaderHints = shaderHints;
-
-    auto& pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
-    pbr->defaultShaderHints = shaderHints;
-}
-
 int main(int argc, char** argv)
 {
     try
@@ -92,7 +74,6 @@ int main(int argc, char** argv)
             reportAverageFrameRate = true;
         }
 
-        bool multiThreading = arguments.read("--mt");
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
         if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
         if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
@@ -110,7 +91,6 @@ int main(int argc, char** argv)
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
-        auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
@@ -124,61 +104,8 @@ int main(int argc, char** argv)
             deviceFeatures->get().depthClamp = VK_TRUE;
         }
 
-        vsg::ref_ptr<vsg::ResourceHints> resourceHints;
-        if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
-        {
-            resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceHintsFilename, options);
-        }
-
-        if (auto outputResourceHintsFilename = arguments.value<vsg::Path>("", "--orh"))
-        {
-            if (!resourceHints) resourceHints = vsg::ResourceHints::create();
-            vsg::write(resourceHints, outputResourceHintsFilename, options);
-            return 0;
-        }
-
-        if (arguments.read({"--shader-debug-info", "--sdi"}))
-        {
-            enableGenerateDebugInfo(options);
-            windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
-        }
-
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         auto logFilename = arguments.value<vsg::Path>("", "--log");
-
-        vsg::ref_ptr<vsg::Instrumentation> instrumentation;
-        if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
-        {
-            windowTraits->debugUtils = true;
-
-            auto gpu_instrumentation = vsg::GpuAnnotation::create();
-            if (arguments.read("--name"))
-                gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_name;
-            else if (arguments.read("--className"))
-                gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
-            else if (arguments.read("--func"))
-                gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
-
-            instrumentation = gpu_instrumentation;
-        }
-        else if (arguments.read({"--profiler", "--pr"}))
-        {
-            // set Profiler options
-            auto settings = vsg::Profiler::Settings::create();
-            arguments.read("--cpu", settings->cpu_instrumentation_level);
-            arguments.read("--gpu", settings->gpu_instrumentation_level);
-            arguments.read("--log-size", settings->log_size);
-
-            // create the profiler
-            instrumentation = vsg::Profiler::create(settings);
-        }
-
-        vsg::Affinity affinity;
-        uint32_t cpu = 0;
-        while (arguments.read("-c", cpu))
-        {
-            affinity.cpus.insert(cpu);
-        }
 
         // should animations be automatically played
         auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
@@ -215,48 +142,28 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        auto group = vsg::Group::create();
+        vsg::Path filename = arguments[1];
+        auto object = vsg::read(filename, options);
 
-        vsg::Path path;
-
-        // read any vsg files
-        for (int i = 1; i < argc; ++i)
+        vsg::ref_ptr<vsg::Node> vsg_scene;
+        if (auto data = object.cast<vsg::Data>())
         {
-            vsg::Path filename = arguments[i];
-            path = vsg::filePath(filename);
-
-            auto object = vsg::read(filename, options);
-            if (auto node = object.cast<vsg::Node>())
+            if (auto textureGeometry = createTextureQuad(data, options))
             {
-                group->addChild(node);
-            }
-            else if (auto data = object.cast<vsg::Data>())
-            {
-                if (auto textureGeometry = createTextureQuad(data, options))
-                {
-                    group->addChild(textureGeometry);
-                }
-            }
-            else if (object)
-            {
-                std::cout << "Unable to view object of type " << object->className() << std::endl;
-            }
-            else
-            {
-                std::cout << "Unable to load file " << filename << std::endl;
+                vsg_scene = textureGeometry;
             }
         }
-
-        if (group->children.empty())
+        else
         {
+            vsg_scene = object.cast<vsg::Node>();
+        }
+
+        if (!vsg_scene)
+        {
+            std::cout<<"No model loaded, please specify a model to load on command line."<<std::endl;
             return 1;
         }
 
-        vsg::ref_ptr<vsg::Node> vsg_scene;
-        if (group->children.size() == 1)
-            vsg_scene = group->children[0];
-        else
-            vsg_scene = group;
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
@@ -314,55 +221,7 @@ int main(int argc, char** argv)
         auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-        if (instrumentation) viewer->assignInstrumentation(instrumentation);
-
-        if (multiThreading)
-        {
-            viewer->setupThreading();
-
-            if (affinity)
-            {
-                auto cpu_itr = affinity.cpus.begin();
-
-                // set affinity of main thread
-                if (cpu_itr != affinity.cpus.end())
-                {
-                    std::cout << "vsg::setAffinity() " << *cpu_itr << std::endl;
-                    vsg::setAffinity(vsg::Affinity(*cpu_itr++));
-                }
-
-                for (auto& thread : viewer->threads)
-                {
-                    if (thread.joinable() && cpu_itr != affinity.cpus.end())
-                    {
-                        std::cout << "vsg::setAffinity(" << thread.get_id() << ") " << *cpu_itr << std::endl;
-                        vsg::setAffinity(thread, vsg::Affinity(*cpu_itr++));
-                    }
-                }
-            }
-        }
-        else if (affinity)
-        {
-            std::cout << "vsg::setAffinity(";
-            for (auto cpu_num : affinity.cpus)
-            {
-                std::cout << " " << cpu_num;
-            }
-            std::cout << " )" << std::endl;
-
-            vsg::setAffinity(affinity);
-        }
-
-        viewer->compile(resourceHints);
-
-        if (maxPagedLOD > 0)
-        {
-            // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
-            for (auto& task : viewer->recordAndSubmitTasks)
-            {
-                if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
-            }
-        }
+        viewer->compile();
 
         if (autoPlay)
         {
@@ -394,20 +253,6 @@ int main(int argc, char** argv)
             auto fs = viewer->getFrameStamp();
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
             std::cout << "Average frame rate = " << fps << " fps" << std::endl;
-        }
-
-        if (auto profiler = instrumentation.cast<vsg::Profiler>())
-        {
-            instrumentation->finish();
-            if (logFilename)
-            {
-                std::ofstream fout(logFilename);
-                profiler->log->report(fout);
-            }
-            else
-            {
-                profiler->log->report(std::cout);
-            }
         }
     }
     catch (const vsg::Exception& ve)
