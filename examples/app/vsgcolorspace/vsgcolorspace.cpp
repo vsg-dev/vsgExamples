@@ -25,6 +25,7 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vs
     return builder->createQuad(geom, state);
 }
 
+
 vsg::ref_ptr<vsg::Node> createLabelledSubgraph(const vsg::dvec3& position, const vsg::dvec3& dimensions, vsg::ref_ptr<vsg::Object> object, const std::string& label, vsg::ref_ptr<vsg::Options> options)
 {
     vsg::ref_ptr<vsg::Node> subgraph;
@@ -202,29 +203,109 @@ int main(int argc, char** argv)
 
         std::cout<<"windows.size() = "<<windows.size()<<std::endl;
 
+        using ObjectLabel = std::pair<vsg::ref_ptr<vsg::Object>, std::string>;
+        using Row = std::vector<ObjectLabel>;
+        std::vector<Row> rows;
+
+        auto builder = vsg::Builder::create();
+        builder->options = options;
+
+        vsg::GeometryInfo geomInfo;
+        geomInfo.dx.set(1.0f, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, 1.0f, 0.0f);
+        geomInfo.dz.set(0.0f, 0.0f, 1.0f);
+
+        vsg::StateInfo stateInfo;
+
+        auto createSphere= [&](float intensity) -> vsg::ref_ptr<vsg::Node>
+        {
+            geomInfo.color.set(intensity, intensity, intensity, 1.0f);
+            return builder->createSphere(geomInfo, stateInfo);
+        };
+
+        {
+            Row row;
+            row.push_back(ObjectLabel(createSphere(0.0f), vsg::make_string("linear(0.0f)")));
+            row.push_back(ObjectLabel(createSphere(0.125f), vsg::make_string("linear(0.125f)")));
+            row.push_back(ObjectLabel(createSphere(0.25f), vsg::make_string("linear(0.25f)")));
+            row.push_back(ObjectLabel(createSphere(0.5f), vsg::make_string("linear(0.5f)")));
+            row.push_back(ObjectLabel(createSphere(1.0f), vsg::make_string("linear(1.0f)")));
+            rows.push_back(row);
+        }
+
+        {
+            Row row;
+            row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.0f)), vsg::make_string("sRGB_to_linear(0.0f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.125f)), vsg::make_string("sRGB_to_linear(0.125f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.25f)), vsg::make_string("sRGB_to_linear(0.25f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.5f)), vsg::make_string("sRGB_to_linear(0.5f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(1.0f)), vsg::make_string("sRGB_to_linear(1.0f)")));
+            rows.push_back(row);
+        }
+
+        {
+            Row row;
+            row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.0f)), vsg::make_string("linear_to_sRGB(0.0f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.125f)), vsg::make_string("linear_to_sRGB(0.125f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.25f)), vsg::make_string("linear_to_sRGB(0.25f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.5f)), vsg::make_string("linear_to_sRGB(0.5f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(1.0f)), vsg::make_string("linear_to_sRGB(1.0f)")));
+            rows.push_back(row);
+        }
+
+
+        {
+
+            auto image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
+            if (image)
+            {
+                //auto image_RGB = image->clone()->cast<vsg::Data>();
+                auto image_uNorm = vsg::clone(image);
+                image_uNorm->properties.format = vsg::sRGB_to_uNorm(image->properties.format);
+
+                auto image_sRGB = vsg::clone(image);
+                image_sRGB->properties.format = vsg::uNorm_to_sRGB(image->properties.format);
+
+                Row row;
+                row.push_back(ObjectLabel(createTextureQuad(image, options), vsg::make_string("image default loaded format: ", image->properties.format)));
+                row.push_back(ObjectLabel(createTextureQuad(image_uNorm, options), vsg::make_string("image treated as linear after vsg::sRGB_to_uNorm(..): ", image_uNorm->properties.format)));
+                row.push_back(ObjectLabel(createTextureQuad(image_sRGB, options), vsg::make_string("image treated as sRGB after vsg::uNorm_to_sRGB(..): ", image_sRGB->properties.format)));
+
+                rows.push_back(row);
+            }
+        }
+
+        // create a row for loaded models
+        {
+            Row row;
+            for (int ai = 1; ai < argc; ++ai)
+            {
+                vsg::Path filename = arguments[ai];
+                if (auto object = vsg::read(filename, options))
+                {
+                    row.push_back(ObjectLabel(object, vsg::make_string("model: ", filename)));
+                }
+            }
+            if (!row.empty()) rows.push_back(row);
+        }
+
         auto vsg_scene = vsg::Group::create();
 
         vsg::dvec3 position(0.0, 0.0, 0.0);
         vsg::dvec3 dimensions(20.0, 20.0, 20.0);
+        vsg::dvec3 spacing = dimensions * 1.3;
 
-        for (int ai = 1; ai < argc; ++ai)
+        for(size_t r = 0; r< rows.size(); ++r)
         {
-            vsg::Path filename = arguments[ai];
-            auto object = vsg::read(filename, options);
-            std::cout<<"loaded "<<filename<<" as "<<object<<std::endl;
-            if (auto subgraph = createLabelledSubgraph(position, dimensions, object, vsg::make_string("model: ", filename), options))
+            Row& row = rows[r];
+            for(size_t c = 0; c < row.size(); ++c)
             {
-                std::cout<<"   added "<<subgraph<<std::endl;
-                vsg_scene->addChild(subgraph);
-
-                position.x += dimensions.x;
-            }
-            else
-            {
-                std::cout << "Unable to view object of type " << object->className() << std::endl;
+                auto& entry = row[c];
+                position.x = spacing.x * static_cast<double>(c);
+                position.z = spacing.z * static_cast<double>(r);
+                if (auto subgraph = createLabelledSubgraph(position, dimensions, entry.first, entry.second, options)) vsg_scene->addChild(subgraph);
             }
         }
-
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
