@@ -226,9 +226,9 @@ int main(int argc, char** argv)
         {
             Row row;
             row.push_back(ObjectLabel(createSphere(0.0f), vsg::make_string("linear(0.0f)")));
-            row.push_back(ObjectLabel(createSphere(0.125f), vsg::make_string("linear(0.125f)")));
             row.push_back(ObjectLabel(createSphere(0.25f), vsg::make_string("linear(0.25f)")));
             row.push_back(ObjectLabel(createSphere(0.5f), vsg::make_string("linear(0.5f)")));
+            row.push_back(ObjectLabel(createSphere(0.75f), vsg::make_string("linear(0.75f)")));
             row.push_back(ObjectLabel(createSphere(1.0f), vsg::make_string("linear(1.0f)")));
             rows.push_back(row);
         }
@@ -236,9 +236,9 @@ int main(int argc, char** argv)
         {
             Row row;
             row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.0f)), vsg::make_string("sRGB_to_linear(0.0f)")));
-            row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.125f)), vsg::make_string("sRGB_to_linear(0.125f)")));
             row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.25f)), vsg::make_string("sRGB_to_linear(0.25f)")));
             row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.5f)), vsg::make_string("sRGB_to_linear(0.5f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(0.75f)), vsg::make_string("sRGB_to_linear(0.75f)")));
             row.push_back(ObjectLabel(createSphere(vsg::sRGB_to_linear_component(1.0f)), vsg::make_string("sRGB_to_linear(1.0f)")));
             rows.push_back(row);
         }
@@ -246,9 +246,9 @@ int main(int argc, char** argv)
         {
             Row row;
             row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.0f)), vsg::make_string("linear_to_sRGB(0.0f)")));
-            row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.125f)), vsg::make_string("linear_to_sRGB(0.125f)")));
             row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.25f)), vsg::make_string("linear_to_sRGB(0.25f)")));
             row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.5f)), vsg::make_string("linear_to_sRGB(0.5f)")));
+            row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(0.75f)), vsg::make_string("linear_to_sRGB(0.75f)")));
             row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB_component(1.0f)), vsg::make_string("linear_to_sRGB(1.0f)")));
             rows.push_back(row);
         }
