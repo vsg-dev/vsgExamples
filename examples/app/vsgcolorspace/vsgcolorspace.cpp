@@ -255,7 +255,6 @@ int main(int argc, char** argv)
 
 
         {
-
             auto image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
             if (image)
             {
