@@ -259,7 +259,6 @@ int main(int argc, char** argv)
             auto image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
             if (image)
             {
-                //auto image_RGB = image->clone()->cast<vsg::Data>();
                 auto image_uNorm = vsg::clone(image);
                 image_uNorm->properties.format = vsg::sRGB_to_uNorm(image->properties.format);
 
