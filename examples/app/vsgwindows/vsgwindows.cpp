@@ -125,6 +125,11 @@ int main(int argc, char** argv)
     auto secondary_camera = createCameraForScene(scenegraph2, 0, 0, window2->extent2D().width, window2->extent2D().height);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
 
+    // add headlights to views to make sure any objects that need lighting have it.
+    auto headlight = vsg::createHeadlight();
+    main_view->addChild(headlight);
+    secondary_view->addChild(headlight);
+
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
@@ -141,10 +146,6 @@ int main(int argc, char** argv)
     auto main_RenderGraph = vsg::RenderGraph::create(window1, main_view);
     auto secondary_RenderGraph = vsg::RenderGraph::create(window2, secondary_view);
     secondary_RenderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
-
-    auto headlight = vsg::createHeadlight();
-    main_view->addChild(headlight);
-    secondary_view->addChild(headlight);
 
     auto commandGraph1 = vsg::CommandGraph::create(window1);
     commandGraph1->addChild(main_RenderGraph);
