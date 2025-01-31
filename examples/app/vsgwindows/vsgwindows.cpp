@@ -142,6 +142,10 @@ int main(int argc, char** argv)
     auto secondary_RenderGraph = vsg::RenderGraph::create(window2, secondary_view);
     secondary_RenderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
 
+    auto headlight = vsg::createHeadlight();
+    main_view->addChild(headlight);
+    secondary_view->addChild(headlight);
+
     auto commandGraph1 = vsg::CommandGraph::create(window1);
     commandGraph1->addChild(main_RenderGraph);
 
