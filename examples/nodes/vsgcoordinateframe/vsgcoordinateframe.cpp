@@ -30,6 +30,8 @@ struct SolarSystemSettings
 
 vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars, vsg::ref_ptr<vsg::ShaderSet> shaderSet)
 {
+    if (numStars == 0) return {};
+
     // set up the star positions
     auto vertices = vsg::vec3Array::create(numStars);
     auto colors = vsg::vec4Array::create(numStars);
@@ -52,9 +54,11 @@ vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars, vsg::
     // configure the state and array layouts to assign to the scene graph
     auto graphicsPipelineConfig = vsg::GraphicsPipelineConfigurator::create(shaderSet);
 
+    graphicsPipelineConfig->shaderHints->defines.insert("VSG_POINT_SPRITE");
+
     vsg::DataList vertexArrays;
     graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, vertices);
-    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Normals", VK_VERTEX_INPUT_RATE_INSTANCE, normals);
+    graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normals);
     graphicsPipelineConfig->assignArray(vertexArrays, "vsg_TexCoord0", VK_VERTEX_INPUT_RATE_INSTANCE, texcoords);
     graphicsPipelineConfig->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colors);
 
@@ -562,369 +566,378 @@ void numerical_test()
 
 int main(int argc, char** argv)
 {
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-
-    if (arguments.read({"--numerical-test", "--nt"}))
+    try
     {
-        numerical_test();
-        return 0;
-    }
+        // set up defaults and read command line arguments to override them
+        vsg::CommandLine arguments(&argc, argv);
 
-    // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
-    auto options = vsg::Options::create();
-    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-
-    // add vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::all::create());
-
-    arguments.read(options);
-
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
-    windowTraits->windowTitle = "vsgcoordinateframe";
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    windowTraits->synchronizationLayer = arguments.read("--sync");
-    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
-    arguments.read("--samples", windowTraits->samples);
-    if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
-    auto outputFilename = arguments.value<vsg::Path>("", "-o");
-    auto numFrames = arguments.value(-1, "-f");
-    if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
-    arguments.read("--file-cache", options->fileCache);
-
-    bool depthClamp = arguments.read({"--dc", "--depthClamp"});
-    if (depthClamp)
-    {
-        std::cout << "Enabled depth clamp." << std::endl;
-        auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
-        deviceFeatures->get().samplerAnisotropy = VK_TRUE;
-        deviceFeatures->get().depthClamp = VK_TRUE;
-    }
-
-    auto clearColor = arguments.value(vsg::vec4(0.0f, 0.0f, 0.0f, 1.0f), "--clear");
-
-    bool playAnimations = arguments.read("--play");
-
-    double distance_between_systems = arguments.value<double>(1.0e9, "--distance");
-    if (arguments.read({"--worst-cast", "--wc"})) distance_between_systems = 8.514e25;
-
-    double speed = arguments.value<double>(1.0, "--speed");
-
-    auto starfieldRadius = arguments.value(distance_between_systems * 4.0, {"--starfield-radius", "--sr"});
-    auto numStars = arguments.value(1e5, {"--numstars", "--ns"});
-    auto active_viewpoint = arguments.value<std::string>("", {"--viewpoint"});
-
-    // set up the solar system paramaters
-    SolarSystemSettings settings;
-
-    settings.flatShaderSet = vsg::createFlatShadedShaderSet(options);
-    settings.phongShaderSet = vsg::createPhongShaderSet(options);
-    settings.pbrShaderSet = vsg::createPhysicsBasedRenderingShaderSet(options);
-
-    if (depthClamp)
-    {
-        auto setUpDepthClamp = [](vsg::ShaderSet& shaderSet) -> void {
-            auto rasterizationState = vsg::RasterizationState::create();
-            rasterizationState->depthClampEnable = VK_TRUE;
-            shaderSet.defaultGraphicsPipelineStates.push_back(rasterizationState);
-        };
-
-        setUpDepthClamp(*settings.flatShaderSet);
-        setUpDepthClamp(*settings.phongShaderSet);
-        setUpDepthClamp(*settings.pbrShaderSet);
-    }
-
-    settings.windowAspectRatio = static_cast<double>(windowTraits->width) / static_cast<double>(windowTraits->height);
-    settings.options = options;
-    settings.builder = vsg::Builder::create();
-    settings.builder->options = options;
-
-    settings.sun_radius = arguments.value<double>(6.957e7, "--sun-radius");
-    settings.earth_to_sun_distance = arguments.value<double>(1.49e8, {"--earth-to-sun-distance", "--sd"}); //1.49e11;
-    settings.useCoordinateFrame = !arguments.read("--mt");
-
-    settings.z_near = 1e3; // 1000m
-    settings.z_far = starfieldRadius * 2.0;
-
-    arguments.read({"--near-far", "--nf"}, settings.z_near, settings.z_far);
-    arguments.read({"--near", "-n"}, settings.z_near);
-    arguments.read({"--far", "-f"}, settings.z_far);
-
-    if (arguments.read("--bing-maps"))
-    {
-        // Bing Maps official documentation:
-        //    metadata (includes imagerySet details): https://learn.microsoft.com/en-us/bingmaps/rest-services/imagery/get-imagery-metadata
-        //    culture codes: https://learn.microsoft.com/en-us/bingmaps/rest-services/common-parameters-and-types/supported-culture-codes
-        //    api key: https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
-        auto imagerySet = arguments.value<std::string>("Aerial", "--imagery");
-        auto culture = arguments.value<std::string>("en-GB", "--culture");
-        auto key = arguments.value<std::string>("", "--key");
-        if (key.empty()) key = vsg::getEnv("VSG_BING_KEY");
-        if (key.empty()) key = vsg::getEnv("OSGEARTH_BING_KEY");
-
-        vsg::info("imagerySet = ", imagerySet);
-        vsg::info("culture = ", culture);
-        vsg::info("key = ", key);
-
-        settings.tileDatabaseSettings = vsg::createBingMapsSettings(imagerySet, culture, key, options);
-    }
-
-    if (arguments.read("--rm"))
-    {
-        // setup ready map settings
-        settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
-        settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        settings.tileDatabaseSettings->noX = 2;
-        settings.tileDatabaseSettings->noY = 1;
-        settings.tileDatabaseSettings->maxLevel = 10;
-        settings.tileDatabaseSettings->originTopLeft = false;
-        settings.tileDatabaseSettings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
-    }
-
-    if (arguments.read("--rme"))
-    {
-        // setup ready map settings
-        settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
-        settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        settings.tileDatabaseSettings->noX = 2;
-        settings.tileDatabaseSettings->noY = 1;
-        settings.tileDatabaseSettings->maxLevel = 10;
-        settings.tileDatabaseSettings->originTopLeft = false;
-        settings.tileDatabaseSettings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
-        settings.tileDatabaseSettings->elevationLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
-    }
-
-    if (arguments.read("--osm") || !settings.tileDatabaseSettings)
-    {
-        // setup OpenStreetMap settings
-        settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
-        settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
-        settings.tileDatabaseSettings->noX = 1;
-        settings.tileDatabaseSettings->noY = 1;
-        settings.tileDatabaseSettings->maxLevel = 17;
-        settings.tileDatabaseSettings->originTopLeft = true;
-        settings.tileDatabaseSettings->lighting = true;
-        settings.tileDatabaseSettings->projection = "EPSG:3857"; // Spherical Mecator
-        settings.tileDatabaseSettings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
-    }
-
-    if (!settings.tileDatabaseSettings)
-    {
-        std::cout << "No TileDatabaseSettings assigned." << std::endl;
-        return 1;
-    }
-
-    settings.tileDatabaseSettings->shaderSet = settings.phongShaderSet;
-
-    arguments.read("-t", settings.tileDatabaseSettings->lodTransitionScreenHeightRatio);
-    arguments.read("-m", settings.tileDatabaseSettings->maxLevel);
-
-    auto universe = vsg::Group::create();
-
-    float ambientLightIntensity = arguments.value<float>(0.0f, "--ambient");
-    if (ambientLightIntensity > 0.0f)
-    {
-        auto ambientLight = vsg::AmbientLight::create();
-        ambientLight->intensity = ambientLightIntensity;
-        universe->addChild(ambientLight);
-    }
-
-    // create starfield
-
-    if (auto starfield = createStarfield(starfieldRadius, numStars, settings.flatShaderSet))
-    {
-        universe->addChild(starfield);
-    }
-
-    //
-    // create solar system one
-    //
-    settings.name = "1. ";
-    settings.sun_color.set(1.0f, 1.0f, 0.7f, 1.0f);
-    settings.position.set(-distance_between_systems * 0.5, 0.0, 0.0);
-    auto solar_system_one = creteSolarSystem(settings);
-
-    settings.name = "2. ";
-    settings.sun_color.set(1.0f, 0.8f, 0.7f, 1.0f);
-    settings.position.set(distance_between_systems * 0.5, 0.0, 0.0);
-    settings.rotation.set(vsg::radians(90.0), vsg::dvec3(1.0, 0.0, 0.0));
-    auto solar_system_two = creteSolarSystem(settings);
-
-    auto universe_view = vsg::MatrixTransform::create();
-    universe_view->setValue("viewpoint", "0. universe_view");
-    universe_view->setObject("projection", vsg::Perspective::create(60, settings.windowAspectRatio, settings.z_near, settings.z_far));
-    universe_view->matrix = vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, distance_between_systems * 3.0);
-
-    universe->addChild(solar_system_one);
-    universe->addChild(solar_system_two);
-    universe->addChild(universe_view);
-
-    //
-    // end of creating solar system one
-    //
-
-    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
-
-    if (outputFilename)
-    {
-        vsg::write(universe, outputFilename);
-        return 0;
-    }
-
-    // get the viewpoints
-    auto viewpoints = vsg::visit<FindViewpoints>(universe).viewpoints;
-    for (auto& [name, objectPath] : viewpoints)
-    {
-        std::cout << "viewpoint [" << name << "] ";
-        for (auto& obj : objectPath) std::cout << obj << " ";
-        std::cout << std::endl;
-    }
-
-    // create the viewer and assign window(s) to it
-    auto viewer = vsg::Viewer::create();
-    auto window = vsg::Window::create(windowTraits);
-    if (!window)
-    {
-        std::cout << "Could not create window." << std::endl;
-        return 1;
-    }
-
-    viewer->addWindow(window);
-
-    // compute the bounds of the scene graph to help position camera
-    vsg::ComputeBounds computeBounds;
-    universe->accept(computeBounds);
-    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-    vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-    vsg::dvec3 eye = center + vsg::dvec3(0.0, -radius * 3.5, 0.0);
-
-    vsg::info("universe bounds computeBounds.bounds = ", computeBounds.bounds);
-
-    // set up the camera
-    vsg::ref_ptr<vsg::ViewMatrix> viewMatrix;
-    if (arguments.read("--lookAt"))
-    {
-        auto lookAt = vsg::LookAt::create();
-        lookAt->origin.set(0.0, 0.0, 0.0);
-        lookAt->eye = eye;
-        lookAt->center = center;
-        lookAt->up.set(0.0, 0.0, 1.0);
-        viewMatrix = lookAt;
-    }
-    else
-    {
-        auto lookDirection = vsg::LookDirection::create();
-        lookDirection->origin.set(0.0, 0.0, 0.0);
-        lookDirection->position = eye;
-        viewMatrix = lookDirection;
-    }
-
-    settings.windowAspectRatio = static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height);
-
-    auto perspectve = vsg::Perspective::create(30.0, settings.windowAspectRatio, settings.z_near, settings.z_far);
-    auto camera = vsg::Camera::create(perspectve, viewMatrix, vsg::ViewportState::create(window->extent2D()));
-
-    // add close handler to respond to the close window button and pressing escape
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-    if (playAnimations)
-    {
-        auto animations = vsg::visit<vsg::FindAnimations>(universe).animations;
-        for (auto& animation : animations)
+        if (arguments.read({"--numerical-test", "--nt"}))
         {
-            animation->speed = speed;
-            viewer->animationManager->play(animation);
+            numerical_test();
+            return 0;
         }
-    }
 
-    if (arguments.read("--tour"))
-    {
-        // set up camera animation to take you between each viewpoint
-        auto cameraAnimationHandler = vsg::CameraAnimationHandler::create();
-        cameraAnimationHandler->animation = vsg::Animation::create();
-        cameraAnimationHandler->object = camera;
+        // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
+        auto options = vsg::Options::create();
+        options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+        options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-        auto cameraSampler = cameraAnimationHandler->cameraSampler = vsg::CameraSampler::create();
-        cameraSampler->object = camera;
-        cameraAnimationHandler->animation->samplers.push_back(cameraSampler);
+        // add vsgXchange's support for reading and writing 3rd party file formats
+        options->add(vsgXchange::all::create());
 
-        auto cameraKeyframes = cameraSampler->keyframes = vsg::CameraKeyframes::create();
-        double time = 0.0;
-        double time_pause = 3.0;
-        double time_moving = 6.0;
+        arguments.read(options);
+
+        auto windowTraits = vsg::WindowTraits::create();
+        windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
+        windowTraits->windowTitle = "vsgcoordinateframe";
+        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
+        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        windowTraits->synchronizationLayer = arguments.read("--sync");
+        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
+        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+        arguments.read("--screen", windowTraits->screenNum);
+        arguments.read("--display", windowTraits->display);
+        arguments.read("--samples", windowTraits->samples);
+        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+        auto outputFilename = arguments.value<vsg::Path>("", "-o");
+        auto numFrames = arguments.value(-1, "-f");
+        if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
+        arguments.read("--file-cache", options->fileCache);
+
+        bool depthClamp = arguments.read({"--dc", "--depthClamp"});
+        if (depthClamp)
+        {
+            std::cout << "Enabled depth clamp." << std::endl;
+            auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+            deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+            deviceFeatures->get().depthClamp = VK_TRUE;
+        }
+
+        auto clearColor = arguments.value(vsg::vec4(0.0f, 0.0f, 0.0f, 1.0f), "--clear");
+
+        bool playAnimations = arguments.read("--play");
+
+        double distance_between_systems = arguments.value<double>(1.0e9, "--distance");
+        if (arguments.read({"--worst-cast", "--wc"})) distance_between_systems = 8.514e25;
+
+        double speed = arguments.value<double>(1.0, "--speed");
+
+        auto starfieldRadius = arguments.value(distance_between_systems * 4.0, {"--starfield-radius", "--sr"});
+        auto numStars = arguments.value(1e5, {"--numstars", "--ns"});
+        auto active_viewpoint = arguments.value<std::string>("", {"--viewpoint"});
+
+        // set up the solar system paramaters
+        SolarSystemSettings settings;
+
+        settings.flatShaderSet = vsg::createFlatShadedShaderSet(options);
+        settings.phongShaderSet = vsg::createPhongShaderSet(options);
+        settings.pbrShaderSet = vsg::createPhysicsBasedRenderingShaderSet(options);
+
+        if (depthClamp)
+        {
+            auto setUpDepthClamp = [](vsg::ShaderSet& shaderSet) -> void {
+                auto rasterizationState = vsg::RasterizationState::create();
+                rasterizationState->depthClampEnable = VK_TRUE;
+                shaderSet.defaultGraphicsPipelineStates.push_back(rasterizationState);
+            };
+
+            setUpDepthClamp(*settings.flatShaderSet);
+            setUpDepthClamp(*settings.phongShaderSet);
+            setUpDepthClamp(*settings.pbrShaderSet);
+        }
+
+        settings.windowAspectRatio = static_cast<double>(windowTraits->width) / static_cast<double>(windowTraits->height);
+        settings.options = options;
+        settings.builder = vsg::Builder::create();
+        settings.builder->options = options;
+
+        settings.sun_radius = arguments.value<double>(6.957e7, "--sun-radius");
+        settings.earth_to_sun_distance = arguments.value<double>(1.49e8, {"--earth-to-sun-distance", "--sd"}); //1.49e11;
+        settings.useCoordinateFrame = !arguments.read("--mt");
+
+        settings.z_near = 1e3; // 1000m
+        settings.z_far = starfieldRadius * 2.0;
+
+        arguments.read({"--near-far", "--nf"}, settings.z_near, settings.z_far);
+        arguments.read({"--near", "-n"}, settings.z_near);
+        arguments.read({"--far", "-f"}, settings.z_far);
+
+        if (arguments.read("--bing-maps"))
+        {
+            // Bing Maps official documentation:
+            //    metadata (includes imagerySet details): https://learn.microsoft.com/en-us/bingmaps/rest-services/imagery/get-imagery-metadata
+            //    culture codes: https://learn.microsoft.com/en-us/bingmaps/rest-services/common-parameters-and-types/supported-culture-codes
+            //    api key: https://www.microsoft.com/en-us/maps/create-a-bing-maps-key
+            auto imagerySet = arguments.value<std::string>("Aerial", "--imagery");
+            auto culture = arguments.value<std::string>("en-GB", "--culture");
+            auto key = arguments.value<std::string>("", "--key");
+            if (key.empty()) key = vsg::getEnv("VSG_BING_KEY");
+            if (key.empty()) key = vsg::getEnv("OSGEARTH_BING_KEY");
+
+            vsg::info("imagerySet = ", imagerySet);
+            vsg::info("culture = ", culture);
+            vsg::info("key = ", key);
+
+            settings.tileDatabaseSettings = vsg::createBingMapsSettings(imagerySet, culture, key, options);
+        }
+
+        if (arguments.read("--rm"))
+        {
+            // setup ready map settings
+            settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
+            settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+            settings.tileDatabaseSettings->noX = 2;
+            settings.tileDatabaseSettings->noY = 1;
+            settings.tileDatabaseSettings->maxLevel = 10;
+            settings.tileDatabaseSettings->originTopLeft = false;
+            settings.tileDatabaseSettings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
+        }
+
+        if (arguments.read("--rme"))
+        {
+            // setup ready map settings
+            settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
+            settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+            settings.tileDatabaseSettings->noX = 2;
+            settings.tileDatabaseSettings->noY = 1;
+            settings.tileDatabaseSettings->maxLevel = 10;
+            settings.tileDatabaseSettings->originTopLeft = false;
+            settings.tileDatabaseSettings->imageLayer = "http://readymap.org/readymap/tiles/1.0.0/7/{z}/{x}/{y}.jpeg";
+            settings.tileDatabaseSettings->elevationLayer = "http://readymap.org/readymap/tiles/1.0.0/116/{z}/{x}/{y}.tif";
+        }
+
+        if (arguments.read("--osm") || !settings.tileDatabaseSettings)
+        {
+            // setup OpenStreetMap settings
+            settings.tileDatabaseSettings = vsg::TileDatabaseSettings::create();
+            settings.tileDatabaseSettings->extents = {{-180.0, -90.0, 0.0}, {180.0, 90.0, 1.0}};
+            settings.tileDatabaseSettings->noX = 1;
+            settings.tileDatabaseSettings->noY = 1;
+            settings.tileDatabaseSettings->maxLevel = 17;
+            settings.tileDatabaseSettings->originTopLeft = true;
+            settings.tileDatabaseSettings->lighting = true;
+            settings.tileDatabaseSettings->projection = "EPSG:3857"; // Spherical Mecator
+            settings.tileDatabaseSettings->imageLayer = "http://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+        }
+
+        if (!settings.tileDatabaseSettings)
+        {
+            std::cout << "No TileDatabaseSettings assigned." << std::endl;
+            return 1;
+        }
+
+        settings.tileDatabaseSettings->shaderSet = settings.phongShaderSet;
+
+        arguments.read("-t", settings.tileDatabaseSettings->lodTransitionScreenHeightRatio);
+        arguments.read("-m", settings.tileDatabaseSettings->maxLevel);
+
+        auto universe = vsg::Group::create();
+
+        float ambientLightIntensity = arguments.value<float>(0.0f, "--ambient");
+        if (ambientLightIntensity > 0.0f)
+        {
+            auto ambientLight = vsg::AmbientLight::create();
+            ambientLight->intensity = ambientLightIntensity;
+            universe->addChild(ambientLight);
+        }
+
+        // create starfield
+
+        if (auto starfield = createStarfield(starfieldRadius, numStars, settings.flatShaderSet))
+        {
+            universe->addChild(starfield);
+        }
+
+        //
+        // create solar system one
+        //
+        settings.name = "1. ";
+        settings.sun_color.set(1.0f, 1.0f, 0.7f, 1.0f);
+        settings.position.set(-distance_between_systems * 0.5, 0.0, 0.0);
+        auto solar_system_one = creteSolarSystem(settings);
+
+        settings.name = "2. ";
+        settings.sun_color.set(1.0f, 0.8f, 0.7f, 1.0f);
+        settings.position.set(distance_between_systems * 0.5, 0.0, 0.0);
+        settings.rotation.set(vsg::radians(90.0), vsg::dvec3(1.0, 0.0, 0.0));
+        auto solar_system_two = creteSolarSystem(settings);
+
+        auto universe_view = vsg::MatrixTransform::create();
+        universe_view->setValue("viewpoint", "0. universe_view");
+        universe_view->setObject("projection", vsg::Perspective::create(60, settings.windowAspectRatio, settings.z_near, settings.z_far));
+        universe_view->matrix = vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, distance_between_systems * 3.0);
+
+        universe->addChild(solar_system_one);
+        universe->addChild(solar_system_two);
+        universe->addChild(universe_view);
+
+        //
+        // end of creating solar system one
+        //
+
+        if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
+        if (outputFilename)
+        {
+            vsg::write(universe, outputFilename);
+            return 0;
+        }
+
+        // get the viewpoints
+        auto viewpoints = vsg::visit<FindViewpoints>(universe).viewpoints;
         for (auto& [name, objectPath] : viewpoints)
         {
-            cameraKeyframes->tracking.push_back(vsg::time_path{time, objectPath});
-            cameraKeyframes->tracking.push_back(vsg::time_path{time + time_pause, objectPath});
+            std::cout << "viewpoint [" << name << "] ";
+            for (auto& obj : objectPath) std::cout << obj << " ";
+            std::cout << std::endl;
+        }
 
-            for (auto& object : objectPath)
+        // create the viewer and assign window(s) to it
+        auto viewer = vsg::Viewer::create();
+        auto window = vsg::Window::create(windowTraits);
+        if (!window)
+        {
+            std::cout << "Could not create window." << std::endl;
+            return 1;
+        }
+
+        viewer->addWindow(window);
+
+        // compute the bounds of the scene graph to help position camera
+        vsg::ComputeBounds computeBounds;
+        universe->accept(computeBounds);
+        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+        vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+        vsg::dvec3 eye = center + vsg::dvec3(0.0, -radius * 3.5, 0.0);
+
+        vsg::info("universe bounds computeBounds.bounds = ", computeBounds.bounds);
+
+        // set up the camera
+        vsg::ref_ptr<vsg::ViewMatrix> viewMatrix;
+        if (arguments.read("--lookAt"))
+        {
+            auto lookAt = vsg::LookAt::create();
+            lookAt->origin.set(0.0, 0.0, 0.0);
+            lookAt->eye = eye;
+            lookAt->center = center;
+            lookAt->up.set(0.0, 0.0, 1.0);
+            viewMatrix = lookAt;
+        }
+        else
+        {
+            auto lookDirection = vsg::LookDirection::create();
+            lookDirection->origin.set(0.0, 0.0, 0.0);
+            lookDirection->position = eye;
+            viewMatrix = lookDirection;
+        }
+
+        settings.windowAspectRatio = static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height);
+
+        auto perspectve = vsg::Perspective::create(30.0, settings.windowAspectRatio, settings.z_near, settings.z_far);
+        auto camera = vsg::Camera::create(perspectve, viewMatrix, vsg::ViewportState::create(window->extent2D()));
+
+        // add close handler to respond to the close window button and pressing escape
+        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
+        if (playAnimations)
+        {
+            auto animations = vsg::visit<vsg::FindAnimations>(universe).animations;
+            for (auto& animation : animations)
             {
-                if (auto perspective = object->getRefObject<vsg::Perspective>("projection"))
+                animation->speed = speed;
+                viewer->animationManager->play(animation);
+            }
+        }
+
+        if (arguments.read("--tour"))
+        {
+            // set up camera animation to take you between each viewpoint
+            auto cameraAnimationHandler = vsg::CameraAnimationHandler::create();
+            cameraAnimationHandler->animation = vsg::Animation::create();
+            cameraAnimationHandler->object = camera;
+
+            auto cameraSampler = cameraAnimationHandler->cameraSampler = vsg::CameraSampler::create();
+            cameraSampler->object = camera;
+            cameraAnimationHandler->animation->samplers.push_back(cameraSampler);
+
+            auto cameraKeyframes = cameraSampler->keyframes = vsg::CameraKeyframes::create();
+            double time = 0.0;
+            double time_pause = 3.0;
+            double time_moving = 6.0;
+            for (auto& [name, objectPath] : viewpoints)
+            {
+                cameraKeyframes->tracking.push_back(vsg::time_path{time, objectPath});
+                cameraKeyframes->tracking.push_back(vsg::time_path{time + time_pause, objectPath});
+
+                for (auto& object : objectPath)
                 {
-                    cameraKeyframes->fieldOfViews.push_back(vsg::time_double{time, perspective->fieldOfViewY});
-                    cameraKeyframes->fieldOfViews.push_back(vsg::time_double{time + time_pause, perspective->fieldOfViewY});
+                    if (auto perspective = object->getRefObject<vsg::Perspective>("projection"))
+                    {
+                        cameraKeyframes->fieldOfViews.push_back(vsg::time_double{time, perspective->fieldOfViewY});
+                        cameraKeyframes->fieldOfViews.push_back(vsg::time_double{time + time_pause, perspective->fieldOfViewY});
+                    }
+                }
+
+                time += (time_pause + time_moving);
+            }
+
+            cameraAnimationHandler->play();
+
+            viewer->addEventHandler(cameraAnimationHandler);
+        }
+        else
+        {
+            // set up manipulator for interactively moving between viewpoints
+            auto stellarManipulator = StellarManipulator::create(camera);
+            stellarManipulator->viewpoints = viewpoints;
+            viewer->addEventHandler(stellarManipulator);
+
+            if (!active_viewpoint.empty())
+            {
+                auto itr = viewpoints.find(active_viewpoint);
+                if (itr != viewpoints.end())
+                {
+                    vsg::info("initial viewpoint : ", itr->first);
+                    stellarManipulator->currentFocus = itr->second;
                 }
             }
-
-            time += (time_pause + time_moving);
-        }
-
-        cameraAnimationHandler->play();
-
-        viewer->addEventHandler(cameraAnimationHandler);
-    }
-    else
-    {
-        // set up manipulator for interactively moving between viewpoints
-        auto stellarManipulator = StellarManipulator::create(camera);
-        stellarManipulator->viewpoints = viewpoints;
-        viewer->addEventHandler(stellarManipulator);
-
-        if (!active_viewpoint.empty())
-        {
-            auto itr = viewpoints.find(active_viewpoint);
-            if (itr != viewpoints.end())
+            else if (!viewpoints.empty())
             {
-                vsg::info("initial viewpoint : ", itr->first);
-                stellarManipulator->currentFocus = itr->second;
+                stellarManipulator->currentFocus = viewpoints.begin()->second;
+                vsg::info("initial viewpoint : ", viewpoints.begin()->first);
             }
         }
-        else if (!viewpoints.empty())
+
+        auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
+        renderGraph->setClearValues(vsg::sRGB_to_linear(clearColor));
+
+        auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
+
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+        viewer->compile();
+
+        // rendering main loop
+        while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
-            stellarManipulator->currentFocus = viewpoints.begin()->second;
-            vsg::info("initial viewpoint : ", viewpoints.begin()->first);
+            // update all the node positions, do this first as event handlers update the camera based on these positions
+            viewer->update();
+
+            // pass any events into EventHandlers assigned to the Viewer
+            viewer->handleEvents();
+
+            viewer->recordAndSubmit();
+
+            viewer->present();
         }
+
+        return 0;
     }
-
-    auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
-    renderGraph->setClearValues(vsg::sRGB_to_linear(clearColor));
-
-    auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
-
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-
-    viewer->compile();
-
-    // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
+    catch (const vsg::Exception& ve)
     {
-        // update all the node positions, do this first as event handlers update the camera based on these positions
-        viewer->update();
-
-        // pass any events into EventHandlers assigned to the Viewer
-        viewer->handleEvents();
-
-        viewer->recordAndSubmit();
-
-        viewer->present();
+        for (int i = 0; i < argc; ++i) std::cerr << argv[i] << " ";
+        std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
+        return 1;
     }
-
-    return 0;
 }
