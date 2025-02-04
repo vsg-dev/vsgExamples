@@ -850,7 +850,29 @@ int main(int argc, char** argv)
             }
         }
 
-        if (arguments.read("--tour"))
+        if (arguments.read({"--interactive", "-i"}))
+        {
+            // set up manipulator for interactively moving between viewpoints
+            auto stellarManipulator = StellarManipulator::create(camera);
+            stellarManipulator->viewpoints = viewpoints;
+            viewer->addEventHandler(stellarManipulator);
+
+            if (!active_viewpoint.empty())
+            {
+                auto itr = viewpoints.find(active_viewpoint);
+                if (itr != viewpoints.end())
+                {
+                    vsg::info("initial viewpoint : ", itr->first);
+                    stellarManipulator->currentFocus = itr->second;
+                }
+            }
+            else if (!viewpoints.empty())
+            {
+                stellarManipulator->currentFocus = viewpoints.begin()->second;
+                vsg::info("initial viewpoint : ", viewpoints.begin()->first);
+            }
+        }
+        else
         {
             // set up camera animation to take you between each viewpoint
             auto cameraAnimationHandler = vsg::CameraAnimationHandler::create();
@@ -885,28 +907,6 @@ int main(int argc, char** argv)
             cameraAnimationHandler->play();
 
             viewer->addEventHandler(cameraAnimationHandler);
-        }
-        else
-        {
-            // set up manipulator for interactively moving between viewpoints
-            auto stellarManipulator = StellarManipulator::create(camera);
-            stellarManipulator->viewpoints = viewpoints;
-            viewer->addEventHandler(stellarManipulator);
-
-            if (!active_viewpoint.empty())
-            {
-                auto itr = viewpoints.find(active_viewpoint);
-                if (itr != viewpoints.end())
-                {
-                    vsg::info("initial viewpoint : ", itr->first);
-                    stellarManipulator->currentFocus = itr->second;
-                }
-            }
-            else if (!viewpoints.empty())
-            {
-                stellarManipulator->currentFocus = viewpoints.begin()->second;
-                vsg::info("initial viewpoint : ", viewpoints.begin()->first);
-            }
         }
 
         auto renderGraph = vsg::createRenderGraphForView(window, camera, universe, VK_SUBPASS_CONTENTS_INLINE, false);
