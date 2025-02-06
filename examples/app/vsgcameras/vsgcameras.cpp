@@ -245,6 +245,10 @@ int main(int argc, char** argv)
     // CommandGraph to hold the different RenderGraphs used to render each view
     auto commandGraph = vsg::CommandGraph::create(window);
 
+
+    // add headlights to views to make sure any objects that need lighting have it.
+    auto headlight = vsg::createHeadlight();
+
     // set up main interactive view
     {
         auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
@@ -258,6 +262,8 @@ int main(int argc, char** argv)
         // create the vsg::RenderGraph and associated vsg::View
         auto main_camera = vsg::Camera::create(perspective, lookAt, viewportState);
         auto main_view = vsg::View::create(main_camera, scenegraph);
+        main_view->addChild(headlight);
+
         auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
 
         commandGraph->addChild(main_RenderGraph);
@@ -287,9 +293,12 @@ int main(int argc, char** argv)
         auto secondary_camera = vsg::Camera::create(projectionMatrix, viewMatrix, viewportState);
 
         auto secondary_view = vsg::View::create(secondary_camera, scenegraph);
+        secondary_view->addChild(headlight);
+
         auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
         secondary_RenderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
         commandGraph->addChild(secondary_RenderGraph);
+
 
         y += secondary_height + margin;
     }
