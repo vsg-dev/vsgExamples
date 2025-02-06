@@ -538,7 +538,7 @@ int main(int argc, char** argv)
         directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0f, 1.0f, 1.0f);
-        directionalLight->intensity = 0.98f;
+        directionalLight->intensity = 0.95f;
         directionalLight->direction = direction;
         directionalLight->angleSubtended = angleSubtended;
         directionalLight->shadowSettings = shadowSettings;
@@ -552,7 +552,7 @@ int main(int argc, char** argv)
         ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0f, 1.0f, 1.0f);
-        ambientLight->intensity = 0.02f;
+        ambientLight->intensity = 0.05f;
         group->addChild(ambientLight);
     }
 
@@ -564,7 +564,7 @@ int main(int argc, char** argv)
         auto directionalLight2 = vsg::DirectionalLight::create();
         directionalLight2->name = "2nd directional";
         directionalLight2->color.set(1.0f, 1.0f, 0.0f);
-        directionalLight2->intensity = 0.7f;
+        directionalLight2->intensity = 0.95f;
         directionalLight2->direction = vsg::normalize(vsg::dvec3(0.9, 1.0, -1.0));
         directionalLight2->angleSubtended = angleSubtended;
         directionalLight2->shadowSettings = shadowSettings;
