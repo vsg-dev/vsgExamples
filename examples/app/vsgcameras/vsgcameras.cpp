@@ -286,7 +286,7 @@ int main(int argc, char** argv)
     for (auto& [nodePath, camera] : scene_cameras)
     {
         // create a RenderGraph to add a secondary vsg::View on the top right part of the window.
-        auto projectionMatrix = camera->projectionMatrix;
+        auto projectionMatrix = vsg::clone(camera->projectionMatrix);
         auto viewMatrix = vsg::TrackingViewMatrix::create(nodePath);
         auto viewportState = vsg::ViewportState::create(x, y, secondary_width, secondary_height);
 
