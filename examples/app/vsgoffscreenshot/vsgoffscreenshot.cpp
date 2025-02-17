@@ -747,6 +747,7 @@ int main(int argc, char** argv)
                 auto prevCaptureCommands = captureCommands;
 
                 offscreenExtent = displayExtent;
+                offscreenRenderGraph->renderArea = displayCamera->getRenderArea();
                 offscreenPerspective->aspectRatio = static_cast<double>(offscreenExtent.width) / static_cast<double>(offscreenExtent.height);
                 offscreenCamera->viewportState->set(0, 0, offscreenExtent.width, offscreenExtent.height);
 
@@ -756,7 +757,6 @@ int main(int argc, char** argv)
 
                 replaceChild(offscreenSwitch, prevCaptureCommands, captureCommands);
                 offscreenRenderGraph->framebuffer = createOffscreenFramebuffer(device, transferImageView, samples);
-                offscreenRenderGraph->resized();
                 vsg::info("offscreen render resized to: ", offscreenExtent.width, "x", offscreenExtent.height);
             }
         }
