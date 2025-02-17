@@ -446,15 +446,21 @@ std::tuple<vsg::ref_ptr<vsg::Camera>, vsg::ref_ptr<vsg::Perspective>> createCame
     return std::tie(camera, perspective);
 }
 
-void replaceChild(vsg::Group* group, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement)
+void replaceChild(vsg::Switch* toggle, vsg::ref_ptr<vsg::Node> previous, vsg::ref_ptr<vsg::Node> replacement)
 {
-    for (auto& child : group->children)
+    bool found = false;
+    for (auto& child : toggle->children)
     {
-        if (child == previous)
+        if (child.node == previous)
         {
-            child = replacement;
+            child.node = replacement;
+            found = true;
         }
     }
+    if (!found)
+        vsg::info("Warning: replaceChild failed to find previous child\n");
+    else
+        vsg::info("replaceChild succeeded\n");
 }
 
 vsg::ref_ptr<vsg::Data> getImageData(vsg::ref_ptr<vsg::Viewer> viewer, vsg::ref_ptr<vsg::Device> device, vsg::ref_ptr<vsg::Image> captureImage)
@@ -687,9 +693,7 @@ int main(int argc, char** argv)
     offscreenCommandGraph->addChild(offscreenSwitch);
 
     auto offscreenView = vsg::View::create(offscreenCamera, vsg_scene);
-    auto headlight = vsg::createHeadlight();
-    offscreenView->addChild(headlight);
-
+    offscreenView->addChild(vsg::createHeadlight());
     offscreenRenderGraph->addChild(offscreenView);
 
     auto screenshotHandler = ScreenshotHandler::create();
@@ -750,7 +754,7 @@ int main(int argc, char** argv)
                 captureImage = createCaptureImage(device, offscreenImageFormat, offscreenExtent);
                 captureCommands = createTransferCommands(device, transferImageView->image, captureImage);
 
-                replaceChild(offscreenCommandGraph, prevCaptureCommands, captureCommands);
+                replaceChild(offscreenSwitch, prevCaptureCommands, captureCommands);
                 offscreenRenderGraph->framebuffer = createOffscreenFramebuffer(device, transferImageView, samples);
                 offscreenRenderGraph->resized();
                 vsg::info("offscreen render resized to: ", offscreenExtent.width, "x", offscreenExtent.height);
