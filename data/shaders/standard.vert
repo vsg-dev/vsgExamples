@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#pragma import_defines (VSG_INSTANCE_POSITIONS, VSG_BILLBOARD, VSG_DISPLACEMENT_MAP, VSG_SKINNING)
+#pragma import_defines (VSG_INSTANCE_POSITIONS, VSG_BILLBOARD, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
@@ -47,7 +47,12 @@ layout(location = 3) out vec2 texCoord0;
 
 layout(location = 5) out vec3 viewDir;
 
-out gl_PerVertex{ vec4 gl_Position; };
+out gl_PerVertex{
+    vec4 gl_Position;
+#ifdef VSG_POINT_SPRITE
+    float gl_PointSize;
+#endif
+};
 
 #ifdef VSG_BILLBOARD
 mat4 computeBillboadMatrix(vec4 center_eye, float autoScaleDistance)
@@ -74,11 +79,7 @@ void main()
     vec4 normal = vec4(vsg_Normal, 0.0);
 
 #ifdef VSG_DISPLACEMENT_MAP
-#if 0
-    vec3 scale = vec3(1.0, 1.0, 1.0);
-#else
     vec3 scale = displacementMapScale.value;
-#endif
 
     vertex.xyz = vertex.xyz + vsg_Normal * (texture(displacementMap, vsg_TexCoord0.st).s * scale.z);
 
@@ -132,4 +133,8 @@ void main()
 
     vertexColor = vsg_Color;
     texCoord0 = vsg_TexCoord0;
+
+#ifdef VSG_POINT_SPRITE
+    gl_PointSize = 1.0;
+#endif
 }

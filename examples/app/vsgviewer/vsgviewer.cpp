@@ -275,7 +275,11 @@ int main(int argc, char** argv)
         if (autoPlay && cameraAnimation->animation)
         {
             cameraAnimation->play();
-            if (reportAverageFrameRate) maxTime = cameraAnimation->animation->maxTime();
+
+            if (reportAverageFrameRate && maxTime == std::numeric_limits<double>::max())
+            {
+                maxTime = cameraAnimation->animation->maxTime();
+            }
         }
 
         viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));

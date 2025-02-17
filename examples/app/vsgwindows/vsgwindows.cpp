@@ -47,6 +47,44 @@ int main(int argc, char** argv)
     windowTraits2->height = 480;
     if (arguments.read({"--window2", "-w2"}, windowTraits2->width, windowTraits2->height)) { windowTraits2->fullscreen = false; }
 
+
+    // set up instrumentation if required
+    bool reportAverageFrameRate = arguments.read("--fps");
+    auto logFilename = arguments.value<vsg::Path>("", "--log");
+    vsg::ref_ptr<vsg::Instrumentation> instrumentation;
+    if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+    {
+        windowTraits->debugUtils = true;
+
+        auto gpu_instrumentation = vsg::GpuAnnotation::create();
+        if (arguments.read("--name"))
+            gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_name;
+        else if (arguments.read("--className"))
+            gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
+        else if (arguments.read("--func"))
+            gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
+
+        instrumentation = gpu_instrumentation;
+    }
+    else if (arguments.read({"--profiler", "--pr"}))
+    {
+        // set Profiler options
+        auto settings = vsg::Profiler::Settings::create();
+        arguments.read("--cpu", settings->cpu_instrumentation_level);
+        arguments.read("--gpu", settings->gpu_instrumentation_level);
+        arguments.read("--log-size", settings->log_size);
+
+        // create the profiler
+        instrumentation = vsg::Profiler::create(settings);
+    }
+
+    if (arguments.read({"-t", "--test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits2->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        reportAverageFrameRate = true;
+    }
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     bool separateDevices = arguments.read({"--no-shared-window", "-n"});
@@ -125,6 +163,11 @@ int main(int argc, char** argv)
     auto secondary_camera = createCameraForScene(scenegraph2, 0, 0, window2->extent2D().width, window2->extent2D().height);
     auto secondary_view = vsg::View::create(secondary_camera, scenegraph2);
 
+    // add headlights to views to make sure any objects that need lighting have it.
+    auto headlight = vsg::createHeadlight();
+    main_view->addChild(headlight);
+    secondary_view->addChild(headlight);
+
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
@@ -155,6 +198,8 @@ int main(int argc, char** argv)
         viewer->setupThreading();
     }
 
+    if (instrumentation) viewer->assignInstrumentation(instrumentation);
+
     viewer->compile();
 
     // rendering main loop
@@ -168,6 +213,27 @@ int main(int argc, char** argv)
         viewer->recordAndSubmit();
 
         viewer->present();
+    }
+
+
+    if (reportAverageFrameRate)
+    {
+        double fps = static_cast<double>(viewer->getFrameStamp()->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
+        std::cout << "Average frame rate = " << fps << " fps" << std::endl;
+    }
+
+    if (auto profiler = instrumentation.cast<vsg::Profiler>())
+    {
+        instrumentation->finish();
+        if (logFilename)
+        {
+            std::ofstream fout(logFilename);
+            profiler->log->report(fout);
+        }
+        else
+        {
+            profiler->log->report(std::cout);
+        }
     }
 
     // clean up done automatically thanks to ref_ptr<>

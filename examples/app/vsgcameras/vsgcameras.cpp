@@ -110,6 +110,42 @@ int main(int argc, char** argv)
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
+    // set up instrumentation if required
+    bool reportAverageFrameRate = arguments.read("--fps");
+    auto logFilename = arguments.value<vsg::Path>("", "--log");
+    vsg::ref_ptr<vsg::Instrumentation> instrumentation;
+    if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+    {
+        windowTraits->debugUtils = true;
+
+        auto gpu_instrumentation = vsg::GpuAnnotation::create();
+        if (arguments.read("--name"))
+            gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_name;
+        else if (arguments.read("--className"))
+            gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
+        else if (arguments.read("--func"))
+            gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
+
+        instrumentation = gpu_instrumentation;
+    }
+    else if (arguments.read({"--profiler", "--pr"}))
+    {
+        // set Profiler options
+        auto settings = vsg::Profiler::Settings::create();
+        arguments.read("--cpu", settings->cpu_instrumentation_level);
+        arguments.read("--gpu", settings->gpu_instrumentation_level);
+        arguments.read("--log-size", settings->log_size);
+
+        // create the profiler
+        instrumentation = vsg::Profiler::create(settings);
+    }
+
+    if (arguments.read({"-t", "--test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        reportAverageFrameRate = true;
+    }
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     auto options = vsg::Options::create();
@@ -209,6 +245,10 @@ int main(int argc, char** argv)
     // CommandGraph to hold the different RenderGraphs used to render each view
     auto commandGraph = vsg::CommandGraph::create(window);
 
+
+    // add headlights to views to make sure any objects that need lighting have it.
+    auto headlight = vsg::createHeadlight();
+
     // set up main interactive view
     {
         auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0),
@@ -222,6 +262,8 @@ int main(int argc, char** argv)
         // create the vsg::RenderGraph and associated vsg::View
         auto main_camera = vsg::Camera::create(perspective, lookAt, viewportState);
         auto main_view = vsg::View::create(main_camera, scenegraph);
+        main_view->addChild(headlight);
+
         auto main_RenderGraph = vsg::RenderGraph::create(window, main_view);
 
         commandGraph->addChild(main_RenderGraph);
@@ -244,21 +286,26 @@ int main(int argc, char** argv)
     for (auto& [nodePath, camera] : scene_cameras)
     {
         // create a RenderGraph to add a secondary vsg::View on the top right part of the window.
-        auto projectionMatrix = camera->projectionMatrix;
+        auto projectionMatrix = vsg::clone(camera->projectionMatrix);
         auto viewMatrix = vsg::TrackingViewMatrix::create(nodePath);
         auto viewportState = vsg::ViewportState::create(x, y, secondary_width, secondary_height);
 
         auto secondary_camera = vsg::Camera::create(projectionMatrix, viewMatrix, viewportState);
 
         auto secondary_view = vsg::View::create(secondary_camera, scenegraph);
+        secondary_view->addChild(headlight);
+
         auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
         secondary_RenderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
         commandGraph->addChild(secondary_RenderGraph);
+
 
         y += secondary_height + margin;
     }
 
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+    if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
     viewer->compile();
 
@@ -273,6 +320,26 @@ int main(int argc, char** argv)
         viewer->recordAndSubmit();
 
         viewer->present();
+    }
+
+    if (reportAverageFrameRate)
+    {
+        double fps = static_cast<double>(viewer->getFrameStamp()->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
+        std::cout << "Average frame rate = " << fps << " fps" << std::endl;
+    }
+
+    if (auto profiler = instrumentation.cast<vsg::Profiler>())
+    {
+        instrumentation->finish();
+        if (logFilename)
+        {
+            std::ofstream fout(logFilename);
+            profiler->log->report(fout);
+        }
+        else
+        {
+            profiler->log->report(std::cout);
+        }
     }
 
     // clean up done automatically thanks to ref_ptr<>

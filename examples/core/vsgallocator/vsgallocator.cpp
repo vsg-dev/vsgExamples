@@ -68,6 +68,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     // Allocaotor related command line settings
+    if (size_t alignment; arguments.read("--alignment", alignment)) vsg::Allocator::instance().reset(new vsg::IntrusiveAllocator(std::move(vsg::Allocator::instance()), alignment));
     if (arguments.read("--std")) vsg::Allocator::instance().reset(new StdAllocator(std::move(vsg::Allocator::instance())));
     if (int type; arguments.read("--allocator", type)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(type);
     if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize);

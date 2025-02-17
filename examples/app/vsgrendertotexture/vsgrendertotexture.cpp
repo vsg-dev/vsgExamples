@@ -410,6 +410,10 @@ int main(int argc, char** argv)
     auto rtt_view = vsg::View::create(offscreenCamera, vsg_scene);
     rtt_RenderGraph->addChild(rtt_view);
 
+    // add lighting
+    auto headlight = vsg::createHeadlight();
+    rtt_view->addChild(headlight);
+
     // Planes geometry that uses the rendered scene as a texture map
     vsg::ref_ptr<vsg::Node> planes = createPlanes(colorImage);
     auto camera = createCameraForScene(planes, window->extent2D());

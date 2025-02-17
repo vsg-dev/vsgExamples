@@ -110,8 +110,9 @@ struct LoadWindowOperation : public vsg::Inherit<vsg::Operation, LoadWindowOpera
 
             auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(VkExtent2D{width, height}));
 
-            auto view = vsg::View::create(camera, vsg_scene);
+            auto view = vsg::View::create(camera);
             view->addChild(vsg::createHeadlight());
+            view->addChild(vsg_scene);
 
             auto renderGraph = vsg::RenderGraph::create(second_window, view);
             renderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
@@ -173,7 +174,7 @@ int main(int argc, char** argv)
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         // create a Group to contain all the nodes
-        auto vsg_scene = vsg::read_cast<vsg::Node>("models/teapot.vsgt", options);
+        auto vsg_scene = vsg::read_cast<vsg::Node>("models/openstreetmap.vsgt", options);
 
         vsg::ref_ptr<vsg::Window> window(vsg::Window::create(windowTraits));
         if (!window)
@@ -245,6 +246,7 @@ int main(int argc, char** argv)
         vsg::observer_ptr<vsg::Viewer> observer_viewer(viewer);
         loadThreads->add(LoadWindowOperation::create(postPresentOperationQueue, observer_viewer, window, 50, 50, 512, 480, "models/lz.vsgt", options));
         loadThreads->add(LoadWindowOperation::create(postPresentOperationQueue, observer_viewer, window, 500, 50, 512, 480, "models/openstreetmap.vsgt", options));
+        loadThreads->add(LoadWindowOperation::create(postPresentOperationQueue, observer_viewer, window, 500, 50, 512, 480, "models/teapot.vsgt", options));
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
