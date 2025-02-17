@@ -68,16 +68,6 @@ public:
             // change the aspect ratios of the projection matrices to fit the new dimensions.
             view0->camera->projectionMatrix->changeExtent(extent0, extent1);
             view1->camera->projectionMatrix->changeExtent(extent1, extent0);
-
-            // wait until the device is idle to avoid changing state while it's being used.
-            vkDeviceWaitIdle(*(renderPass->device));
-
-            vsg::UpdateGraphicsPipelines updateGraphicsPipelines;
-
-            updateGraphicsPipelines.context = vsg::Context::create(renderPass->device);
-            updateGraphicsPipelines.context->renderPass = renderPass;
-
-            renderGraph->accept(updateGraphicsPipelines);
         }
     }
 };
