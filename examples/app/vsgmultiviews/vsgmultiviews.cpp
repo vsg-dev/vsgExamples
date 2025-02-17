@@ -40,6 +40,8 @@ public:
     {
         if (keyPress.keyBase == 's')
         {
+            keyPress.handled = true;
+
             std::vector<std::pair<size_t, vsg::ref_ptr<vsg::View>>> views;
             for (size_t i = 0; i < renderGraph->children.size(); ++i)
             {
@@ -185,13 +187,6 @@ int main(int argc, char** argv)
     main_view->addChild(headlight);
     secondary_view->addChild(headlight);
 
-    // add close handler to respond to the close window button and to pressing escape
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-    // add event handlers, in the order we wish events to be handled.
-    viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
-    viewer->addEventHandler(vsg::Trackball::create(main_camera));
-
     auto renderGraph = vsg::RenderGraph::create(window);
 
     // add main view that covers the whole window.
@@ -219,6 +214,13 @@ int main(int argc, char** argv)
 
     // add the view handler for interactively changing the views
     viewer->addEventHandler(ViewHandler::create(renderGraph));
+
+    // add close handler to respond to the close window button and to pressing escape
+    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
+    // add event handlers, in the order we wish events to be handled.
+    viewer->addEventHandler(vsg::Trackball::create(secondary_camera));
+    viewer->addEventHandler(vsg::Trackball::create(main_camera));
 
     if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
