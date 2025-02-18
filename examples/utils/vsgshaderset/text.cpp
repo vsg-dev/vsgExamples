@@ -48,7 +48,7 @@ vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
     // used for both CPU and GPU layouts
     shaderSet->addAttributeBinding("inPosition", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
     shaderSet->addDescriptorBinding("textureAtlas", "", 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
-    shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
+    shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_ALL, 0, 128);
 
     // only used when using CPU Layout
     shaderSet->addAttributeBinding("inColor", "CPU_LAYOUT", 1, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
