@@ -64,7 +64,7 @@ vsg::ref_ptr<vsg::ShaderSet> custom::phong_ShaderSet(vsg::ref_ptr<const vsg::Opt
     shaderSet->addDescriptorBinding("texGenMatrices", "", CUSTOM_DESCRIPTOR_SET, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::mat4Value::create());
     shaderSet->addDescriptorBinding("projectedTextures", "", CUSTOM_DESCRIPTOR_SET, 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::ubvec4Array3D::create(1, 1, 1, vsg::Data::Properties{VK_FORMAT_R8G8B8A8_UNORM}));
 
-    shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
+    shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_ALL, 0, 128);
 
     shaderSet->optionalDefines = {"VSG_GREYSCALE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_POINT_SPRITE"};
 
