@@ -23,7 +23,9 @@ vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> opti
     vsg::info("Local pbr_ShaderSet(", options, ")");
 
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+    vertexShader->module->setValue("DebugUtilsName", "VSG built-in standard.vert");
     auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_pbr.frag", options);
+    fragmentShader->module->setValue("DebugUtilsName", "VSG built-in standard_pbr.frag");
 
     if (!vertexShader || !fragmentShader)
     {
@@ -79,6 +81,8 @@ vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> opti
     shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_BILLBOARD"}, vsg::BillboardArrayState::create()});
 
     shaderSet->customDescriptorSetBindings.push_back(vsg::ViewDependentStateBinding::create(VIEW_DESCRIPTOR_SET));
+
+    shaderSet->setValue("DebugUtilsName", "VSG built-in PBR ShaderSet");
 
     return shaderSet;
 }
