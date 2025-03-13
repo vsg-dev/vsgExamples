@@ -77,6 +77,14 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
+    auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
+
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "Multiple Views";
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
@@ -119,15 +127,13 @@ int main(int argc, char** argv)
         reportAverageFrameRate = true;
     }
 
-    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+    vsg::ref_ptr<vsg::ResourceHints> resourceHints;
+    if (auto resourceHintsFilename = arguments.value<vsg::Path>("", "--rh"))
+    {
+        resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceHintsFilename, options);
+    }
 
-    auto options = vsg::Options::create();
-    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-#ifdef vsgXchange_all
-    // add vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::all::create());
-#endif
+    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::ref_ptr<vsg::Node> scenegraph;
     vsg::ref_ptr<vsg::Node> scenegraph2;
@@ -214,7 +220,7 @@ int main(int argc, char** argv)
 
     if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
-    viewer->compile();
+    viewer->compile(resourceHints);
 
     // rendering main loop
     while (viewer->advanceToNextFrame())
