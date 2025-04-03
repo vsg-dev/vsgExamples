@@ -131,9 +131,9 @@ int main(int argc, char** argv)
 
         auto text = vsg::Text::create();
         text->font = vsg::read_cast<vsg::Font>("fonts/times.vsgb", options);
-        auto layout = vsg::StandardLayout::create();
-        layout->billboard = true;
-        text->layout = layout;
+        auto textLayout = vsg::StandardLayout::create();
+        textLayout->billboard = true;
+        text->layout = textLayout;
         std::string filename = filepath.string();
         auto filenameStart = filename.find_last_of("\\/");
         if (filenameStart != std::string::npos)
