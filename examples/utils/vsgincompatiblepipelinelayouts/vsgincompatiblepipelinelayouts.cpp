@@ -101,7 +101,14 @@ int main(int argc, char** argv)
         vsg_scene->add(vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, vds_set));
 
         vsg::info("Added state to inherit ");
-        options->inheritedState = vsg_scene->stateCommands;
+        if (highlight)
+        {
+            // Copy the container so we can add more inherited state without setting an overall value for the whole scenegraph
+            options->inheritedState = vsg::StateCommands(vsg_scene->stateCommands);
+            options->inheritedState.push_back(vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, layout, highlight_set, nullptr));
+        }
+        else
+            options->inheritedState = vsg_scene->stateCommands;
     }
 
     // read any vsg files
