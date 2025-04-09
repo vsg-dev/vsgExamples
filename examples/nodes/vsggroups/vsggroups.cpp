@@ -12,7 +12,7 @@
 class VsgVisitor : public vsg::Visitor
 {
 public:
-    unsigned int numNodes = 0;
+    uint64_t numNodes = 0;
 
     using Visitor::apply;
 
@@ -49,7 +49,7 @@ public:
 class VsgConstVisitor : public vsg::ConstVisitor
 {
 public:
-    unsigned int numNodes = 0;
+    uint64_t numNodes = 0;
 
     using ConstVisitor::apply;
 
@@ -86,7 +86,7 @@ public:
 class ExperimentVisitor : public experimental::SharedPtrVisitor
 {
 public:
-    unsigned int numNodes = 0;
+    uint64_t numNodes = 0;
 
     using SharedPtrVisitor::apply;
 
@@ -105,7 +105,7 @@ public:
     }
 };
 
-vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
+vsg::ref_ptr<vsg::Node> createVsgQuadTree(uint64_t numLevels, uint64_t& numNodes, uint64_t& numBytes)
 {
     if (numLevels == 0)
     {
@@ -130,7 +130,7 @@ vsg::ref_ptr<vsg::Node> createVsgQuadTree(unsigned int numLevels, unsigned int& 
     return t;
 }
 
-vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
+vsg::ref_ptr<vsg::Node> createFixedQuadTree(uint64_t numLevels, uint64_t& numNodes, uint64_t& numBytes)
 {
     if (numLevels == 0)
     {
@@ -155,7 +155,7 @@ vsg::ref_ptr<vsg::Node> createFixedQuadTree(unsigned int numLevels, unsigned int
     return t;
 }
 
-std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(unsigned int numLevels, unsigned int& numNodes, unsigned int& numBytes)
+std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(uint64_t numLevels, uint64_t& numNodes, uint64_t& numBytes)
 {
     if (numLevels == 0)
     {
@@ -271,8 +271,8 @@ int main(int argc, char** argv)
     vsg::ref_ptr<vsg::Node> vsg_root;
     std::shared_ptr<experimental::SharedPtrNode> shared_root;
 
-    unsigned int numNodes = 0;
-    unsigned int numBytes = 0;
+    uint64_t numNodes = 0;
+    uint64_t numBytes = 0;
 
     if (inputFilename)
     {
@@ -299,14 +299,14 @@ int main(int argc, char** argv)
 
     clock::time_point after_construction = clock::now();
 
-    unsigned int numNodesVisited = 0;
+    uint64_t numNodesVisited = 0;
 
     if (vsg_root)
     {
         if (vsg_recordTraversal)
         {
             std::cout << "using RecordTraversal" << std::endl;
-            for (unsigned int i = 0; i < numTraversals; ++i)
+            for (uint64_t i = 0; i < numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_recordTraversal);
                 //numNodesVisited += vsg_recordTraversal->numNodes;
@@ -317,7 +317,7 @@ int main(int argc, char** argv)
         else if (vsg_ConstVisitor)
         {
             std::cout << "using VsgConstVisitor" << std::endl;
-            for (unsigned int i = 0; i < numTraversals; ++i)
+            for (uint64_t i = 0; i < numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_ConstVisitor);
                 numNodesVisited += vsg_ConstVisitor->numNodes;
@@ -328,7 +328,7 @@ int main(int argc, char** argv)
         {
             vsg::ref_ptr<VsgVisitor> vsg_visitor(new VsgVisitor);
             std::cout << "using VsgVisitor" << std::endl;
-            for (unsigned int i = 0; i < numTraversals; ++i)
+            for (uint64_t i = 0; i < numTraversals; ++i)
             {
                 vsg_root->accept(*vsg_visitor);
                 numNodesVisited += vsg_visitor->numNodes;
@@ -340,7 +340,7 @@ int main(int argc, char** argv)
     {
         ExperimentVisitor experimentVisitor;
 
-        for (unsigned int i = 0; i < numTraversals; ++i)
+        for (uint64_t i = 0; i < numTraversals; ++i)
         {
             shared_root->accept(experimentVisitor);
             numNodesVisited += experimentVisitor.numNodes;
