@@ -66,6 +66,8 @@ int main(int argc, char** argv)
 
         arguments.read(options);
 
+        if (uint32_t numOperationThreads = 0; arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
+
         auto windowTraits = vsg::WindowTraits::create();
         windowTraits->windowTitle = "vsgviewer";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
