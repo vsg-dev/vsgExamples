@@ -466,7 +466,7 @@ void Turntable::apply(vsg::FrameEvent& frame)
                 computeRotationAxesWithGimbalAvoidance(horizontalAxis, verticalAxis, lookVector, globalUp);
                 
                 // Apply horizontal rotation
-                double horizontalAngle = _rotateAngle * (1.0 - abs(verticalComponent)) * scale;
+                double horizontalAngle = _rotateAngle * (1.0 - std::abs(verticalComponent)) * scale;
                 rotate(horizontalAngle, horizontalAxis);
                 
                 // Apply vertical rotation 
@@ -526,7 +526,7 @@ void Turntable::computeRotationAxesWithGimbalAvoidance(vsg::dvec3& horizontalAxi
                                                       const vsg::dvec3& lookVector, const vsg::dvec3& globalUp)
 {
     // 1. Compute how close we are to gimbal lock
-    double viewVerticalAlignment = abs(vsg::dot(lookVector, globalUp));
+    double viewVerticalAlignment = std::abs(vsg::dot(lookVector, globalUp));
     
     // The closer viewVerticalAlignment is to 1.0, the closer we are to gimbal lock
     
@@ -563,7 +563,7 @@ void Turntable::computeRotationAxesWithGimbalAvoidance(vsg::dvec3& horizontalAxi
 
 void Turntable::rotate(double angle, const vsg::dvec3& axis)
 {
-    if (abs(angle) < 1e-10 || vsg::length(axis) < 1e-10)
+    if (std::abs(angle) < 1e-10 || vsg::length(axis) < 1e-10)
         return;
         
     // Create rotation matrix around the provided axis
