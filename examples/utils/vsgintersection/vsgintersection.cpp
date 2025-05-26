@@ -124,9 +124,18 @@ public:
     void intersection_LineSegmentIntersector(vsg::PointerEvent& pointerEvent)
     {
         auto intersector = vsg::LineSegmentIntersector::create(*camera, pointerEvent.x, pointerEvent.y);
+
+        auto before_intersection = vsg::clock::now();
+
         scenegraph->accept(*intersector);
 
-        if (verbose) std::cout << "intersection_LineSegmentIntersector(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")" << std::endl;
+        auto after_intersection = vsg::clock::now();
+
+        if (verbose)
+        {
+            std::cout << "\nintersection_LineSegmentIntersector(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")";
+            std::cout << "time = " << std::chrono::duration<double, std::chrono::milliseconds::period>(after_intersection - before_intersection).count()<<"ms"<<std::endl;
+        }
 
         if (intersector->intersections.empty()) return;
 
