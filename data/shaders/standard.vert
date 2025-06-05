@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#pragma import_defines (VSG_INSTANCE_POSITIONS, VSG_BILLBOARD, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
+#pragma import_defines (VSG_BILLBOARD, VSG_INSTANCE_POSITION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
@@ -25,9 +25,19 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 8) uniform DisplacementMapScale
 #endif
 
 #ifdef VSG_BILLBOARD
-layout(location = 4) in vec4 vsg_position_scaleDistance;
-#elif defined(VSG_INSTANCE_POSITIONS)
-layout(location = 4) in vec3 vsg_position;
+layout(location = 4) in vec4 vsg_Position_scaleDistance;
+#endif
+
+#if defined(VSG_INSTANCE_POSITION)
+layout(location = 4) in vec3 vsg_Position;
+#endif
+
+#if defined(VSG_INSTANCE_ROTATION)
+layout(location = 5) in vec4 vsg_Rotation;
+#endif
+
+#if defined(VSG_INSTANCE_SCALE)
+layout(location = 6) in vec3 vsg_Scale;
 #endif
 
 #ifdef VSG_SKINNING
@@ -73,6 +83,17 @@ mat4 computeBillboadMatrix(vec4 center_eye, float autoScaleDistance)
 }
 #endif
 
+vec3 rotate(vec4 q, vec3 v)
+{
+    vec3 uv, uuv;
+    vec3 qvec = vec3(q[0], q[1], q[2]);
+    uv = cross(qvec, v);
+    uuv = cross(qvec, uv);
+    uv *= (2.0 * q[3]);
+    uuv *= 2.0;
+    return v + uv + uuv;
+}
+
 void main()
 {
     vec4 vertex = vec4(vsg_Vertex, 1.0);
@@ -107,12 +128,21 @@ void main()
     normal.xyz = normalize(dx * vsg_Normal.x + dy * vsg_Normal.y + dz * vsg_Normal.z);
 #endif
 
-#ifdef VSG_INSTANCE_POSITIONS
-    vertex.xyz = vertex.xyz + vsg_position;
+#ifdef VSG_INSTANCE_SCALE
+    vertex.xyz = vertex.xyz * vsg_Scale;
+#endif
+
+#ifdef VSG_INSTANCE_ROTATION
+    vertex.xyz = rotate(vsg_Rotation, vertex.xyz);
+    normal.xyz = rotate(vsg_Rotation, normal.xyz);
+#endif
+
+#ifdef VSG_INSTANCE_POSITION
+    vertex.xyz = vertex.xyz + vsg_Position;
 #endif
 
 #ifdef VSG_BILLBOARD
-    mat4 mv = computeBillboadMatrix(pc.modelView * vec4(vsg_position_scaleDistance.xyz, 1.0), vsg_position_scaleDistance.w);
+    mat4 mv = computeBillboadMatrix(pc.modelView * vec4(vsg_Position_scaleDistance.xyz, 1.0), vsg_Position_scaleDistance.w);
 #elif defined(VSG_SKINNING)
     // Calculate skinned matrix from weights and joint indices of the current vertex
     mat4 skinMat =
