@@ -53,6 +53,9 @@ int main(int argc, char** argv)
         // if we want to redirect std::cout and std::cerr to the vsg::Logger call vsg::Logger::redirect_stdout()
         if (arguments.read({"--redirect-std", "-r"})) vsg::Logger::instance()->redirect_std();
 
+        auto windowTraits = vsg::WindowTraits::create();
+        windowTraits->windowTitle = vsg::make_string(arguments);
+
         // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->sharedObjects = vsg::SharedObjects::create();
@@ -68,8 +71,6 @@ int main(int argc, char** argv)
 
         if (uint32_t numOperationThreads = 0; arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgviewer";
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         windowTraits->synchronizationLayer = arguments.read("--sync");
