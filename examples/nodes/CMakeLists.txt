@@ -1,5 +1,6 @@
 add_subdirectory(vsgannotation)
 add_subdirectory(vsggroups)
+add_subdirectory(vsglod)
 add_subdirectory(vsgtransform)
 add_subdirectory(vsgtextureprojection)
 add_subdirectory(vsglayers)
