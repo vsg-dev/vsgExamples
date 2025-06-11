@@ -375,9 +375,6 @@ int main(int argc, char** argv)
 
             viewer->update();
 
-
-            if (options->sharedObjects) options->sharedObjects->prune();
-
             viewer->recordAndSubmit();
 
             viewer->present();

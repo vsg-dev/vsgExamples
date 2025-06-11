@@ -175,20 +175,24 @@ vsg::ref_ptr<vsg::Node> createLargeTestScene(const ModelSettings& settings)
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    auto windowTraits = vsg::WindowTraits::create();
+    windowTraits->windowTitle = vsg::make_string(arguments);
+
+    // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
 #ifdef vsgXchange_all
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgshadows";
+    arguments.read(options);
 
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     windowTraits->synchronizationLayer = arguments.read("--sync");
@@ -215,6 +219,8 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
         reportAverageFrameRate = true;
     }
+
+    auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
 
     const double invalid_time = std::numeric_limits<double>::max();
     auto duration = arguments.value(invalid_time, "--duration");
@@ -659,6 +665,15 @@ int main(int argc, char** argv)
 
     viewer->compile(resourceHints);
 
+    if (maxPagedLOD > 0)
+    {
+        // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
+        for (auto& task : viewer->recordAndSubmitTasks)
+        {
+            if (task->databasePager) task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
+        }
+    }
+
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
 
@@ -667,6 +682,7 @@ int main(int argc, char** argv)
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
+
         viewer->update();
 
         viewer->recordAndSubmit();
