@@ -44,9 +44,9 @@ vsg::ref_ptr<vsg::ShaderSet> custom::phong_ShaderSet(vsg::ref_ptr<const vsg::Opt
     shaderSet->addAttributeBinding("vsg_TexCoord0", "", 2, VK_FORMAT_R32G32_SFLOAT, vsg::vec2Array::create(1));
     shaderSet->addAttributeBinding("vsg_Color", "", 3, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
 
-    shaderSet->addAttributeBinding("vsg_Position_scaleDistance", "VSG_BILLBOARD", 4, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
+    shaderSet->addAttributeBinding("vsg_Translation_scaleDistance", "VSG_BILLBOARD", 4, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
 
-    shaderSet->addAttributeBinding("vsg_Position", "VSG_INSTANCE_POSITION", 4, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
+    shaderSet->addAttributeBinding("vsg_Translation", "VSG_INSTANCE_TRANSLATION", 4, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
     shaderSet->addAttributeBinding("vsg_Rotation", "VSG_INSTANCE_ROTATION", 5, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
     shaderSet->addAttributeBinding("vsg_Scale", "VSG_INSTANCE_SCALE", 6, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
 

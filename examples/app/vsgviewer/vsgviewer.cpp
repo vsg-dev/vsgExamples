@@ -75,6 +75,7 @@ int main(int argc, char** argv)
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         windowTraits->synchronizationLayer = arguments.read("--sync");
         bool reportAverageFrameRate = arguments.read("--fps");
+        bool reportMemoryStats = arguments.read("--rms");
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
         if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
         if (arguments.read("--IMMEDIATE")) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; }
@@ -109,6 +110,7 @@ int main(int argc, char** argv)
         arguments.read("--screen", windowTraits->screenNum);
         arguments.read("--display", windowTraits->display);
         arguments.read("--samples", windowTraits->samples);
+        if (arguments.read("--ThreadLogger")) vsg::Logger::instance() = vsg::ThreadLogger::create();
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
@@ -265,7 +267,7 @@ int main(int argc, char** argv)
         }
         else
         {
-            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.5);
         }
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
@@ -373,6 +375,9 @@ int main(int argc, char** argv)
 
             viewer->update();
 
+
+            if (options->sharedObjects) options->sharedObjects->prune();
+
             viewer->recordAndSubmit();
 
             viewer->present();
@@ -383,6 +388,14 @@ int main(int argc, char** argv)
             auto fs = viewer->getFrameStamp();
             double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
             std::cout << "Average frame rate = " << fps << " fps" << std::endl;
+        }
+
+        if (reportMemoryStats)
+        {
+            if (options->sharedObjects)
+            {
+                options->sharedObjects->report(std::cout);
+            }
         }
 
         if (auto profiler = instrumentation.cast<vsg::Profiler>())

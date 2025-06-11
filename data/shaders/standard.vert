@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#pragma import_defines (VSG_BILLBOARD, VSG_INSTANCE_POSITION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
+#pragma import_defines (VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
@@ -25,11 +25,11 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 8) uniform DisplacementMapScale
 #endif
 
 #ifdef VSG_BILLBOARD
-layout(location = 4) in vec4 vsg_Position_scaleDistance;
+layout(location = 4) in vec4 vsg_Translation_scaleDistance;
 #endif
 
-#if defined(VSG_INSTANCE_POSITION)
-layout(location = 4) in vec3 vsg_Position;
+#if defined(VSG_INSTANCE_TRANSLATION)
+layout(location = 4) in vec3 vsg_Translation;
 #endif
 
 #if defined(VSG_INSTANCE_ROTATION)
@@ -137,12 +137,12 @@ void main()
     normal.xyz = rotate(vsg_Rotation, normal.xyz);
 #endif
 
-#ifdef VSG_INSTANCE_POSITION
-    vertex.xyz = vertex.xyz + vsg_Position;
+#ifdef VSG_INSTANCE_TRANSLATION
+    vertex.xyz = vertex.xyz + vsg_Translation;
 #endif
 
 #ifdef VSG_BILLBOARD
-    mat4 mv = computeBillboadMatrix(pc.modelView * vec4(vsg_Position_scaleDistance.xyz, 1.0), vsg_Position_scaleDistance.w);
+    mat4 mv = computeBillboadMatrix(pc.modelView * vec4(vsg_Translation_scaleDistance.xyz, 1.0), vsg_Translation_scaleDistance.w);
 #elif defined(VSG_SKINNING)
     // Calculate skinned matrix from weights and joint indices of the current vertex
     mat4 skinMat =
