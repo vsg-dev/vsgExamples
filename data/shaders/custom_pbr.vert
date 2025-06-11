@@ -19,7 +19,7 @@ layout(location = 3) in vec4 vsg_Color;
 
 
 #ifdef VSG_BILLBOARD
-layout(location = 4) in vec4 vsg_position_scaleDistance;
+layout(location = 4) in vec4 vsg_Position_scaleDistance;
 #elif defined(VSG_INSTANCE_POSITIONS)
 layout(location = 4) in vec3 vsg_position;
 #endif
@@ -92,7 +92,7 @@ void main()
 #endif
 
 #ifdef VSG_BILLBOARD
-    mat4 mv = computeBillboadMatrix(pc.modelView * vec4(vsg_position_scaleDistance.xyz, 1.0), vsg_position_scaleDistance.w);
+    mat4 mv = computeBillboadMatrix(pc.modelView * vec4(vsg_Position_scaleDistance.xyz, 1.0), vsg_Position_scaleDistance.w);
 #else
     mat4 mv = pc.modelView;
 #endif
