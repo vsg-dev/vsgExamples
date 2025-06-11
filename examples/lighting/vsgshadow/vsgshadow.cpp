@@ -337,7 +337,7 @@ int main(int argc, char** argv)
         shaderHints->defines.insert("SHADOWMAP_DEBUG");
     }
 
-    if (arguments.read({"-c", "--custom"}) || depthClamp || !shaderHints->defines.empty() || shadowSampleCount != 16)
+    if (arguments.read({"-c", "--custom"}) || depthClamp /*|| !shaderHints->defines.empty() || shadowSampleCount != 16*/)
     {
         // customize the phong ShaderSet
         auto phong_vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
