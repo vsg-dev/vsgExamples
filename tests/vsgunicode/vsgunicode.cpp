@@ -26,7 +26,7 @@ bool test(const std::basic_string<C1>& input, const std::basic_string<C2>& expec
     return pass;
 }
 
-int main(int argc, char** argv)
+int main(int, char**)
 {
 #ifdef _WIN32
     // Windows is backwards-compatible with things that predate UTF-8's invention by default
