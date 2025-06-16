@@ -152,21 +152,11 @@ void Turntable::apply(vsg::MoveEvent& moveEvent)
 
     if (moveEvent.handled || !_hasPointerFocus) return;
 
-    vsg::dvec2 new_ndc = ndc(moveEvent);
-    vsg::dvec3 new_ttc = ttc(moveEvent);
-
     if (!_previousPointerEvent) _previousPointerEvent = &moveEvent;
 
+    vsg::dvec2 new_ndc = ndc(moveEvent);
     vsg::dvec2 prev_ndc = ndc(*_previousPointerEvent);
-    vsg::dvec3 prev_ttc = ttc(*_previousPointerEvent);
-
-#if 1
-vsg::dvec2 control_ndc = new_ndc;
-vsg::dvec3 control_ttc = new_ttc;
-#else
-vsg::dvec2 control_ndc = (new_ndc + prev_ndc) * 0.5;
-vsg::dvec3 control_ttc = (new_ttc + prev_ttc) * 0.5;
-#endif
+    vsg::dvec2 control_ndc = new_ndc;
 
     double dt = std::chrono::duration<double, std::chrono::seconds::period>(moveEvent.time - _previousPointerEvent->time).count();
     _previousDelta = dt;
@@ -189,9 +179,9 @@ vsg::dvec3 control_ttc = (new_ttc + prev_ttc) * 0.5;
         double rotationFactor = 1.0;
         if (delta.x != 0.0)
         {
-            // Horizontal rotation around the up axis (Y)
+            // Horizontal rotation around the up axis (Z)
             double rotateAngle = -delta.x * rotationFactor;
-            vsg::dvec3 rotateAxis(0.0, 1.0, 0.0);
+            vsg::dvec3 rotateAxis(0.0, 0.0, 1.0);
             rotate(rotateAngle * scale, rotateAxis);
         }
         
@@ -400,7 +390,7 @@ void Turntable::apply(vsg::FrameEvent& frame)
             vsg::dvec3 delta = horizontalMove + verticalMove;
 
             // Store the original distance for maintaining orbit radius
-            double distanceFromCenter = vsg::length(_lookAt->eye - _lookAt->center);
+            // double distanceFromCenter = vsg::length(_lookAt->eye - _lookAt->center);
 
             // Get the global up vector (assuming Z-up, change if needed)
             vsg::dvec3 globalUp(0.0, 0.0, 1.0);
