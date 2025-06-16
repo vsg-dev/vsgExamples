@@ -25,7 +25,7 @@ SOFTWARE.
 
 #include <vsg/all.h>
 
-#include "Turntable.hpp"
+#include "Turntable.h"
 
 #ifdef vsgXchange_FOUND
 #    include <vsgXchange/all.h>

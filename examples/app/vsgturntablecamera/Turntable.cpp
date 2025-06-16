@@ -23,7 +23,7 @@ SOFTWARE.
  * 
  */
 
-#include "Turntable.hpp"
+#include "Turntable.h"
 
 Turntable::Turntable(vsg::ref_ptr<vsg::Camera> camera) :
     _camera(camera),
