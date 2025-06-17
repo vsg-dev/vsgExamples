@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
+#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST, CUSTOM_HIGHLIGHT)
 
 // define by default for backwards compatibility
 #define VSG_SHADOWS_HARD
@@ -8,6 +8,7 @@
 #define VIEW_DESCRIPTOR_SET 1
 #define MATERIAL_DESCRIPTOR_SET 2
 #define CUSTOM_DESCRIPTOR_SET 0
+#define HIGHLIGHT_DESCRIPTOR_SET 3
 
 const float PI = 3.14159265359;
 const float RECIPROCAL_PI = 0.31830988618;
@@ -71,6 +72,14 @@ layout(set = CUSTOM_DESCRIPTOR_SET, binding = 0) uniform Fog
     float end;
     float exponent;
 } fog;
+
+#ifdef CUSTOM_HIGHLIGHT
+layout(set = HIGHLIGHT_DESCRIPTOR_SET, binding = 0) uniform Highlight
+{
+    vec3 color;
+    bool highlighted;
+} highlight;
+#endif
 
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
@@ -580,6 +589,11 @@ void main()
             }
         }
     }
+
+#ifdef CUSTOM_HIGHLIGHT
+    if (highlight.highlighted)
+        color += highlight.color;
+#endif
 
     outColor = vec4(color, baseColor.a);
 }
