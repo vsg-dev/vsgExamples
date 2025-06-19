@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
     bool reportAverageFrameRate = arguments.read("--fps");
     bool inherit = arguments.read("--inherit");
-    bool layer = arguments.read("--text-layer");
+    bool text_layer = arguments.read("--text-layer");
     bool highlight = arguments.read("--highlight");
     bool first = arguments.read("--first");
     bool last = arguments.read("--last");
@@ -126,7 +126,7 @@ int main(int argc, char** argv)
         }
 
         vsg::ref_ptr<vsg::Node> node;
-        if (node = vsg::read_cast<vsg::Node>(filepath, options))
+        if ((node = vsg::read_cast<vsg::Node>(filepath, options)))
         {
             if (first)
                 group->addChild(node);
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
             filename = filename.substr(filenameStart + 1);
         text->text = vsg::stringValue::create(filename);
         text->setup(0, options);
-        if (layer)
+        if (text_layer)
         {
             auto layer = vsg::Layer::create();
             layer->child = text;
