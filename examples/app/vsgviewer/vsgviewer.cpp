@@ -50,11 +50,13 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        // if we want to redirect std::cout and std::cerr to the vsg::Logger call vsg::Logger::redirect_stdout()
-        if (arguments.read({"--redirect-std", "-r"})) vsg::Logger::instance()->redirect_std();
+        if (arguments.read("--args")) std::cout<<arguments<<std::endl;
 
         auto windowTraits = vsg::WindowTraits::create();
         windowTraits->windowTitle = vsg::make_string(arguments);
+
+        // if we want to redirect std::cout and std::cerr to the vsg::Logger call vsg::Logger::redirect_stdout()
+        if (arguments.read({"--redirect-std", "-r"})) vsg::Logger::instance()->redirect_std();
 
         // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
@@ -391,7 +393,8 @@ int main(int argc, char** argv)
         {
             if (options->sharedObjects)
             {
-                options->sharedObjects->report(std::cout);
+                vsg::LogOutput output;
+                options->sharedObjects->report(output);
             }
         }
 

@@ -212,8 +212,6 @@ int main(int argc, char** argv)
         }
     }
 
-    if (sharedObjects) sharedObjects->report(std::cout);
-
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
