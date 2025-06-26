@@ -252,23 +252,58 @@ int main(int argc, char** argv)
 
         viewer->addWindow(window);
 
-        // compute the bounds of the scene graph to help position camera
-        vsg::ComputeBounds computeBounds;
-        vsg_scene->accept(computeBounds);
-        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-
-        // set up the camera
-        auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-
-        vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
         auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
+
+        vsg::ref_ptr<vsg::LookAt> lookAt;
+        vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
         if (ellipsoidModel)
         {
+            // compute the bounds of the scene graph to help position camera
+            vsg::ComputeBounds computeBounds;
+            vsg_scene->accept(computeBounds);
+
+            double initialRadius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
+            double modelToEarthRatio = (initialRadius / ellipsoidModel->radiusEquator());
+
+            // if the model is small compared to the radius of the earth position camera in local coordinate frame of the model rather than ECEF.
+            if (modelToEarthRatio < 1.0)
+            {
+                vsg::dvec3 lla = ellipsoidModel->convertECEFToLatLongAltitude((computeBounds.bounds.min + computeBounds.bounds.max) * 0.5);
+
+                auto worldToLocal = ellipsoidModel->computeWorldToLocalTransform(lla);
+                auto localToWorld = ellipsoidModel->computeLocalToWorldTransform(lla);
+
+                // recompute the bounds of the model in the local coordinate frame of the model, rather than ECEF
+                // to give a tigher bound around the dataset.
+                computeBounds.matrixStack.clear();
+                computeBounds.matrixStack.push_back(worldToLocal);
+                computeBounds.bounds.reset();
+                vsg_scene->accept(computeBounds);
+
+                auto bounds = computeBounds.bounds;
+                vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+                double radius = vsg::length(bounds.max - bounds.min) * 0.5;
+
+                lookAt = vsg::LookAt::create(localToWorld * (centre + vsg::dvec3(0.0, 0.0, radius)), localToWorld * centre, vsg::dvec3(0.0, 1.0, 0.0) * worldToLocal);
+            }
+            else
+            {
+                lookAt = vsg::LookAt::create(vsg::dvec3(initialRadius * 2.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
+            }
+
             perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
         }
         else
         {
+            // compute the bounds of the scene graph to help position camera
+            vsg::ComputeBounds computeBounds;
+            vsg_scene->accept(computeBounds);
+
+            vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+            double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+
+            // set up the camera
+            lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
             perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.5);
         }
 
