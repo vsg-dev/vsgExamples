@@ -29,7 +29,9 @@ vsg::ref_ptr<vsg::ShaderSet> flat_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
     vsg::info("Local flat_ShaderSet(", options, ")");
 
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+    vertexShader->module->setValue("DebugUtilsName", "VSG built-in standard.vert");
     auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_flat_shaded.frag", options);
+    fragmentShader->module->setValue("DebugUtilsName", "VSG built-in standard_flat_shaded.frag");
 
     if (!vertexShader || !fragmentShader)
     {
@@ -82,6 +84,8 @@ vsg::ref_ptr<vsg::ShaderSet> flat_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
 
 
     shaderSet->customDescriptorSetBindings.push_back(vsg::ViewDependentStateBinding::create(VIEW_DESCRIPTOR_SET));
+
+    shaderSet->setValue("DebugUtilsName", "VSG built-in flat ShaderSet");
 
     return shaderSet;
 }

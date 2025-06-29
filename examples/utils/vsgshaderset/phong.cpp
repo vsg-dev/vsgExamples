@@ -22,7 +22,9 @@ vsg::ref_ptr<vsg::ShaderSet> phong_ShaderSet(vsg::ref_ptr<const vsg::Options> op
     vsg::info("Local phong_ShaderSet(", options, ")");
 
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+    vertexShader->module->setValue("DebugUtilsName", "VSG built-in standard.vert");
     auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_phong.frag", options);
+    fragmentShader->module->setValue("DebugUtilsName", "VSG built-in standard_phong.frag");
 
     if (!vertexShader || !fragmentShader)
     {
@@ -79,6 +81,8 @@ vsg::ref_ptr<vsg::ShaderSet> phong_ShaderSet(vsg::ref_ptr<const vsg::Options> op
     shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_BILLBOARD"}, vsg::BillboardArrayState::create()});
 
     shaderSet->customDescriptorSetBindings.push_back(vsg::ViewDependentStateBinding::create(VIEW_DESCRIPTOR_SET));
+
+    shaderSet->setValue("DebugUtilsName", "VSG built-in Phong ShaderSet");
 
     return shaderSet;
 }

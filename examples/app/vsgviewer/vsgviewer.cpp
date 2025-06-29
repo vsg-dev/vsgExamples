@@ -76,6 +76,7 @@ int main(int argc, char** argv)
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         windowTraits->synchronizationLayer = arguments.read("--sync");
+        windowTraits->debugUtils = arguments.read("--debug-utils");
         bool reportAverageFrameRate = arguments.read("--fps");
         bool reportMemoryStats = arguments.read("--rms");
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;

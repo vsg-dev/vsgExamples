@@ -30,7 +30,9 @@ vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
 
     // load shaders
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.vert", options);
+    vertexShader->module->setValue("DebugUtilsName", "VSG built-in text.vert");
     auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/text.frag", options);
+    fragmentShader->module->setValue("DebugUtilsName", "VSG built-in text.frag");
 
     if (!vertexShader || !fragmentShader)
     {
@@ -82,6 +84,8 @@ vsg::ref_ptr<vsg::ShaderSet> text_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
 
     auto colorBlendState = vsg::ColorBlendState::create(vsg::ColorBlendState::ColorBlendAttachments{colorBlendAttachment});
     shaderSet->defaultGraphicsPipelineStates.push_back(colorBlendState);
+
+    shaderSet->setValue("DebugUtilsName", "VSG built-in text ShaderSet");
 
     return shaderSet;
 }
