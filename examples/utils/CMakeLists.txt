@@ -1,6 +1,7 @@
 add_subdirectory(vsgbuilder)
 add_subdirectory(vsggraphicspipelineconfigurator)
 add_subdirectory(vsgshaderset)
+add_subdirectory(vsgincompatiblepipelinelayouts)
 add_subdirectory(vsgintersection)
 add_subdirectory(vsgstoragebuffer)
 add_subdirectory(vsgcustomshaderset)
