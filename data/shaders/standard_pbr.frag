@@ -277,13 +277,6 @@ vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, float perceptualRou
 
     color *= ao;
 
-#ifdef VSG_EMISSIVE_MAP
-    vec3 emissive = texture(emissiveMap, texCoord0).rgb * pbr.emissiveFactor.rgb;
-#else
-    vec3 emissive = pbr.emissiveFactor.rgb;
-#endif
-    color += emissive;
-
     return color;
 }
 
@@ -544,6 +537,13 @@ void main()
             color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
         }
     }
+
+#ifdef VSG_EMISSIVE_MAP
+    vec3 emissive = texture(emissiveMap, texCoord0).rgb * pbr.emissiveFactor.rgb;
+#else
+    vec3 emissive = pbr.emissiveFactor.rgb;
+#endif
+    color += emissive;
 
     outColor = vec4(color, baseColor.a);
 }
