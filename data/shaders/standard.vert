@@ -44,7 +44,7 @@ layout(location = 6) in vec3 vsg_Scale;
 layout(location = 5) in ivec4 vsg_JointIndices;
 layout(location = 6) in vec4 vsg_JointWeights;
 
-layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) buffer JointMatrices
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) readonly buffer JointMatrices
 {
 	mat4 matrices[];
 } joint;
