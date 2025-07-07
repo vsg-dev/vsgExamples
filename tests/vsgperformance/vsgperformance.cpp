@@ -76,7 +76,7 @@ int main(int argc, char** argv)
         windowTraits->debugLayer = arguments.read({"--debug", "-d"});
         windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
         windowTraits->synchronizationLayer = arguments.read("--sync");
-        bool reportAverageFrameRate = arguments.read("--fps");
+        bool reportAverageFrameRate = true;
         bool reportMemoryStats = arguments.read("--rms");
         if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
         if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
@@ -97,6 +97,8 @@ int main(int argc, char** argv)
             windowTraits->decoration = false;
             reportAverageFrameRate = true;
         }
+
+        uint64_t initialFrameCycleCount = arguments.value(10, "--ifcc");
 
         bool multiThreading = arguments.read("--mt");
         if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
@@ -402,26 +404,51 @@ int main(int argc, char** argv)
             }
         }
 
-        viewer->start_point() = vsg::clock::now();
 
-        // rendering main loop
-        while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
+        if (initialFrameCycleCount > 0)
         {
-            // pass any events into EventHandlers assigned to the Viewer
-            viewer->handleEvents();
-
-            viewer->update();
-
-            viewer->recordAndSubmit();
-
-            viewer->present();
+            while ((initialFrameCycleCount-- > 0) &&  viewer->advanceToNextFrame())
+            {
+                viewer->getFrameStamp()->simulationTime = 0.0;
+                viewer->handleEvents();
+                viewer->update();
+                viewer->recordAndSubmit();
+                viewer->present();
+            }
         }
 
-        if (reportAverageFrameRate)
+        if (viewer->active())
         {
-            auto fs = viewer->getFrameStamp();
-            double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
-            std::cout << "Average frame rate = " << fps << " fps" << std::endl;
+            // reset to start timing.
+            viewer->getFrameStamp()->frameCount = 0;
+            auto start_point = viewer->start_point() = vsg::clock::now();
+
+            uint64_t frameCount = 0;
+
+            // rendering main loop
+            while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
+            {
+                if (frameCount==0) start_point = viewer->getFrameStamp()->time;
+
+                viewer->handleEvents();
+                viewer->update();
+                viewer->recordAndSubmit();
+                viewer->present();
+
+                ++frameCount;
+            }
+
+            if (reportAverageFrameRate)
+            {
+                auto fs = viewer->getFrameStamp();
+                double fps = static_cast<double>(frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(fs->time - start_point).count();
+                std::cout << "Num of frames = "<<fs->frameCount<<", average frame rate = " << fps << " fps" << std::endl;
+                std::cout << "frameCount = "<<frameCount<<std::endl;
+            }
+        }
+        else
+        {
+            std::cout<<"Insufficient runtime, no frame stats collected."<<std::endl;
         }
 
         if (reportMemoryStats)
