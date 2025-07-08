@@ -192,6 +192,10 @@ int main(int argc, char** argv)
         // should animations be automatically played
         auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
 
+
+        bool gen_path = arguments.read("--gen-path");
+
+
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         if (argc <= 1)
@@ -254,14 +258,18 @@ int main(int argc, char** argv)
 
         viewer->addWindow(window);
 
-        auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
+
+        // get the extents of the scene, and use localToWorld transform if the scene contains an region of a ECEF database.
+        vsg::dmat4 localToWorld, worldToLocal;
+        vsg::ComputeBounds computeBounds;
 
         vsg::ref_ptr<vsg::LookAt> lookAt;
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+
+        auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
         if (ellipsoidModel)
         {
             // compute the bounds of the scene graph to help position camera
-            vsg::ComputeBounds computeBounds;
             vsg_scene->accept(computeBounds);
 
             double initialRadius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
@@ -272,8 +280,8 @@ int main(int argc, char** argv)
             {
                 vsg::dvec3 lla = ellipsoidModel->convertECEFToLatLongAltitude((computeBounds.bounds.min + computeBounds.bounds.max) * 0.5);
 
-                auto worldToLocal = ellipsoidModel->computeWorldToLocalTransform(lla);
-                auto localToWorld = ellipsoidModel->computeLocalToWorldTransform(lla);
+                worldToLocal = ellipsoidModel->computeWorldToLocalTransform(lla);
+                localToWorld = ellipsoidModel->computeLocalToWorldTransform(lla);
 
                 // recompute the bounds of the model in the local coordinate frame of the model, rather than ECEF
                 // to give a tigher bound around the dataset.
@@ -298,7 +306,6 @@ int main(int argc, char** argv)
         else
         {
             // compute the bounds of the scene graph to help position camera
-            vsg::ComputeBounds computeBounds;
             vsg_scene->accept(computeBounds);
 
             vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
@@ -311,10 +318,69 @@ int main(int argc, char** argv)
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
+        vsg::ref_ptr<vsg::Animation> pathAnimation;
+        if (gen_path)
+        {
+            pathAnimation = vsg::Animation::create();
+
+            auto cameraSampler = vsg::CameraSampler::create();
+            pathAnimation->samplers.push_back(cameraSampler);
+
+            cameraSampler->object = camera;
+            auto& keyframes = cameraSampler->keyframes = vsg::CameraKeyframes::create();
+
+            vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+            double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+
+            centre = localToWorld * centre;
+            vsg::dvec3 up = vsg::dvec3(0.0, 0.0, 1.0) * worldToLocal;
+            vsg::dquat forward( vsg::dquat(-vsg::PI*0.5, vsg::dvec3(1.0, 0.0, 0.0)) *  vsg::dquat(vsg::PI, vsg::dvec3(0.0, 1.0, 0.0)));
+
+            size_t numPoints = 256;
+
+            double time = 0.0;
+            double angle = 0.0;
+            double angleDelta = 2.0*vsg::PI / static_cast<double>(numPoints-1);
+            double timeDelta = 10.0 / static_cast<double>(numPoints-1);
+
+            for(size_t i=0; i<numPoints; ++i)
+            {
+                angle += angleDelta;
+                time += timeDelta;
+
+                vsg::dquat delta(angle, up);
+#if 1
+                vsg::dquat rotation(forward * delta);
+#else
+                vsg::dquat rotation(delta * forward);
+#endif
+                vsg::dvec3 position(delta * vsg::dvec3(0.0, radius, 0.0) + centre);
+
+                keyframes->add(time, position, rotation);
+            }
+
+            vsg::write(pathAnimation, "gen_path.vsgt", options);
+
+        }
+
         // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-        auto cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
+        vsg::ref_ptr<vsg::CameraAnimationHandler> cameraAnimation;
+
+        if (pathFilename)
+        {
+            cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
+        }
+        else if (pathAnimation)
+        {
+            cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathAnimation, "saved_animation.path", options);
+        }
+        else
+        {
+            cameraAnimation = vsg::CameraAnimationHandler::create(camera, "saved_animation.path", options);
+        }
+
         viewer->addEventHandler(cameraAnimation);
         if (autoPlay && cameraAnimation->animation)
         {
