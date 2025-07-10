@@ -43,7 +43,63 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     pbr->defaultShaderHints = shaderHints;
 }
 
-vsg::ref_ptr<vsg::Animation> createOrbitCameraPath(vsg::ref_ptr<vsg::Camera> camera, const vsg::dbox& bounds, const vsg::dmat4& localToWorld)
+
+class CameraPathBuilder : public vsg::Inherit<vsg::Object, CameraPathBuilder>
+{
+public:
+
+    CameraPathBuilder();
+
+    vsg::ref_ptr<vsg::Camera> camera;
+    vsg::dbox bounds;
+    vsg::dmat4 localToWorld;
+    size_t numPoints = 256; // animation resolution
+    double duration = 10.0; // seconds
+
+    virtual void read(vsg::CommandLine& arguments);
+
+    // build CameraSampler animation
+    virtual vsg::ref_ptr<vsg::Animation> build() { return {}; }
+
+};
+
+CameraPathBuilder::CameraPathBuilder()
+{
+}
+
+void CameraPathBuilder::read(vsg::CommandLine& arguments)
+{
+    arguments.read("--numPoints", numPoints);
+    arguments.read("--duration", duration);
+}
+
+class OrbitPath : public vsg::Inherit<CameraPathBuilder, OrbitPath>
+{
+public:
+
+    OrbitPath();
+
+    double pitch = 10.0; // degrees
+    double distanceRatio = 1.0; // non dimensional
+
+    void read(vsg::CommandLine& arguments) override;
+
+    vsg::ref_ptr<vsg::Animation> build() override;
+};
+
+OrbitPath::OrbitPath()
+{
+}
+
+void OrbitPath::read(vsg::CommandLine& arguments)
+{
+    CameraPathBuilder::read(arguments);
+
+    arguments.read("--pitch", pitch);
+    arguments.read("--distanceRatio", distanceRatio);
+}
+
+vsg::ref_ptr<vsg::Animation> OrbitPath::build()
 {
     auto pathAnimation = vsg::Animation::create();
 
@@ -59,17 +115,17 @@ vsg::ref_ptr<vsg::Animation> createOrbitCameraPath(vsg::ref_ptr<vsg::Camera> cam
     vsg::dvec3 up = localToWorld[2].xyz;
     vsg::dvec3 axis(0.0, 0.0, 1.0);
 
-    size_t numPoints = 256;
+    vsg::dquat tilt(-vsg::radians(pitch), vsg::dvec3(1.0, 0.0, 0.0));
 
     double time = 0.0;
     double angle = 0.0;
     double angleDelta = 2.0*vsg::PI / static_cast<double>(numPoints-1);
-    double timeDelta = 10.0 / static_cast<double>(numPoints-1);
+    double timeDelta = duration / static_cast<double>(numPoints-1);
 
     for(size_t i=0; i<numPoints; ++i)
     {
-        vsg::dquat delta(angle, axis);
-        vsg::dvec3 eye = center + delta * vsg::dvec3(0.0, -radius, 0.0);
+        vsg::dquat delta = tilt * vsg::dquat(angle, axis);
+        vsg::dvec3 eye = center + delta * vsg::dvec3(0.0, -radius * distanceRatio, 0.0);
 
         auto matrix = vsg::lookAt(localToWorld * eye, localToWorld * center, up);
 
@@ -167,6 +223,15 @@ int main(int argc, char** argv)
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        vsg::ref_ptr<CameraPathBuilder> cameraPathBuilder;
+        if (arguments.read("--orbit-path"))
+        {
+            cameraPathBuilder = OrbitPath::create();
+        }
+
+        if (cameraPathBuilder) cameraPathBuilder->read(arguments);
+
+
         bool depthClamp = arguments.read({"--dc", "--depthClamp"});
         if (depthClamp)
         {
@@ -234,8 +299,6 @@ int main(int argc, char** argv)
 
         // should animations be automatically played
         auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
-
-        bool oribitPath = arguments.read("--orbit-path");
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -363,7 +426,12 @@ int main(int argc, char** argv)
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
         vsg::ref_ptr<vsg::Animation> pathAnimation;
-        if (oribitPath) pathAnimation = createOrbitCameraPath(camera, computeBounds.bounds, localToWorld);
+        if (cameraPathBuilder)
+        {
+            cameraPathBuilder->bounds = computeBounds.bounds;
+            cameraPathBuilder->localToWorld = localToWorld;
+            pathAnimation = cameraPathBuilder->build();
+        }
 
         // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
