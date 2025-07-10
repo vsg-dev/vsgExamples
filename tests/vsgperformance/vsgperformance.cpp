@@ -43,6 +43,49 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     pbr->defaultShaderHints = shaderHints;
 }
 
+vsg::ref_ptr<vsg::Animation> createOrbitCameraPath(vsg::ref_ptr<vsg::Camera> camera, const vsg::dbox& bounds, const vsg::dmat4& localToWorld)
+{
+    auto pathAnimation = vsg::Animation::create();
+
+    auto cameraSampler = vsg::CameraSampler::create();
+    pathAnimation->samplers.push_back(cameraSampler);
+
+    cameraSampler->object = camera;
+    auto& keyframes = cameraSampler->keyframes = vsg::CameraKeyframes::create();
+
+    vsg::dvec3 center = ((bounds.min + bounds.max) * 0.5);
+    double radius = vsg::length(bounds.max - bounds.min) * 0.6;
+
+    vsg::dvec3 up = localToWorld[2].xyz;
+    vsg::dvec3 axis(0.0, 0.0, 1.0);
+
+    size_t numPoints = 256;
+
+    double time = 0.0;
+    double angle = 0.0;
+    double angleDelta = 2.0*vsg::PI / static_cast<double>(numPoints-1);
+    double timeDelta = 10.0 / static_cast<double>(numPoints-1);
+
+    for(size_t i=0; i<numPoints; ++i)
+    {
+        vsg::dquat delta(angle, axis);
+        vsg::dvec3 eye = center + delta * vsg::dvec3(0.0, -radius, 0.0);
+
+        auto matrix = vsg::lookAt(localToWorld * eye, localToWorld * center, up);
+
+        vsg::dvec3 position, scale;
+        vsg::dquat rotation;
+        vsg::decompose(vsg::inverse(matrix), position, rotation, scale);
+
+        keyframes->add(time, position, rotation);
+
+        angle += angleDelta;
+        time += timeDelta;
+    }
+
+    return pathAnimation;
+}
+
 int main(int argc, char** argv)
 {
     try
@@ -192,9 +235,7 @@ int main(int argc, char** argv)
         // should animations be automatically played
         auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
 
-
-        bool gen_path = arguments.read("--gen-path");
-
+        bool oribitPath = arguments.read("--orbit-path");
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -260,7 +301,7 @@ int main(int argc, char** argv)
 
 
         // get the extents of the scene, and use localToWorld transform if the scene contains an region of a ECEF database.
-        vsg::dmat4 localToWorld, worldToLocal;
+        vsg::dmat4 localToWorld;
         vsg::ComputeBounds computeBounds;
 
         vsg::ref_ptr<vsg::LookAt> lookAt;
@@ -280,88 +321,49 @@ int main(int argc, char** argv)
             {
                 vsg::dvec3 lla = ellipsoidModel->convertECEFToLatLongAltitude((computeBounds.bounds.min + computeBounds.bounds.max) * 0.5);
 
-                worldToLocal = ellipsoidModel->computeWorldToLocalTransform(lla);
                 localToWorld = ellipsoidModel->computeLocalToWorldTransform(lla);
+                auto worldToLocal= ellipsoidModel->computeWorldToLocalTransform(lla);
 
                 // recompute the bounds of the model in the local coordinate frame of the model, rather than ECEF
                 // to give a tigher bound around the dataset.
                 computeBounds.matrixStack.clear();
                 computeBounds.matrixStack.push_back(worldToLocal);
                 computeBounds.bounds.reset();
+                computeBounds.useNodeBounds = false;
                 vsg_scene->accept(computeBounds);
 
                 auto bounds = computeBounds.bounds;
-                vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+                vsg::dvec3 center = (bounds.min + bounds.max) * 0.5;
                 double radius = vsg::length(bounds.max - bounds.min) * 0.5;
 
-                lookAt = vsg::LookAt::create(localToWorld * (centre + vsg::dvec3(0.0, 0.0, radius)), localToWorld * centre, vsg::dvec3(0.0, 1.0, 0.0) * worldToLocal);
+                lookAt = vsg::LookAt::create(localToWorld * (center + vsg::dvec3(0.0, 0.0, radius)), localToWorld * center, vsg::dvec3(0.0, 1.0, 0.0) * worldToLocal);
+                perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.5);
+
             }
             else
             {
                 lookAt = vsg::LookAt::create(vsg::dvec3(initialRadius * 2.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
+                perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
             }
 
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
         }
         else
         {
             // compute the bounds of the scene graph to help position camera
             vsg_scene->accept(computeBounds);
 
-            vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+            vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
             double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
 
             // set up the camera
-            lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+            lookAt = vsg::LookAt::create(center + vsg::dvec3(0.0, -radius * 3.5, 0.0), center, vsg::dvec3(0.0, 0.0, 1.0));
             perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.5);
         }
 
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
         vsg::ref_ptr<vsg::Animation> pathAnimation;
-        if (gen_path)
-        {
-            pathAnimation = vsg::Animation::create();
-
-            auto cameraSampler = vsg::CameraSampler::create();
-            pathAnimation->samplers.push_back(cameraSampler);
-
-            cameraSampler->object = camera;
-            auto& keyframes = cameraSampler->keyframes = vsg::CameraKeyframes::create();
-
-            vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-            double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-
-            centre = localToWorld * centre;
-            vsg::dvec3 up = vsg::dvec3(0.0, 0.0, 1.0) * worldToLocal;
-            vsg::dquat forward( vsg::dquat(-vsg::PI*0.5, vsg::dvec3(1.0, 0.0, 0.0)) *  vsg::dquat(vsg::PI, vsg::dvec3(0.0, 1.0, 0.0)));
-
-            size_t numPoints = 256;
-
-            double time = 0.0;
-            double angle = 0.0;
-            double angleDelta = 2.0*vsg::PI / static_cast<double>(numPoints-1);
-            double timeDelta = 10.0 / static_cast<double>(numPoints-1);
-
-            for(size_t i=0; i<numPoints; ++i)
-            {
-                angle += angleDelta;
-                time += timeDelta;
-
-                vsg::dquat delta(angle, up);
-#if 1
-                vsg::dquat rotation(forward * delta);
-#else
-                vsg::dquat rotation(delta * forward);
-#endif
-                vsg::dvec3 position(delta * vsg::dvec3(0.0, radius, 0.0) + centre);
-
-                keyframes->add(time, position, rotation);
-            }
-
-            vsg::write(pathAnimation, "gen_path.vsgt", options);
-
-        }
+        if (oribitPath) pathAnimation = createOrbitCameraPath(camera, computeBounds.bounds, localToWorld);
 
         // add close handler to respond to the close window button and pressing escape
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
@@ -374,11 +376,11 @@ int main(int argc, char** argv)
         }
         else if (pathAnimation)
         {
-            cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathAnimation, "saved_animation.path", options);
+            cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathAnimation, "saved_animation.vsgt", options);
         }
         else
         {
-            cameraAnimation = vsg::CameraAnimationHandler::create(camera, "saved_animation.path", options);
+            cameraAnimation = vsg::CameraAnimationHandler::create(camera, "saved_animation.vsgt", options);
         }
 
         viewer->addEventHandler(cameraAnimation);
@@ -473,6 +475,7 @@ int main(int argc, char** argv)
 
         if (initialFrameCycleCount > 0)
         {
+            // run an initial set of frames to get past the intiial frame time variability so we get stable frame rate stats
             while ((initialFrameCycleCount-- > 0) &&  viewer->advanceToNextFrame())
             {
                 viewer->getFrameStamp()->simulationTime = 0.0;
@@ -487,6 +490,7 @@ int main(int argc, char** argv)
         {
             // reset to start timing.
             viewer->getFrameStamp()->frameCount = 0;
+            viewer->getFrameStamp()->simulationTime = 0.0;
             auto start_point = viewer->start_point() = vsg::clock::now();
 
             uint64_t frameCount = 0;
