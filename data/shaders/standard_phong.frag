@@ -1,9 +1,19 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
+#pragma import_defines (VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
 
 // define by default for backwards compatibility
 #define VSG_SHADOWS_HARD
+
+#if defined(VSG_TEXTURECOORD_3)
+    #define VSG_TEXCOORD_COUNT 4
+#elif defined(VSG_TEXTURECOORD_2)
+    #define VSG_TEXCOORD_COUNT 3
+#elif defined(VSG_TEXTURECOORD_1)
+    #define VSG_TEXCOORD_COUNT 2
+#else
+    #define VSG_TEXCOORD_COUNT 1
+#endif
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
@@ -55,7 +65,7 @@ layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
 layout(location = 2) in vec4 vertexColor;
 #ifndef VSG_POINT_SPRITE
-layout(location = 3) in vec2 texCoord0;
+layout(location = 3) in vec2 texCoord[VSG_TEXCOORD_COUNT];
 #endif
 layout(location = 5) in vec3 viewDir;
 
@@ -71,14 +81,14 @@ vec3 getNormal()
     vec3 result;
 #ifdef VSG_NORMAL_MAP
     // Perturb normal, see http://www.thetenthplanet.de/archives/1180
-    vec3 tangentNormal = texture(normalMap, texCoord0).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(normalMap, texCoord[0]).xyz * 2.0 - 1.0;
 
     //tangentNormal *= vec3(2,2,1);
 
     vec3 q1 = dFdx(eyePos);
     vec3 q2 = dFdy(eyePos);
-    vec2 st1 = dFdx(texCoord0);
-    vec2 st2 = dFdy(texCoord0);
+    vec2 st1 = dFdx(texCoord[0]);
+    vec2 st2 = dFdy(texCoord[0]);
 
     vec3 N = normalize(normalDir);
     vec3 T = normalize(q1 * st2.t - q2 * st1.t);
@@ -122,21 +132,21 @@ void main()
     float brightnessCutoff = 0.001;
 
 #ifdef VSG_POINT_SPRITE
-    vec2 texCoord0 = gl_PointCoord.xy;
+    vec2 texCoord[0] = gl_PointCoord.xy;
 #endif
 
     vec4 diffuseColor = vertexColor * material.diffuseColor;
 #ifdef VSG_DIFFUSE_MAP
     #ifdef VSG_GREYSCALE_DIFFUSE_MAP
-        float v = texture(diffuseMap, texCoord0.st).s;
+        float v = texture(diffuseMap, texCoord[0].st).s;
         diffuseColor *= vec4(v, v, v, 1.0);
     #else
-        diffuseColor *= texture(diffuseMap, texCoord0.st);
+        diffuseColor *= texture(diffuseMap, texCoord[0].st);
     #endif
 #endif
 
 #ifdef VSG_DETAIL_MAP
-    vec4 detailColor = texture(detailMap, texCoord0.st);
+    vec4 detailColor = texture(detailMap, texCoord[0].st);
     diffuseColor.rgb = mix(diffuseColor.rgb, detailColor.rgb, detailColor.a);
 #endif
 
@@ -151,15 +161,15 @@ void main()
 #endif
 
 #ifdef VSG_EMISSIVE_MAP
-    emissiveColor *= texture(emissiveMap, texCoord0.st);
+    emissiveColor *= texture(emissiveMap, texCoord[0].st);
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
-    ambientOcclusion *= texture(aoMap, texCoord0.st).r;
+    ambientOcclusion *= texture(aoMap, texCoord[0].st).r;
 #endif
 
 #ifdef VSG_SPECULAR_MAP
-    specularColor *= texture(specularMap, texCoord0.st);
+    specularColor *= texture(specularMap, texCoord[0].st);
 #endif
 
     vec3 nd = getNormal();
@@ -191,8 +201,8 @@ void main()
     {
         vec3 q1 = dFdx(eyePos);
         vec3 q2 = dFdy(eyePos);
-        vec2 st1 = dFdx(texCoord0);
-        vec2 st2 = dFdy(texCoord0);
+        vec2 st1 = dFdx(texCoord[0]);
+        vec2 st2 = dFdy(texCoord[0]);
 
         vec3 N = normalize(normalDir);
         vec3 T = normalize(q1 * st2.t - q2 * st1.t);
@@ -273,8 +283,8 @@ void main()
     {
         vec3 q1 = dFdx(eyePos);
         vec3 q2 = dFdy(eyePos);
-        vec2 st1 = dFdx(texCoord0);
-        vec2 st2 = dFdy(texCoord0);
+        vec2 st1 = dFdx(texCoord[0]);
+        vec2 st2 = dFdy(texCoord[0]);
 
         vec3 N = normalize(normalDir);
         vec3 T = normalize(q1 * st2.t - q2 * st1.t);
