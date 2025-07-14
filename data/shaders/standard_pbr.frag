@@ -1,12 +1,22 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
+#pragma import_defines (VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, , VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSG_SHADOWS_PCSS, VSG_SHADOWS_SOFT, VSG_SHADOWS_HARD, SHADOWMAP_DEBUG, VSG_ALPHA_TEST)
 
 // define by default for backwards compatibility
 #define VSG_SHADOWS_HARD
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
+
+#if defined(VSG_TEXTURECOORD_3)
+    #define VSG_TEXCOORD_COUNT 4
+#elif defined(VSG_TEXTURECOORD_2)
+    #define VSG_TEXCOORD_COUNT 3
+#elif defined(VSG_TEXTURECOORD_1)
+    #define VSG_TEXCOORD_COUNT 2
+#else
+    #define VSG_TEXCOORD_COUNT 1
+#endif
 
 const float PI = 3.14159265359;
 const float RECIPROCAL_PI = 0.31830988618;
@@ -42,7 +52,7 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMap
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 6) uniform sampler2D mrMap;
 #endif
 
-layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform PbrData
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform PbrMaterial
 {
     vec4 baseColorFactor;
     vec4 emissiveFactor;
@@ -53,6 +63,18 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform PbrData
     float alphaMask;
     float alphaMaskCutoff;
 } pbr;
+
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) uniform TexCoordIndices
+{
+    // indices into texCoord[] array for each texture type
+    int diffuseMap;
+    int detailMap;
+    int normalMap;
+    int aoMap;
+    int emissiveMap;
+    int specularMap;
+    int mrMap;
+} texCoordIndices;
 
 // ViewDependentState
 layout(constant_id = 3) const int lightDataSize = 256;
@@ -65,9 +87,9 @@ layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
 layout(location = 2) in vec4 vertexColor;
 #ifndef VSG_POINT_SPRITE
-layout(location = 3) in vec2 texCoord0;
+layout(location = 3) in vec2 texCoord[VSG_TEXCOORD_COUNT];
 #endif
-layout(location = 5) in vec3 viewDir;
+layout(location = 6) in vec3 viewDir;
 
 layout(location = 0) out vec4 outColor;
 
@@ -112,14 +134,14 @@ vec3 getNormal()
     vec3 result;
 #ifdef VSG_NORMAL_MAP
     // Perturb normal, see http://www.thetenthplanet.de/archives/1180
-    vec3 tangentNormal = texture(normalMap, texCoord0).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(normalMap, texCoord[texCoordIndices.normalMap]).xyz * 2.0 - 1.0;
 
     //tangentNormal *= vec3(2,2,1);
 
     vec3 q1 = dFdx(eyePos);
     vec3 q2 = dFdy(eyePos);
-    vec2 st1 = dFdx(texCoord0);
-    vec2 st2 = dFdy(texCoord0);
+    vec2 st1 = dFdx(texCoord[texCoordIndices.normalMap]);
+    vec2 st2 = dFdy(texCoord[texCoordIndices.normalMap]);
 
     vec3 N = normalize(normalDir);
     vec3 T = normalize(q1 * st2.t - q2 * st1.t);
@@ -302,7 +324,7 @@ void main()
     float brightnessCutoff = 0.001;
 
 #ifdef VSG_POINT_SPRITE
-    vec2 texCoord0 = gl_PointCoord.xy;
+    vec2 texCoord[0] = gl_PointCoord.xy;
 #endif
 
     float perceptualRoughness = 0.0;
@@ -316,10 +338,10 @@ void main()
 
 #ifdef VSG_DIFFUSE_MAP
     #ifdef VSG_GREYSCALE_DIFFUSE_MAP
-        float v = texture(diffuseMap, texCoord0.st).s * pbr.baseColorFactor;
+        float v = texture(diffuseMap, texCoord[texCoordIndices.diffuseMap].st).s * pbr.baseColorFactor;
         baseColor = vertexColor * vec4(v, v, v, 1.0);
     #else
-        baseColor = vertexColor * texture(diffuseMap, texCoord0) * pbr.baseColorFactor;
+        baseColor = vertexColor * texture(diffuseMap, texCoord[texCoordIndices.diffuseMap]) * pbr.baseColorFactor;
     #endif
 #else
     baseColor = vertexColor * pbr.baseColorFactor;
@@ -327,7 +349,7 @@ void main()
 
 
 #ifdef VSG_DETAIL_MAP
-    vec4 detailColor = texture(detailMap, texCoord0.st);
+    vec4 detailColor = texture(detailMap, texCoord[texCoordIndices.detailMap].st);
     baseColor.rgb = mix(baseColor.rgb, detailColor.rgb, detailColor.a);
 #endif
 
@@ -338,13 +360,13 @@ void main()
 
 #ifdef VSG_WORKFLOW_SPECGLOSS
     #ifdef VSG_DIFFUSE_MAP
-        vec4 diffuse = texture(diffuseMap, texCoord0);
+        vec4 diffuse = texture(diffuseMap, texCoord[texCoordIndices.diffuseMap]);
     #else
         vec4 diffuse = vec4(1.0);
     #endif
 
     #ifdef VSG_SPECULAR_MAP
-        vec4 specular_texel = texture(specularMap, texCoord0);
+        vec4 specular_texel = texture(specularMap, texCoord[texCoordIndices.specularMap]);
         vec3 specular = specular_texel.rgb;
         perceptualRoughness = 1.0 - specular_texel.a;
     #else
@@ -366,14 +388,14 @@ void main()
         metallic = pbr.metallicFactor;
 
     #ifdef VSG_METALLROUGHNESS_MAP
-        vec4 mrSample = texture(mrMap, texCoord0);
+        vec4 mrSample = texture(mrMap, texCoord[texCoordIndices.mrMap]);
         perceptualRoughness = mrSample.g * perceptualRoughness;
         metallic = mrSample.b * metallic;
     #endif
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
-    ambientOcclusion = texture(aoMap, texCoord0).r;
+    ambientOcclusion = texture(aoMap, texCoord[texCoordIndices.aoMap]).r;
 #endif
 
     diffuseColor = baseColor.rgb * (vec3(1.0) - f0);
@@ -423,8 +445,8 @@ void main()
     {
         vec3 q1 = dFdx(eyePos);
         vec3 q2 = dFdy(eyePos);
-        vec2 st1 = dFdx(texCoord0);
-        vec2 st2 = dFdy(texCoord0);
+        vec2 st1 = dFdx(texCoord[0]);
+        vec2 st2 = dFdy(texCoord[0]);
 
         vec3 N = normalize(normalDir);
         vec3 T = normalize(q1 * st2.t - q2 * st1.t);
@@ -488,8 +510,8 @@ void main()
     {
         vec3 q1 = dFdx(eyePos);
         vec3 q2 = dFdy(eyePos);
-        vec2 st1 = dFdx(texCoord0);
-        vec2 st2 = dFdy(texCoord0);
+        vec2 st1 = dFdx(texCoord[0]);
+        vec2 st2 = dFdy(texCoord[0]);
 
         vec3 N = normalize(normalDir);
         vec3 T = normalize(q1 * st2.t - q2 * st1.t);
@@ -539,7 +561,7 @@ void main()
     }
 
 #ifdef VSG_EMISSIVE_MAP
-    vec3 emissive = texture(emissiveMap, texCoord0).rgb * pbr.emissiveFactor.rgb;
+    vec3 emissive = texture(emissiveMap, texCoord[texCoordIndices.emissiveMap]).rgb * pbr.emissiveFactor.rgb;
 #else
     vec3 emissive = pbr.emissiveFactor.rgb;
 #endif
