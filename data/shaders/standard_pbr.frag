@@ -561,9 +561,9 @@ void main()
     }
 
 #ifdef VSG_EMISSIVE_MAP
-    vec3 emissive = texture(emissiveMap, texCoord[texCoordIndices.emissiveMap]).rgb * pbr.emissiveFactor.rgb;
+    vec3 emissive = texture(emissiveMap, texCoord[texCoordIndices.emissiveMap]).rgb * pbr.emissiveFactor.rgb * pbr.emissiveFactor.a;
 #else
-    vec3 emissive = pbr.emissiveFactor.rgb;
+    vec3 emissive = pbr.emissiveFactor.rgb * pbr.emissiveFactor.a;
 #endif
     color += emissive;
 
