@@ -34,6 +34,18 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) uniform TexCoordIndices
+{
+    // indices into texCoord[] array for each texture type
+    int diffuseMap;
+    int detailMap;
+    int normalMap;
+    int aoMap;
+    int emissiveMap;
+    int specularMap;
+    int mrMap;
+} texCoordIndices;
+
 layout(location = 2) in vec4 vertexColor;
 #ifndef VSG_POINT_SPRITE
 layout(location = 3) in vec2 texCoord[VSG_TEXCOORD_COUNT];
@@ -51,15 +63,15 @@ void main()
 
 #ifdef VSG_DIFFUSE_MAP
     #ifdef VSG_GREYSCALE_DIFFUSE_MAP
-        float v = texture(diffuseMap, texCoord[0].st).s;
-        diffuseColor *= vec4(v, v, v, 1.0);
+        float v = texture(diffuseMap, texCoord[texCoordIndices.diffuseMap].st).s;
+        diffuseColor *= vec4(v, v, v, 1.texCoordIndices.diffuseMap);
     #else
-        diffuseColor *= texture(diffuseMap, texCoord[0].st);
+        diffuseColor *= texture(diffuseMap, texCoord[texCoordIndices.diffuseMap].st);
     #endif
 #endif
 
 #ifdef VSG_DETAIL_MAP
-    vec4 detailColor = texture(detailMap, texCoord[0].st);
+    vec4 detailColor = texture(detailMap, texCoord[texCoordIndices.detailMap].st);
     diffuseColor.rgb = mix(diffuseColor.rgb, detailColor.rgb, detailColor.a);
 #endif
 

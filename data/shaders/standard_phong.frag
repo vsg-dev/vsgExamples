@@ -55,6 +55,18 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform MaterialData
     float alphaMaskCutoff;
 } material;
 
+layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) uniform TexCoordIndices
+{
+    // indices into texCoord[] array for each texture type
+    int diffuseMap;
+    int detailMap;
+    int normalMap;
+    int aoMap;
+    int emissiveMap;
+    int specularMap;
+    int mrMap;
+} texCoordIndices;
+
 layout(constant_id = 3) const int lightDataSize = 256;
 layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 {
@@ -81,14 +93,14 @@ vec3 getNormal()
     vec3 result;
 #ifdef VSG_NORMAL_MAP
     // Perturb normal, see http://www.thetenthplanet.de/archives/1180
-    vec3 tangentNormal = texture(normalMap, texCoord[0]).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(normalMap, texCoord[texCoordIndices.normalMap]).xyz * 2.0 - 1.0;
 
     //tangentNormal *= vec3(2,2,1);
 
     vec3 q1 = dFdx(eyePos);
     vec3 q2 = dFdy(eyePos);
-    vec2 st1 = dFdx(texCoord[0]);
-    vec2 st2 = dFdy(texCoord[0]);
+    vec2 st1 = dFdx(texCoord[texCoordIndices.normalMap]);
+    vec2 st2 = dFdy(texCoord[texCoordIndices.normalMap]);
 
     vec3 N = normalize(normalDir);
     vec3 T = normalize(q1 * st2.t - q2 * st1.t);
@@ -138,15 +150,15 @@ void main()
     vec4 diffuseColor = vertexColor * material.diffuseColor;
 #ifdef VSG_DIFFUSE_MAP
     #ifdef VSG_GREYSCALE_DIFFUSE_MAP
-        float v = texture(diffuseMap, texCoord[0].st).s;
+        float v = texture(diffuseMap, texCoord[texCoordIndices.diffuseMap].st).s;
         diffuseColor *= vec4(v, v, v, 1.0);
     #else
-        diffuseColor *= texture(diffuseMap, texCoord[0].st);
+        diffuseColor *= texture(diffuseMap, texCoord[texCoordIndices.diffuseMap].st);
     #endif
 #endif
 
 #ifdef VSG_DETAIL_MAP
-    vec4 detailColor = texture(detailMap, texCoord[0].st);
+    vec4 detailColor = texture(detailMap, texCoord[texCoordIndices.detailMap].st);
     diffuseColor.rgb = mix(diffuseColor.rgb, detailColor.rgb, detailColor.a);
 #endif
 
@@ -161,15 +173,15 @@ void main()
 #endif
 
 #ifdef VSG_EMISSIVE_MAP
-    emissiveColor *= texture(emissiveMap, texCoord[0].st);
+    emissiveColor *= texture(emissiveMap, texCoord[texCoordIndices.emissiveMap].st);
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
-    ambientOcclusion *= texture(aoMap, texCoord[0].st).r;
+    ambientOcclusion *= texture(aoMap, texCoord[texCoordIndices.aoMap].st).r;
 #endif
 
 #ifdef VSG_SPECULAR_MAP
-    specularColor *= texture(specularMap, texCoord[0].st);
+    specularColor *= texture(specularMap, texCoord[texCoordIndices.specularMap].st);
 #endif
 
     vec3 nd = getNormal();

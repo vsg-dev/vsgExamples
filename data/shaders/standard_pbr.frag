@@ -64,7 +64,6 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 10) uniform PbrMaterial
     float alphaMaskCutoff;
 } pbr;
 
-
 layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) uniform TexCoordIndices
 {
     // indices into texCoord[] array for each texture type
