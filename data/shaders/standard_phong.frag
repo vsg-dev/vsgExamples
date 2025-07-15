@@ -79,7 +79,7 @@ layout(location = 2) in vec4 vertexColor;
 #ifndef VSG_POINT_SPRITE
 layout(location = 3) in vec2 texCoord[VSG_TEXCOORD_COUNT];
 #endif
-layout(location = 5) in vec3 viewDir;
+layout(location = 6) in vec3 viewDir;
 
 layout(location = 0) out vec4 outColor;
 
