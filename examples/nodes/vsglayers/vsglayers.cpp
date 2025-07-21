@@ -20,7 +20,7 @@ int main(int argc, char** argv)
 #endif
 
     auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgtransform";
+    windowTraits->windowTitle = "vsglayers";
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
