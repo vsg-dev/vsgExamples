@@ -212,32 +212,9 @@ vsg::ref_ptr<vsg::Animation> createAnimationPath(vsg::ref_ptr<vsg::MatrixTransfo
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
-    auto options = vsg::Options::create();
-    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-    options->sharedObjects = vsg::SharedObjects::create();
-
-#ifdef vsgXchange_all
-    // add vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::all::create());
-#endif
-
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgtextureprojection";
-
-    // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
-    auto numFrames = arguments.value(-1, "-f");
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
-    arguments.read("--samples", windowTraits->samples);
+    auto windowTraits = vsg::WindowTraits::create(arguments);
     if (arguments.read({"-t", "--test"}))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -250,10 +227,22 @@ int main(int argc, char** argv)
         windowTraits->decoration = false;
     }
 
-    double maxShadowDistance = arguments.value<double>(2000.0, "--sd");
-    double shadowMapBias = arguments.value<double>(0.005, "--sb");
-    double lambda = arguments.value<double>(0.5, "--lambda");
-    double nearFarRatio = arguments.value<double>(0.001, "--nf");
+    // set up defaults and read command line arguments to override them
+    auto options = vsg::Options::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+    options->sharedObjects = vsg::SharedObjects::create();
+
+#ifdef vsgXchange_all
+    // add vsgXchange's support for reading and writing 3rd party file formats
+    options->add(vsgXchange::all::create());
+#endif
+
+    auto numFrames = arguments.value(-1, "-f");
+    auto maxShadowDistance = arguments.value<double>(2000.0, "--sd");
+    auto shadowMapBias = arguments.value<double>(0.005, "--sb");
+    auto lambda = arguments.value<double>(0.5, "--lambda");
+    auto nearFarRatio = arguments.value<double>(0.001, "--nf");
 
     auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
     deviceFeatures->get().samplerAnisotropy = VK_TRUE;
