@@ -8,20 +8,17 @@
 
 int main(int argc, char** argv)
 {
+    // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgbuilder";
-
     auto builder = vsg::Builder::create();
     builder->options = options;
-
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
 
     vsg::GeometryInfo geomInfo;
     geomInfo.dx.set(1.0f, 0.0f, 0.0f);
@@ -31,14 +28,7 @@ int main(int argc, char** argv)
 
     vsg::StateInfo stateInfo;
 
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
     auto numFrames = arguments.value(-1, "-f");
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
-    if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
     if (arguments.read("-t"))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;

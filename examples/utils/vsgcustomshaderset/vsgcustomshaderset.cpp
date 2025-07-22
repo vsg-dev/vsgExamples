@@ -9,6 +9,11 @@
 
 int main(int argc, char** argv)
 {
+    // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     // use the vsg::Options object to pass the ReaderWriter_all to use when reading files.
     auto options = vsg::Options::create();
 #ifdef vsgXchange_FOUND
@@ -17,17 +22,9 @@ int main(int argc, char** argv)
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
 
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-
     // read any command line options that the ReaderWriters support
     options->readOptions(arguments);
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vscustomshaderset";
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    windowTraits->synchronizationLayer = arguments.read("--sync");
 
     auto numFrames = arguments.value(-1, "-f");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
