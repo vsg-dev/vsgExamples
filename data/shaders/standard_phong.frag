@@ -144,7 +144,7 @@ void main()
     float brightnessCutoff = 0.001;
 
 #ifdef VSG_POINT_SPRITE
-    vec2 texCoord[0] = gl_PointCoord.xy;
+    vec2 texCoord[1] = { gl_PointCoord.xy };
 #endif
 
     vec4 diffuseColor = vertexColor * material.diffuseColor;
