@@ -196,15 +196,7 @@ int main(int argc, char** argv)
     double screenDistance = 0.75;
     double screenWidth = 0.55;
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "Anaglyphic Stereo";
-    windowTraits->fullscreen = true;
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
+    auto windowTraits = vsg::WindowTraits::create(arguments);
     auto outputFile = arguments.value<vsg::Path>("", "-o");
 
     bool replacePipelineStates = !arguments.value<bool>(false, "--no-replace");
