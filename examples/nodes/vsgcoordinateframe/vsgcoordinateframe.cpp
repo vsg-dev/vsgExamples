@@ -590,7 +590,7 @@ int main(int argc, char** argv)
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
 
-        arguments.read(options);
+        options->readOptions(arguments);
 
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
         arguments.read("--file-cache", options->fileCache);

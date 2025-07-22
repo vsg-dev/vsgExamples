@@ -217,6 +217,8 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
+    options->readOptions(arguments);
+
     vsg::Mask leftMask = 0x1;
     vsg::Mask rightMask = 0x2;
 

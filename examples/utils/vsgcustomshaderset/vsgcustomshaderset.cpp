@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     // read any command line options that the ReaderWriters support
-    arguments.read(options);
+    options->readOptions(arguments);
 
     auto windowTraits = vsg::WindowTraits::create();
     windowTraits->windowTitle = "vscustomshaderset";

@@ -168,7 +168,7 @@ int main(int argc, char** argv)
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
-    arguments.read(options);
+    options->readOptions(arguments);
 
     auto event_read_filename = arguments.value(std::string(""), "-i");
     auto event_output_filename = arguments.value(std::string(""), "-o");

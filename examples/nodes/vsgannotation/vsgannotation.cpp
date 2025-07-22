@@ -117,7 +117,7 @@ int main(int argc, char** argv)
         options->add(vsgXchange::all::create());
 #endif
 
-        arguments.read(options);
+        options->readOptions(arguments);
 
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");

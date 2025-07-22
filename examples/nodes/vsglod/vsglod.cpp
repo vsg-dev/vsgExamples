@@ -102,6 +102,8 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create(arguments);
 
+    options->readOptions(arguments);
+
     bool reportAverageFrameRate = arguments.read("--fps");
     auto numFrames = arguments.value(-1, "-f");
 

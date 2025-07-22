@@ -42,7 +42,7 @@ int main(int argc, char** argv)
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
 #endif
-        arguments.read(options);
+        options->readOptions(arguments);
 
         auto windowTraits = vsg::WindowTraits::create();
         windowTraits->windowTitle = "vsgdeviceselection";

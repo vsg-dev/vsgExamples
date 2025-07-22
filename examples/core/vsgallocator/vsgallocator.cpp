@@ -91,7 +91,7 @@ int main(int argc, char** argv)
         options->add(vsgXchange::all::create());
 #endif
 
-        arguments.read(options);
+        options->readOptions(arguments);
 
         auto windowTraits = vsg::WindowTraits::create();
         windowTraits->windowTitle = "vsgallocator";

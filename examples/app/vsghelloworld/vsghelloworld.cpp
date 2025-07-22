@@ -12,7 +12,7 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create(vsgXchange::all::create());
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-    arguments.read(options);
+    options->readOptions(arguments);
 
     vsg::Path filename = "models/openstreetmap.vsgt";
     if (argc > 1) filename = arguments[1];

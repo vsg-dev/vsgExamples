@@ -158,7 +158,7 @@ int main(int argc, char** argv)
 
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
-    arguments.read(options);
+    options->readOptions(arguments);
     windowTraits->debugLayer = arguments.read({"--debug", "-d"});
     windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;

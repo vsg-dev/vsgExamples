@@ -67,7 +67,7 @@ int main(int argc, char** argv)
         options->add(vsgXchange::all::create());
 #endif
 
-        arguments.read(options);
+        options->readOptions(arguments);
 
         if (uint32_t numOperationThreads = 0; arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
 
