@@ -33,6 +33,8 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -42,11 +44,6 @@ int main(int argc, char** argv)
 #endif
 
     options->readOptions(arguments);
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "Multiple Windows - first window";
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
     auto windowTraits2 = vsg::WindowTraits::create();
     windowTraits2->windowTitle = "Multiple Windows - second window";

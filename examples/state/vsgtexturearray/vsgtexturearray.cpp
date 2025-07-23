@@ -146,10 +146,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    auto windowTraits = vsg::WindowTraits::create(arguments);
 
     bool update = arguments.read("--update");
     int numRows = arguments.value(4, "--rows");

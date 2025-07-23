@@ -461,12 +461,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "render to texture 2d array";
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    windowTraits->synchronizationLayer = arguments.read("--sync");
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    auto windowTraits = vsg::WindowTraits::create(arguments);
 
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
@@ -493,6 +488,8 @@ int main(int argc, char** argv)
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
+
+    options->readOptions(arguments);
 
     auto vsg_scene = vsg::Group::create();
 

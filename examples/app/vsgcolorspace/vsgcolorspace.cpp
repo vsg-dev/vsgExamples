@@ -72,6 +72,8 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
+        auto windowTraits = vsg::WindowTraits::create(arguments);
+
         // if we want to redirect std::cout and std::cerr to the vsg::Logger call vsg::Logger::redirect_stdout()
         if (arguments.read({"--redirect-std", "-r"})) vsg::Logger::instance()->redirect_std();
 
@@ -88,17 +90,7 @@ int main(int argc, char** argv)
 
         options->readOptions(arguments);
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-        windowTraits->synchronizationLayer = arguments.read("--sync");
         bool reportAverageFrameRate = arguments.read("--fps");
-        if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
-        if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
-        if (arguments.read("--IMMEDIATE")) { windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; }
-        if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-        if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-        if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
         if (arguments.read({"-t", "--test"}))
         {
             windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -113,19 +105,10 @@ int main(int argc, char** argv)
             reportAverageFrameRate = true;
         }
 
-        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-        if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
-        if (arguments.read("--or")) windowTraits->overrideRedirect = true;
         auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
 
-        if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
+        windowTraits->windowTitle += vsg::make_string(": Default swapchain VkSurfaceFormatKHR{ VkFormat format = ", windowTraits->swapchainPreferences.surfaceFormat.format, ", VkColorSpaceKHR colorSpace = ", windowTraits->swapchainPreferences.surfaceFormat.colorSpace,"}");
 
-        windowTraits->windowTitle = vsg::make_string("Default swapchain VkSurfaceFormatKHR{ VkFormat format = ", windowTraits->swapchainPreferences.surfaceFormat.format, ", VkColorSpaceKHR colorSpace = ", windowTraits->swapchainPreferences.surfaceFormat.colorSpace,"}");
-
-        arguments.read("--screen", windowTraits->screenNum);
-        arguments.read("--display", windowTraits->display);
-        arguments.read("--samples", windowTraits->samples);
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");

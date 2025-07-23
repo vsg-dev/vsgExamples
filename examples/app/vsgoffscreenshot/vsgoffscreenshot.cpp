@@ -552,11 +552,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "screenshot2";
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    windowTraits->synchronizationLayer = arguments.read("--sync");
+    auto windowTraits = vsg::WindowTraits::create(arguments);
 
     bool nestedCommandGraph = arguments.read({"-n", "--nested"});
     bool separateCommandGraph = arguments.read("-s");
@@ -588,6 +584,8 @@ int main(int argc, char** argv)
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
+
+    options->readOptions(arguments);
 
     // read any vsg files
     for (int i = 1; i < argc; ++i)

@@ -77,6 +77,8 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -84,12 +86,6 @@ int main(int argc, char** argv)
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
-
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "Multiple Views";
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
 
     // set up instrumentation if required
     bool reportAverageFrameRate = arguments.read("--fps");

@@ -87,9 +87,9 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
-    auto debugLayer = arguments.read({"--debug", "-d"});
-    auto apiDumpLayer = arguments.read({"--api", "-a"});
-    auto [width, height] = arguments.value(std::pair<uint32_t, uint32_t>(800, 600), {"--window", "-w"});
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     // set up search paths to SPIRV shaders and textures
@@ -289,23 +289,15 @@ int main(int argc, char** argv)
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
 
-    auto traits = vsg::WindowTraits::create();
-    traits->windowTitle = "vsgsubpass - RenderPass setup + Subpass handling";
-    traits->width = width;
-    traits->height = height;
-    //traits->shareWindow = shareWindow;
-    traits->debugLayer = debugLayer;
-    traits->apiDumpLayer = apiDumpLayer;
-
-    auto window = vsg::Window::create(traits); // width, height, debugLayer, apiDumpLayer));
+    auto window = vsg::Window::create(windowTraits); // width, height, debugLayer, apiDumpLayer));
     viewer->addWindow(window);
 
     // provide a custom RenderPass
     window->setRenderPass(createRenderPass(window->getOrCreateDevice()));
 
     // camera related details
-    auto viewport = vsg::ViewportState::create(VkExtent2D{width, height});
-    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(width) / static_cast<double>(height), 0.1, 10.0);
+    auto viewport = vsg::ViewportState::create(VkExtent2D{windowTraits->width, windowTraits->height});
+    auto perspective = vsg::Perspective::create(60.0, static_cast<double>(windowTraits->width) / static_cast<double>(windowTraits->height), 0.1, 10.0);
     auto lookAt = vsg::LookAt::create(vsg::dvec3(1.0, 1.0, 1.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
     auto camera = vsg::Camera::create(perspective, lookAt, viewport);
 

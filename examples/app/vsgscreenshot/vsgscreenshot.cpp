@@ -490,6 +490,11 @@ public:
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
+    // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -499,31 +504,16 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgscreenshot";
-
     // enable transfer from the colour and depth buffer images
     windowTraits->swapchainPreferences.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     windowTraits->depthImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
     options->readOptions(arguments);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
-    arguments.read("--samples", windowTraits->samples);
+
     auto colorFilename = arguments.value<vsg::Path>("screenshot.vsgt", {"--color-file", "--cf"});
     auto depthFilename = arguments.value<vsg::Path>("depth.vsgt", {"--depth-file", "--df"});
     auto use_vkEvent = arguments.read("--use-vkEvent");
     if (arguments.read("--msaa")) windowTraits->samples = VK_SAMPLE_COUNT_8_BIT;
-    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-    if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     if (arguments.read("--float")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
     auto numFrames = arguments.value(-1, "-f");
 

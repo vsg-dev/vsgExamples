@@ -95,6 +95,8 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
+        auto windowTraits = vsg::WindowTraits::create(arguments);
+
         // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -105,16 +107,6 @@ int main(int argc, char** argv)
         options->add(vsgXchange::all::create());
 #endif
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgclip";
-        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-        if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
-        if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
-        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-        arguments.read("--screen", windowTraits->screenNum);
         if (arguments.read({"-t", "--test"}))
         {
             windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;

@@ -143,11 +143,10 @@ vsg::ref_ptr<vsg::Node> createScene(const vsg::Path& filename, vsg::ref_ptr<vsg:
 
 int main(int argc, char** argv)
 {
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgmultigpu";
-
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
 
     // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
     auto options = vsg::Options::create();
@@ -161,12 +160,6 @@ int main(int argc, char** argv)
 
     options->readOptions(arguments);
 
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-    if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
     if (arguments.read({"-t", "--test"}))
     {
         windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -178,11 +171,7 @@ int main(int argc, char** argv)
         windowTraits->width = 192, windowTraits->height = 108;
         windowTraits->decoration = false;
     }
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-    if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
-    if (arguments.read("--or")) windowTraits->overrideRedirect = true;
-    arguments.read("--display", windowTraits->display);
+
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value<vsg::Path>("", "-p");
     auto horizonMountainHeight = arguments.value(-1.0, "--hmh");
