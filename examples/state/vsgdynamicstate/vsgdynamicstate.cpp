@@ -33,6 +33,8 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
@@ -47,9 +49,6 @@ int main(int argc, char** argv)
     deviceFeatures->get().fillModeNonSolid = VK_TRUE;
     deviceFeatures->get().wideLines = VK_TRUE;
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
     windowTraits->deviceFeatures = deviceFeatures;
 
     arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);

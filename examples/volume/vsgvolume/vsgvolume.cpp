@@ -195,6 +195,8 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
@@ -202,12 +204,6 @@ int main(int argc, char** argv)
     // add vsgXchange's support for reading and writing 3rd party file formats
     options->add(vsgXchange::all::create());
 #endif
-
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->debugLayer = true;
-    windowTraits->apiDumpLayer = false;
-    windowTraits->width = 1000;
-    windowTraits->height = 1000;
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
