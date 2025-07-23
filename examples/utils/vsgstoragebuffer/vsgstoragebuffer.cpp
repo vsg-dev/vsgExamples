@@ -19,13 +19,10 @@ void main() { color = cellColors[gl_PrimitiveID]; }
 
 int main(int argc, char** argv)
 {
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgstoragebuffer";
-
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
 
     auto vertexShader = vsg::ShaderStage::create(VK_SHADER_STAGE_VERTEX_BIT, "main", VERT);
     auto fragmentShader = vsg::ShaderStage::create(VK_SHADER_STAGE_FRAGMENT_BIT, "main", FRAG);
