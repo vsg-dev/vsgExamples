@@ -576,6 +576,11 @@ int main(int argc, char** argv)
             numerical_test();
             return 0;
         }
+        auto windowTraits = vsg::WindowTraits::create(arguments);
+        windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
+        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+        auto outputFilename = arguments.value<vsg::Path>("", "-o");
+        auto numFrames = arguments.value(-1, "-f");
 
         // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
@@ -585,23 +590,8 @@ int main(int argc, char** argv)
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
 
-        arguments.read(options);
+        options->readOptions(arguments);
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
-        windowTraits->windowTitle = "vsgcoordinateframe";
-        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-        windowTraits->synchronizationLayer = arguments.read("--sync");
-        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-        arguments.read("--screen", windowTraits->screenNum);
-        arguments.read("--display", windowTraits->display);
-        arguments.read("--samples", windowTraits->samples);
-        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
-        auto outputFilename = arguments.value<vsg::Path>("", "-o");
-        auto numFrames = arguments.value(-1, "-f");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
         arguments.read("--file-cache", options->fileCache);
 

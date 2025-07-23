@@ -103,11 +103,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "Multiple Views";
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    auto windowTraits = vsg::WindowTraits::create(arguments);
 
     bool insertStateSwitch = !arguments.read("-n"); // no replacement of GraphicsPipeline, so assume loaded scene graph has required vsg::StateSwitch
     bool separateRenderGraph = arguments.read("-s");

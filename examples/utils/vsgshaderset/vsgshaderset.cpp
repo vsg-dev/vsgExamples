@@ -142,7 +142,7 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
 
     // read any command line options that the ReaderWriters support
-    arguments.read(options);
+    options->readOptions(arguments);
     if (argc <= 1) return 0;
 
     auto inputFilename = arguments.value<vsg::Path>("", "-i");

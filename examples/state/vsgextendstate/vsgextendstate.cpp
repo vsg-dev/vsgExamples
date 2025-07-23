@@ -54,12 +54,10 @@ int main(int argc, char** argv)
 {
     try
     {
-        auto windowTraits = vsg::WindowTraits::create();
         /// set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
-        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-        windowTraits->windowTitle = "vsgextendstate";
+
+        auto windowTraits = vsg::WindowTraits::create(arguments);
 
         auto requestFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
 

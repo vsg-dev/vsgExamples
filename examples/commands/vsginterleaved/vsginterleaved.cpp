@@ -6,10 +6,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height);
+    auto windowTraits = vsg::WindowTraits::create(arguments);
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 

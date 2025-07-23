@@ -12,13 +12,8 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgmeshshader";
-        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-        arguments.read("--screen", windowTraits->screenNum);
+        auto windowTraits = vsg::WindowTraits::create(arguments);
+
         auto type = arguments.value<int>(0, {"--type", "-t"});
         auto outputFilename = arguments.value<vsg::Path>("", "-o");
         bool barycentric = arguments.read({"--barycentric", "--bc"});
@@ -33,6 +28,8 @@ int main(int argc, char** argv)
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
 #endif
+
+        options->readOptions(arguments);
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();

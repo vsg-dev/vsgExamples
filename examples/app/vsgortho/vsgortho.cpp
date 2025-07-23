@@ -12,15 +12,11 @@
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgortho - Orthographic Projection Matrix";
+    vsg::CommandLine arguments(&argc, argv);
 
     // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+    windowTraits->windowTitle = "vsgortho - Orthographic Projection Matrix";
 
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 

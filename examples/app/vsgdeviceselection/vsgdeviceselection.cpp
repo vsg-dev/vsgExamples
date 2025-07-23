@@ -34,6 +34,8 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
+        auto windowTraits = vsg::WindowTraits::create(arguments);
+
         // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -42,12 +44,8 @@ int main(int argc, char** argv)
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
 #endif
-        arguments.read(options);
+        options->readOptions(arguments);
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgdeviceselection";
-        arguments.read("--screen", windowTraits->screenNum);
-        arguments.read("--display", windowTraits->display);
 
         if (vkEnumerateInstanceVersion(&windowTraits->vulkanVersion) == VK_SUCCESS)
         {

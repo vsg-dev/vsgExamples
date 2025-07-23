@@ -81,6 +81,8 @@ int main(int argc, char** argv)
 
     try
     {
+        auto windowTraits = vsg::WindowTraits::create(arguments);
+
         // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -91,12 +93,7 @@ int main(int argc, char** argv)
         options->add(vsgXchange::all::create());
 #endif
 
-        arguments.read(options);
-
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgallocator";
-        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
+        options->readOptions(arguments);
 
         if (arguments.read("--so"))
         {
@@ -104,12 +101,6 @@ int main(int argc, char** argv)
             std::cout << "Assigned vsg::SharedObjects " << options->sharedObjects << std::endl;
         }
 
-        if (arguments.read("--double-buffer")) windowTraits->swapchainPreferences.imageCount = 2;
-        if (arguments.read("--triple-buffer")) windowTraits->swapchainPreferences.imageCount = 3; // default
-        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-        if (arguments.read("--FIFO")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-        if (arguments.read("--FIFO_RELAXED")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-        if (arguments.read("--MAILBOX")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
         if (arguments.read({"-t", "--test"}))
         {
             windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -121,14 +112,6 @@ int main(int argc, char** argv)
             windowTraits->width = 192, windowTraits->height = 108;
             windowTraits->decoration = false;
         }
-        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-        if (arguments.read({"--no-frame", "--nf"})) windowTraits->decoration = false;
-        if (arguments.read("--or")) windowTraits->overrideRedirect = true;
-        if (arguments.read("--d32")) windowTraits->depthFormat = VK_FORMAT_D32_SFLOAT;
-        arguments.read("--screen", windowTraits->screenNum);
-        arguments.read("--display", windowTraits->display);
-        arguments.read("--samples", windowTraits->samples);
         bool reportAtEndOfAllFrames = arguments.read("--report");
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");

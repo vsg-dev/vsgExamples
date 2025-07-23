@@ -64,6 +64,11 @@ enum ViewerMode
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
+    // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -73,15 +78,6 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgcluster";
-
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
 

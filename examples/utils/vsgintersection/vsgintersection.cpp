@@ -250,22 +250,18 @@ protected:
 
 int main(int argc, char** argv)
 {
+    // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     auto options = vsg::Options::create();
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsgintersection";
-
     auto builder = vsg::Builder::create();
     builder->options = options;
 
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     vsg::Path textureFile = arguments.value<std::string>("", "-t");

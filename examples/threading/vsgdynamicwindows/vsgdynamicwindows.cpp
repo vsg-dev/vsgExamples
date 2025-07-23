@@ -142,6 +142,8 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
+        auto windowTraits = vsg::WindowTraits::create(arguments);
+
         // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->sharedObjects = vsg::SharedObjects::create();
@@ -153,17 +155,8 @@ int main(int argc, char** argv)
         options->add(vsgXchange::all::create());
 #endif
 
-        arguments.read(options);
+        options->readOptions(arguments);
 
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "vsgdynamicwindows";
-        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-        windowTraits->synchronizationLayer = arguments.read("--sync");
-        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-        arguments.read("--screen", windowTraits->screenNum);
-        arguments.read("--display", windowTraits->display);
         auto numFrames = arguments.value(-1, "-f");
         auto numThreads = arguments.value(16, "-n");
 

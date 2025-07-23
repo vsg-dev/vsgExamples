@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, , VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_ALPHA_TEST)
+#pragma import_defines (VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_POINT_SPRITE, VSG_DIFFUSE_MAP, VSG_GREYSCALE_DIFFUSE_MAP, VSG_DETAIL_MAP, VSG_ALPHA_TEST)
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
@@ -56,7 +56,7 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
 #ifdef VSG_POINT_SPRITE
-    vec2 texCoord[0] = gl_PointCoord.xy;
+    vec2 texCoord[1] = { gl_PointCoord.xy };
 #endif
 
     vec4 diffuseColor = vertexColor * material.diffuseColor;

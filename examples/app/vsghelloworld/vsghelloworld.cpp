@@ -8,11 +8,13 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
     // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
     auto options = vsg::Options::create(vsgXchange::all::create());
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-    arguments.read(options);
+    options->readOptions(arguments);
 
     vsg::Path filename = "models/openstreetmap.vsgt";
     if (argc > 1) filename = arguments[1];
@@ -24,8 +26,6 @@ int main(int argc, char** argv)
     if (!vsg_scene) return 0;
 
     // create the viewer and assign window(s) to it
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "Hello World";
     auto viewer = vsg::Viewer::create();
     auto window = vsg::Window::create(windowTraits);
     if (!window)

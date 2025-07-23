@@ -144,12 +144,10 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::ref_ptr<const vsg::Options> options)
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
-    auto traits = vsg::WindowTraits::create();
-    traits->windowTitle = "vsgexecutecommands window1";
-    traits->width = 800;
-    traits->height = 600;
-
     vsg::CommandLine arguments(&argc, argv);
+
+    auto traits = vsg::WindowTraits::create(arguments);
+    traits->windowTitle = "vsgexecutecommands window1";
 
     // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
     auto options = vsg::Options::create();
@@ -161,9 +159,6 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    traits->debugLayer = arguments.read({"--debug", "-d"});
-    traits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read({"--window", "-w"}, traits->width, traits->height)) { traits->fullscreen = false; }
     if (arguments.read({"-t", "--test"})) { traits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; }
     bool multiThreading = arguments.read("--mt");
     bool useExecuteCommands = !arguments.read("--no-ec"); // by default use ExecuteCommands, but allow it to be disabled using --no-ec

@@ -191,7 +191,7 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    arguments.read(options);
+    options->readOptions(arguments);
 
     auto font = vsg::read_cast<vsg::Font>(font_filename, options);
     if (!font)

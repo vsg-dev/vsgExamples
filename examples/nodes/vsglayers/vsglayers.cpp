@@ -9,6 +9,13 @@
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
+    vsg::CommandLine arguments(&argc, argv);
+
+    auto windowTraits = vsg::WindowTraits::create(arguments);
+
+    auto numFrames = arguments.value(-1, "-f");
+
+    // set up defaults and read command line arguments to override them
     auto options = vsg::Options::create();
     options->sharedObjects = vsg::SharedObjects::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -19,19 +26,7 @@ int main(int argc, char** argv)
     options->add(vsgXchange::all::create());
 #endif
 
-    auto windowTraits = vsg::WindowTraits::create();
-    windowTraits->windowTitle = "vsglayers";
-
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-    windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-    windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-
-    arguments.read("--screen", windowTraits->screenNum);
-    arguments.read("--display", windowTraits->display);
-    auto numFrames = arguments.value(-1, "-f");
-    if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
+    options->readOptions(arguments);
 
     // bool useStagingBuffer = arguments.read({"--staging-buffer", "-s"});
 
