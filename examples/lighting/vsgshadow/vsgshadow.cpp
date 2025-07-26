@@ -250,7 +250,7 @@ int main(int argc, char** argv)
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
     double shadowMapBias = arguments.value<double>(0.005, "--sb");
     double lambda = arguments.value<double>(0.5, "--lambda");
-    double nearFarRatio = arguments.value<double>(0.001, "--nf");
+    double nearFarRatio = arguments.value<double>(0.001, "--nfr");
 
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
     if (depthClamp)
