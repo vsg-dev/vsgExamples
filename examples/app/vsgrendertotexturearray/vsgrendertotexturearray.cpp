@@ -464,7 +464,7 @@ int main(int argc, char** argv)
     auto windowTraits = vsg::WindowTraits::create(arguments);
 
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-    auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
+    auto nearFarRatio = arguments.value<double>(0.001, "--nf");
     auto numFrames = arguments.value(-1, "-f");
     auto numLayers = arguments.value<uint32_t>(4, "--numLayers");
     auto pathFilename = arguments.value<vsg::Path>("", "-p");

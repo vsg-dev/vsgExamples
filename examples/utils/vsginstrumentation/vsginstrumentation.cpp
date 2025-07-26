@@ -94,7 +94,7 @@ int main(int argc, char** argv)
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
         auto outputFilename = arguments.value<vsg::Path>("", "-o");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-        auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
+        auto nearFarRatio = arguments.value<double>(0.001, "--nf");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
         // set whether calibrated timestamp extension should be enabled.
