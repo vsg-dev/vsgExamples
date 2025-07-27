@@ -321,7 +321,7 @@ float convertMetallic(vec3 diffuse, vec3 specular, float maxSpecular)
 
 void main()
 {
-    float brightnessCutoff = 0.001;
+    float intensityMinimum = 0.001;
 
 #ifdef VSG_POINT_SPRITE
     vec2 texCoord[1] = { gl_PointCoord.xy };
@@ -458,13 +458,13 @@ void main()
             vec4 lightColor = lightData.values[lightDataIndex++];
             vec3 direction = -lightData.values[lightDataIndex++].xyz;
 
-            float brightness = lightColor.a;
+            float intensity = lightColor.a;
 
             int shadowMapCount = int(lightData.values[lightDataIndex].r);
             if (shadowMapCount > 0)
             {
-                if (brightness > brightnessCutoff)
-                    brightness *= (1.0-calculateShadowCoverageForDirectionalLight(lightDataIndex, shadowMapIndex, T, B, color));
+                if (intensity >= intensityMinimum)
+                    intensity *= (1.0-calculateShadowCoverageForDirectionalLight(lightDataIndex, shadowMapIndex, T, B, color));
 
                 lightDataIndex += 1 + 8 * shadowMapCount;
                 shadowMapIndex += shadowMapCount;
@@ -473,11 +473,11 @@ void main()
                 lightDataIndex++;
 
             // if light is too shadowed to effect the rendering skip it
-            if (brightness <= brightnessCutoff ) continue;
+            if (intensity < intensityMinimum ) continue;
 
             vec3 l = direction;         // Vector from surface point to light
             vec3 h = normalize(l+v);    // Half vector between both l and v
-            float scale = brightness;
+            float scale = intensity;
 
             color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
         }
@@ -521,7 +521,7 @@ void main()
             vec4 position_cosInnerAngle = lightData.values[lightDataIndex++];
             vec4 lightDirection_cosOuterAngle = lightData.values[lightDataIndex++];
 
-            float brightness = lightColor.a;
+            float intensity = lightColor.a;
 
             vec3 delta = position_cosInnerAngle.xyz - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
@@ -535,7 +535,7 @@ void main()
             if (shadowMapCount > 0)
             {
                 if (lightDirection_cosOuterAngle.w > dot_lightdirection)
-                    brightness *= (1.0-calculateShadowCoverageForSpotLight(lightDataIndex, shadowMapIndex, T, B, dist, color));
+                    intensity *= (1.0-calculateShadowCoverageForSpotLight(lightDataIndex, shadowMapIndex, T, B, dist, color));
 
                 lightDataIndex += 1 + 8 * shadowMapCount;
                 shadowMapIndex += shadowMapCount;
@@ -544,11 +544,11 @@ void main()
                 lightDataIndex++;
 
             // if light is too shadowed to effect the rendering skip it
-            if (brightness <= brightnessCutoff ) continue;
+            if (intensity < intensityMinimum ) continue;
 
             vec3 l = direction;        // Vector from surface point to light
             vec3 h = normalize(l+v);    // Half vector between both l and v
-            float scale = (brightness * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
+            float scale = (intensity * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
 
             color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
         }
