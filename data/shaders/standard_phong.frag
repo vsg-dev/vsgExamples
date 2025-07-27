@@ -228,9 +228,6 @@ void main()
 
             float brightness = lightColor.a;
 
-            // if light is too dim to effect the rendering skip it
-            if (brightness <= brightnessCutoff ) continue;
-
             float unclamped_LdotN = dot(direction, nd);
 
             float diff = max(unclamped_LdotN, 0.0);
@@ -310,9 +307,6 @@ void main()
             vec4 lightDirection_cosOuterAngle = lightData.values[lightDataIndex++];
 
             float brightness = lightColor.a;
-
-            // if light is too dim to effect the rendering skip it
-            if (brightness <= brightnessCutoff ) continue;
 
             vec3 delta = position_cosInnerAngle.xyz - eyePos;
             float distance2 = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
