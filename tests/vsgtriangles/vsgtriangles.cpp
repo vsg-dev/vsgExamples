@@ -124,17 +124,17 @@ vsg::ref_ptr<vsg::VertexIndexDraw> createDrawCommands(
 
                 vertices->at(i) = vsg::vec3{x, y, z};
                 colors->at(i) = vsg::vec4{cx, cy, cz, 1.0f};
-                indices->at(i) = i;
+                indices->at(i) = static_cast<unsigned int>(i);
                 ++i;
 
                 vertices->at(i) = vsg::vec3{x + dx, y, z};
                 colors->at(i) = vsg::vec4{cz, cx, cy, 1.0f};
-                indices->at(i) = i;
+                indices->at(i) = static_cast<unsigned int>(i);
                 ++i;
 
                 vertices->at(i) = vsg::vec3{x, y + dy, z + dz};
                 colors->at(i) = vsg::vec4{cy, cz, cx, 1.0f};
-                indices->at(i) = i;
+                indices->at(i) = static_cast<unsigned int>(i);
                 ++i;
             }
         }

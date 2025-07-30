@@ -40,8 +40,8 @@ vsg::ref_ptr<vsg::StateGroup> createScene0()
      * a very large array that would exceed the uniform buffer size limits.
      */
     auto cellColors = vsg::vec4Array::create({
-        {0.176, 0.408, 0.376, 1.0}, // Powderkeg Blue (triangle 0)
-        {0.949, 0.663, 0.000, 1.0}, // Westwood Gold  (triangle 1)
+        {0.176f, 0.408f, 0.376f, 1.0f}, // Powderkeg Blue (triangle 0)
+        {0.949f, 0.663f, 0.000f, 1.0f}, // Westwood Gold  (triangle 1)
     });
 
     gpConf->assignDescriptor("cellColors", cellColors);

@@ -37,15 +37,15 @@ vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars, vsg::
     auto colors = vsg::vec4Array::create(numStars);
     for (auto& v : *vertices)
     {
-        v.x = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
-        v.y = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
-        v.z = 2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5);
+        v.x = static_cast<float>(2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5));
+        v.y = static_cast<float>(2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5));
+        v.z = static_cast<float>(2.0 * maxRadius * (static_cast<double>(std::rand()) / static_cast<double>(RAND_MAX) - 0.5));
     }
 
     for (auto& c : *colors)
     {
-        float brightness = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-        c.set(brightness, brightness, brightness, 1.0);
+        float brightness = static_cast<float>(std::rand() / static_cast<float>(RAND_MAX));
+        c.set(brightness, brightness, brightness, 1.0f);
     }
 
     auto normals = vsg::vec3Value::create(vsg::vec3(0.0f, 0.0f, 1.0f));
@@ -84,7 +84,7 @@ vsg::ref_ptr<vsg::Node> createStarfield(double maxRadius, size_t numStars, vsg::
 
     auto vertexDraw = vsg::VertexDraw::create();
     vertexDraw->assignArrays(vertexArrays);
-    vertexDraw->vertexCount = numStars;
+    vertexDraw->vertexCount = static_cast<uint32_t>(numStars);
     vertexDraw->instanceCount = 1;
     vertexDraw->firstBinding = graphicsPipelineConfig->baseAttributeBinding;
 
@@ -169,10 +169,11 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
 
     // vsg::Builder uses floats for sizing as it's intended for small local objects,
     // we'll ignore limitations for now as we won't be going close to sun's surface'
+    float geometrySize = static_cast<float>(2.0 * settings.sun_radius);
     vsg::GeometryInfo geom;
-    geom.dx.set(2.0f * settings.sun_radius, 0.0f, 0.0f);
-    geom.dy.set(0.0f, 2.0f * settings.sun_radius, 0.0f);
-    geom.dz.set(0.0f, 0.0f, 2.0f * settings.sun_radius);
+    geom.dx.set(geometrySize, 0.0f, 0.0f);
+    geom.dy.set(0.0f, geometrySize, 0.0f);
+    geom.dz.set(0.0f, 0.0f, geometrySize);
     geom.color = settings.sun_color;
     //geom.cullNode = false;
 
@@ -187,7 +188,7 @@ vsg::ref_ptr<vsg::Node> creteSolarSystem(SolarSystemSettings& settings)
     sun_view->matrix = vsg::rotate(vsg::radians(70.0), 1.0, 0.0, 0.0) * vsg::translate(0.0, 0.0, settings.earth_to_sun_distance * 3.0);
 
     auto light = vsg::PointLight::create();
-    light->intensity = settings.earth_to_sun_distance * settings.earth_to_sun_distance;
+    light->intensity = static_cast<float>(settings.earth_to_sun_distance * settings.earth_to_sun_distance);
     light->position.set(0.0f, 0.0f, 0.0f);
     light->color = settings.sun_color.rgb;
 
@@ -493,9 +494,9 @@ void numerical_test()
     std::cout << "std::numeric_limits<long double>::max() = " << std::numeric_limits<long double>::max() << ", digits " << std::numeric_limits<long double>::digits << ", digits10 " << std::numeric_limits<long double>::digits10 << ", sizeof<long double> = " << sizeof(long double) << std::endl;
 
     std::cout << "\nprecision around offset " << std::endl;
-    std::cout << "    precision<float>(1e26) = " << precision<float>(1.0e26) << std::endl;
+    std::cout << "    precision<float>(1e26) = " << precision<float>(1.0e26f) << std::endl;
     std::cout << "    precision<double>(1e26) = " << precision<double>(1.0e26) << std::endl;
-    std::cout << "    precision<double>(1e26) = " << precision<long double>(1.0e26) << std::endl;
+    std::cout << "    precision<long double>(1e26) = " << precision<long double>(1.0e26) << std::endl;
 
     double d_0 = 0.0L;
     double d_half = 0.5L;
@@ -614,7 +615,7 @@ int main(int argc, char** argv)
         double speed = arguments.value<double>(1.0, "--speed");
 
         auto starfieldRadius = arguments.value(distance_between_systems * 4.0, {"--starfield-radius", "--sr"});
-        auto numStars = arguments.value(1e5, {"--numstars", "--ns"});
+        auto numStars = arguments.value(100000, {"--numstars", "--ns"});
         auto active_viewpoint = arguments.value<std::string>("", {"--viewpoint"});
 
         // set up the solar system paramaters
