@@ -86,9 +86,7 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
 layout(location = 2) in vec4 vertexColor;
-#ifndef VSG_POINT_SPRITE
 layout(location = 3) in vec2 texCoord[VSG_TEXCOORD_COUNT];
-#endif
 layout(location = 6) in vec3 viewDir;
 
 layout(location = 0) out vec4 outColor;
@@ -324,7 +322,9 @@ void main()
     float intensityMinimum = 0.001;
 
 #ifdef VSG_POINT_SPRITE
-    vec2 texCoord[0] = { gl_PointCoord.xy };
+    const vec2 texCoordDiffuse = gl_PointCoord.xy;
+#else
+    const vec2 texCoordDiffuse = texCoord[texCoordIndices.diffuseMap].st;
 #endif
 
     float perceptualRoughness = 0.0;
@@ -338,10 +338,10 @@ void main()
 
 #ifdef VSG_DIFFUSE_MAP
     #ifdef VSG_GREYSCALE_DIFFUSE_MAP
-        float v = texture(diffuseMap, texCoord[texCoordIndices.diffuseMap].st).s * pbr.baseColorFactor;
+        float v = texture(diffuseMap, texCoordDiffuse).s * pbr.baseColorFactor;
         baseColor = vertexColor * vec4(v, v, v, 1.0);
     #else
-        baseColor = vertexColor * texture(diffuseMap, texCoord[texCoordIndices.diffuseMap]) * pbr.baseColorFactor;
+        baseColor = vertexColor * texture(diffuseMap, texCoordDiffuse) * pbr.baseColorFactor;
     #endif
 #else
     baseColor = vertexColor * pbr.baseColorFactor;
