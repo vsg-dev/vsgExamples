@@ -25,7 +25,6 @@ int main(int argc, char** argv)
     // read any command line options that the ReaderWriters support
     options->readOptions(arguments);
 
-
     auto numFrames = arguments.value(-1, "-f");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
     auto outputShaderSetFilename = arguments.value<vsg::Path>("", "--os");

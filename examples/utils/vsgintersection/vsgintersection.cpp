@@ -134,7 +134,7 @@ public:
         if (verbose)
         {
             std::cout << "\nintersection_LineSegmentIntersector(" << pointerEvent.x << ", " << pointerEvent.y << ") " << intersector->intersections.size() << ")";
-            std::cout << "time = " << std::chrono::duration<double, std::chrono::milliseconds::period>(after_intersection - before_intersection).count()<<"ms"<<std::endl;
+            std::cout << "time = " << std::chrono::duration<double, std::chrono::milliseconds::period>(after_intersection - before_intersection).count() << "ms" << std::endl;
         }
 
         if (intersector->intersections.empty()) return;

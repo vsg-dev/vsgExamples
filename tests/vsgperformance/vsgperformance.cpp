@@ -43,11 +43,9 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     pbr->defaultShaderHints = shaderHints;
 }
 
-
 class CameraPathBuilder : public vsg::Inherit<vsg::Object, CameraPathBuilder>
 {
 public:
-
     CameraPathBuilder();
 
     vsg::ref_ptr<vsg::Camera> camera;
@@ -60,7 +58,6 @@ public:
 
     // build CameraSampler animation
     virtual vsg::ref_ptr<vsg::Animation> build() { return {}; }
-
 };
 
 CameraPathBuilder::CameraPathBuilder()
@@ -76,10 +73,9 @@ void CameraPathBuilder::read(vsg::CommandLine& arguments)
 class OrbitPath : public vsg::Inherit<CameraPathBuilder, OrbitPath>
 {
 public:
-
     OrbitPath();
 
-    double pitch = 10.0; // degrees
+    double pitch = 10.0;        // degrees
     double distanceRatio = 1.0; // non dimensional
 
     void read(vsg::CommandLine& arguments) override;
@@ -119,10 +115,10 @@ vsg::ref_ptr<vsg::Animation> OrbitPath::build()
 
     double time = 0.0;
     double angle = 0.0;
-    double angleDelta = 2.0*vsg::PI / static_cast<double>(numPoints-1);
-    double timeDelta = duration / static_cast<double>(numPoints-1);
+    double angleDelta = 2.0 * vsg::PI / static_cast<double>(numPoints - 1);
+    double timeDelta = duration / static_cast<double>(numPoints - 1);
 
-    for(size_t i=0; i<numPoints; ++i)
+    for (size_t i = 0; i < numPoints; ++i)
     {
         vsg::dquat delta = tilt * vsg::dquat(angle, axis);
         vsg::dvec3 eye = center + delta * vsg::dvec3(0.0, -radius * distanceRatio, 0.0);
@@ -149,7 +145,7 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-        if (arguments.read("--args")) std::cout<<arguments<<std::endl;
+        if (arguments.read("--args")) std::cout << arguments << std::endl;
 
         auto windowTraits = vsg::WindowTraits::create(arguments);
 
@@ -209,7 +205,6 @@ int main(int argc, char** argv)
         }
 
         if (cameraPathBuilder) cameraPathBuilder->read(arguments);
-
 
         bool depthClamp = arguments.read({"--dc", "--depthClamp"});
         if (depthClamp)
@@ -341,7 +336,6 @@ int main(int argc, char** argv)
 
         viewer->addWindow(window);
 
-
         // get the extents of the scene, and use localToWorld transform if the scene contains an region of a ECEF database.
         vsg::dmat4 localToWorld;
         vsg::ComputeBounds computeBounds;
@@ -364,7 +358,7 @@ int main(int argc, char** argv)
                 vsg::dvec3 lla = ellipsoidModel->convertECEFToLatLongAltitude((computeBounds.bounds.min + computeBounds.bounds.max) * 0.5);
 
                 localToWorld = ellipsoidModel->computeLocalToWorldTransform(lla);
-                auto worldToLocal= ellipsoidModel->computeWorldToLocalTransform(lla);
+                auto worldToLocal = ellipsoidModel->computeWorldToLocalTransform(lla);
 
                 // recompute the bounds of the model in the local coordinate frame of the model, rather than ECEF
                 // to give a tigher bound around the dataset.
@@ -380,14 +374,12 @@ int main(int argc, char** argv)
 
                 lookAt = vsg::LookAt::create(localToWorld * (center + vsg::dvec3(0.0, 0.0, radius)), localToWorld * center, vsg::dvec3(0.0, 1.0, 0.0) * worldToLocal);
                 perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.5);
-
             }
             else
             {
                 lookAt = vsg::LookAt::create(vsg::dvec3(initialRadius * 2.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
                 perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
             }
-
         }
         else
         {
@@ -519,11 +511,10 @@ int main(int argc, char** argv)
             }
         }
 
-
         if (initialFrameCycleCount > 0)
         {
             // run an initial set of frames to get past the intiial frame time variability so we get stable frame rate stats
-            while ((initialFrameCycleCount-- > 0) &&  viewer->advanceToNextFrame())
+            while ((initialFrameCycleCount-- > 0) && viewer->advanceToNextFrame())
             {
                 viewer->getFrameStamp()->simulationTime = 0.0;
                 viewer->handleEvents();
@@ -545,7 +536,7 @@ int main(int argc, char** argv)
             // rendering main loop
             while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
             {
-                if (frameCount==0) start_point = viewer->getFrameStamp()->time;
+                if (frameCount == 0) start_point = viewer->getFrameStamp()->time;
 
                 viewer->handleEvents();
                 viewer->update();
@@ -559,13 +550,13 @@ int main(int argc, char** argv)
             {
                 auto fs = viewer->getFrameStamp();
                 double fps = static_cast<double>(frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(fs->time - start_point).count();
-                std::cout << "Num of frames = "<<fs->frameCount<<", average frame rate = " << fps << " fps" << std::endl;
-                std::cout << "frameCount = "<<frameCount<<std::endl;
+                std::cout << "Num of frames = " << fs->frameCount << ", average frame rate = " << fps << " fps" << std::endl;
+                std::cout << "frameCount = " << frameCount << std::endl;
             }
         }
         else
         {
-            std::cout<<"Insufficient runtime, no frame stats collected."<<std::endl;
+            std::cout << "Insufficient runtime, no frame stats collected." << std::endl;
         }
 
         if (reportMemoryStats)

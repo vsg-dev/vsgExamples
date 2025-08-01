@@ -92,7 +92,6 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
-
         auto windowTraits = vsg::WindowTraits::create(arguments);
         bool reportAverageFrameRate = arguments.read("--fps");
         bool multiThreading = arguments.read("--mt");

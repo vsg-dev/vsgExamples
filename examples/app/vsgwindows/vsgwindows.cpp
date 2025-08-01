@@ -53,7 +53,6 @@ int main(int argc, char** argv)
     windowTraits2->height = 480;
     if (arguments.read({"--window2", "-w2"}, windowTraits2->width, windowTraits2->height)) { windowTraits2->fullscreen = false; }
 
-
     // set up instrumentation if required
     bool reportAverageFrameRate = arguments.read("--fps");
     auto logFilename = arguments.value<vsg::Path>("", "--log");
@@ -101,7 +100,6 @@ int main(int argc, char** argv)
 
     bool separateDevices = arguments.read({"--no-shared-window", "-n"});
     bool multiThreading = arguments.read("--mt");
-
 
     if (separateDevices && VSG_MAX_DEVICES < 2)
     {
@@ -217,7 +215,6 @@ int main(int argc, char** argv)
 
         viewer->present();
     }
-
 
     if (reportAverageFrameRate)
     {

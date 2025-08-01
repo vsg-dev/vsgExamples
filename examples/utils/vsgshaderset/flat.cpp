@@ -84,7 +84,6 @@ vsg::ref_ptr<vsg::ShaderSet> flat_ShaderSet(vsg::ref_ptr<const vsg::Options> opt
     shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_DISPLACEMENT_MAP"}, vsg::DisplacementMapArrayState::create()});
     shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_BILLBOARD"}, vsg::BillboardArrayState::create()});
 
-
     shaderSet->customDescriptorSetBindings.push_back(vsg::ViewDependentStateBinding::create(VIEW_DESCRIPTOR_SET));
 
     return shaderSet;

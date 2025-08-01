@@ -63,7 +63,9 @@ vsg::dvec3 Turntable::ttc(const vsg::PointerEvent& event)
     if (r2 < 0.5) // Inside sphere
     {
         z = sqrt(1.0 - r2);
-    } else { // On hyperbola
+    }
+    else
+    { // On hyperbola
         z = 0.5 / sqrt(r2);
     }
 
@@ -166,16 +168,16 @@ void Turntable::apply(vsg::MoveEvent& moveEvent)
     //    scale *= 2.0;
 
     _previousTime = moveEvent.time;
-    
+
     if (moveEvent.mask & rotateButtonMask)
     {
         _updateMode = ROTATE;
 
         moveEvent.handled = true;
-        
+
         // Calculate deltas for horizontal and vertical rotations
         vsg::dvec2 delta = control_ndc - prev_ndc;
-        
+
         double rotationFactor = 1.0;
         if (delta.x != 0.0)
         {
@@ -184,7 +186,7 @@ void Turntable::apply(vsg::MoveEvent& moveEvent)
             vsg::dvec3 rotateAxis(0.0, 0.0, 1.0);
             rotate(rotateAngle * scale, rotateAxis);
         }
-        
+
         if (delta.y != 0.0)
         {
             // Vertical rotation around the local side vector
@@ -215,7 +217,7 @@ void Turntable::apply(vsg::MoveEvent& moveEvent)
             zoom(_zoomPreviousRatio * scale);
         }
     }
-    
+
     _thrown = false;
     _previousPointerEvent = &moveEvent;
 }
@@ -369,7 +371,7 @@ void Turntable::apply(vsg::FrameEvent& frame)
         if ((speed = times2speed(_keyboard->times(pitchUpKey))) != 0.0) rot.y += speed;
         if ((speed = times2speed(_keyboard->times(pitchDownKey))) != 0.0) rot.y -= speed;
         // Typically turntable doesn't have roll, but keeping minimal functionality
-        if ((speed = times2speed(_keyboard->times(rollLeftKey))) != 0.0) rot.z -= speed * 0.2; // Reduced influence
+        if ((speed = times2speed(_keyboard->times(rollLeftKey))) != 0.0) rot.z -= speed * 0.2;  // Reduced influence
         if ((speed = times2speed(_keyboard->times(rollRightKey))) != 0.0) rot.z += speed * 0.2; // Reduced influence
 
         if (rot || move)
@@ -383,8 +385,8 @@ void Turntable::apply(vsg::FrameEvent& frame)
             vsg::dvec3 sideVector = vsg::normalize(vsg::cross(lookVector, upVector));
 
             // For turntable, we primarily translate in the horizontal plane
-            vsg::dvec3 horizontalMove = sideVector * (scaleTranslation * move.x) + 
-                                   vsg::cross(upVector, sideVector) * (scaleTranslation * move.z);
+            vsg::dvec3 horizontalMove = sideVector * (scaleTranslation * move.x) +
+                                        vsg::cross(upVector, sideVector) * (scaleTranslation * move.z);
             // Vertical movement is still allowed
             vsg::dvec3 verticalMove = upVector * (scaleTranslation * move.y);
             vsg::dvec3 delta = horizontalMove + verticalMove;
@@ -447,19 +449,19 @@ void Turntable::apply(vsg::FrameEvent& frame)
             {
                 vsg::dvec3 globalUp(0.0, 0.0, 1.0); // Assuming Z-up
                 vsg::dvec3 lookVector = vsg::normalize(_lookAt->center - _lookAt->eye);
-                
+
                 // Decompose rotation into horizontal and vertical components
                 double verticalComponent = vsg::dot(_rotateAxis, globalUp);
-                
+
                 // Create rotation vectors that will help avoid gimbal lock
                 vsg::dvec3 horizontalAxis, verticalAxis;
                 computeRotationAxesWithGimbalAvoidance(horizontalAxis, verticalAxis, lookVector, globalUp);
-                
+
                 // Apply horizontal rotation
                 double horizontalAngle = _rotateAngle * (1.0 - std::abs(verticalComponent)) * scale;
                 rotate(horizontalAngle, horizontalAxis);
-                
-                // Apply vertical rotation 
+
+                // Apply vertical rotation
                 double verticalAngle = _rotateAngle * verticalComponent * scale;
                 rotate(verticalAngle, verticalAxis);
             }
@@ -490,19 +492,19 @@ void Turntable::applyRotationWithGimbalAvoidance(const vsg::dvec3& rot, double s
 {
     // Get current view vectors
     vsg::dvec3 lookVector = vsg::normalize(_lookAt->center - _lookAt->eye);
-    
+
     // Compute the rotation axes with gimbal lock avoidance
     vsg::dvec3 horizontalAxis, verticalAxis;
     computeRotationAxesWithGimbalAvoidance(horizontalAxis, verticalAxis, lookVector, globalUp);
-    
+
     // Apply horizontal rotation (around a modified up vector that avoids gimbal lock)
     double horizontalAngle = rot.x * scaleRotation;
     rotate(horizontalAngle, horizontalAxis);
-    
+
     // Apply vertical rotation (around the side vector)
     double verticalAngle = rot.y * scaleRotation;
     rotate(verticalAngle, verticalAxis);
-    
+
     // Apply minimal roll if specified
     if (rot.z != 0.0)
     {
@@ -512,40 +514,40 @@ void Turntable::applyRotationWithGimbalAvoidance(const vsg::dvec3& rot, double s
 }
 
 // Implementation of gimbal lock avoidance algorithm
-void Turntable::computeRotationAxesWithGimbalAvoidance(vsg::dvec3& horizontalAxis, vsg::dvec3& verticalAxis, 
-                                                      const vsg::dvec3& lookVector, const vsg::dvec3& globalUp)
+void Turntable::computeRotationAxesWithGimbalAvoidance(vsg::dvec3& horizontalAxis, vsg::dvec3& verticalAxis,
+                                                       const vsg::dvec3& lookVector, const vsg::dvec3& globalUp)
 {
     // 1. Compute how close we are to gimbal lock
     double viewVerticalAlignment = std::abs(vsg::dot(lookVector, globalUp));
-    
+
     // The closer viewVerticalAlignment is to 1.0, the closer we are to gimbal lock
-    
+
     // 2. Compute the rotation axes:
-    
+
     // 2.1. Standard turntable axes
-    vsg::dvec3 standardUp = globalUp;  // Standard up vector for horizontal rotation
+    vsg::dvec3 standardUp = globalUp;                                             // Standard up vector for horizontal rotation
     vsg::dvec3 standardSide = vsg::normalize(vsg::cross(lookVector, standardUp)); // Standard side vector for vertical rotation
-    
+
     // 2.2. Rotated axes
     // Cross product of global up and look direction gives us an axis perpendicular to both
     vsg::dvec3 rotatedSide = vsg::normalize(vsg::cross(globalUp, lookVector));
     // Another cross product gives us a "rotated horizon" axis
     vsg::dvec3 rotatedUp = vsg::normalize(vsg::cross(rotatedSide, lookVector));
-    
+
     // 3. Blend between the standard and rotated axes based on gimbal lock severity
-    
+
     // This blending factor increases as we approach gimbal lock
     // Using a smooth curve that increases more rapidly as we approach gimbal lock
     double blendFactor = vsg::smoothstep(0.7, 0.98, viewVerticalAlignment);
-    
+
     // Blend the up vectors (horizontal rotation axis)
     horizontalAxis = vsg::normalize(vsg::mix(standardUp, rotatedUp, blendFactor));
-    
+
     // For vertical rotation, we blend between standard side vector and a computed side vector
     // that's based on our current blended up vector (to ensure orthogonality)
     vsg::dvec3 blendedSide = vsg::normalize(vsg::cross(lookVector, horizontalAxis));
     verticalAxis = vsg::normalize(vsg::mix(standardSide, blendedSide, blendFactor));
-    
+
     // Ensure axes are normalized
     horizontalAxis = vsg::normalize(horizontalAxis);
     verticalAxis = vsg::normalize(verticalAxis);
@@ -555,12 +557,12 @@ void Turntable::rotate(double angle, const vsg::dvec3& axis)
 {
     if (std::abs(angle) < 1e-10 || vsg::length(axis) < 1e-10)
         return;
-        
+
     // Create rotation matrix around the provided axis
     vsg::dmat4 matrix = vsg::translate(_lookAt->center) *
-                   vsg::rotate(angle, vsg::normalize(axis)) *
-                   vsg::translate(-_lookAt->center);
-                   
+                        vsg::rotate(angle, vsg::normalize(axis)) *
+                        vsg::translate(-_lookAt->center);
+
     // Apply rotation
     _lookAt->eye = matrix * _lookAt->eye;
     _lookAt->up = vsg::normalize(matrix * (_lookAt->eye + _lookAt->up) - matrix * _lookAt->eye);
@@ -591,23 +593,23 @@ void Turntable::pan(const vsg::dvec2& delta)
 std::pair<int32_t, int32_t> Turntable::cameraRenderAreaCoordinates(const vsg::PointerEvent& pointerEvent) const
 {
     if (!pointerEvent.window) return {0, 0};
-    
+
     auto itr = windowOffsets.find(pointerEvent.window);
     if (itr != windowOffsets.end())
     {
         auto coords = itr->second;
         return {pointerEvent.x + coords.x, pointerEvent.y + coords.y};
     }
-    
+
     return {pointerEvent.x, pointerEvent.y};
 }
 
 bool Turntable::withinRenderArea(const vsg::PointerEvent& pointerEvent) const
 {
     if (!_camera || !_camera->viewportState) return false;
-    
+
     auto [x, y] = cameraRenderAreaCoordinates(pointerEvent);
-    
+
     const auto& viewport = _camera->viewportState->getViewport();
     return (x >= viewport.x && x < viewport.x + viewport.width &&
             y >= viewport.y && y < viewport.y + viewport.height);
@@ -646,7 +648,9 @@ void Turntable::setViewpoint(vsg::ref_ptr<vsg::LookAt> lookAt, double duration)
         _startLookAt = nullptr;
         _endLookAt = nullptr;
         _animationDuration = 0.0;
-    } else {
+    }
+    else
+    {
         _startTime = _previousTime;
         _startLookAt = vsg::LookAt::create(*_lookAt);
         _endLookAt = lookAt;

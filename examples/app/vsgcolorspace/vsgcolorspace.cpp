@@ -25,12 +25,13 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vs
     return builder->createQuad(geom, state);
 }
 
-
 vsg::ref_ptr<vsg::Node> createLabelledSubgraph(const vsg::dvec3& position, const vsg::dvec3& dimensions, vsg::ref_ptr<vsg::Object> object, const std::string& label, vsg::ref_ptr<vsg::Options> options)
 {
     vsg::ref_ptr<vsg::Node> subgraph;
-    if (auto data = object.cast<vsg::Data>()) subgraph = createTextureQuad(data, options);
-    else subgraph = object.cast<vsg::Node>();
+    if (auto data = object.cast<vsg::Data>())
+        subgraph = createTextureQuad(data, options);
+    else
+        subgraph = object.cast<vsg::Node>();
 
     if (!subgraph) return {};
 
@@ -38,7 +39,7 @@ vsg::ref_ptr<vsg::Node> createLabelledSubgraph(const vsg::dvec3& position, const
     auto bounds = vsg::visit<vsg::ComputeBounds>(subgraph).bounds;
 
     auto transform = vsg::MatrixTransform::create();
-    transform->matrix = vsg::translate(position) * vsg::scale(vsg::length(dimensions) / vsg::length(bounds.max - bounds.min)) * vsg::translate(-(bounds.max.x+bounds.min.x)*0.5, -bounds.min.y, -bounds.min.z);
+    transform->matrix = vsg::translate(position) * vsg::scale(vsg::length(dimensions) / vsg::length(bounds.max - bounds.min)) * vsg::translate(-(bounds.max.x + bounds.min.x) * 0.5, -bounds.min.y, -bounds.min.z);
     transform->addChild(subgraph);
 
     auto text = vsg::Text::create();
@@ -63,7 +64,6 @@ vsg::ref_ptr<vsg::Node> createLabelledSubgraph(const vsg::dvec3& position, const
 
     return group;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
 
         auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
 
-        windowTraits->windowTitle += vsg::make_string(": Default swapchain VkSurfaceFormatKHR{ VkFormat format = ", windowTraits->swapchainPreferences.surfaceFormat.format, ", VkColorSpaceKHR colorSpace = ", windowTraits->swapchainPreferences.surfaceFormat.colorSpace,"}");
+        windowTraits->windowTitle += vsg::make_string(": Default swapchain VkSurfaceFormatKHR{ VkFormat format = ", windowTraits->swapchainPreferences.surfaceFormat.format, ", VkColorSpaceKHR colorSpace = ", windowTraits->swapchainPreferences.surfaceFormat.colorSpace, "}");
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         auto numFrames = arguments.value(-1, "-f");
@@ -146,11 +146,11 @@ int main(int argc, char** argv)
 
         // https://registry.khronos.org/vulkan/specs/latest/man/html/VkFormat.html
         // https://registry.khronos.org/vulkan/specs/latest/man/html/VkColorSpaceKHR.html
-        std::cout<<"SwapChain support details: "<<std::endl;
+        std::cout << "SwapChain support details: " << std::endl;
         auto swapChainSupportDetails = vsg::querySwapChainSupport(physicalDevice->vk(), surface->vk());
-        for(auto& format : swapChainSupportDetails.formats)
+        for (auto& format : swapChainSupportDetails.formats)
         {
-            std::cout<<"    VkSurfaceFormatKHR{ VkFormat format = "<<format.format<<", VkColorSpaceKHR colorSpace = "<<format.colorSpace<<"}"<<std::endl;
+            std::cout << "    VkSurfaceFormatKHR{ VkFormat format = " << format.format << ", VkColorSpaceKHR colorSpace = " << format.colorSpace << "}" << std::endl;
         }
 
         std::vector<vsg::ref_ptr<vsg::Window>> windows;
@@ -158,16 +158,16 @@ int main(int argc, char** argv)
         windows.push_back(initial_window);
 
         uint32_t i = 1;
-        uint32_t columns = static_cast<uint32_t>(std::sqrt(static_cast<double>(swapChainSupportDetails.formats.size())))+1;
+        uint32_t columns = static_cast<uint32_t>(std::sqrt(static_cast<double>(swapChainSupportDetails.formats.size()))) + 1;
         uint32_t dx = windowTraits->width + 32;
         uint32_t dy = windowTraits->height + 32;
 
-        for(auto& format : swapChainSupportDetails.formats)
+        for (auto& format : swapChainSupportDetails.formats)
         {
             if (vsg::compare_memory(windowTraits->swapchainPreferences.surfaceFormat, format) != 0)
             {
                 auto local_windowTraits = vsg::WindowTraits::create();
-                local_windowTraits->windowTitle = vsg::make_string("Alternate swapchain VkSurfaceFormatKHR{ VkFormat format = ", format.format, ", VkColorSpaceKHR colorSpace = ", format.colorSpace,"}");
+                local_windowTraits->windowTitle = vsg::make_string("Alternate swapchain VkSurfaceFormatKHR{ VkFormat format = ", format.format, ", VkColorSpaceKHR colorSpace = ", format.colorSpace, "}");
                 local_windowTraits->x = dx * (i % columns);
                 local_windowTraits->y = dy * (i / columns);
                 local_windowTraits->width = windowTraits->width;
@@ -184,7 +184,7 @@ int main(int argc, char** argv)
             }
         }
 
-        std::cout<<"windows.size() = "<<windows.size()<<std::endl;
+        std::cout << "windows.size() = " << windows.size() << std::endl;
 
         using ObjectLabel = std::pair<vsg::ref_ptr<vsg::Object>, std::string>;
         using Row = std::vector<ObjectLabel>;
@@ -200,8 +200,7 @@ int main(int argc, char** argv)
 
         vsg::StateInfo stateInfo;
 
-        auto createSphere= [&](float intensity) -> vsg::ref_ptr<vsg::Node>
-        {
+        auto createSphere = [&](float intensity) -> vsg::ref_ptr<vsg::Node> {
             geomInfo.color.set(intensity, intensity, intensity, 1.0f);
             return builder->createSphere(geomInfo, stateInfo);
         };
@@ -235,7 +234,6 @@ int main(int argc, char** argv)
             row.push_back(ObjectLabel(createSphere(vsg::linear_to_sRGB(1.0f)), vsg::make_string("linear_to_sRGB(1.0f)")));
             rows.push_back(row);
         }
-
 
         {
             auto image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
@@ -276,10 +274,10 @@ int main(int argc, char** argv)
         vsg::dvec3 dimensions(20.0, 20.0, 20.0);
         vsg::dvec3 spacing = dimensions * 1.3;
 
-        for(size_t r = 0; r< rows.size(); ++r)
+        for (size_t r = 0; r < rows.size(); ++r)
         {
             Row& row = rows[r];
-            for(size_t c = 0; c < row.size(); ++c)
+            for (size_t c = 0; c < row.size(); ++c)
             {
                 auto& entry = row[c];
                 position.x = spacing.x * static_cast<double>(c);
@@ -298,10 +296,10 @@ int main(int argc, char** argv)
         vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
         double radius = vsg::length(bounds.max - bounds.min) * 0.5;
 
-        std::cout<<"center = "<<centre<<", radius "<<radius<<std::endl;
+        std::cout << "center = " << centre << ", radius " << radius << std::endl;
 
         // For each created window assign the each window assocaited views and trackball camera manipulator to the viewer
-        for(auto& window : windows)
+        for (auto& window : windows)
         {
             viewer->addWindow(window);
 

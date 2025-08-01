@@ -46,7 +46,6 @@ int main(int argc, char** argv)
 #endif
         options->readOptions(arguments);
 
-
         if (vkEnumerateInstanceVersion(&windowTraits->vulkanVersion) == VK_SUCCESS)
         {
             std::cout << "vkEnumerateInstanceVersion() " << windowTraits->vulkanVersion << std::endl;

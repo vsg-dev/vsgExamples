@@ -34,7 +34,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(const ModelSettings& settings)
     // shows empty, then node2, then node when approaching
     auto lod = vsg::LOD::create();
     lod->bound = vsg::dsphere((bb.min + bb.max) * 0.5, vsg::length(bb.max - bb.min));
-    lod->addChild(vsg::LOD::Child{settings.lodMinScreenRatio+1, node});
+    lod->addChild(vsg::LOD::Child{settings.lodMinScreenRatio + 1, node});
     lod->addChild(vsg::LOD::Child{settings.lodMinScreenRatio, node2});
     scene->addChild(lod);
 
@@ -65,7 +65,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(const ModelSettings& settings)
 
     auto lod3 = vsg::LOD::create();
     lod3->bound = vsg::dsphere((bb3.min + bb3.max) * 0.5, vsg::length(bb3.max - bb3.min));
-    lod3->addChild(vsg::LOD::Child{settings.lodMinScreenRatio+0.5, node5});
+    lod3->addChild(vsg::LOD::Child{settings.lodMinScreenRatio + 0.5, node5});
     scene->addChild(lod3);
 
     // should show for node7, then empty when approaching
@@ -80,7 +80,7 @@ vsg::ref_ptr<vsg::Node> createTestScene(const ModelSettings& settings)
 
     auto lod4 = vsg::LOD::create();
     lod4->bound = vsg::dsphere((bb4.min + bb4.max) * 0.5, vsg::length(bb4.max - bb4.min));
-    lod4->addChild(vsg::LOD::Child{settings.lodMinScreenRatio+1, node6});
+    lod4->addChild(vsg::LOD::Child{settings.lodMinScreenRatio + 1, node6});
     lod4->addChild(vsg::LOD::Child{settings.lodMinScreenRatio, node7});
     scene->addChild(lod4);
 

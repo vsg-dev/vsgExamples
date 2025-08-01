@@ -4,8 +4,8 @@
 #include "vsg/all.h"
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
 #endif
 
 template<class C1, class C2>

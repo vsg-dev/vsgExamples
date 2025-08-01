@@ -248,7 +248,6 @@ int main(int argc, char** argv)
     // CommandGraph to hold the different RenderGraphs used to render each view
     auto commandGraph = vsg::CommandGraph::create(window);
 
-
     // add headlights to views to make sure any objects that need lighting have it.
     auto headlight = vsg::createHeadlight();
 
@@ -301,7 +300,6 @@ int main(int argc, char** argv)
         auto secondary_RenderGraph = vsg::RenderGraph::create(window, secondary_view);
         secondary_RenderGraph->clearValues[0].color = vsg::sRGB_to_linear(0.2f, 0.2f, 0.2f, 1.0f);
         commandGraph->addChild(secondary_RenderGraph);
-
 
         y += secondary_height + margin;
     }
