@@ -165,7 +165,6 @@ void main()
     vec4 diffuseColor = vertexColor * material.diffuseColor;
 
     bool matchedProjectedTexture = false;
-#if 1
     for(int ti = 0; ti < textureCount.value; ++ti)
     {
         vec4 tc = texgenMatrices.matrix[ti] * vec4(eyePos, 1.0);
@@ -181,7 +180,6 @@ void main()
             }
         }
     }
-#endif
 
 #ifdef VSG_DIFFUSE_MAP
     if (!matchedProjectedTexture)
