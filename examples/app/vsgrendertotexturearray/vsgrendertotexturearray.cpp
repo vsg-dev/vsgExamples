@@ -557,6 +557,7 @@ int main(int argc, char** argv)
     viewer->addEventHandler(main_trackball);
 
     auto view3D = vsg::View::create(camera, vsg_scene);
+    view3D->addChild(vsg::createHeadlight());
 
     auto context = vsg::Context::create(window->getOrCreateDevice());
 
