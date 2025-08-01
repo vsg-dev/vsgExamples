@@ -56,7 +56,7 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
 #ifdef VSG_POINT_SPRITE
-    vec2 texCoord[1] = { gl_PointCoord.xy };
+    vec2 texCoord[0] = { gl_PointCoord.xy };
 #endif
 
     vec4 diffuseColor = vertexColor * material.diffuseColor;
