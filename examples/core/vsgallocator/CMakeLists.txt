@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgallocator ${SOURCES})
+set_target_properties(vsgallocator PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgallocator vsg::vsg)
 

@@ -6,6 +6,7 @@ set(SOURCES
 )
 
 add_executable(vsgcluster ${SOURCES})
+set_target_properties(vsgcluster PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgcluster vsg::vsg)
 

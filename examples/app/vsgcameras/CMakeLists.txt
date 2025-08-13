@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgcameras ${SOURCES})
+set_target_properties(vsgcameras PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgcameras vsg::vsg)
 

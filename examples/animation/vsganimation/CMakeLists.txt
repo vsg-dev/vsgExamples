@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsganimation ${SOURCES})
+set_target_properties(vsganimation PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsganimation vsg::vsg)
 

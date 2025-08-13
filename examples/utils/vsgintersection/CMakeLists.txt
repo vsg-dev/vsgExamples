@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgintersection ${SOURCES})
+set_target_properties(vsgintersection PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgintersection vsg::vsg)
 

@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgimgui_example ${SOURCES})
+set_target_properties(vsgimgui_example PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgimgui_example vsgImGui::vsgImGui vsg::vsg)
 

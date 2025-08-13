@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgbuilder ${SOURCES})
+set_target_properties(vsgbuilder PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgbuilder vsg::vsg)
 

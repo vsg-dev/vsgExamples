@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsghelloworld ${SOURCES})
+set_target_properties(vsghelloworld PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsghelloworld vsg::vsg)
 

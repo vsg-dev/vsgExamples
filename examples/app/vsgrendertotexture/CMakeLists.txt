@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgrendertotexture ${SOURCES})
+set_target_properties(vsgrendertotexture PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgrendertotexture vsg::vsg)
 

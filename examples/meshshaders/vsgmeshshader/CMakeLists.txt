@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgmeshshader ${SOURCES})
+set_target_properties(vsgmeshshader PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgmeshshader vsg::vsg)
 

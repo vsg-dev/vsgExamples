@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgtext ${SOURCES})
+set_target_properties(vsgtext PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgtext vsg::vsg)
 

@@ -4,6 +4,7 @@ set(SOURCES
 )
 
 add_executable(vsgturntablecamera ${SOURCES})
+set_target_properties(vsgturntablecamera PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgturntablecamera vsg::vsg)
 

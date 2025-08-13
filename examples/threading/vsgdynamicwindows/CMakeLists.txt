@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgdynamicwindows ${SOURCES})
+set_target_properties(vsgdynamicwindows PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgdynamicwindows vsg::vsg)
 

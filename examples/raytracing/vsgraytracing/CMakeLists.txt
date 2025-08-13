@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgraytracing ${SOURCES})
+set_target_properties(vsgraytracing PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgraytracing vsg::vsg)
 

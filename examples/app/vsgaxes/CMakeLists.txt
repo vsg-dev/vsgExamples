@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgaxes ${SOURCES})
+set_target_properties(vsgaxes PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgaxes vsg::vsg)
 

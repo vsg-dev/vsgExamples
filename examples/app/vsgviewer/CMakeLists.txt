@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgviewer ${SOURCES})
+set_target_properties(vsgviewer PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgviewer vsg::vsg)
 

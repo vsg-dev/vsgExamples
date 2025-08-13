@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgstateswitch ${SOURCES})
+set_target_properties(vsgstateswitch PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgstateswitch vsg::vsg)
 

@@ -7,6 +7,7 @@ set(SOURCES
 )
 
 add_executable(vsgshaderset ${SOURCES})
+set_target_properties(vsgshaderset PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgshaderset vsg::vsg)
 

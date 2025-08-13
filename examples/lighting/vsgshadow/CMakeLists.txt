@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgshadow ${SOURCES})
+set_target_properties(vsgshadow PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgshadow vsg::vsg)
 

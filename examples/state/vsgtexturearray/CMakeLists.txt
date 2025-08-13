@@ -1,6 +1,7 @@
 set(SOURCES vsgtexturearray.cpp)
 
 add_executable(vsgtexturearray ${SOURCES})
+set_target_properties(vsgtexturearray PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgtexturearray vsg::vsg)
 

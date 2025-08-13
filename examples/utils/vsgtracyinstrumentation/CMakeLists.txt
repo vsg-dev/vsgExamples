@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgtracyinstrumentation ${SOURCES})
+set_target_properties(vsgtracyinstrumentation PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgtracyinstrumentation vsg::vsg Tracy::TracyClient)
 

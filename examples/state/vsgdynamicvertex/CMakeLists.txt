@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgdynamicvertex ${SOURCES})
+set_target_properties(vsgdynamicvertex PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgdynamicvertex vsg::vsg)
 

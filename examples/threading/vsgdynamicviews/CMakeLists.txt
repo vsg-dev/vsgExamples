@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgdynamicviews ${SOURCES})
+set_target_properties(vsgdynamicviews PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgdynamicviews vsg::vsg)
 

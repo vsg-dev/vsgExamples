@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgheadless ${SOURCES})
+set_target_properties(vsgheadless PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgheadless vsg::vsg)
 

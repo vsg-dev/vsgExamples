@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgclip ${SOURCES})
+set_target_properties(vsgclip PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgclip vsg::vsg)
 

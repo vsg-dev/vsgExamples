@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgexecutecommands ${SOURCES})
+set_target_properties(vsgexecutecommands PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgexecutecommands vsg::vsg)
 

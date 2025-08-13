@@ -5,6 +5,7 @@ set(SOURCES
 )
 
 add_executable(vsgpagedlod ${SOURCES})
+set_target_properties(vsgpagedlod PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgpagedlod vsg::vsg)
 

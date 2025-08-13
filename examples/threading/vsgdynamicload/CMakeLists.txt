@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgdynamicload ${SOURCES})
+set_target_properties(vsgdynamicload PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgdynamicload vsg::vsg)
 

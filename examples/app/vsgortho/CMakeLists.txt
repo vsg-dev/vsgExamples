@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgortho ${SOURCES})
+set_target_properties(vsgortho PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgortho vsg::vsg)
 

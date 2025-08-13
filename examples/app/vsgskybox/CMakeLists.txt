@@ -1,6 +1,7 @@
 set(SOURCES vsgskybox.cpp)
 
 add_executable(vsgskybox ${SOURCES})
+set_target_properties(vsgskybox PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgskybox vsg::vsg)
 

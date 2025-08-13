@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsglights ${SOURCES})
+set_target_properties(vsglights PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsglights vsg::vsg)
 

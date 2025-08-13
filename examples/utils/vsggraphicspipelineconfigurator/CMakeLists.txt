@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsggraphicspipelineconfigurator ${SOURCES})
+set_target_properties(vsggraphicspipelineconfigurator PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsggraphicspipelineconfigurator vsg::vsg)
 

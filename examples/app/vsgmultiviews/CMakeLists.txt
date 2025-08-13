@@ -3,6 +3,7 @@ set(SOURCES
 )
 
 add_executable(vsgmultiviews ${SOURCES})
+set_target_properties(vsgmultiviews PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 
 target_link_libraries(vsgmultiviews vsg::vsg)
 
