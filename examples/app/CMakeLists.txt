@@ -18,6 +18,7 @@ add_subdirectory(vsgcameras)
 add_subdirectory(vsgvalidate)
 add_subdirectory(vsgaxes)
 add_subdirectory(vsgcolorspace)
+add_subdirectory(vsgmultiwindowmultiview)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsghelloworld)
