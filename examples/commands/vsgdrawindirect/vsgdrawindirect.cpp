@@ -10,7 +10,7 @@
 #include <thread>
 
 
-vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options)
+vsg::ref_ptr<vsg::Node> createLoadedModelScene(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options)
 {
     auto group = vsg::Group::create();
 
@@ -45,6 +45,170 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& arguments, vsg::ref_ptr<vs
         return group;
 }
 
+template<typename T>
+T random_in_range(T min, T max)
+{
+    return min + static_cast<T>(std::rand()) / static_cast<T>(RAND_MAX) * (max-min);
+}
+
+vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg::ref_ptr<vsg::Options> options)
+{
+    auto group = vsg::Group::create();
+
+    auto device = options->getRefObject<vsg::Device>("device");
+    if (!device)
+    {
+        std::cout<<"Cannot allocate GPU memory for compute shader wihtout vsg::Device."<<std::endl;
+    }
+
+    int computeQueueFamily = 0;
+    if (!options->getValue("computeQueueFamily", computeQueueFamily))
+    {
+        std::cout<<"Cannot setup compute command buffer without computeQueueFamily."<<std::endl;
+    }
+
+    auto event = options->getRefObject<vsg::Event>("event");
+
+    // load shaders
+    auto computeShader = vsg::read_cast<vsg::ShaderStage>("shaders/computevertex.comp", options);
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/computevertex.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/computevertex.frag", options);
+
+    if (!computeShader || !vertexShader || !fragmentShader)
+    {
+        std::cout << "Could not create shaders." << std::endl;
+        return {};
+    }
+
+    VkDeviceSize bufferSize = sizeof(vsg::vec4) * 256;
+    auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    auto positions = vsg::vec4Array::create(256);
+    for(auto& v : *positions) v.set(random_in_range(-0.5f, 0.5f), random_in_range(-0.5f, 0.5f), random_in_range(0.0f, 1.0f), 1.0f);
+#if 1
+    auto bufferInfo = vsg::BufferInfo::create();
+    bufferInfo->buffer = buffer;
+    bufferInfo->offset = 0;
+    bufferInfo->range = bufferSize;
+    bufferInfo->data = positions;
+#else
+    auto bufferInfo = vsg::BufferInfo::create(positions);
+#endif
+
+    // compute subgraph
+    {
+
+        auto computeScale = vsg::vec4Array::create(1);
+        computeScale->properties.dataVariance = vsg::DYNAMIC_DATA;
+        computeScale->set(0, vsg::vec4(1.0, 1.0, 1.0, 0.0));
+
+        auto computeScaleBuffer = vsg::DescriptorBuffer::create(computeScale, 1);
+
+        auto computeCommandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
+        computeCommandGraph->submitOrder = -1; // make sure the computeCommandGraph is placed before first
+
+        vsg::DescriptorSetLayoutBindings descriptorBindings{
+            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} // ClipSettings uniform
+        };
+
+        auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
+        auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
+        auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
+        computeCommandGraph->addChild(bindPipeline);
+
+        auto storageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{storageBuffer, computeScaleBuffer});
+        auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
+
+        computeCommandGraph->addChild(bindDescriptorSet);
+
+        // computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
+
+        // computeCommandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT));
+
+        // group->addChild(computeCommandGraph);
+    }
+
+    // set up graphics subgraph to render the computed vertices
+    {
+        // set up graphics pipeline
+        vsg::PushConstantRanges pushConstantRanges{
+            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
+        };
+
+        vsg::VertexInputState::Bindings vertexBindingsDescriptions{
+            VkVertexInputBindingDescription{0, sizeof(vsg::vec4), VK_VERTEX_INPUT_RATE_VERTEX}};
+
+        vsg::VertexInputState::Attributes vertexAttributeDescriptions{
+            VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0}};
+
+        auto inputAssemblyState = vsg::InputAssemblyState::create();
+        inputAssemblyState->topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+
+        vsg::GraphicsPipelineStates pipelineStates{
+            vsg::VertexInputState::create(vertexBindingsDescriptions, vertexAttributeDescriptions),
+            inputAssemblyState,
+            vsg::RasterizationState::create(),
+            vsg::MultisampleState::create(),
+            vsg::ColorBlendState::create(),
+            vsg::DepthStencilState::create()};
+
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{}, pushConstantRanges);
+        auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+        auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
+
+        // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
+        auto scenegraph = vsg::StateGroup::create();
+        scenegraph->add(bindGraphicsPipeline);
+
+        // scenegraph->addChild(vsg::WaitEvents::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, event));
+
+        // setup geometry
+        auto drawCommands = vsg::Commands::create();
+        auto bind_vertex_buffer = vsg::BindVertexBuffers::create();
+        bind_vertex_buffer->arrays.push_back(bufferInfo);
+        drawCommands->addChild(bind_vertex_buffer);
+        drawCommands->addChild(vsg::Draw::create(256, 1, 0, 0));
+
+        scenegraph->addChild(drawCommands);
+
+        group->addChild(scenegraph);
+    }
+
+#if 1
+    // create base
+    {
+        auto builder = vsg::Builder::create();
+        builder->options = options;
+
+        vsg::GeometryInfo geom;
+        geom.dz.set(0.0f, 0.0f, 0.05f);
+
+        vsg::StateInfo state;
+        state.image = vsg::read_cast<vsg::Data>("textures/lz.vsgb", options);
+
+        group->addChild(builder->createBox(geom, state));
+    }
+#endif
+
+
+    return group;
+}
+
+vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options)
+{
+    if (arguments.read("-m"))
+    {
+        return createLoadedModelScene(arguments, options);
+    }
+    else
+    {
+        return createComputeScene(arguments, options);
+    }
+}
+
 int main(int argc, char** argv)
 {
     try
@@ -54,6 +218,9 @@ int main(int argc, char** argv)
 
         // create windowTraits using the any command line arugments to configure settings
         auto windowTraits = vsg::WindowTraits::create(arguments);
+
+        // enable the use of compute shader when we create the vsg::Device which will be done at Window creation time
+        windowTraits->queueFlags |= VK_QUEUE_COMPUTE_BIT;
 
         // set up vsg::Options to pass in filepaths, ReaderWriters and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
@@ -76,10 +243,27 @@ int main(int argc, char** argv)
             reportAverageFrameRate = true;
         }
 
+        vsg::Path outputFilename;
+        arguments.read<vsg::Path>("-o", outputFilename);
+
+        auto window = vsg::Window::create(windowTraits);
+        if (!window)
+        {
+            std::cout << "Could not create window." << std::endl;
+            return 1;
+        }
+
+        auto commandGraph = vsg::CommandGraph::create(window);
+
         auto numFrames = arguments.value(-1, "-f");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
 
-        if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+        auto device = window->getOrCreateDevice();
+        auto event = vsg::Event::create(device);
+
+        options->setObject("device", device);
+        options->setObject("event", event);
+        options->setValue("computeQueueFamily", commandGraph->queueFamily);
 
         auto vsg_scene = createScene(arguments, options);
 
@@ -89,14 +273,18 @@ int main(int argc, char** argv)
             return 1;
         }
 
+        if (outputFilename)
+        {
+            vsg::write(vsg_scene, outputFilename, options);
+
+            return 0;
+        }
+
+
+        if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
-        auto window = vsg::Window::create(windowTraits);
-        if (!window)
-        {
-            std::cout << "Could not create window." << std::endl;
-            return 1;
-        }
 
         viewer->addWindow(window);
 
@@ -116,7 +304,8 @@ int main(int argc, char** argv)
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
         viewer->addEventHandler(vsg::Trackball::create(camera));
 
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        commandGraph->addChild(vsg::createRenderGraphForView(window, camera, vsg_scene));
+
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         viewer->compile();
@@ -130,6 +319,8 @@ int main(int argc, char** argv)
             viewer->handleEvents();
 
             viewer->update();
+
+            // event->reset();
 
             viewer->recordAndSubmit();
 
