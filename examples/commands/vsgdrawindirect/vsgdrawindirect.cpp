@@ -90,7 +90,7 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
     bufferInfo->buffer = buffer;
     bufferInfo->offset = 0;
     bufferInfo->range = bufferSize;
-    bufferInfo->data = positions;
+    //bufferInfo->data = positions;
 #else
     auto bufferInfo = vsg::BufferInfo::create(positions);
 #endif
@@ -124,11 +124,11 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
 
         computeCommandGraph->addChild(bindDescriptorSet);
 
-        // computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
+        computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
 
-        // computeCommandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT));
+        computeCommandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT));
 
-        // group->addChild(computeCommandGraph);
+        group->addChild(computeCommandGraph);
     }
 
     // set up graphics subgraph to render the computed vertices
