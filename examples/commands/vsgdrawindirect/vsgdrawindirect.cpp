@@ -72,6 +72,7 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
     }
 
     // load shaders
+    auto init_computeShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect_initialize.comp", options);
     auto computeShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.comp", options);
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.vert", options);
     auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.frag", options);
@@ -84,60 +85,111 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
 
 
 #if 1
-    VkDeviceSize bufferSize = sizeof(vsg::vec4) * 256;
-    auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VkDeviceSize vertex_bufferSize = sizeof(vsg::vec4) * 256;
+    auto vertex_buffer = vsg::createBufferAndMemory(device, vertex_bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    auto bufferInfo = vsg::BufferInfo::create();
-    bufferInfo->buffer = buffer;
-    bufferInfo->offset = 0;
-    bufferInfo->range = bufferSize;
+    auto vertex_bufferInfo = vsg::BufferInfo::create();
+    vertex_bufferInfo->buffer = vertex_buffer;
+    vertex_bufferInfo->offset = 0;
+    vertex_bufferInfo->range = vertex_bufferSize;
 #else
     auto positions = vsg::vec4Array::create(256);
     for(auto& v : *positions) v.set(random_in_range(-0.5f, 0.5f), random_in_range(-0.5f, 0.5f), random_in_range(0.0f, 1.0f), 1.0f);
-    auto bufferInfo = vsg::BufferInfo::create(positions);
+    auto vertex_bufferInfo = vsg::BufferInfo::create(positions);
+#endif
+
+#if 1
+    VkDeviceSize drawIndirect_bufferSize = sizeof(vsg::DrawIndirectCommand);
+    auto drawIndirect_buffer = vsg::createBufferAndMemory(device, drawIndirect_bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    auto drawIndirect_bufferInfo = vsg::BufferInfo::create();
+    drawIndirect_bufferInfo->buffer = drawIndirect_buffer;
+    drawIndirect_bufferInfo->offset = 0;
+    drawIndirect_bufferInfo->range = drawIndirect_bufferSize;
+#else
+    auto drawIndirectCommandArray = vsg::DrawIndirectCommandArray::create(1);
+
+    auto& drawIndirectCommand = drawIndirectCommandArray->at(0);
+    drawIndirectCommand.vertexCount = 256;
+    drawIndirectCommand.instanceCount = 1;
+    drawIndirectCommand.firstVertex = 0;
+    drawIndirectCommand.firstInstance = 0;
+
+    auto drawIndirect_bufferInfo = vsg::BufferInfo::create(drawIndirectCommandArray);
 #endif
 
     // compute subgraph
     {
-
         auto computeScale = vsg::vec4Array::create(1);
         computeScale->properties.dataVariance = vsg::DYNAMIC_DATA;
         computeScale->set(0, vsg::vec4(1.0, 1.0, 1.0, 0.0));
 
-        auto computeScaleBuffer = vsg::DescriptorBuffer::create(computeScale, 1);
+        auto vertexStorageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{vertex_bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+        auto computeScaleBuffer = vsg::DescriptorBuffer::create(computeScale, 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        auto drawIndirectStorageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{drawIndirect_bufferInfo}, 2, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
         auto computeCommandGraph = vsg::CommandGraph::create(device, computeQueueFamily);
-        computeCommandGraph->submitOrder = -1; // make sure the computeCommandGraph is placed before first
+        computeCommandGraph->submitOrder = -1; // make sure the computeCommandGraph is placed before parent CommandGraph
 
         vsg::DescriptorSetLayoutBindings descriptorBindings{
             {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr} // ClipSettings uniform
+            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}
         };
 
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
         auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
-        auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
-        auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
-        computeCommandGraph->addChild(bindPipeline);
-
-        auto storageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{storageBuffer, computeScaleBuffer});
+        auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{vertexStorageBuffer, computeScaleBuffer, drawIndirectStorageBuffer});
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
 
-        computeCommandGraph->addChild(bindDescriptorSet);
+        // initialize drawIndirect buffer
+        {
+            auto pipeline = vsg::ComputePipeline::create(pipelineLayout, init_computeShader);
+            auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
+            computeCommandGraph->addChild(bindPipeline);
+            computeCommandGraph->addChild(bindDescriptorSet);
 
-        computeCommandGraph->addChild(vsg::Dispatch::create(4, 4, 1));
+            computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
+        }
 
-        auto postComputeBarrier = vsg::BufferMemoryBarrier::create(VK_ACCESS_SHADER_WRITE_BIT,
-                                                                   VK_ACCESS_SHADER_READ_BIT,
-                                                                   VK_QUEUE_FAMILY_IGNORED,
-                                                                   VK_QUEUE_FAMILY_IGNORED,
-                                                                   buffer,
-                                                                   0,
-                                                                   bufferSize);
+        {
+            auto postInitComputeBarrier = vsg::BufferMemoryBarrier::create(VK_ACCESS_SHADER_WRITE_BIT,
+                                                                            VK_ACCESS_SHADER_READ_BIT,
+                                                                            VK_QUEUE_FAMILY_IGNORED,
+                                                                            VK_QUEUE_FAMILY_IGNORED,
+                                                                            drawIndirect_buffer,
+                                                                            0,
+                                                                            drawIndirect_bufferSize);
+
+            auto postInitComputeBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postInitComputeBarrier);
+
+            computeCommandGraph->addChild(postInitComputeBarrierCmd);
+        }
+
+        // update vertex and drawIndirect buffers
+        {
+            auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
+            auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
+            computeCommandGraph->addChild(bindPipeline);
+            computeCommandGraph->addChild(bindDescriptorSet);
+
+            computeCommandGraph->addChild(vsg::Dispatch::create(2, 2, 1));
+        }
+
+        {
+            auto postComputeBarrier = vsg::BufferMemoryBarrier::create(VK_ACCESS_SHADER_WRITE_BIT,
+                                                                        VK_ACCESS_SHADER_READ_BIT,
+                                                                        VK_QUEUE_FAMILY_IGNORED,
+                                                                        VK_QUEUE_FAMILY_IGNORED,
+                                                                        vertex_buffer,
+                                                                        0,
+                                                                        vertex_bufferSize);
 
 
-        auto postComputeBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postComputeBarrier);
+            auto postComputeBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postComputeBarrier);
+
+            computeCommandGraph->addChild(postComputeBarrierCmd);
+        }
 
         group->addChild(computeCommandGraph);
     }
@@ -177,22 +229,13 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
         // setup geometry
         auto drawCommands = vsg::Commands::create();
         auto bind_vertex_buffer = vsg::BindVertexBuffers::create();
-        bind_vertex_buffer->arrays.push_back(bufferInfo);
+        bind_vertex_buffer->arrays.push_back(vertex_bufferInfo);
         drawCommands->addChild(bind_vertex_buffer);
 
 
-        auto drawIndirectCommandArray = vsg::DrawIndirectCommandArray::create(1);
-
-        auto& drawIndirectCommand = drawIndirectCommandArray->at(0);
-        drawIndirectCommand.vertexCount = 256;
-        drawIndirectCommand.instanceCount = 1;
-        drawIndirectCommand.firstVertex = 0;
-        drawIndirectCommand.firstInstance = 0;
-
-        auto drawIndirectBufferInfo = vsg::BufferInfo::create(drawIndirectCommandArray);
 
         auto drawIndirect = vsg::DrawIndirect::create();
-        drawIndirect->bufferInfo = drawIndirectBufferInfo;
+        drawIndirect->bufferInfo = drawIndirect_bufferInfo;
         drawIndirect->drawCount = 1;
         drawIndirect->stride = 16;
 
