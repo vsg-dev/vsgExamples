@@ -9,6 +9,10 @@
 #include <iostream>
 #include <thread>
 
+// background reading:
+// GLSL compute shaders: https://www.khronos.org/opengl/wiki/Compute_Shader
+// NVIidia's Vulkan do's and dont's: https://developer.nvidia.com/blog/vulkan-dos-donts/
+// https://themaister.net/blog/2019/08/14/yet-another-blog-explaining-vulkan-synchronization/
 
 vsg::ref_ptr<vsg::Node> createLoadedModelScene(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options)
 {
@@ -67,12 +71,10 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
         std::cout<<"Cannot setup compute command buffer without computeQueueFamily."<<std::endl;
     }
 
-    auto event = options->getRefObject<vsg::Event>("event");
-
     // load shaders
-    auto computeShader = vsg::read_cast<vsg::ShaderStage>("shaders/computevertex.comp", options);
-    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/computevertex.vert", options);
-    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/computevertex.frag", options);
+    auto computeShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.comp", options);
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.frag", options);
 
     if (!computeShader || !vertexShader || !fragmentShader)
     {
@@ -80,18 +82,18 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
         return {};
     }
 
+
+#if 1
     VkDeviceSize bufferSize = sizeof(vsg::vec4) * 256;
     auto buffer = vsg::createBufferAndMemory(device, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    auto positions = vsg::vec4Array::create(256);
-    for(auto& v : *positions) v.set(random_in_range(-0.5f, 0.5f), random_in_range(-0.5f, 0.5f), random_in_range(0.0f, 1.0f), 1.0f);
-#if 1
     auto bufferInfo = vsg::BufferInfo::create();
     bufferInfo->buffer = buffer;
     bufferInfo->offset = 0;
     bufferInfo->range = bufferSize;
-    //bufferInfo->data = positions;
 #else
+    auto positions = vsg::vec4Array::create(256);
+    for(auto& v : *positions) v.set(random_in_range(-0.5f, 0.5f), random_in_range(-0.5f, 0.5f), random_in_range(0.0f, 1.0f), 1.0f);
     auto bufferInfo = vsg::BufferInfo::create(positions);
 #endif
 
@@ -124,9 +126,18 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
 
         computeCommandGraph->addChild(bindDescriptorSet);
 
-        computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
+        computeCommandGraph->addChild(vsg::Dispatch::create(4, 4, 1));
 
-        if (event) computeCommandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT));
+        auto postComputeBarrier = vsg::BufferMemoryBarrier::create(VK_ACCESS_SHADER_WRITE_BIT,
+                                                                   VK_ACCESS_SHADER_READ_BIT,
+                                                                   VK_QUEUE_FAMILY_IGNORED,
+                                                                   VK_QUEUE_FAMILY_IGNORED,
+                                                                   buffer,
+                                                                   0,
+                                                                   bufferSize);
+
+
+        auto postComputeBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postComputeBarrier);
 
         group->addChild(computeCommandGraph);
     }
@@ -162,8 +173,6 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
         // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
         auto scenegraph = vsg::StateGroup::create();
         scenegraph->add(bindGraphicsPipeline);
-
-        if (event) scenegraph->addChild(vsg::WaitEvents::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, event));
 
         // setup geometry
         auto drawCommands = vsg::Commands::create();
@@ -276,10 +285,8 @@ int main(int argc, char** argv)
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
 
         auto device = window->getOrCreateDevice();
-        auto event = vsg::Event::create(device);
 
         options->setObject("device", device);
-        options->setObject("event", event);
         options->setValue("computeQueueFamily", commandGraph->queueFamily);
 
         auto vsg_scene = createScene(arguments, options);
@@ -334,13 +341,8 @@ int main(int argc, char** argv)
         {
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
-
             viewer->update();
-
-            // event->reset();
-
             viewer->recordAndSubmit();
-
             viewer->present();
         }
 
