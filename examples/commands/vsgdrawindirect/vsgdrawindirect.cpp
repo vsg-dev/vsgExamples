@@ -126,7 +126,7 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
 
         computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
 
-        computeCommandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT));
+        if (event) computeCommandGraph->addChild(vsg::SetEvent::create(event, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT));
 
         group->addChild(computeCommandGraph);
     }
@@ -163,14 +163,31 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
         auto scenegraph = vsg::StateGroup::create();
         scenegraph->add(bindGraphicsPipeline);
 
-        // scenegraph->addChild(vsg::WaitEvents::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, event));
+        if (event) scenegraph->addChild(vsg::WaitEvents::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, event));
 
         // setup geometry
         auto drawCommands = vsg::Commands::create();
         auto bind_vertex_buffer = vsg::BindVertexBuffers::create();
         bind_vertex_buffer->arrays.push_back(bufferInfo);
         drawCommands->addChild(bind_vertex_buffer);
-        drawCommands->addChild(vsg::Draw::create(256, 1, 0, 0));
+
+
+        auto drawIndirectCommandArray = vsg::DrawIndirectCommandArray::create(1);
+
+        auto& drawIndirectCommand = drawIndirectCommandArray->at(0);
+        drawIndirectCommand.vertexCount = 256;
+        drawIndirectCommand.instanceCount = 1;
+        drawIndirectCommand.firstVertex = 0;
+        drawIndirectCommand.firstInstance = 0;
+
+        auto drawIndirectBufferInfo = vsg::BufferInfo::create(drawIndirectCommandArray);
+
+        auto drawIndirect = vsg::DrawIndirect::create();
+        drawIndirect->bufferInfo = drawIndirectBufferInfo;
+        drawIndirect->drawCount = 1;
+        drawIndirect->stride = 16;
+
+        drawCommands->addChild(drawIndirect);
 
         scenegraph->addChild(drawCommands);
 
