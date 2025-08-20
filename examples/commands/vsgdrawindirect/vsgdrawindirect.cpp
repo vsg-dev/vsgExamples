@@ -14,48 +14,13 @@
 // NVIidia's Vulkan do's and dont's: https://developer.nvidia.com/blog/vulkan-dos-donts/
 // https://themaister.net/blog/2019/08/14/yet-another-blog-explaining-vulkan-synchronization/
 
-vsg::ref_ptr<vsg::Node> createLoadedModelScene(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options)
-{
-    auto group = vsg::Group::create();
-
-    vsg::Path path;
-
-    // read any vsg files
-    for (int i = 1; i < arguments.argc(); ++i)
-    {
-        vsg::Path filename = arguments[i];
-        path = vsg::filePath(filename);
-
-        auto object = vsg::read(filename, options);
-        if (auto node = object.cast<vsg::Node>())
-        {
-            group->addChild(node);
-        }
-        else if (object)
-        {
-                std::cout << "Unable to view object of type " << object->className() << std::endl;
-        }
-        else
-        {
-            std::cout << "Unable to load file " << filename << std::endl;
-        }
-    }
-
-    if (group->children.empty())
-        return {};
-    else if (group->children.size() == 1)
-        return group->children[0];
-    else
-        return group;
-}
-
 template<typename T>
 T random_in_range(T min, T max)
 {
     return min + static_cast<T>(std::rand()) / static_cast<T>(RAND_MAX) * (max-min);
 }
 
-vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg::ref_ptr<vsg::Options> options)
+vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_ptr<vsg::Options> options)
 {
     auto group = vsg::Group::create();
 
@@ -83,8 +48,6 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
         return {};
     }
 
-
-#if 1
     VkDeviceSize vertex_bufferSize = sizeof(vsg::vec4) * 256;
     auto vertex_buffer = vsg::createBufferAndMemory(device, vertex_bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -92,13 +55,8 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
     vertex_bufferInfo->buffer = vertex_buffer;
     vertex_bufferInfo->offset = 0;
     vertex_bufferInfo->range = vertex_bufferSize;
-#else
-    auto positions = vsg::vec4Array::create(256);
-    for(auto& v : *positions) v.set(random_in_range(-0.5f, 0.5f), random_in_range(-0.5f, 0.5f), random_in_range(0.0f, 1.0f), 1.0f);
-    auto vertex_bufferInfo = vsg::BufferInfo::create(positions);
-#endif
 
-#if 1
+
     VkDeviceSize drawIndirect_bufferSize = sizeof(vsg::DrawIndirectCommand);
     auto drawIndirect_buffer = vsg::createBufferAndMemory(device, drawIndirect_bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -106,17 +64,6 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
     drawIndirect_bufferInfo->buffer = drawIndirect_buffer;
     drawIndirect_bufferInfo->offset = 0;
     drawIndirect_bufferInfo->range = drawIndirect_bufferSize;
-#else
-    auto drawIndirectCommandArray = vsg::DrawIndirectCommandArray::create(1);
-
-    auto& drawIndirectCommand = drawIndirectCommandArray->at(0);
-    drawIndirectCommand.vertexCount = 256;
-    drawIndirectCommand.instanceCount = 1;
-    drawIndirectCommand.firstVertex = 0;
-    drawIndirectCommand.firstInstance = 0;
-
-    auto drawIndirect_bufferInfo = vsg::BufferInfo::create(drawIndirectCommandArray);
-#endif
 
     // compute subgraph
     {
@@ -173,7 +120,7 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
             computeCommandGraph->addChild(bindPipeline);
             computeCommandGraph->addChild(bindDescriptorSet);
 
-            computeCommandGraph->addChild(vsg::Dispatch::create(2, 2, 1));
+            computeCommandGraph->addChild(vsg::Dispatch::create(4, 4, 1));
         }
 
         {
@@ -264,18 +211,6 @@ vsg::ref_ptr<vsg::Node> createComputeScene(vsg::CommandLine& /*arguments*/, vsg:
 
 
     return group;
-}
-
-vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options)
-{
-    if (arguments.read("-m"))
-    {
-        return createLoadedModelScene(arguments, options);
-    }
-    else
-    {
-        return createComputeScene(arguments, options);
-    }
 }
 
 int main(int argc, char** argv)
