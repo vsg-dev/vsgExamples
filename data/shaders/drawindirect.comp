@@ -1,5 +1,11 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shader_atomic_counters : enable
+
+layout(push_constant) uniform PushConstants {
+    mat4 projection;
+    mat4 modelView;
+} pc;
 
 layout(std140, set = 0, binding = 0) buffer Positions
 {
@@ -33,7 +39,14 @@ void main()
   float x = float(i) / 15 - 0.5;
   float y = float(j) / 15 - 0.5;
   float z = (0.25 * sin(2.0 * 3.14 * x) + 0.25 * cos(2.0 * 3.14 * y));
-  positions[i + j * 16] = vec4(x, y, z, 1) * scale;
 
-  atomicAdd(drawBuffer.draws[0].vertexCount, 1);
+  vec4 vertex = vec4(x, y, z, 1) * scale;
+
+  vec3 eyePos = vec4(pc.modelView * vertex).xyz;
+  float distance = -eyePos.z;
+
+  if (distance < 5.0)
+  {
+    positions[atomicAdd(drawBuffer.draws[0].vertexCount, 1)] = vertex;
+  }
 }

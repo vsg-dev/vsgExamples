@@ -58,7 +58,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
 
 
     VkDeviceSize drawIndirect_bufferSize = sizeof(vsg::DrawIndirectCommand);
-    auto drawIndirect_buffer = vsg::createBufferAndMemory(device, drawIndirect_bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    auto drawIndirect_buffer = vsg::createBufferAndMemory(device, drawIndirect_bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     auto drawIndirect_bufferInfo = vsg::BufferInfo::create();
     drawIndirect_bufferInfo->buffer = drawIndirect_buffer;
@@ -69,7 +69,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
     {
         auto computeScale = vsg::vec4Array::create(1);
         computeScale->properties.dataVariance = vsg::DYNAMIC_DATA;
-        computeScale->set(0, vsg::vec4(1.0, 1.0, 1.0, 0.0));
+        computeScale->set(0, vsg::vec4(1.0, 1.0, 1.0, 1.0));
 
         auto vertexStorageBuffer = vsg::DescriptorBuffer::create(vsg::BufferInfoList{vertex_bufferInfo}, 0, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
         auto computeScaleBuffer = vsg::DescriptorBuffer::create(computeScale, 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -84,8 +84,12 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
             {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}
         };
 
+        vsg::PushConstantRanges pushConstantRanges{
+            {VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
+        };
+
         auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, vsg::PushConstantRanges{});
+        auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{descriptorSetLayout}, pushConstantRanges);
         auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{vertexStorageBuffer, computeScaleBuffer, drawIndirectStorageBuffer});
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
 
@@ -93,10 +97,13 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
         {
             auto pipeline = vsg::ComputePipeline::create(pipelineLayout, init_computeShader);
             auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
-            computeCommandGraph->addChild(bindPipeline);
-            computeCommandGraph->addChild(bindDescriptorSet);
 
-            computeCommandGraph->addChild(vsg::Dispatch::create(1, 1, 1));
+            auto stateGroup = vsg::StateGroup::create();
+            stateGroup->add(bindPipeline);
+            stateGroup->add(bindDescriptorSet);
+            stateGroup->addChild(vsg::Dispatch::create(1, 1, 1));
+
+            computeCommandGraph->addChild(stateGroup);
         }
 
         {
@@ -117,10 +124,13 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
         {
             auto pipeline = vsg::ComputePipeline::create(pipelineLayout, computeShader);
             auto bindPipeline = vsg::BindComputePipeline::create(pipeline);
-            computeCommandGraph->addChild(bindPipeline);
-            computeCommandGraph->addChild(bindDescriptorSet);
 
-            computeCommandGraph->addChild(vsg::Dispatch::create(4, 4, 1));
+            auto stateGroup = vsg::StateGroup::create();
+            stateGroup->add(bindPipeline);
+            stateGroup->add(bindDescriptorSet);
+            stateGroup->addChild(vsg::Dispatch::create(4, 4, 1));
+
+            computeCommandGraph->addChild(stateGroup);
         }
 
         {
@@ -145,7 +155,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
     {
         // set up graphics pipeline
         vsg::PushConstantRanges pushConstantRanges{
-            {VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
+            {VK_SHADER_STAGE_COMPUTE_BIT | VK_SHADER_STAGE_VERTEX_BIT, 0, 128} // projection, view, and model matrices, actual push constant calls automatically provided by the VSG's RecordTraversal
         };
 
         vsg::VertexInputState::Bindings vertexBindingsDescriptions{
