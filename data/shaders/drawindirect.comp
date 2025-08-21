@@ -44,8 +44,7 @@ void main()
 
   vec3 eyePos = vec4(pc.modelView * vertex).xyz;
   float distance = -eyePos.z;
-
-  if (distance < 5.0)
+  if (distance < 3.0)
   {
     positions[atomicAdd(drawBuffer.draws[0].vertexCount, 1)] = vertex;
   }

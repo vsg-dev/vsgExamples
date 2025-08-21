@@ -20,6 +20,39 @@ T random_in_range(T min, T max)
     return min + static_cast<T>(std::rand()) / static_cast<T>(RAND_MAX) * (max-min);
 }
 
+class CaptureViewState : public vsg::Inherit<vsg::Group, CaptureViewState>
+{
+public:
+
+    CaptureViewState() {};
+
+    void accept(vsg::RecordTraversal& rt) const override
+    {
+        auto state = rt.getState();
+        vsg::info("\nCaptureViewState::accept()");
+        vsg::info("projection = ", state->projectionMatrixStack.top());
+        vsg::info("modelview = ", state->modelviewMatrixStack.top());
+        auto pvm = state->projectionMatrixStack.top() * state->modelviewMatrixStack.top();
+        vsg::info("pvm = ", pvm);
+
+        vsg::dplane left(pvm[0][0] + pvm[0][3], pvm[1][0] + pvm[1][3], pvm[2][0] + pvm[2][3], pvm[3][0] + pvm[3][3]);
+        vsg::dplane right(-pvm[0][0] + pvm[0][3], -pvm[1][0] + pvm[1][3], -pvm[2][0] + pvm[2][3], -pvm[3][0] + pvm[3][3]);
+        vsg::dplane bottom(pvm[0][1] + pvm[0][3], pvm[1][1] + pvm[1][3], pvm[2][1] + pvm[2][3], pvm[3][1] + pvm[3][3]);
+        vsg::dplane top(-pvm[0][1] + pvm[0][3], -pvm[1][1] + pvm[1][3], -pvm[2][1] + pvm[2][3], -pvm[3][1] + pvm[3][3]);
+
+        left.vec /= vsg::length(left.n);
+        right.vec /= vsg::length(right.n);
+        bottom.vec /= vsg::length(bottom.n);
+        top.vec /= vsg::length(top.n);
+
+        vsg::info("left = ", left);
+        vsg::info("right = ", right);
+        vsg::info("bottom = ", bottom);
+        vsg::info("top = ", top);
+        rt.apply(*this);
+    }
+};
+
 vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_ptr<vsg::Options> options)
 {
     auto group = vsg::Group::create();
@@ -93,6 +126,14 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
         auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{vertexStorageBuffer, computeScaleBuffer, drawIndirectStorageBuffer});
         auto bindDescriptorSet = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, descriptorSet);
 
+#if 1
+        auto captureViewState = CaptureViewState::create();
+        computeCommandGraph->addChild(captureViewState);
+        auto parent = captureViewState;
+#else
+        auto parent = computeCommandGraph;
+#endif
+
         // initialize drawIndirect buffer
         {
             auto pipeline = vsg::ComputePipeline::create(pipelineLayout, init_computeShader);
@@ -103,7 +144,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
             stateGroup->add(bindDescriptorSet);
             stateGroup->addChild(vsg::Dispatch::create(1, 1, 1));
 
-            computeCommandGraph->addChild(stateGroup);
+            parent->addChild(stateGroup);
         }
 
         {
@@ -117,7 +158,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
 
             auto postInitComputeBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postInitComputeBarrier);
 
-            computeCommandGraph->addChild(postInitComputeBarrierCmd);
+            parent->addChild(postInitComputeBarrierCmd);
         }
 
         // update vertex and drawIndirect buffers
@@ -130,7 +171,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
             stateGroup->add(bindDescriptorSet);
             stateGroup->addChild(vsg::Dispatch::create(4, 4, 1));
 
-            computeCommandGraph->addChild(stateGroup);
+            parent->addChild(stateGroup);
         }
 
         {
@@ -145,7 +186,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
 
             auto postComputeBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postComputeBarrier);
 
-            computeCommandGraph->addChild(postComputeBarrierCmd);
+            parent->addChild(postComputeBarrierCmd);
         }
 
         group->addChild(computeCommandGraph);
