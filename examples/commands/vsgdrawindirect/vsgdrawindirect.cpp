@@ -76,12 +76,27 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
     auto init_computeShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect_initialize.comp", options);
     auto computeShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.comp", options);
     auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.vert", options);
+    auto geometryShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.geom", options);
     auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/drawindirect.frag", options);
 
-    if (!computeShader || !vertexShader || !fragmentShader)
+
+    if (!init_computeShader || !computeShader || !vertexShader || !geometryShader || !fragmentShader)
     {
         std::cout << "Could not create shaders." << std::endl;
         return {};
+    }
+
+    bool generateDebugInfo = false;
+    if (options->getValue("generateDebugInfo", generateDebugInfo))
+    {
+        auto hints = vsg::ShaderCompileSettings::create();
+        hints->generateDebugInfo = generateDebugInfo;
+
+        computeShader->module->hints = hints;
+        init_computeShader->module->hints = hints;
+        vertexShader->module->hints = hints;
+        geometryShader->module->hints = hints;
+        fragmentShader->module->hints = hints;
     }
 
     VkDeviceSize vertex_bufferSize = sizeof(vsg::vec4) * 256;
@@ -220,7 +235,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
             vsg::DepthStencilState::create()};
 
         auto pipelineLayout = vsg::PipelineLayout::create(vsg::DescriptorSetLayouts{}, pushConstantRanges);
-        auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, fragmentShader}, pipelineStates);
+        auto graphicsPipeline = vsg::GraphicsPipeline::create(pipelineLayout, vsg::ShaderStages{vertexShader, geometryShader, fragmentShader}, pipelineStates);
         auto bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
 
         // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
@@ -267,6 +282,24 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
     return group;
 }
 
+void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
+{
+    auto shaderHints = vsg::ShaderCompileSettings::create();
+    shaderHints->generateDebugInfo = true;
+
+    auto& text = options->shaderSets["text"] = vsg::createTextShaderSet(options);
+    text->defaultShaderHints = shaderHints;
+
+    auto& flat = options->shaderSets["flat"] = vsg::createFlatShadedShaderSet(options);
+    flat->defaultShaderHints = shaderHints;
+
+    auto& phong = options->shaderSets["phong"] = vsg::createPhongShaderSet(options);
+    phong->defaultShaderHints = shaderHints;
+
+    auto& pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
+    pbr->defaultShaderHints = shaderHints;
+}
+
 int main(int argc, char** argv)
 {
     try
@@ -300,6 +333,47 @@ int main(int argc, char** argv)
             windowTraits->decoration = false;
             reportAverageFrameRate = true;
         }
+
+        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+        auto logFilename = arguments.value<vsg::Path>("", "--log");
+
+        vsg::ref_ptr<vsg::Instrumentation> instrumentation;
+        if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+        {
+            windowTraits->debugUtils = true;
+
+            auto gpu_instrumentation = vsg::GpuAnnotation::create();
+            if (arguments.read("--name"))
+                gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_name;
+            else if (arguments.read("--className"))
+                gpu_instrumentation->labelType = vsg::GpuAnnotation::Object_className;
+            else if (arguments.read("--func"))
+                gpu_instrumentation->labelType = vsg::GpuAnnotation::SourceLocation_function;
+
+            instrumentation = gpu_instrumentation;
+        }
+        else if (arguments.read({"--profiler", "--pr"}))
+        {
+            // set Profiler options
+            auto settings = vsg::Profiler::Settings::create();
+            arguments.read("--cpu", settings->cpu_instrumentation_level);
+            arguments.read("--gpu", settings->gpu_instrumentation_level);
+            arguments.read("--log-size", settings->log_size);
+
+            // create the profiler
+            instrumentation = vsg::Profiler::create(settings);
+        }
+
+        if (arguments.read({"--shader-debug-info", "--sdi"}))
+        {
+            options->setValue("generateDebugInfo", true);
+            windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
+        }
+
+        // enable geometry shader and other option Vulkan features.
+        auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
+        deviceFeatures->get().samplerAnisotropy = VK_TRUE;
+        deviceFeatures->get().geometryShader = VK_TRUE;
 
         vsg::Path outputFilename;
         arguments.read<vsg::Path>("-o", outputFilename);
@@ -364,6 +438,8 @@ int main(int argc, char** argv)
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
+        if (instrumentation) viewer->assignInstrumentation(instrumentation);
+
         viewer->compile();
 
         viewer->start_point() = vsg::clock::now();
@@ -376,6 +452,20 @@ int main(int argc, char** argv)
             viewer->update();
             viewer->recordAndSubmit();
             viewer->present();
+        }
+
+        if (auto profiler = instrumentation.cast<vsg::Profiler>())
+        {
+            instrumentation->finish();
+            if (logFilename)
+            {
+                std::ofstream fout(logFilename);
+                profiler->log->report(fout);
+            }
+            else
+            {
+                profiler->log->report(std::cout);
+            }
         }
 
         if (reportAverageFrameRate)
