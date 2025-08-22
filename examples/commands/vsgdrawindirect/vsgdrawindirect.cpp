@@ -13,6 +13,8 @@
 // GLSL compute shaders: https://www.khronos.org/opengl/wiki/Compute_Shader
 // NVIidia's Vulkan do's and dont's: https://developer.nvidia.com/blog/vulkan-dos-donts/
 // https://themaister.net/blog/2019/08/14/yet-another-blog-explaining-vulkan-synchronization/
+// https://docs.vulkan.org/samples/latest/samples/performance/pipeline_barriers/README.html
+// https://docs.vulkan.org/guide/latest/extensions/VK_KHR_synchronization2.html
 
 template<typename T>
 T random_in_range(T min, T max)
