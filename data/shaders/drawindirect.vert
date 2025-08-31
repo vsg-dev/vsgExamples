@@ -14,9 +14,6 @@ void main()
 {
     vec4 vertex = vec4(vsg_Vertex.xyz, 1.0);
     gl_Position = (pc.projection * pc.modelView) * vertex;
-    vec3 eyePos = vec4(pc.modelView * vertex).xyz;
-
-    float distance = -eyePos.z;
 
     vertexColor = vec4(1.0, 1.0, 1.0, 1.0);
 }
