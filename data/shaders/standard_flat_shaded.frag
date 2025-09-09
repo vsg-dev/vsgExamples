@@ -47,7 +47,7 @@ layout(set = MATERIAL_DESCRIPTOR_SET, binding = 11) uniform TexCoordIndices
 } texCoordIndices;
 
 layout(location = 2) in vec4 vertexColor;
-layout(location = 3) in vec2 texCoord[VSG_TEXCOORD_COUNT];
+layout(location = 4) in vec2 texCoord[VSG_TEXCOORD_COUNT];
 
 layout(location = 0) out vec4 outColor;
 
