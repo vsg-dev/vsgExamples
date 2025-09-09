@@ -79,7 +79,7 @@ layout(location = 0) out vec3 eyePos;
 layout(location = 1) out vec3 normalDir;
 layout(location = 2) out vec4 vertexColor;
 layout(location = 3) out vec2 texCoord[VSG_TEXCOORD_COUNT];
-layout(location = 6) out vec3 viewDir;
+layout(location = 7) out vec3 viewDir;
 
 out gl_PerVertex{
     vec4 gl_Position;
