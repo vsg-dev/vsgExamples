@@ -86,8 +86,8 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 layout(location = 0) in vec3 eyePos;
 layout(location = 1) in vec3 normalDir;
 layout(location = 2) in vec4 vertexColor;
-layout(location = 3) in vec2 texCoord[VSG_TEXCOORD_COUNT];
-layout(location = 6) in vec3 viewDir;
+layout(location = 3) in vec3 viewDir;
+layout(location = 4) in vec2 texCoord[VSG_TEXCOORD_COUNT];
 
 layout(location = 0) out vec4 outColor;
 
