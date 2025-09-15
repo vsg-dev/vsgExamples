@@ -19,7 +19,8 @@ vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vs
     state.lighting = false;
 
     vsg::GeometryInfo geom;
-    geom.dy.set(0.0f, 0.0f, 1.0f);
+    geom.dx.set(static_cast<float>(sourceData->width()), 0.0f, 0.0f);
+    geom.dy.set(0.0f, 0.0f, static_cast<float>(sourceData->height()));
     geom.dz.set(0.0f, -1.0f, 0.0f);
 
     return builder->createQuad(geom, state);
