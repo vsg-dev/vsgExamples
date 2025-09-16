@@ -73,7 +73,22 @@ endif()
 # install data
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/ DESTINATION share/vsgExamples)
 
+# Recursively get all the targets created in current_dir; store the list in out_var.
+# https://discourse.cmake.org/t/cmake-list-of-all-project-targets/1077/17
+function (_get_all_cmake_targets out_var current_dir)
+    get_property(targets DIRECTORY ${current_dir} PROPERTY BUILDSYSTEM_TARGETS)
+    get_property(subdirs DIRECTORY ${current_dir} PROPERTY SUBDIRECTORIES)
+
+    foreach(subdir ${subdirs})
+        _get_all_cmake_targets(subdir_targets ${subdir})
+        list(APPEND targets ${subdir_targets})
+    endforeach()
+
+    set(${out_var} ${targets} PARENT_SCOPE)
+endfunction()
+
 # VSG examples
+_get_all_cmake_targets(all_targets_pre_examples ${CMAKE_CURRENT_LIST_DIR})
 add_subdirectory(examples/animation)
 add_subdirectory(examples/app)
 add_subdirectory(examples/commands)
@@ -92,8 +107,31 @@ add_subdirectory(examples/ui)
 add_subdirectory(examples/utils)
 add_subdirectory(examples/vk)
 add_subdirectory(examples/volume)
+_get_all_cmake_targets(all_targets_post_examples ${CMAKE_CURRENT_LIST_DIR})
+
+# Get and store into the global property vsgExamples_all_examples_targets all the example targets that were created.
+set(all_targets_post_examples_copy ${all_targets_post_examples})
+foreach(target IN LISTS all_targets_post_examples_copy)
+    list(FIND all_targets_pre_examples ${target} index)
+    if (index GREATER -1)
+        list(REMOVE_ITEM all_targets_post_examples ${target})
+    endif()
+endforeach()
+set_property(GLOBAL PROPERTY vsgExamples_all_examples_targets "${all_targets_post_examples}")
 
 # VSG tests
+_get_all_cmake_targets(all_targets_pre_tests ${CMAKE_CURRENT_LIST_DIR})
 add_subdirectory(tests)
+_get_all_cmake_targets(all_targets_post_test ${CMAKE_CURRENT_LIST_DIR})
+
+# Get and store into the global property vsgExamples_all_tests_targets all the test targets that were created.
+set(all_targets_post_test_copy ${all_targets_post_test})
+foreach(target IN LISTS all_targets_post_test_copy)
+    list(FIND all_targets_pre_tests ${target} index)
+    if (index GREATER -1)
+        list(REMOVE_ITEM all_targets_post_test ${target})
+    endif()
+endforeach()
+set_property(GLOBAL PROPERTY vsgExamples_all_tests_targets "${all_targets_post_test}")
 
 vsg_add_feature_summary()
