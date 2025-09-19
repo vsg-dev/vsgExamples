@@ -128,14 +128,14 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
 
         {
             auto postInitComputeBarrier = vsg::BufferMemoryBarrier::create(VK_ACCESS_SHADER_WRITE_BIT,
-                                                                            VK_ACCESS_SHADER_READ_BIT,
+                                                                            VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
                                                                             VK_QUEUE_FAMILY_IGNORED,
                                                                             VK_QUEUE_FAMILY_IGNORED,
                                                                             drawIndirect_buffer,
                                                                             0,
                                                                             drawIndirect_bufferSize);
 
-            auto postInitComputeBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postInitComputeBarrier);
+            auto postInitComputeBarrierCmd = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, postInitComputeBarrier);
 
             parent->addChild(postInitComputeBarrierCmd);
         }
@@ -170,7 +170,7 @@ vsg::ref_ptr<vsg::Node> createScene(vsg::CommandLine& /*arguments*/, vsg::ref_pt
                 0,
                 drawIndirect_bufferSize);
 
-            auto postComputeBarrier = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postComputeBarrier_vertices, postComputeBarrier_drawIndirect);
+            auto postComputeBarrier = vsg::PipelineBarrier::create(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT |VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, 0, postComputeBarrier_vertices, postComputeBarrier_drawIndirect);
 
             parent->addChild(postComputeBarrier);
         }
@@ -342,6 +342,7 @@ int main(int argc, char** argv)
         auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
         deviceFeatures->get().samplerAnisotropy = VK_TRUE;
         deviceFeatures->get().geometryShader = VK_TRUE;
+        deviceFeatures->get().vertexPipelineStoresAndAtomics = VK_TRUE;
 
         vsg::Path outputFilename;
         arguments.read<vsg::Path>("-o", outputFilename);
