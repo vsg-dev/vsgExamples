@@ -122,6 +122,13 @@ int main(int argc, char** argv)
 
         auto numFrames = arguments.value(-1, "-f");
 
+        auto numClips = arguments.value(1, "-n");
+        if (numClips < 0 || numClips > 2)
+        {
+            std::cout << "Choose between 0 and 2 clips. If n is zero clipping is disabled. If n is 1 a clipping sphere is enabled in eye space, and if n is 2, world coordinate values less than X=0 are clipped in addition to the clipping sphere." << std::endl;
+            return 1;
+        }
+
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         if (argc <= 1)
@@ -151,6 +158,10 @@ int main(int argc, char** argv)
             std::cout << "Please set VSG_FILE_PATH environmental variable to your vsgExamples/data directory." << std::endl;
             return 1;
         }
+
+        // specify the number of clips to perform; gl_ClipDistance array is sized by NUM_CLIPS
+        vertexShader->module->hints = vsg::ShaderCompileSettings::create();
+        vertexShader->module->hints->defines.insert("NUM_CLIPS="+std::to_string(numClips));
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
