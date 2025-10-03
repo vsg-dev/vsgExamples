@@ -3,6 +3,7 @@ add_subdirectory(vsggraphicspipelineconfigurator)
 add_subdirectory(vsgshaderset)
 add_subdirectory(vsgintersection)
 add_subdirectory(vsgstoragebuffer)
+add_subdirectory(vsgterrainheight)
 add_subdirectory(vsgcustomshaderset)
 add_subdirectory(vsginstrumentation)
 
