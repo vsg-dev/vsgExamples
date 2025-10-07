@@ -16,16 +16,25 @@ public:
     vsg::ref_ptr<vsg::Group> scenegraph;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
     bool verbose = false;
+    vsg::ref_ptr<vsg::LineSegmentIntersector> intersector;
 
     IntersectionHandler(vsg::ref_ptr<vsg::Group> in_scenegraph, vsg::ref_ptr<vsg::EllipsoidModel> in_ellipsoidModel) :
         scenegraph(in_scenegraph),
-        ellipsoidModel(in_ellipsoidModel)
+        ellipsoidModel(in_ellipsoidModel),
+        intersector(nullptr)
     {
     }
 
     std::optional<vsg::dvec3> intersection_LineSegmentIntersector(const vsg::dvec3& start, const vsg::dvec3& end)
     {
-        auto intersector = vsg::LineSegmentIntersector::create(start, end);
+        if (!intersector)
+        {
+            intersector = vsg::LineSegmentIntersector::create(start, end);
+        }
+        else
+        {
+            intersector->reset(start, end);
+        }
 
         auto before_intersection = vsg::clock::now();
 
