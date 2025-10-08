@@ -1,6 +1,6 @@
 #include <vsg/all.h>
 
-#include <vsg/nodes/IntersectionOptimizedVertexDraw.h>
+#include <vsg/nodes/IntersectionProxy.h>
 
 #ifdef vsgXchange_FOUND
 #    include <vsgXchange/all.h>
