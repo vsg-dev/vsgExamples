@@ -1,7 +1,5 @@
 #include <vsg/all.h>
 
-#include <vsg/nodes/IntersectionProxy.h>
-
 #ifdef vsgXchange_FOUND
 #    include <vsgXchange/all.h>
 #endif
@@ -83,6 +81,12 @@ int main(int argc, char** argv)
     auto scene = vsg::Group::create();
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
 
+    auto intersectionOptimizeVisitor = vsg::IntersectionOptimizeVisitor::create();
+    for (auto& readerWriter : options->readerWriters)
+    {
+        readerWriter = vsg::ApplyVisitorReader::create(readerWriter, intersectionOptimizeVisitor);
+    }
+
     if (argc > 1)
     {
         vsg::Path filename = arguments[1];
@@ -93,8 +97,6 @@ int main(int argc, char** argv)
             ellipsoidModel = model->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
         }
     }
-
-    scene->accept(vsg::IntersectionOptimizeVisitor());
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -240,7 +242,7 @@ int main(int argc, char** argv)
         std::cout << "Hits: " << hits << ", misses: " << queryLocationCount - hits << std::endl;
 
         ++iterations;
-        if (iterations == 1)
+        if (iterations == 10)
             viewer->close();
     }
 
