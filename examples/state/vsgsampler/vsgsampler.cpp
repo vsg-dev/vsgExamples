@@ -78,6 +78,25 @@ vsg::ref_ptr<vsg::Node> createTexturedQuad(const vsg::vec3& position, const vsg:
     return stateGroup;
 }
 
+vsg::ref_ptr<vsg::Node> createText(const vsg::vec3& position, const vsg::vec2& extents, const std::string& str, vsg::ref_ptr<vsg::Options> options)
+{
+    auto font = vsg::read_cast<vsg::Font>("fonts/times.vsgb", options);
+
+    auto layout = vsg::StandardLayout::create();
+    layout->glyphLayout = vsg::StandardLayout::LEFT_TO_RIGHT_LAYOUT;
+    layout->position = position;
+    layout->horizontal = vsg::vec3(extents.x, 0.0, 0.0);
+    layout->vertical = vsg::vec3(0.0, 0.0, extents.y);
+    layout->color = vsg::vec4(1.0, 1.0, 1.0, 1.0);
+
+    auto text = vsg::Text::create();
+    text->text = vsg::stringValue::create(str);
+    text->font = font;
+    text->layout = layout;
+    text->setup(0, options);
+    return text;
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -101,11 +120,14 @@ int main(int argc, char** argv)
     auto scenegraph = vsg::Group::create();
     vsg::vec3 position(0.0f, 0.0f, 0.0f);
     vsg::vec2 delta(16.0f, 16.0f);
+    vsg::vec2 textExtents(delta.x*0.5f, delta.y*0.5f);
 
     for(auto i = 1; i < argc; ++i)
     {
-        if (auto image = vsg::read_cast<vsg::Data>(arguments[i], options))
+        std::string filename = arguments[i];
+        if (auto image = vsg::read_cast<vsg::Data>(filename, options))
         {
+            auto mipmapData = image->getObject<vsg::uivec4Array>("mipmapData");
             vsg::vec2 extents(static_cast<float>(image->width()), static_cast<float>(image->height()));
 
             // default mipmap settings
@@ -119,6 +141,8 @@ int main(int argc, char** argv)
                 if (auto model = createTexturedQuad(position, extents, image, sampler, options))
                 {
                     scenegraph->addChild(model);
+                    scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string(filename, "\n", image->width(), " x ", image->height()), options));
+
                     position.x += extents[0] + delta[0] * 2.0f;
                 }
             }
@@ -136,7 +160,17 @@ int main(int argc, char** argv)
 
                     if (auto model = createTexturedQuad(position, extents, image, sampler, options))
                     {
+
                         scenegraph->addChild(model);
+                        scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string("level = ", level), options));
+
+                        if (mipmapData)
+                        {
+                            auto& mipmapExtents = mipmapData->at(level);
+                            scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]*2.0f), textExtents, vsg::make_string(mipmapExtents), options));
+                        }
+
+
                         position.x += extents[0] + delta[0];
                     }
                 }
