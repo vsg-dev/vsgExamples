@@ -128,7 +128,7 @@ int main(int argc, char** argv)
         if (auto image = vsg::read_cast<vsg::Data>(filename, options))
         {
             auto mipmapData = image->getObject<vsg::uivec4Array>("mipmapData");
-            vsg::vec2 extents(static_cast<float>(image->width()), static_cast<float>(image->height()));
+            vsg::vec2 extents(static_cast<float>(image->width() * image->properties.blockWidth), static_cast<float>(image->height() * image->properties.blockHeight));
 
             // default mipmap settings
             {
