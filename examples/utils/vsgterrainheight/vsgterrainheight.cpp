@@ -71,6 +71,9 @@ int main(int argc, char** argv)
 
     auto queryLocationCount = arguments.value(100000, "-n");
 
+    auto querySort = arguments.read("--qs");
+    auto queryBins = arguments.value(1, "--qb");
+
     if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
 #ifdef vsgXchange_all
@@ -184,6 +187,64 @@ int main(int argc, char** argv)
                 localBounds.bounds.max.z};
             queryLocations.emplace_back(geodeticToEcef * localPoint);
         }
+
+        if (querySort)
+        {
+            std::sort(queryLocations.begin(), queryLocations.end(), [&](const vsg::dvec3& l, const vsg::dvec3& r) { return ellipsoidModel->convertECEFToLatLongAltitude(l).x < ellipsoidModel->convertECEFToLatLongAltitude(r).x; });
+        }
+
+        if (queryBins != 1)
+        {
+            auto nthBinSize = [&](size_t i) {
+                return queryLocations.size() / queryBins + (i < queryLocations.size() % queryBins ? 1 : 0);
+            };
+
+            std::vector<std::vector<vsg::dvec3>> bins(queryBins, {});
+            for (size_t i = 0; i < bins.size(); ++i)
+            {
+                bins[i].reserve(nthBinSize(i));
+            }
+
+            std::vector<double> longs;
+            longs.reserve(queryLocations.size());
+            for (const auto& loc : queryLocations)
+            {
+                longs.push_back(ellipsoidModel->convertECEFToLatLongAltitude(loc).y);
+            }
+
+            std::vector<double> thresholds;
+            thresholds.reserve(bins.size());
+            auto binBegin = longs.begin();
+            for (size_t i = 0; i < bins.size(); ++i)
+            {
+                auto binEnd = binBegin + nthBinSize(i);
+                std::nth_element(binBegin, binEnd, longs.end());
+                if (binEnd != longs.end())
+                    thresholds.push_back(*binEnd);
+                else
+                    thresholds.push_back(std::numeric_limits<double>::infinity());
+                binBegin = binEnd;
+            }
+
+            for (const auto& query : queryLocations)
+            {
+                auto lla = ellipsoidModel->convertECEFToLatLongAltitude(query);
+                for (size_t i = 0; i < bins.size(); ++i)
+                {
+                    if (lla.y < thresholds[i])
+                    {
+                        bins[i].push_back(query);
+                        break;
+                    }
+                }
+            }
+
+            queryLocations.clear();
+            for (const auto& bin : bins)
+            {
+                queryLocations.insert(queryLocations.end(), bin.begin(), bin.end());
+            }
+        }
     }
     else
     {
@@ -193,6 +254,63 @@ int main(int argc, char** argv)
                 computeBounds.bounds.min.x + randomDist(randomEngine) * (computeBounds.bounds.max.x - computeBounds.bounds.min.x),
                 computeBounds.bounds.min.y + randomDist(randomEngine) * (computeBounds.bounds.max.y - computeBounds.bounds.min.y),
                 computeBounds.bounds.max.z);
+        }
+
+        if (querySort)
+        {
+            std::sort(queryLocations.begin(), queryLocations.end(), [&](const vsg::dvec3& l, const vsg::dvec3& r) { return l.x < r.x; });
+        }
+
+        if (queryBins != 1)
+        {
+            auto nthBinSize = [&](size_t i) {
+                return queryLocations.size() / queryBins + (i < queryLocations.size() % queryBins ? 1 : 0);
+            };
+
+            std::vector<std::vector<vsg::dvec3>> bins(queryBins, {});
+            for (size_t i = 0; i < bins.size(); ++i)
+            {
+                bins[i].reserve(nthBinSize(i));
+            }
+
+            std::vector<double> ys;
+            ys.reserve(queryLocations.size());
+            for (const auto& loc : queryLocations)
+            {
+                ys.push_back(loc.y);
+            }
+
+            std::vector<double> thresholds;
+            thresholds.reserve(bins.size());
+            auto binBegin = ys.begin();
+            for (size_t i = 0; i < bins.size(); ++i)
+            {
+                auto binEnd = binBegin + nthBinSize(i);
+                std::nth_element(binBegin, binEnd, ys.end());
+                if (binEnd != ys.end())
+                    thresholds.push_back(*binEnd);
+                else
+                    thresholds.push_back(std::numeric_limits<double>::infinity());
+                binBegin = binEnd;
+            }
+
+            for (const auto& query : queryLocations)
+            {
+                for (size_t i = 0; i < bins.size(); ++i)
+                {
+                    if (query.y < thresholds[i])
+                    {
+                        bins[i].push_back(query);
+                        break;
+                    }
+                }
+            }
+
+            queryLocations.clear();
+            for (const auto& bin : bins)
+            {
+                queryLocations.insert(queryLocations.end(), bin.begin(), bin.end());
+            }
         }
     }
 
