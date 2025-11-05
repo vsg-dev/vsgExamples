@@ -117,19 +117,91 @@ int main(int argc, char** argv)
 
     auto outputFile = arguments.value<vsg::Path>("", "-o");
 
+    // create the viewer and assign window(s) to it
+    auto viewer = vsg::Viewer::create();
+    auto window = vsg::Window::create(windowTraits);
+    if (!window)
+    {
+        std::cout << "Could not create window." << std::endl;
+        return 1;
+    }
+
+    viewer->addWindow(window);
+
+    auto instance = window->getOrCreateInstance();
+    auto physicalDevice = window->getOrCreatePhysicalDevice();
+    if (!physicalDevice)
+    {
+        std::cout<<"No vkPhyscialDevice available."<<std::endl;
+        return 1;
+    }
+
+
+    uint32_t format_low = VK_FORMAT_UNDEFINED, format_high = VK_FORMAT_UNDEFINED;
+    if (arguments.read("--formats", format_low, format_high))
+    {
+        VkImageType type = VK_IMAGE_TYPE_2D;
+        VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+        VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+        VkImageCreateFlags flags = 0;
+
+        for(uint32_t format = format_low; format <= format_high; format += 1)
+        {
+            VkImageFormatProperties imageFormatProperties;
+            VkResult result = vkGetPhysicalDeviceImageFormatProperties(*physicalDevice, VkFormat(format), type, tiling, usage, flags, &imageFormatProperties);
+            if (result == VK_ERROR_FORMAT_NOT_SUPPORTED)
+            {
+                std::cout<<"image format "<<format<<" not supported."<<std::endl;
+            }
+            else
+            {
+                std::cout<<"image format "<<format<<" supported."<<std::endl;
+            }
+        }
+    }
+
+    std::map<vsg::Path, vsg::ref_ptr<vsg::Data>> images;
+    for(auto i = 1; i < argc; ++i)
+    {
+        vsg::Path filename = arguments[i];
+        if (auto image = vsg::read_cast<vsg::Data>(filename, options)) images[filename] = image;
+        else std::cout<<"Unable to load "<<filename<<std::endl;
+    }
+
+    // if nothing loaded
+    if (images.empty()) return 1;
+
+
+    std::cout<<"Loading "<<images.size()<<" images."<<std::endl;
+
     auto scenegraph = vsg::Group::create();
     vsg::vec3 position(0.0f, 0.0f, 0.0f);
     vsg::vec2 delta(16.0f, 16.0f);
     vsg::vec2 textExtents(delta.x*0.5f, delta.y*0.5f);
 
-    for(auto i = 1; i < argc; ++i)
+    for(auto& [filename, image] : images)
     {
-        std::string filename = arguments[i];
-        if (auto image = vsg::read_cast<vsg::Data>(filename, options))
+        VkImageType type = VK_IMAGE_TYPE_2D;
+        VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+        VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+        VkImageCreateFlags flags = 0;
+        VkImageFormatProperties imageFormatProperties;
+        if (vkGetPhysicalDeviceImageFormatProperties(*physicalDevice, image->properties.format, type, tiling, usage, flags, &imageFormatProperties) == VK_ERROR_FORMAT_NOT_SUPPORTED)
         {
-            auto mipmapData = image->getObject<vsg::uivec4Array>("mipmapData");
-            vsg::vec2 extents(static_cast<float>(image->width() * image->properties.blockWidth), static_cast<float>(image->height() * image->properties.blockHeight));
+            std::cout<<filename<<" format = "<<image->properties.format<<" not supported."<<std::endl;
+            continue;
+        }
 
+        auto mipmapData = image->getObject<vsg::uivec4Array>("mipmapData");
+        vsg::vec2 extents(static_cast<float>(image->width() * image->properties.blockWidth), static_cast<float>(image->height() * image->properties.blockHeight));
+
+
+        if (image->depth()==6)
+        {
+            std::cout<<"We have a cubemap, can't render for now."<<std::endl;
+        }
+        else
+        {
             // default mipmap settings
             {
                 auto sampler = vsg::Sampler::create();
@@ -186,18 +258,6 @@ int main(int argc, char** argv)
         std::cout<<"No images loaded to render, please specify an image filename on command line."<<std::endl;
         return 0;
     }
-
-    // create the viewer and assign window(s) to it
-    auto viewer = vsg::Viewer::create();
-
-    auto window = vsg::Window::create(windowTraits);
-    if (!window)
-    {
-        std::cout << "Could not create window." << std::endl;
-        return 1;
-    }
-
-    viewer->addWindow(window);
 
     vsg::ComputeBounds computeBounds;
     scenegraph->accept(computeBounds);
