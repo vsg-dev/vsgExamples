@@ -179,17 +179,36 @@ int main(int argc, char** argv)
     vsg::vec2 delta(16.0f, 16.0f);
     vsg::vec2 textExtents(delta.x*0.5f, delta.y*0.5f);
 
+
+    auto formatSupported = [&](VkFormat format) -> bool
+    {
+        if (VK_FORMAT_R8G8B8_UNORM <= format && format <= VK_FORMAT_B8G8R8_SRGB)
+        {
+            // RGB formats are converted to RGBA automatically by the VSG when transferring images
+            return true;
+        }
+        else
+        {
+            VkImageType type = VK_IMAGE_TYPE_2D;
+            VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+            VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+            VkImageCreateFlags flags = 0;
+            VkImageFormatProperties imageFormatProperties;
+            return vkGetPhysicalDeviceImageFormatProperties(*physicalDevice, format, type, tiling, usage, flags, &imageFormatProperties) != VK_ERROR_FORMAT_NOT_SUPPORTED;
+        }
+    };
+
     for(auto& [filename, image] : images)
     {
-        VkImageType type = VK_IMAGE_TYPE_2D;
-        VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
-        VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT;
-        VkImageCreateFlags flags = 0;
-        VkImageFormatProperties imageFormatProperties;
-        if (vkGetPhysicalDeviceImageFormatProperties(*physicalDevice, image->properties.format, type, tiling, usage, flags, &imageFormatProperties) == VK_ERROR_FORMAT_NOT_SUPPORTED)
+        if (!formatSupported(image->properties.format))
         {
-            std::cout<<filename<<" format = "<<image->properties.format<<" not supported."<<std::endl;
+            std::cout<<filename<<" : Image format not supported."<<std::endl;
             continue;
+        }
+
+        if (VK_FORMAT_R8G8B8_UNORM <= image->properties.format && image->properties.format <= VK_FORMAT_B8G8R8_SRGB)
+        {
+            std::cout<<"RGB format in: "<<filename<<std::endl;
         }
 
         auto mipmapData = image->getObject<vsg::uivec4Array>("mipmapData");
