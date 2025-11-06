@@ -202,13 +202,8 @@ int main(int argc, char** argv)
     {
         if (!formatSupported(image->properties.format))
         {
-            std::cout<<filename<<" : Image format not supported."<<std::endl;
+            std::cout<<filename<<" : Image format "<<image->properties.format<<" not supported by Vulkan driver/hardware."<<std::endl;
             continue;
-        }
-
-        if (VK_FORMAT_R8G8B8_UNORM <= image->properties.format && image->properties.format <= VK_FORMAT_B8G8R8_SRGB)
-        {
-            std::cout<<"RGB format in: "<<filename<<std::endl;
         }
 
         auto mipmapData = image->getObject<vsg::uivec4Array>("mipmapData");
