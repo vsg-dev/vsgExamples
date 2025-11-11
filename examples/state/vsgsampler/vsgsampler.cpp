@@ -115,6 +115,7 @@ int main(int argc, char** argv)
 
     options->readOptions(arguments);
 
+    auto numFrames = arguments.value(-1, "-f");
     auto outputFile = arguments.value<vsg::Path>("", "-o");
 
     // create the viewer and assign window(s) to it
@@ -306,7 +307,7 @@ int main(int argc, char** argv)
     viewer->addEventHandler(vsg::Trackball::create(camera));
 
     // main frame loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         viewer->handleEvents();
 
