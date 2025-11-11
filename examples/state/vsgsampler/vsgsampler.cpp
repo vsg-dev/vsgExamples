@@ -115,6 +115,9 @@ int main(int argc, char** argv)
 
     options->readOptions(arguments);
 
+    float maxLodDefault = VK_LOD_CLAMP_NONE;
+    arguments.read("--maxLod", maxLodDefault);
+
     auto numFrames = arguments.value(-1, "-f");
     auto outputFile = arguments.value<vsg::Path>("", "-o");
 
@@ -223,7 +226,7 @@ int main(int argc, char** argv)
                 sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
                 sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
                 sampler->minLod = 0.0f;
-                sampler->maxLod = VK_LOD_CLAMP_NONE;
+                sampler->maxLod = maxLodDefault;
 
                 if (auto model = createTexturedQuad(position, extents, image, sampler, options))
                 {
@@ -278,9 +281,6 @@ int main(int argc, char** argv)
     scenegraph->accept(computeBounds);
     vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6 * 3.0;
-
-    std::cout << "centre = " << centre << std::endl;
-    std::cout << "radius = " << radius << std::endl;
 
     // camera related details
     double nearFarRatio = 0.001;
