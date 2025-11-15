@@ -118,6 +118,7 @@ int main(int argc, char** argv)
     float maxLodDefault = VK_LOD_CLAMP_NONE;
     arguments.read("--maxLod", maxLodDefault);
 
+    auto annotate = !arguments.read("--no-text");
     auto numFrames = arguments.value(-1, "-f");
     auto outputFile = arguments.value<vsg::Path>("", "-o");
 
@@ -214,9 +215,9 @@ int main(int argc, char** argv)
         vsg::vec2 extents(static_cast<float>(image->width() * image->properties.blockWidth), static_cast<float>(image->height() * image->properties.blockHeight));
 
 
-        if (image->depth()==6)
+        if (image->properties.imageViewType != VK_IMAGE_VIEW_TYPE_2D)
         {
-            std::cout<<"We have a cubemap, can't render for now."<<std::endl;
+            std::cout<<"image "<<filename<<" is a texture array, cubemap or 3d texture, can't render for now, dimensions = {"<<image->width()<<", "<<image->height()<<", "<<image->depth()<<"}"<<std::endl;
         }
         else
         {
@@ -231,16 +232,19 @@ int main(int argc, char** argv)
                 if (auto model = createTexturedQuad(position, extents, image, sampler, options))
                 {
                     scenegraph->addChild(model);
-                    scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string(filename, "\n", image->width(), " x ", image->height()), options));
+                    if (annotate)
+                    {
+                        scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string(filename, "\n", image->width(), " x ", image->height(), " format = ", image->properties.format), options));
+                    }
 
                     position.x += extents[0] + delta[0] * 2.0f;
                 }
             }
 
             // create an image for each mipmap level.
-            if (auto mipmaps = image->computeMipmapOffsets(); mipmaps.size()>1)
+            if (image->properties.maxNumMipmaps > 1)
             {
-                for(size_t level = 0; level < mipmaps.size(); ++level)
+                for(uint8_t level = 0; level < image->properties.maxNumMipmaps; ++level)
                 {
                     auto sampler = vsg::Sampler::create();
                     sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -252,14 +256,16 @@ int main(int argc, char** argv)
                     {
 
                         scenegraph->addChild(model);
-                        scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string("level = ", level), options));
-
-                        if (mipmapData)
+                        if (annotate)
                         {
-                            auto& mipmapExtents = mipmapData->at(level);
-                            scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]*2.0f), textExtents, vsg::make_string(mipmapExtents), options));
-                        }
+                            scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string("level = ", level), options));
 
+                            if (mipmapData)
+                            {
+                                auto& mipmapExtents = mipmapData->at(level);
+                                scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]*2.0f), textExtents, vsg::make_string(mipmapExtents), options));
+                            }
+                        }
 
                         position.x += extents[0] + delta[0];
                     }
