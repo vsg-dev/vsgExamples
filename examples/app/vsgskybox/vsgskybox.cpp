@@ -62,7 +62,7 @@ vsg::ref_ptr<vsg::Node> createSkybox(const vsg::Path& filename, vsg::ref_ptr<vsg
 
     // create texture image and associated DescriptorSets and binding
     auto sampler = vsg::Sampler::create();
-    sampler->maxLod = data->properties.maxNumMipmaps;
+    sampler->maxLod = data->properties.mipLevels;
 
     auto texture = vsg::DescriptorImage::create(sampler, data, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 

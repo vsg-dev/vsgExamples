@@ -215,7 +215,7 @@ int main(int argc, char** argv)
         vsg::vec2 extents(static_cast<float>(image->width() * image->properties.blockWidth), static_cast<float>(image->height() * image->properties.blockHeight));
 
 
-        if (image->properties.imageViewType != VK_IMAGE_VIEW_TYPE_2D)
+        if (image->depth()>1 /*image->properties.imageViewType != VK_IMAGE_VIEW_TYPE_2D*/)
         {
             std::cout<<"image "<<filename<<" is a texture array, cubemap or 3d texture, can't render for now, dimensions = {"<<image->width()<<", "<<image->height()<<", "<<image->depth()<<"}"<<std::endl;
         }
@@ -242,9 +242,9 @@ int main(int argc, char** argv)
             }
 
             // create an image for each mipmap level.
-            if (image->properties.maxNumMipmaps > 1)
+            if (image->properties.mipLevels > 1)
             {
-                for(uint8_t level = 0; level < image->properties.maxNumMipmaps; ++level)
+                for(uint8_t level = 0; level < image->properties.mipLevels; ++level)
                 {
                     auto sampler = vsg::Sampler::create();
                     sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
