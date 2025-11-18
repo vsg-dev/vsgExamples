@@ -211,9 +211,6 @@ int main(int argc, char** argv)
             continue;
         }
 
-        auto mipmapData = image->getObject<vsg::uivec4Array>("mipmapData");
-        vsg::vec2 extents(static_cast<float>(image->width() * image->properties.blockWidth), static_cast<float>(image->height() * image->properties.blockHeight));
-
         if (image->depth() == 1 && image->properties.imageViewType != VK_IMAGE_VIEW_TYPE_2D)
         {
             image->properties.imageViewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -225,6 +222,10 @@ int main(int argc, char** argv)
         }
         else
         {
+            auto mipmapLayout = image->getMipmapLayout();
+            auto [width, height, depth] = image->pixelExtents();
+            vsg::vec2 extents(width, height);
+
             // default mipmap settings
             {
                 auto sampler = vsg::Sampler::create();
@@ -264,9 +265,9 @@ int main(int argc, char** argv)
                         {
                             scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string("level = ", level), options));
 
-                            if (mipmapData)
+                            if (mipmapLayout)
                             {
-                                auto& mipmapExtents = mipmapData->at(level);
+                                auto& mipmapExtents = mipmapLayout->at(level);
                                 scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]*2.0f), textExtents, vsg::make_string(mipmapExtents), options));
                             }
                         }
