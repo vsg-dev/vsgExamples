@@ -214,6 +214,10 @@ int main(int argc, char** argv)
         auto mipmapData = image->getObject<vsg::uivec4Array>("mipmapData");
         vsg::vec2 extents(static_cast<float>(image->width() * image->properties.blockWidth), static_cast<float>(image->height() * image->properties.blockHeight));
 
+        if (image->depth() == 1 && image->properties.imageViewType != VK_IMAGE_VIEW_TYPE_2D)
+        {
+            image->properties.imageViewType = VK_IMAGE_VIEW_TYPE_2D;
+        }
 
         if (image->depth()>1 /*image->properties.imageViewType != VK_IMAGE_VIEW_TYPE_2D*/)
         {
