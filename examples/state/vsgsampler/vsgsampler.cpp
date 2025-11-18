@@ -263,7 +263,7 @@ int main(int argc, char** argv)
                         scenegraph->addChild(model);
                         if (annotate)
                         {
-                            scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string("level = ", level), options));
+                            scenegraph->addChild(createText(position - vsg::vec3(0.0f, 0.0f, textExtents[1]), textExtents, vsg::make_string("level = ", int(level)), options));
 
                             if (mipmapLayout)
                             {
