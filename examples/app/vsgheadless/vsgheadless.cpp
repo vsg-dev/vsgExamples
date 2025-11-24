@@ -23,6 +23,178 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <iostream>
 #include <thread>
 
+namespace vsg
+{
+
+ref_ptr<RenderPass> createOffscreenRenderPass(Device* device, VkFormat imageFormat, VkFormat depthFormat, bool requiresDepthRead)
+{
+    auto colorAttachment = defaultColorAttachment(imageFormat);
+    auto depthAttachment = defaultDepthAttachment(depthFormat);
+
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;  // difference from createRenderPass
+
+    if (requiresDepthRead)
+    {
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    }
+
+    RenderPass::Attachments attachments{colorAttachment, depthAttachment};
+
+    AttachmentReference colorAttachmentRef = {};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    AttachmentReference depthAttachmentRef = {};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    SubpassDescription subpass = {};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachments.emplace_back(colorAttachmentRef);
+    subpass.depthStencilAttachments.emplace_back(depthAttachmentRef);
+
+    RenderPass::Subpasses subpasses{subpass};
+
+    // image layout transition
+    SubpassDependency colorDependency = {};
+    colorDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    colorDependency.dstSubpass = 0;
+    colorDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    colorDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    colorDependency.srcAccessMask = 0;
+    colorDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    colorDependency.dependencyFlags = 0;
+
+    // depth buffer is shared between swap chain images
+    SubpassDependency depthDependency = {};
+    depthDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    depthDependency.dstSubpass = 0;
+    depthDependency.srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    depthDependency.dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    depthDependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    depthDependency.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    depthDependency.dependencyFlags = 0;
+
+    RenderPass::Dependencies dependencies{colorDependency, depthDependency};
+
+    return RenderPass::create(device, attachments, subpasses, dependencies);
+}
+
+ref_ptr<RenderPass> createOffscreenMultisampledRenderPass(Device* device, VkFormat imageFormat, VkFormat depthFormat, VkSampleCountFlagBits samples, bool requiresDepthRead)
+{
+    if (samples == VK_SAMPLE_COUNT_1_BIT)
+    {
+        return createOffscreenRenderPass(device, imageFormat, depthFormat, requiresDepthRead);
+    }
+
+    // First attachment is multisampled target.
+    AttachmentDescription colorAttachment = {};
+    colorAttachment.format = imageFormat;
+    colorAttachment.samples = samples;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    // Second attachment is the resolved image which will be presented.
+    AttachmentDescription resolveAttachment = {};
+    resolveAttachment.format = imageFormat;
+    resolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    resolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    resolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    resolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    resolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; // difference from createMultisampledRenderPass
+
+
+    // Multisampled depth attachment. It won't be resolved.
+    AttachmentDescription depthAttachment = {};
+    depthAttachment.format = depthFormat;
+    depthAttachment.samples = samples;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    RenderPass::Attachments attachments{colorAttachment, resolveAttachment, depthAttachment};
+
+    if (requiresDepthRead)
+    {
+        AttachmentDescription depthResolveAttachment = {};
+        depthResolveAttachment.format = depthFormat;
+        depthResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthResolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthResolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depthResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthResolveAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        attachments.push_back(depthResolveAttachment);
+    }
+
+    AttachmentReference colorAttachmentRef = {};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    AttachmentReference resolveAttachmentRef = {};
+    resolveAttachmentRef.attachment = 1;
+    resolveAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    AttachmentReference depthAttachmentRef = {};
+    depthAttachmentRef.attachment = 2;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    SubpassDescription subpass;
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachments.emplace_back(colorAttachmentRef);
+    subpass.resolveAttachments.emplace_back(resolveAttachmentRef);
+    subpass.depthStencilAttachments.emplace_back(depthAttachmentRef);
+
+    if (requiresDepthRead)
+    {
+        AttachmentReference depthResolveAttachmentRef = {};
+        depthResolveAttachmentRef.attachment = 3;
+        depthResolveAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        subpass.depthResolveMode = VK_RESOLVE_MODE_AVERAGE_BIT;
+        subpass.stencilResolveMode = VK_RESOLVE_MODE_NONE;
+        subpass.depthStencilResolveAttachments.emplace_back(depthResolveAttachmentRef);
+    }
+
+    RenderPass::Subpasses subpasses{subpass};
+
+    SubpassDependency dependency = {};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependency.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    SubpassDependency dependency2 = {};
+    dependency2.srcSubpass = 0;
+    dependency2.dstSubpass = VK_SUBPASS_EXTERNAL;
+    dependency2.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency2.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency2.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    dependency2.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    dependency2.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+    RenderPass::Dependencies dependencies{dependency, dependency2};
+
+    return RenderPass::create(device, attachments, subpasses, dependencies);
+}
+
+}
+
 vsg::ref_ptr<vsg::ImageView> createColorImageView(vsg::ref_ptr<vsg::Device> device, const VkExtent2D& extent, VkFormat imageFormat, VkSampleCountFlagBits samples)
 {
     auto colorImage = vsg::Image::create();
@@ -131,7 +303,7 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
     auto transitionSourceImageToTransferSourceLayoutBarrier = vsg::ImageMemoryBarrier::create(
         VK_ACCESS_MEMORY_READ_BIT,                                     // srcAccessMask
         VK_ACCESS_TRANSFER_READ_BIT,                                   // dstAccessMask
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,                               // oldLayout
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,                          // oldLayout
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,                          // newLayout
         VK_QUEUE_FAMILY_IGNORED,                                       // srcQueueFamilyIndex
         VK_QUEUE_FAMILY_IGNORED,                                       // dstQueueFamilyIndex
@@ -207,24 +379,11 @@ std::pair<vsg::ref_ptr<vsg::Commands>, vsg::ref_ptr<vsg::Image>> createColorCapt
         VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1} // subresourceRange
     );
 
-    // 3.e) transition swap chain image back to present
-    auto transitionSourceImageBackToPresentBarrier = vsg::ImageMemoryBarrier::create(
-        VK_ACCESS_TRANSFER_READ_BIT,                                   // srcAccessMask
-        VK_ACCESS_MEMORY_READ_BIT,                                     // dstAccessMask
-        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,                          // oldLayout
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,                               // newLayout
-        VK_QUEUE_FAMILY_IGNORED,                                       // srcQueueFamilyIndex
-        VK_QUEUE_FAMILY_IGNORED,                                       // dstQueueFamilyIndex
-        sourceImage,                                                   // image
-        VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1} // subresourceRange
-    );
-
     auto cmd_transitionFromTransferBarrier = vsg::PipelineBarrier::create(
         VK_PIPELINE_STAGE_TRANSFER_BIT,                // srcStageMask
         VK_PIPELINE_STAGE_TRANSFER_BIT,                // dstStageMask
         0,                                             // dependencyFlags
-        transitionDestinationImageToMemoryReadBarrier, // barrier
-        transitionSourceImageBackToPresentBarrier      // barrier
+        transitionDestinationImageToMemoryReadBarrier  // barrier
     );
 
     commands->addChild(cmd_transitionFromTransferBarrier);
@@ -453,7 +612,7 @@ int main(int argc, char** argv)
         depthImageView = createDepthImageView(device, extent, depthFormat, VK_SAMPLE_COUNT_1_BIT);
         if (samples == VK_SAMPLE_COUNT_1_BIT)
         {
-            auto renderPass = vsg::createRenderPass(device, imageFormat, depthFormat, true);
+            auto renderPass = vsg::createOffscreenRenderPass(device, imageFormat, depthFormat, true);
             framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{colorImageView, depthImageView}, extent.width, extent.height, 1);
         }
         else
@@ -461,7 +620,7 @@ int main(int argc, char** argv)
             auto msaa_colorImageView = createColorImageView(device, extent, imageFormat, samples);
             auto msaa_depthImageView = createDepthImageView(device, extent, depthFormat, samples);
 
-            auto renderPass = vsg::createMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
+            auto renderPass = vsg::createOffscreenMultisampledRenderPass(device, imageFormat, depthFormat, samples, true);
             framebuffer = vsg::Framebuffer::create(renderPass, vsg::ImageViews{msaa_colorImageView, colorImageView, msaa_depthImageView, depthImageView}, extent.width, extent.height, 1);
         }
 
