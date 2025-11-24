@@ -497,6 +497,7 @@ int main(int argc, char** argv)
     renderGraph->setClearValues({{1.0f, 1.0f, 0.0f, 0.0f}}, VkClearDepthStencilValue{0.0f, 0});
 
     auto view = vsg::View::create(camera, vsg_scene);
+    view->addChild(vsg::createHeadlight());
 
     vsg::CommandGraphs commandGraphs;
     if (useExecuteCommands)
