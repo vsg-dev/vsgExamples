@@ -69,7 +69,7 @@ int main(int argc, char** argv)
     auto pointOfInterest = arguments.value(vsg::dvec3(0.0, 0.0, std::numeric_limits<double>::max()), "--poi");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
 
-    auto queryLocationCount = arguments.value(100000, "-n");
+    auto queryLocationCount = arguments.value<size_t>(100000, "-n");
 
     auto querySort = arguments.read("--qs");
     auto queryBins = arguments.value(1, "--qb");
@@ -199,7 +199,7 @@ int main(int argc, char** argv)
                 return queryLocations.size() / queryBins + (i < queryLocations.size() % queryBins ? 1 : 0);
             };
 
-            std::vector<std::vector<vsg::dvec3>> bins(queryBins, {});
+            std::vector<std::vector<vsg::dvec3>> bins(queryBins);
             for (size_t i = 0; i < bins.size(); ++i)
             {
                 bins[i].reserve(nthBinSize(i));
@@ -267,7 +267,7 @@ int main(int argc, char** argv)
                 return queryLocations.size() / queryBins + (i < queryLocations.size() % queryBins ? 1 : 0);
             };
 
-            std::vector<std::vector<vsg::dvec3>> bins(queryBins, {});
+            std::vector<std::vector<vsg::dvec3>> bins(queryBins);
             for (size_t i = 0; i < bins.size(); ++i)
             {
                 bins[i].reserve(nthBinSize(i));
