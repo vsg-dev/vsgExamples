@@ -20,6 +20,7 @@ add_subdirectory(vsgaxes)
 add_subdirectory(vsgcolorspace)
 add_subdirectory(vsgmultiwindowmultiview)
 add_subdirectory(vsgrenderoutline)
+add_subdirectory(vsgloadbalancing)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsghelloworld)
