@@ -9,6 +9,12 @@
 #include <iostream>
 #include <thread>
 
+
+// 1. Query system stats
+// 2. Query scene graph stats - CPU and GPU
+// 3. Query frame stats - CPU and GPU
+// 4. Adjust LOD Scale to meet with targets.
+
 vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vsg::ref_ptr<vsg::Options> options)
 {
     auto builder = vsg::Builder::create();
@@ -95,8 +101,11 @@ int main(int argc, char** argv)
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
+
         auto loadLevels = arguments.value(0, "--load-levels");
         auto maxPagedLOD = arguments.value(0, "--maxPagedLOD");
+        auto LODScale = arguments.value<double>(1.0, "--LODScale");
+
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
@@ -318,7 +327,14 @@ int main(int argc, char** argv)
             std::cout << "No. of tiles loaded " << loadPagedLOD.numTiles << " in " << time << "ms." << std::endl;
         }
 
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        auto view = vsg::View::create(camera);
+        view->LODScale = LODScale;
+        view->addChild(vsg::createHeadlight());
+        view->addChild(vsg_scene);
+
+        auto renderGraph = vsg::RenderGraph::create(window, view);
+        auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
+
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
         if (instrumentation) viewer->assignInstrumentation(instrumentation);
