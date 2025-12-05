@@ -50,6 +50,28 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     pbr->defaultShaderHints = shaderHints;
 }
 
+class LoadController : public vsg::Inherit<vsg::Visitor, LoadController>
+{
+public:
+    LoadController(vsg::ref_ptr<vsg::View> in_view) : view(in_view) {}
+
+    vsg::ref_ptr<vsg::View> view;
+
+    void apply(vsg::KeyPressEvent& keyPress) override
+    {
+        if (keyPress.keyModified == '>')
+        {
+            view->LODScale *= 1.1;
+            std::cout<<"LODScale = "<<view->LODScale<<std::endl;
+        }
+        else if (keyPress.keyModified == '<')
+        {
+            view->LODScale /= 1.1;
+            std::cout<<"LODScale = "<<view->LODScale<<std::endl;
+        }
+    }
+};
+
 int main(int argc, char** argv)
 {
     try
@@ -312,8 +334,6 @@ int main(int argc, char** argv)
             }
         }
 
-        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
-
         // if required preload specific number of PagedLOD levels.
         if (loadLevels > 0)
         {
@@ -336,6 +356,9 @@ int main(int argc, char** argv)
         auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
 
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
+        viewer->addEventHandler(LoadController::create(view));
 
         if (instrumentation) viewer->assignInstrumentation(instrumentation);
 
