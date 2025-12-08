@@ -15,6 +15,32 @@
 // 3. Query frame stats - CPU and GPU
 // 4. Adjust LOD Scale to meet with targets.
 
+
+struct Units
+{
+    static const size_t KB = 1024;
+    static const size_t MB = 1024 * KB;
+    static const size_t GB = 1024 * MB;
+
+    Units(size_t v) :
+        value(v) {}
+
+    size_t value;
+};
+
+std::ostream& operator<<(std::ostream& out, const Units& size)
+{
+    if (size.value > Units::GB)
+        out << static_cast<double>(size.value) / static_cast<double>(Units::GB) << " gigabytes";
+    else if (size.value > Units::MB)
+        out << static_cast<double>(size.value) / static_cast<double>(Units::MB) << " megabytes";
+    else if (size.value > Units::KB)
+        out << static_cast<double>(size.value) / static_cast<double>(Units::KB) << " kilobytes";
+    else
+        out << size.value << " bytes";
+    return out;
+}
+
 vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vsg::ref_ptr<vsg::Options> options)
 {
     auto builder = vsg::Builder::create();
@@ -49,6 +75,117 @@ void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
     auto& pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
     pbr->defaultShaderHints = shaderHints;
 }
+
+
+class LoadMetrics : public vsg::Inherit<vsg::Object, LoadMetrics>
+{
+public:
+
+    std::vector<vsg::ref_ptr<vsg::Device>> devices;
+    std::vector<vsg::ref_ptr<vsg::DatabasePager>> pagers;
+    double maxMemoryLoad = 0.0;
+
+    LoadMetrics(vsg::Viewer& viewer)
+    {
+        for(auto& task : viewer.recordAndSubmitTasks)
+        {
+            if (std::find(devices.begin(), devices.end(), task->device) == devices.end())
+            {
+                devices.push_back(task->device);
+            }
+
+            if (std::find(pagers.begin(), pagers.end(), task->databasePager) == pagers.end())
+            {
+                pagers.push_back(task->databasePager);
+            }
+        }
+    }
+
+    void updateMetrics()
+    {
+        double previousMemoryLoad = maxMemoryLoad;
+
+        maxMemoryLoad = 0.0;
+        for(auto& device : devices)
+        {
+            auto mbp = device->deviceMemoryBufferPools.ref_ptr();
+
+            VkPhysicalDeviceMemoryBudgetPropertiesEXT memoryBudget;
+            memoryBudget.sType =  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+
+            VkPhysicalDeviceMemoryProperties2 memoryProperties2;
+            memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+            memoryProperties2.pNext = &memoryBudget;
+
+            vkGetPhysicalDeviceMemoryProperties2(*(device->getPhysicalDevice()), &memoryProperties2);
+            VkPhysicalDeviceMemoryProperties& memoryProperties = memoryProperties2.memoryProperties;
+
+            for(uint32_t i=0; i<memoryProperties.memoryHeapCount; ++i)
+            {
+                double memoryLoad = static_cast<double>(memoryBudget.heapUsage[i])/static_cast<double>(memoryBudget.heapBudget[i]);
+                if (memoryLoad > maxMemoryLoad) maxMemoryLoad = memoryLoad;
+            }
+        }
+
+
+
+        uint32_t numPagedLOD = 0;
+
+        for(auto& pager : pagers)
+        {
+            numPagedLOD += (pager->pagedLODContainer->inactiveList.count + pager->pagedLODContainer->activeList.count);
+
+            uint32_t available = pager->pagedLODContainer->availableList.count;
+            uint32_t inactive = pager->pagedLODContainer->inactiveList.count;
+            uint32_t active = pager->pagedLODContainer->activeList.count;
+            std::cout<<"available = "<<available<<", inactive = "<<inactive<<", active = "<<active<<std::endl;
+        }
+
+        double targetMemoryLoad = 0.9;
+        uint32_t maxPagedLOD = 0;
+
+        if (numPagedLOD > 0)
+        {
+            maxPagedLOD = static_cast<uint32_t>((targetMemoryLoad / maxMemoryLoad) * static_cast<double>(numPagedLOD));
+            for(auto& pager : pagers)
+            {
+                pager->targetMaxNumPagedLODWithHighResSubgraphs = maxPagedLOD;
+            }
+        }
+
+
+        std::cout<<"\nupdateMetrics load = "<<maxMemoryLoad<<", numPagedLOD = "<<numPagedLOD<< ", maxPagedLOD = "<<maxPagedLOD<<std::endl;
+    }
+
+    void report(std::ostream& out) const
+    {
+        for(auto& device : devices)
+        {
+            auto mbp = device->deviceMemoryBufferPools.ref_ptr();
+
+            VkPhysicalDeviceMemoryBudgetPropertiesEXT memoryBudget;
+            memoryBudget.sType =  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+
+            VkPhysicalDeviceMemoryProperties2 memoryProperties2;
+            memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+            memoryProperties2.pNext = &memoryBudget;
+
+            vkGetPhysicalDeviceMemoryProperties2(*(device->getPhysicalDevice()), &memoryProperties2);
+            VkPhysicalDeviceMemoryProperties& memoryProperties = memoryProperties2.memoryProperties;
+
+            Units reserved = mbp->computeMemoryTotalReserved();
+            Units available = mbp->computeMemoryTotalAvailable();
+            Units total = mbp->computeMemoryTotalSize();
+            out<<"reserved = "<<reserved<<", available = "<<available<<", total = "<<total<<std::endl;
+            for(uint32_t i=0; i<memoryProperties.memoryHeapCount; ++i)
+            {
+                out<<"    budget = "<<memoryBudget.heapBudget[i]<<", usage = "<<memoryBudget.heapUsage[i]<<" utilization = "<<100.0*static_cast<double>(memoryBudget.heapUsage[i])/static_cast<double>(memoryBudget.heapBudget[i])<<"%"<<std::endl;
+            }
+        }
+    }
+
+
+};
 
 class LoadController : public vsg::Inherit<vsg::Visitor, LoadController>
 {
@@ -401,6 +538,8 @@ int main(int argc, char** argv)
 
         viewer->compile(resourceHints);
 
+        auto metrics = LoadMetrics::create(*viewer);
+
         if (maxPagedLOD > 0)
         {
             // set targetMaxNumPagedLODWithHighResSubgraphs after Viewer::compile() as it will assign any DatabasePager if required.
@@ -433,6 +572,10 @@ int main(int argc, char** argv)
             viewer->recordAndSubmit();
 
             viewer->present();
+
+            metrics->updateMetrics();
+
+            // metrics->report(std::cout);
         }
 
         if (reportAverageFrameRate)
