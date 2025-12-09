@@ -103,23 +103,21 @@ public:
 
     void updateMetrics()
     {
-        double previousMemoryLoad = maxMemoryLoad;
-
         maxMemoryLoad = 0.0;
         for(auto& device : devices)
         {
-            auto mbp = device->deviceMemoryBufferPools.ref_ptr();
 
             VkPhysicalDeviceMemoryBudgetPropertiesEXT memoryBudget;
             memoryBudget.sType =  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+            memoryBudget.pNext = nullptr;
 
             VkPhysicalDeviceMemoryProperties2 memoryProperties2;
             memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
             memoryProperties2.pNext = &memoryBudget;
 
             vkGetPhysicalDeviceMemoryProperties2(*(device->getPhysicalDevice()), &memoryProperties2);
-            VkPhysicalDeviceMemoryProperties& memoryProperties = memoryProperties2.memoryProperties;
 
+            VkPhysicalDeviceMemoryProperties& memoryProperties = memoryProperties2.memoryProperties;
             for(uint32_t i=0; i<memoryProperties.memoryHeapCount; ++i)
             {
                 double memoryLoad = static_cast<double>(memoryBudget.heapUsage[i])/static_cast<double>(memoryBudget.heapBudget[i]);
@@ -128,17 +126,15 @@ public:
         }
 
 
-
         uint32_t numPagedLOD = 0;
 
         for(auto& pager : pagers)
         {
-            numPagedLOD += (pager->pagedLODContainer->inactiveList.count + pager->pagedLODContainer->activeList.count);
-
-            uint32_t available = pager->pagedLODContainer->availableList.count;
             uint32_t inactive = pager->pagedLODContainer->inactiveList.count;
             uint32_t active = pager->pagedLODContainer->activeList.count;
-            std::cout<<"available = "<<available<<", inactive = "<<inactive<<", active = "<<active<<std::endl;
+            numPagedLOD += (inactive + active);
+
+            std::cout<<"inactive = "<<inactive<<", active = "<<active<<std::endl;
         }
 
         double targetMemoryLoad = 0.9;
@@ -154,7 +150,7 @@ public:
         }
 
 
-        std::cout<<"\nupdateMetrics load = "<<maxMemoryLoad<<", numPagedLOD = "<<numPagedLOD<< ", maxPagedLOD = "<<maxPagedLOD<<std::endl;
+        std::cout<<"\nupdateMetrics load = "<<maxMemoryLoad<<", numPagedLOD = "<<numPagedLOD<< ", maxPagedLOD = "<<maxPagedLOD<<", VK_MAX_MEMORY_HEAPS = "<<VK_MAX_MEMORY_HEAPS<<std::endl;
     }
 
     void report(std::ostream& out) const
@@ -163,10 +159,10 @@ public:
         {
             auto mbp = device->deviceMemoryBufferPools.ref_ptr();
 
-            VkPhysicalDeviceMemoryBudgetPropertiesEXT memoryBudget;
+            VkPhysicalDeviceMemoryBudgetPropertiesEXT memoryBudget = {};
             memoryBudget.sType =  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
 
-            VkPhysicalDeviceMemoryProperties2 memoryProperties2;
+            VkPhysicalDeviceMemoryProperties2 memoryProperties2 = {};
             memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
             memoryProperties2.pNext = &memoryBudget;
 
@@ -560,6 +556,7 @@ int main(int argc, char** argv)
         }
 
         viewer->start_point() = vsg::clock::now();
+
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))

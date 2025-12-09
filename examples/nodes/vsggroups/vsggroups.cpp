@@ -219,12 +219,12 @@ public:
     void setBlockSize(vsg::AllocatorAffinity, size_t) {}
 };
 
-const size_t KB = 1024;
-const size_t MB = 1024 * KB;
-const size_t GB = 1024 * MB;
-
 struct Units
 {
+    static const size_t KB = 1024;
+    static const size_t MB = 1024 * KB;
+    static const size_t GB = 1024 * MB;
+
     Units(size_t v) :
         value(v) {}
 
@@ -233,16 +233,17 @@ struct Units
 
 std::ostream& operator<<(std::ostream& out, const Units& size)
 {
-    if (size.value > GB)
-        out << static_cast<double>(size.value) / static_cast<double>(GB) << " gigabytes";
-    else if (size.value > MB)
-        out << static_cast<double>(size.value) / static_cast<double>(MB) << " megabytes";
-    else if (size.value > KB)
-        out << static_cast<double>(size.value) / static_cast<double>(KB) << " kilobytes";
+    if (size.value > Units::GB)
+        out << static_cast<double>(size.value) / static_cast<double>(Units::GB) << " gigabytes";
+    else if (size.value > Units::MB)
+        out << static_cast<double>(size.value) / static_cast<double>(Units::MB) << " megabytes";
+    else if (size.value > Units::KB)
+        out << static_cast<double>(size.value) / static_cast<double>(Units::KB) << " kilobytes";
     else
         out << size.value << " bytes";
     return out;
 }
+
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
@@ -255,7 +256,7 @@ int main(int argc, char** argv)
     auto inputFilename = arguments.value<vsg::Path>("", "-i");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
-    size_t unit = arguments.value<size_t>(MB, "--unit");
+    size_t unit = arguments.value<size_t>(Units::MB, "--unit");
     if (int allocatorType; arguments.read("--allocator", allocatorType)) vsg::Allocator::instance()->allocatorType = vsg::AllocatorType(allocatorType);
     if (size_t objectsBlockSize; arguments.read("--objects", objectsBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_OBJECTS, objectsBlockSize * unit);
     if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize * unit);
