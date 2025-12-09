@@ -84,6 +84,8 @@ public:
     std::vector<vsg::ref_ptr<vsg::Device>> devices;
     std::vector<vsg::ref_ptr<vsg::DatabasePager>> pagers;
     double maxMemoryLoad = 0.0;
+    double LODScale = 1.0;
+    double targetMemoryLoad = 0.9;
 
     LoadMetrics(vsg::Viewer& viewer)
     {
@@ -127,18 +129,33 @@ public:
 
 
         uint32_t numPagedLOD = 0;
+        uint32_t numPagedLODWithRequests = 0;
 
         for(auto& pager : pagers)
         {
             uint32_t inactive = pager->pagedLODContainer->inactiveList.count;
             uint32_t active = pager->pagedLODContainer->activeList.count;
-            numPagedLOD += (inactive + active);
+            uint32_t requests = pager->numActiveRequests.load();
 
-            std::cout<<"inactive = "<<inactive<<", active = "<<active<<std::endl;
+            numPagedLOD += (inactive + active);
+            numPagedLODWithRequests += (active + requests);
+
+            std::cout<<"inactive = "<<inactive<<", active = "<<active<<", requests = "<<requests<<std::endl;
         }
 
-        double targetMemoryLoad = 0.9;
+        if ((numPagedLOD > 0) && (numPagedLODWithRequests > numPagedLOD))
+        {
+            double memoryLoadWithRequests = maxMemoryLoad * (static_cast<double>(numPagedLODWithRequests) / static_cast<double>(numPagedLOD));
+            // LODScale = std::max(memoryLoadWithRequests / targetMemoryLoad, 1.0);
+            LODScale = std::max(memoryLoadWithRequests / targetMemoryLoad, LODScale);
+        }
+        else
+        {
+            // LODScale = 1.0;
+        }
+
         uint32_t maxPagedLOD = 0;
+
 
         if (numPagedLOD > 0)
         {
@@ -150,7 +167,7 @@ public:
         }
 
 
-        std::cout<<"\nupdateMetrics load = "<<maxMemoryLoad<<", numPagedLOD = "<<numPagedLOD<< ", maxPagedLOD = "<<maxPagedLOD<<", VK_MAX_MEMORY_HEAPS = "<<VK_MAX_MEMORY_HEAPS<<std::endl;
+        std::cout<<"\nupdateMetrics load = "<<maxMemoryLoad<<", numPagedLOD = "<<numPagedLOD<< ", maxPagedLOD = "<<maxPagedLOD<<", LODScale = "<<LODScale<<std::endl;
     }
 
     void report(std::ostream& out) const
@@ -535,6 +552,7 @@ int main(int argc, char** argv)
         viewer->compile(resourceHints);
 
         auto metrics = LoadMetrics::create(*viewer);
+        arguments.read("--tml", metrics->targetMemoryLoad);
 
         if (maxPagedLOD > 0)
         {
@@ -571,6 +589,8 @@ int main(int argc, char** argv)
             viewer->present();
 
             metrics->updateMetrics();
+
+            view->LODScale = metrics->LODScale;
 
             // metrics->report(std::cout);
         }
