@@ -13,8 +13,47 @@
 
 #include "model_teapot.cpp"
 
+#define LOGD(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, "vsgnative", __VA_ARGS__))
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vsgnative", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "vsgnative", __VA_ARGS__))
+
+class EventHandler: public vsg::Inherit<vsg::Visitor, EventHandler>
+{
+private:
+    void apply(vsg::TouchDownEvent& event) override;
+    void apply(vsg::TouchMoveEvent& event) override;
+    void apply(vsg::TouchUpEvent& event) override;
+
+    void apply(vsg::KeyPressEvent& event) override;
+    void apply(vsg::KeyReleaseEvent& event) override;
+};
+
+void EventHandler::apply(vsg::TouchDownEvent& event)
+{
+    int64_t steadyMs = std::chrono::duration_cast<std::chrono::milliseconds>(event.time.time_since_epoch()).count();
+    LOGD("TouchDownEvent: id=%d, x=%d, y=%d, time=%lld", event.id, event.x, event.y, steadyMs);
+}
+
+void EventHandler::apply(vsg::TouchMoveEvent& event)
+{
+    //LOGD("TouchMoveEvent: id=%d, x=%d, y=%d", event.id, event.x, event.y);
+}
+
+void EventHandler::apply(vsg::TouchUpEvent& event)
+{
+    int64_t steadyMs = std::chrono::duration_cast<std::chrono::milliseconds>(event.time.time_since_epoch()).count();
+    LOGD("TouchUpEvent: id=%d, x=%d, y=%d, time=%lld", event.id, event.x, event.y, steadyMs);
+}
+
+void EventHandler::apply(vsg::KeyPressEvent& event)
+{
+    LOGD("KeyPressEvent: key=%u, modified=%u, modifier=%u", (uint32_t)event.keyBase, (uint32_t)event.keyModified, (uint32_t)event.keyModifier);
+}
+
+void EventHandler::apply(vsg::KeyReleaseEvent& event)
+{
+    LOGD("KeyReleaseEvent: key=%u, modified=%u, modifier=%u", (uint32_t)event.keyBase, (uint32_t)event.keyModified, (uint32_t)event.keyModifier);
+}
 
 //
 // App state
@@ -97,6 +136,7 @@ static int vsg_init(struct AppData* appData)
     appData->viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     appData->viewer->compile();
+    appData->viewer->addEventHandler(EventHandler::create());
 
     return 0;
 }
@@ -144,9 +184,11 @@ static void vsg_frame(struct AppData* appData)
 static int32_t android_handleinput(struct android_app* app, AInputEvent* event)
 {
     struct AppData* appData = (struct AppData*)app->userData;
-    if(appData->window.valid()) return 0;
+    if(!appData->window.valid())
+    	return 0;
     // pass the event to the vsg android window
-    return appData->window->handleAndroidInputEvent(event) ? 1 : 0;
+    bool eventHandled = appData->window->handleAndroidInputEvent(event);
+    return eventHandled;
 }
 
 //
@@ -162,11 +204,15 @@ static void android_handlecmd(struct android_app* app, int32_t cmd)
         case APP_CMD_SAVE_STATE:
             break;
         case APP_CMD_INIT_WINDOW:
+            vsgAndroid::KeyboardMap::initializeKeyCharacterMap(app->activity->vm);
             // The window is being shown, get it ready.
             if (app->window != nullptr)
             {
                 vsg_init(appData);
             }
+            break;
+        case APP_CMD_DESTROY:
+            vsgAndroid::KeyboardMap::releaseKeyCharacterMap();
             break;
         case APP_CMD_TERM_WINDOW:
             // The window is being hidden or closed, clean it up.
