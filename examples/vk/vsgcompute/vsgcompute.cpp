@@ -38,7 +38,7 @@ int main(int argc, char** argv)
         {1, vsg::intValue::create(height)},
         {2, vsg::intValue::create(workgroupSize)}};
 
-    vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
+    vsg::Names validatedNames = vsg::validateInstanceLayerNames(requestedLayers);
 
     // get the physical device that supports the required compute queue
     auto instance = vsg::Instance::create(instanceExtensions, validatedNames);

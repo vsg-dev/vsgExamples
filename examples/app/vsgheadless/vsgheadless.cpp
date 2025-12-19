@@ -556,7 +556,7 @@ int main(int argc, char** argv)
         if (apiDumpLayer) requestedLayers.push_back("VK_LAYER_LUNARG_api_dump");
     }
 
-    vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
+    vsg::Names validatedNames = vsg::validateInstanceLayerNames(requestedLayers);
 
     auto instance = vsg::Instance::create(instanceExtensions, validatedNames, vulkanVersion);
     auto [physicalDevice, queueFamily] = instance->getPhysicalDeviceAndQueueFamily(VK_QUEUE_GRAPHICS_BIT);

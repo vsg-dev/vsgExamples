@@ -215,7 +215,7 @@ int main(int argc, char** argv)
                 if (windowTraits->apiDumpLayer) requestedLayers.push_back("VK_LAYER_LUNARG_api_dump");
             }
 
-            vsg::Names validatedNames = vsg::validateInstancelayerNames(requestedLayers);
+            vsg::Names validatedNames = vsg::validateInstanceLayerNames(requestedLayers);
 
             vsg::Names deviceExtensions;
             deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
