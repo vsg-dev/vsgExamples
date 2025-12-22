@@ -5,9 +5,6 @@ set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
 add_library(native_app_glue STATIC
     ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
 
-# set the use of C++17
-set(CMAKE_CXX_STANDARD 17)
-
 # To prevent errors when loading the native activity, ensure library name is the same in debug builds
 set(CMAKE_DEBUG_POSTFIX "")
 

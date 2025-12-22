@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.10)
 
 project(vsgExamples
         VERSION 1.1.10
@@ -27,15 +27,12 @@ vsg_setup_dir_vars()
 vsg_setup_build_vars()
 
 # find the optional vsgXchange that can be used for reading a range of image and 3d model formats and shader compilation
-find_package(vsgXchange 1.1.8 QUIET)
+find_package(vsgXchange 1.1.9 QUIET)
 
 # find the optional vsgImGui that can be used for GUI elements added into graphics windows.
 find_package(vsgImGui QUIET)
 
 find_package(Tracy QUIET)
-
-# set the use of C++17 globally as all examples require it
-set(CMAKE_CXX_STANDARD 17)
 
 if (MSVC)
     # MSVC assumes system-wide eight-bit code page (e.g. CP1252, CP1250) if there's no BOM
