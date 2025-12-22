@@ -134,14 +134,17 @@ public:
 
         for(auto& pager : pagers)
         {
-            uint32_t inactive = pager->pagedLODContainer->inactiveList.count;
-            uint32_t active = pager->pagedLODContainer->activeList.count;
-            uint32_t requests = pager->numActiveRequests.load();
+            if (pager)
+            {
+                uint32_t inactive = pager->pagedLODContainer->inactiveList.count;
+                uint32_t active = pager->pagedLODContainer->activeList.count;
+                uint32_t requests = pager->numActiveRequests.load();
 
-            numPagedLOD += (inactive + active);
-            numPagedLODWithRequests += (active + requests);
+                numPagedLOD += (inactive + active);
+                numPagedLODWithRequests += (active + requests);
 
-            if (verbose) std::cout<<"inactive = "<<inactive<<", active = "<<active<<", requests = "<<requests<<std::endl;
+                if (verbose) std::cout<<"inactive = "<<inactive<<", active = "<<active<<", requests = "<<requests<<std::endl;
+            }
         }
 
         if ((numPagedLOD > 0) && (numPagedLODWithRequests > numPagedLOD))
