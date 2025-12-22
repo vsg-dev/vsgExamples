@@ -1,8 +1,9 @@
 
 #include <initializer_list>
-//#include <memory>
+#include <cinttypes>
 #include <cstdlib>
 #include <cstring>
+
 #include <jni.h>
 
 #include <android/log.h>
@@ -31,7 +32,7 @@ private:
 void EventHandler::apply(vsg::TouchDownEvent& event)
 {
     int64_t steadyMs = std::chrono::duration_cast<std::chrono::milliseconds>(event.time.time_since_epoch()).count();
-    LOGD("TouchDownEvent: id=%d, x=%d, y=%d, time=%lld", event.id, event.x, event.y, steadyMs);
+    LOGD("TouchDownEvent: id=%d, x=%d, y=%d, time=%" PRId64, event.id, event.x, event.y, steadyMs);
 }
 
 void EventHandler::apply(vsg::TouchMoveEvent& event)
@@ -42,7 +43,7 @@ void EventHandler::apply(vsg::TouchMoveEvent& event)
 void EventHandler::apply(vsg::TouchUpEvent& event)
 {
     int64_t steadyMs = std::chrono::duration_cast<std::chrono::milliseconds>(event.time.time_since_epoch()).count();
-    LOGD("TouchUpEvent: id=%d, x=%d, y=%d, time=%lld", event.id, event.x, event.y, steadyMs);
+    LOGD("TouchUpEvent: id=%d, x=%d, y=%d, time=%" PRId64, event.id, event.x, event.y, steadyMs);
 }
 
 void EventHandler::apply(vsg::KeyPressEvent& event)
