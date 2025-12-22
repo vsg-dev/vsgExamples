@@ -86,6 +86,7 @@ public:
     double maxMemoryLoad = 0.0;
     double LODScale = 1.0;
     double targetMemoryLoad = 0.9;
+    bool verbose = false;
 
     LoadMetrics(vsg::Viewer& viewer)
     {
@@ -140,7 +141,7 @@ public:
             numPagedLOD += (inactive + active);
             numPagedLODWithRequests += (active + requests);
 
-            std::cout<<"inactive = "<<inactive<<", active = "<<active<<", requests = "<<requests<<std::endl;
+            if (verbose) std::cout<<"inactive = "<<inactive<<", active = "<<active<<", requests = "<<requests<<std::endl;
         }
 
         if ((numPagedLOD > 0) && (numPagedLODWithRequests > numPagedLOD))
@@ -167,7 +168,7 @@ public:
         }
 
 
-        std::cout<<"\nupdateMetrics load = "<<maxMemoryLoad<<", numPagedLOD = "<<numPagedLOD<< ", maxPagedLOD = "<<maxPagedLOD<<", LODScale = "<<LODScale<<std::endl;
+        if (verbose) std::cout<<"\nupdateMetrics load = "<<maxMemoryLoad<<", numPagedLOD = "<<numPagedLOD<< ", maxPagedLOD = "<<maxPagedLOD<<", LODScale = "<<LODScale<<std::endl;
     }
 
     void report(std::ostream& out) const
@@ -553,6 +554,7 @@ int main(int argc, char** argv)
 
         auto metrics = LoadMetrics::create(*viewer);
         arguments.read("--tml", metrics->targetMemoryLoad);
+        metrics->verbose = arguments.read({"--verbose", "-v"});
 
         if (maxPagedLOD > 0)
         {
