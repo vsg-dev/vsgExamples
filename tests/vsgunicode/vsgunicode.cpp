@@ -18,10 +18,20 @@ bool test(const std::basic_string<C1>& input, const std::basic_string<C2>& expec
     {
         std::cout << input;
     }
-    else if (std::is_same_v<C2, char>)
+    else if constexpr (std::is_same_v<C2, char>)
     {
         std::cout << expectedOutput;
     }
+    #if defined(__cpp_char8_t)
+    else if constexpr (std::is_same_v<C1, char8_t>)
+    {
+        std::cout << std::string(input.begin(), input.end());
+    }
+    else if constexpr (std::is_same_v<C2, char8_t>)
+    {
+        std::cout << std::string(expectedOutput.begin(), expectedOutput.end());
+    }
+    #endif
     std::cout << (pass ? " matches" : " does not match") << std::endl;
     return pass;
 }
