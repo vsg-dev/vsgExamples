@@ -1,5 +1,5 @@
 #include "napi/native_api.h"
-//#include "HarmonyLogger.h"
+#include "HarmonyLogger.h"
 #include "model_teapot.cpp"
 
 #include <cstdint>
@@ -13,9 +13,6 @@
 #include <arkui/native_node_napi.h>
 #include <hilog/log.h>  
 
-
-#define LOG_INFO(...)  OH_LOG_INFO( LOG_APP, "%{public}s",  __VA_ARGS__);
-#define LOG_ERROR(...)  OH_LOG_ERROR( LOG_APP, "%{public}s",   __VA_ARGS__);
 
 ArkUI_NativeNodeAPI_1 *nodeAPI = reinterpret_cast<ArkUI_NativeNodeAPI_1 *>(
     OH_ArkUI_QueryModuleInterfaceByName(ARKUI_NATIVE_NODE, "ArkUI_NativeNodeAPI_1"));
@@ -56,7 +53,7 @@ static void calculateCameraParameters(vsg::ref_ptr<vsg::Node> scene, vsg::ref_pt
 
 void OnFrameCallback(ArkUI_NodeHandle node, uint64_t timestamp, uint64_t targetTimestamp) 
 {
-    OH_LOG_INFO(LOG_APP, "VSG  OnFrameCallback \n");
+    vsg::info("VSG  OnFrameCallback \n");
     if (!appData->viewer.valid()) {
         // no viewer.
         return;
@@ -79,22 +76,20 @@ void OnFrameCallback(ArkUI_NodeHandle node, uint64_t timestamp, uint64_t targetT
 }
 
 void OnSurfaceCreated(OH_ArkUI_SurfaceHolder *holder) {
-    LOG_INFO("OnSurfaceCreated called\n");
-
+    vsg::info("OnSurfaceCreated called");
     AppData *appData=static_cast<AppData*>(OH_ArkUI_SurfaceHolder_GetUserData(holder));
     if( !appData){
-        LOG_ERROR("Failed to get AppData from surface holder\n");
+        vsg::error("Failed to get AppData from surface holder\n");
         return;
     }
 
-    
-    OH_LOG_INFO(LOG_APP, "VSG renderer started for surface\n");
+    vsg::info("VSG renderer started for surface\n");
 }
 
 void OnSurfaceChanged(OH_ArkUI_SurfaceHolder *holder, uint64_t width, uint64_t height) {
     AppData *appData=static_cast<AppData*>(OH_ArkUI_SurfaceHolder_GetUserData(holder));
     if( !appData){
-        LOG_ERROR("OnSurfaceChanged: Failed to get AppData from surface holder\n");
+        vsg::error("OnSurfaceChanged: Failed to get AppData from surface holder\n");
         return;
     }
     if(!appData->initialized){
@@ -102,7 +97,7 @@ void OnSurfaceChanged(OH_ArkUI_SurfaceHolder *holder, uint64_t width, uint64_t h
         
         auto nativeWindow = OH_ArkUI_XComponent_GetNativeWindow(holder); // 获取native window
         if (!nativeWindow) {
-            LOG_ERROR("Failed to get native window\n");
+            vsg::error("Failed to get native window\n");
             return;
         }
         
@@ -119,12 +114,12 @@ void OnSurfaceChanged(OH_ArkUI_SurfaceHolder *holder, uint64_t width, uint64_t h
         try {
             vsgWindow = vsg::Window::create(appData->traits);
         } catch( const std::bad_any_cast& e ) {
-            LOG_ERROR("Error: Failed to create a VSG Window due to std::bad_any_cast - The application was linked to the C++ STL incorrectly");
+            vsg::error("Error: Failed to create a VSG Window due to std::bad_any_cast - The application was linked to the C++ STL incorrectly\n");
             throw;
         }
         if (!vsgWindow)
         {
-            LOG_INFO("Error: Could not create a VSG window.");
+            vsg::info("Error: Could not create a VSG window.\n");
             return ;
         }
         // cast the window to an android window so we can pass it events
@@ -156,25 +151,24 @@ void OnSurfaceChanged(OH_ArkUI_SurfaceHolder *holder, uint64_t width, uint64_t h
 
 void OnSurfaceDestroyed(OH_ArkUI_SurfaceHolder *holder) 
 {
-    OH_ArkUI_SurfaceHolder_Dispose(holder); 
-    OH_LOG_INFO(LOG_APP, "VSG  OnSurfaceDestroyed \n");
- 
+    OH_ArkUI_SurfaceHolder_Dispose(holder);
+    vsg::debug("VSG  OnSurfaceDestroyed \n");
 }
 
 void OnSurfaceShow(OH_ArkUI_SurfaceHolder *holder) 
 {
-     OH_LOG_INFO(LOG_APP, "VSG  OnSurfaceShow \n");
+    vsg::debug("VSG  OnSurfaceShow \n");
 }
 
 void OnSurfaceHide(OH_ArkUI_SurfaceHolder *holder) 
 {
-     OH_LOG_INFO(LOG_APP, "VSG  OnSurfaceHide \n");
+    vsg::debug("VSG  OnSurfaceHide \n");
 }
 
 void onEvent(ArkUI_NodeEvent *event) {
     auto eventType = OH_ArkUI_NodeEvent_GetEventType(event);
     if (eventType == NODE_TOUCH_EVENT) {
-        OH_LOG_INFO(LOG_APP, "VSG  on event\n");
+        vsg::info("VSG  on event \n");
         //ArkUI_NodeHandle handle = OH_ArkUI_NodeEvent_GetNodeHandle(event);
         AppData *appData=static_cast<AppData*>(OH_ArkUI_NodeEvent_GetUserData(event));
         if(appData)
@@ -208,6 +202,9 @@ napi_value BindNode(napi_env env, napi_callback_info info) {
     }
     OH_ArkUI_SurfaceHolder_SetUserData(appData->holder, appData);
     
+    //Init Logger
+    HarmonyLogger::Init(vsg::Logger::Level::LOGGER_DEBUG);
+    vsg::info("BindNode!");
     return nullptr;
 }
 

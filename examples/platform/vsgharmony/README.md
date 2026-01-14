@@ -12,13 +12,12 @@ Note: this example focuses on VSG usage,not the best development practice for Ha
     * Device running HarmonyOS 6 or higher which supports Vulkan 1.0 (The DevEco's semulator does not support valkan) 
 
 
-## Building with Android Studio
+## Building with DevEco Studio
 
     1. Open DevEco Studio and select 'Open'
     2. Select the vsgharmony folder
     3. Open /src/main/cpp/CMakeLists.txt and update the section 'find vsg' to either:
        * `set(CMAKE_PREFIX_PATH  /path/to/VulkanSceneGraph vsg )`
     4 Modify the line `set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)` in the file `ohos.toolchain.cmake` to prevent `find_package` from failing to find libraries outside the cross-compilation environment.
-
-    4. Build the application
+    5. Build the application
 
