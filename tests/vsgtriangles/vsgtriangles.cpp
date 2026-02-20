@@ -159,6 +159,8 @@ vsg::ref_ptr<vsg::Group> createScene(
     size_t totalTriangles{0};
     size_t totalVertices{0};
     size_t totalBytes{0};
+    size_t totalDrawCommands{0};
+    size_t totalStateGroup{0};
 
     for (size_t pi{0}; pi < numPipelines; ++pi)
     {
@@ -193,13 +195,17 @@ vsg::ref_ptr<vsg::Group> createScene(
             totalTriangles += numTriangles;
             totalVertices += numVertices;
             totalBytes += numVertices * (sizeof(vsg::vec3) + sizeof(vsg::vec4) + sizeof(uint32_t));
+            totalDrawCommands += 1;
         }
 
         sceneGraph->addChild(stateGroup);
+        totalStateGroup += 1;
     }
 
     std::cout << "number of triangles: " << totalTriangles << std::endl;
     std::cout << "number of vertices:  " << totalVertices << std::endl;
+    std::cout << "number of draw commands:  " << totalDrawCommands << std::endl;
+    std::cout << "number of state groups:  " << totalStateGroup << std::endl;
     std::cout << "size of scene: " << totalBytes / std::pow(2, 20) << " MB\n";
 
     return sceneGraph;

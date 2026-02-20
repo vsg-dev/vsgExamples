@@ -84,8 +84,6 @@ struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
         // std::cout << "Loading " << filename << std::endl;
         if (auto node = vsg::read_cast<vsg::Node>(filename, options))
         {
-            // std::cout << "Loaded " << filename << std::endl;
-
             vsg::ComputeBounds computeBounds;
             node->accept(computeBounds);
 
@@ -95,12 +93,23 @@ struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
             scale->addChild(node);
             node = scale;
 
+            if (vsg::value<bool>(false, "write", options))
+            {
+                auto outputFilename = vsg::simpleFilename(filename) + ".vsgt";
+
+                vsg::write(node, outputFilename, options);
+
+                vsg::info("Written ", outputFilename);
+            }
+
             if (vsg::value<bool>(false, "decorate", options))
             {
                 node = decorateWithInstrumentationNode(node, filename.string(), vsg::uint_color(255, 255, 64, 255));
             }
 
             auto result = ref_viewer->compileManager->compile(node);
+
+
             if (result) ref_viewer->addUpdateOperation(Merge::create(filename, viewer, attachmentPoint, node, result));
         }
     }
@@ -131,6 +140,8 @@ int main(int argc, char** argv)
         auto numFrames = arguments.value(-1, "-f");
         auto numThreads = arguments.value(16, "-n");
 
+        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+
         // provide setting of the resource hints on the command line
         vsg::ref_ptr<vsg::ResourceHints> resourceHints;
         if (vsg::Path resourceFile; arguments.read("--resource", resourceFile)) resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceFile);
@@ -138,6 +149,7 @@ int main(int argc, char** argv)
         // Use --decorate command line option to set "decorate" user Options value.
         // this will be checked by the MergeOperation to decide wither to decorate the loaded subgraph with a InstrumentationNode
         options->setValue("decorate", arguments.read("--decorate"));
+
 
         vsg::ref_ptr<vsg::Instrumentation> instrumentation;
         if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
@@ -172,6 +184,12 @@ int main(int argc, char** argv)
             instrumentation = tracy_instrumentation;
         }
 #endif
+
+
+        bool compileTraversalUseReserve = arguments.read("--reserve");
+        bool singleThreaded = arguments.read("--st");
+        auto outputFilename = arguments.value<vsg::Path>("", "-o");
+        if (arguments.read("--write")) options->setValue("write", true);
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
@@ -237,7 +255,24 @@ int main(int argc, char** argv)
         // configure the viewer's rendering backend, initialize and compile Vulkan objects, passing in ResourceHints to guide the resources allocated.
         viewer->compile(resourceHints);
 
-        auto loadThreads = vsg::OperationThreads::create(numThreads, viewer->status);
+        if (auto deviceMemoryBufferPools = viewer->recordAndSubmitTasks.front()->device->deviceMemoryBufferPools.ref_ptr())
+        {
+            deviceMemoryBufferPools->compileTraversalUseReserve = compileTraversalUseReserve;
+        }
+
+
+        vsg::ref_ptr<vsg::OperationThreads> loadThreads;
+        vsg::ref_ptr<vsg::OperationQueue> loadQueue;
+
+        if (singleThreaded)
+        {
+            loadQueue = vsg::OperationQueue::create(viewer->status);
+        }
+        else
+        {
+            loadThreads = vsg::OperationThreads::create(numThreads, viewer->status);
+            loadQueue = loadThreads->queue;
+        }
 
         // assign the LoadOperation that will do the load in the background and once loaded and compiled, merge via Merge operation that is assigned to updateOperations and called from viewer.update()
         vsg::observer_ptr<vsg::Viewer> observer_viewer(viewer);
@@ -249,13 +284,20 @@ int main(int argc, char** argv)
 
             vsg_scene->addChild(transform);
 
-            loadThreads->add(LoadOperation::create(observer_viewer, transform, argv[i], options));
+            loadQueue->add(LoadOperation::create(observer_viewer, transform, argv[i], options));
+        }
+
+        if (singleThreaded)
+        {
+            for(auto& operation : loadQueue->take_all())
+            {
+                operation->run();
+            }
         }
 
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
-            // std::cout<<"new Frame"<<std::endl;
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
@@ -266,6 +308,12 @@ int main(int argc, char** argv)
             viewer->present();
 
             // if (loadThreads->queue->empty()) break;
+        }
+
+        if (outputFilename)
+        {
+            vsg::write(vsg_scene, outputFilename, options);
+            vsg::info("Written ", outputFilename);
         }
 
         if (auto profiler = instrumentation.cast<vsg::Profiler>())
