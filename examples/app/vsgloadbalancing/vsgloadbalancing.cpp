@@ -151,7 +151,7 @@ public:
         {
             double memoryLoadWithRequests = maxMemoryLoad * (static_cast<double>(numPagedLODWithRequests) / static_cast<double>(numPagedLOD));
             // LODScale = std::max(memoryLoadWithRequests / targetMemoryLoad, 1.0);
-            LODScale = std::max(memoryLoadWithRequests / targetMemoryLoad, LODScale);
+            // LODScale = std::max(memoryLoadWithRequests / targetMemoryLoad, LODScale);
         }
         else
         {
@@ -192,8 +192,7 @@ public:
 
             Units reserved = mbp->computeMemoryTotalReserved();
             Units available = mbp->computeMemoryTotalAvailable();
-            Units total = mbp->computeMemoryTotalSize();
-            out<<"reserved = "<<reserved<<", available = "<<available<<", total = "<<total<<std::endl;
+            out<<"reserved = "<<reserved<<", available = "<<available<<std::endl;
             for(uint32_t i=0; i<memoryProperties.memoryHeapCount; ++i)
             {
                 out<<"    budget = "<<memoryBudget.heapBudget[i]<<", usage = "<<memoryBudget.heapUsage[i]<<" utilization = "<<100.0*static_cast<double>(memoryBudget.heapUsage[i])/static_cast<double>(memoryBudget.heapBudget[i])<<"%"<<std::endl;
