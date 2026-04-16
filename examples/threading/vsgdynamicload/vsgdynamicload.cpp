@@ -111,6 +111,7 @@ struct LoadOperation : public vsg::Inherit<vsg::Operation, LoadOperation>
 
 
             if (result) ref_viewer->addUpdateOperation(Merge::create(filename, viewer, attachmentPoint, node, result));
+            else vsg::info("Loaded ", filename, " but compile failed { ", result.result, ", ", result.message, " }");
         }
     }
 };
