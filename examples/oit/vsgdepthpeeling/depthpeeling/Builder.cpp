@@ -108,8 +108,8 @@ ref_ptr<View> Builder::createView(const ref_ptr<Node>& headlight) const
 ref_ptr<ClearAttachments> Builder::createClearAttachments() const
 {
     ClearAttachments::Attachments attachments;
-    attachments.push_back({ VK_IMAGE_ASPECT_COLOR_BIT, 0, {0.0f, 0.0f, 0.0f, 0.0f} });
-    attachments.push_back({ VK_IMAGE_ASPECT_DEPTH_BIT, 0, {0.0f, 0} });
+    attachments.push_back({ VK_IMAGE_ASPECT_COLOR_BIT, 0, {{{0.0f, 0.0f, 0.0f, 0.0f}}} });
+    attachments.push_back({ VK_IMAGE_ASPECT_DEPTH_BIT, 0, {{{0.0f, 0}}} });
 
     VkClearRect clearRect;
     clearRect.rect.offset = { 0, 0 };

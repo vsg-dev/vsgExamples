@@ -258,12 +258,12 @@ ref_ptr<Framebuffer> Resources::framebuffer() const
 const vsg::RenderGraph::ClearValues& Resources::clearValues()
 {
     static const vsg::RenderGraph::ClearValues clearValues{
-        { 0.0f, 0.0f, 0.0f, 0.0f }, // ColorOpaque
-        { 0.0f, 0.0f, 0.0f, 0.0f }, // ColorAccum
-        { 0.0f, 0.0f, 0.0f, 0.0f }, // ColorPeel
-        { 0.0f, 0 },                // DepthOpaque
-        { 0.0f, 0 },                // DepthPeel0
-        { 0.0f, 0 }                 // DepthPeel1
+        {{{ 0.0f, 0.0f, 0.0f, 0.0f }}}, // ColorOpaque
+        {{{ 0.0f, 0.0f, 0.0f, 0.0f }}}, // ColorAccum
+        {{{ 0.0f, 0.0f, 0.0f, 0.0f }}}, // ColorPeel
+        {{{ 0.0f, 0 }}},                // DepthOpaque
+        {{{ 0.0f, 0 }}},                // DepthPeel0
+        {{{ 0.0f, 0 }}}                 // DepthPeel1
     };
 
     return clearValues;
