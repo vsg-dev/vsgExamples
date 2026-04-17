@@ -69,7 +69,7 @@ ref_ptr<RenderPass> Resources::createTransparencyPass(const CreateRenderPassInfo
 
     for (auto pass = 0u; pass < createInfo.numPeelLayers; ++pass)
     {
-        SubpassDescription renderSubpass{0, VK_PIPELINE_BIND_POINT_GRAPHICS};
+        SubpassDescription renderSubpass;
         renderSubpass.colorAttachments.emplace_back(attachmentRefs.at(ColorPeel));
         renderSubpass.depthStencilAttachments.emplace_back(
             attachmentRefs.at(DepthPeel0 + (pass % 2)));
@@ -87,7 +87,7 @@ ref_ptr<RenderPass> Resources::createTransparencyPass(const CreateRenderPassInfo
 
         subpasses.emplace_back(renderSubpass);
 
-        SubpassDescription combineSubpass{0, VK_PIPELINE_BIND_POINT_GRAPHICS};
+        SubpassDescription combineSubpass;
         combineSubpass.colorAttachments.emplace_back(attachmentRefs.at(ColorAccum));
 
         combineSubpass.inputAttachments.emplace_back(attachmentRefs.at(ColorPeel));
@@ -103,7 +103,7 @@ ref_ptr<RenderPass> Resources::createTransparencyPass(const CreateRenderPassInfo
 
     // Combine Subpass => Combine opaque and transparent fragments
 
-    SubpassDescription combineSubpass{0, VK_PIPELINE_BIND_POINT_GRAPHICS};
+    SubpassDescription combineSubpass;
     combineSubpass.colorAttachments.emplace_back(attachmentRefs.at(ColorOpaque));
 
     combineSubpass.inputAttachments.emplace_back(attachmentRefs.at(ColorAccum));
