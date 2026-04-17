@@ -23,4 +23,5 @@ add_subdirectory(vsgrenderoutline)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsghelloworld)
+    add_subdirectory(vsgdepthpeeling)
 endif()

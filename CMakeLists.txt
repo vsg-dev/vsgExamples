@@ -89,7 +89,6 @@ add_subdirectory(examples/ui)
 add_subdirectory(examples/utils)
 add_subdirectory(examples/vk)
 add_subdirectory(examples/volume)
-add_subdirectory(examples/oit)
 
 # VSG tests
 add_subdirectory(tests)
