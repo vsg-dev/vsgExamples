@@ -127,12 +127,12 @@ vsg::ref_ptr<vsg::Group> createScene(vsg::oit::depthpeeling::Builder& builder, v
 {
     auto scene = vsg::Group::create();
 
-    static const std::array<vsg::vec4, 5> colors = {
+    static const std::array<vsg::vec4, 5> colors = {{
         vsg::vec4(1.0, 1.0, 0.0, 1.0),
         vsg::vec4(0.0, 1.0, 1.0, 1.0),
         vsg::vec4(1.0, 0.0, 0.0, 0.5),
         vsg::vec4(0.0, 1.0, 0.0, 0.5),
-        vsg::vec4(0.0, 0.0, 1.0, 0.5)};
+        vsg::vec4(0.0, 0.0, 1.0, 0.5)}};
 
     if (largeScene)
     {

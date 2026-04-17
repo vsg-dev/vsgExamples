@@ -36,8 +36,8 @@ namespace vsg::oit::depthpeeling
     }
 }
 
-RenderGraph::RenderGraph(ref_ptr<Window> window, ref_ptr<View> view)
-    : Inherit<vsg::RenderGraph, RenderGraph>(window, view)
+RenderGraph::RenderGraph(ref_ptr<Window> in_window, ref_ptr<View> in_view)
+    : Inherit<vsg::RenderGraph, RenderGraph>(in_window, in_view)
     , _resources(Resources::create())
 {
 }
