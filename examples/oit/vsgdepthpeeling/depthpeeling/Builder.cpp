@@ -11,7 +11,7 @@
 #include <vsg/commands/NextSubPass.h>
 #include <vsg/commands/Draw.h>
 
-#include <vsg/lighting/light.h>
+#include <vsg/lighting/Light.h>
 
 using namespace vsg::oit::depthpeeling;
 using namespace vsg;
