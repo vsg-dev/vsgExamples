@@ -224,7 +224,7 @@ int main(int argc, char** argv)
         {
             auto mipmapLayout = image->getMipmapLayout();
             auto [width, height, depth, numLayers] = image->pixelExtents();
-            vsg::vec2 extents(width, height);
+            vsg::vec2 extents(static_cast<float>(width), static_cast<float>(height));
 
             // default mipmap settings
             {

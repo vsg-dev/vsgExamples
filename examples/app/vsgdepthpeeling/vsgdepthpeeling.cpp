@@ -144,7 +144,7 @@ vsg::ref_ptr<vsg::Group> createScene(vsg::oit::depthpeeling::Builder& builder, v
                 for (auto y = -3; y <= 3; ++y, ++object)
                 {
                     scene->addChild(createBox(
-                        builder, texture, colors[object % colors.size()], vsg::vec3(x * 1.5, y * 1.5, z * 1.5)));
+                        builder, texture, colors[object % colors.size()], vsg::vec3(static_cast<float>(x) * 1.5f, static_cast<float>(y) * 1.5f, static_cast<float>(z) * 1.5f)));
                 }
             }
         }

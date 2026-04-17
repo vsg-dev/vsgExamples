@@ -74,7 +74,7 @@ namespace
             auto indexes = vsg::ushortArray::create({0, 1, 2, 2, 3, 0});
             draw->assignArrays(vsg::DataList{points, normals});
             draw->assignIndices(indexes);
-            draw->indexCount = indexes->size();
+            draw->indexCount = static_cast<uint32_t>(indexes->size());
             draw->instanceCount = 1;
             out->addChild(draw);
 
@@ -270,8 +270,8 @@ int main(int argc, char** argv)
         vsg::dquat yRot(vsg::radians(30.0), vsg::dvec3(0.0, 1.0, 0.0));
         auto dLight = vsg::DirectionalLight::create();
         dLight->name = "directional";
-        dLight->color = {1.0, 1.0, 1.0};
-        dLight->intensity = 0.8;
+        dLight->color = {1.0f, 1.0f, 1.0f};
+        dLight->intensity = 0.8f;
         dLight->direction = xRot * yRot * vsg::dvec3(0.0, 0.0, -1.0);
         absoluteTransform->addChild(dLight);
     }
