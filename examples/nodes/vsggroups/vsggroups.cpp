@@ -97,6 +97,13 @@ public:
         object.traverse(*this);
     }
 
+    void apply(experimental::SharedPtrGroup& group) final
+    {
+        //std::cout<<"ExperimentVisitor::apply(vsg::SharedPtrGroup&)"<<std::endl;
+        ++numNodes;
+        group.traverse(*this);
+    }
+
     void apply(experimental::SharedPtrQuadGroup& group) final
     {
         //std::cout<<"ExperimentVisitor::apply(vsg::SharedPtrQuadGroup&)"<<std::endl;
@@ -162,20 +169,45 @@ std::shared_ptr<experimental::SharedPtrNode> createSharedPtrQuadTree(uint64_t nu
         numNodes += 1;
         numBytes += sizeof(experimental::SharedPtrNode);
 
-        return std::make_shared<experimental::SharedPtrNode>();
+        return std::allocate_shared<experimental::SharedPtrNode>(vsg::allocator_affinity_nodes<experimental::SharedPtrNode>());
     }
 
-    std::shared_ptr<experimental::SharedPtrQuadGroup> t = std::make_shared<experimental::SharedPtrQuadGroup>();
+    std::shared_ptr<experimental::SharedPtrGroup> t = std::allocate_shared<experimental::SharedPtrGroup>(vsg::allocator_affinity_nodes<experimental::SharedPtrNode>(), 4);
+
+    --numLevels;
+
+    numNodes += 1;
+    numBytes += sizeof(experimental::SharedPtrGroup);
+
+    t->setChild(0, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(1, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(2, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(3, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
+
+    return t;
+}
+
+std::shared_ptr<experimental::SharedPtrNode> createSharedPtrFixedQuadTree(uint64_t numLevels, uint64_t& numNodes, uint64_t& numBytes)
+{
+    if (numLevels == 0)
+    {
+        numNodes += 1;
+        numBytes += sizeof(experimental::SharedPtrNode);
+
+        return std::allocate_shared<experimental::SharedPtrNode>(vsg::allocator_affinity_nodes<experimental::SharedPtrNode>());
+    }
+
+    std::shared_ptr<experimental::SharedPtrQuadGroup> t = std::allocate_shared<experimental::SharedPtrQuadGroup>(vsg::allocator_affinity_nodes<experimental::SharedPtrNode>());
 
     --numLevels;
 
     numNodes += 1;
     numBytes += sizeof(experimental::SharedPtrQuadGroup);
 
-    t->setChild(0, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(1, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(2, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
-    t->setChild(3, createSharedPtrQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(0, createSharedPtrFixedQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(1, createSharedPtrFixedQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(2, createSharedPtrFixedQuadTree(numLevels, numNodes, numBytes));
+    t->setChild(3, createSharedPtrFixedQuadTree(numLevels, numNodes, numBytes));
 
     return t;
 }
@@ -289,6 +321,7 @@ int main(int argc, char** argv)
         if (type == "vsg::Group") vsg_root = createVsgQuadTree(numLevels, numNodes, numBytes);
         if (type == "vsg::QuadGroup") vsg_root = createFixedQuadTree(numLevels, numNodes, numBytes);
         if (type == "SharedPtrGroup") shared_root = createSharedPtrQuadTree(numLevels, numNodes, numBytes)->shared_from_this();
+        if (type == "SharedPtrQuadGroup") shared_root = createSharedPtrFixedQuadTree(numLevels, numNodes, numBytes)->shared_from_this();
     }
 
     if (!vsg_root && !shared_root)
