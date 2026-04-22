@@ -3,3 +3,7 @@ add_subdirectory(vsgio)
 add_subdirectory(vsglog)
 add_subdirectory(vsglog_mt)
 add_subdirectory(vsgpath)
+
+if (vsgXchange_FOUND)
+    add_subdirectory(vsgcustombuilders)
+endif()
