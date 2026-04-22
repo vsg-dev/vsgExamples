@@ -32,10 +32,30 @@ public:
     }
 };
 
+class MyTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MyTiles3DBuilder>
+{
+public:
+    MyTiles3DBuilder()
+    {
+        vsg::info("MyTiles3DBuilder() ", this);
+    }
+
+    MyTiles3DBuilder(const MyTiles3DBuilder& rhs, const vsg::CopyOp& = {}) :
+        Inherit()
+    {
+        vsg::info("MyTiles3DBuilder(const MyTiles3DBuilder& ", &rhs, ", const vsg::CopyOp& = {}) ", this);
+    }
+
+    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
+    {
+        return MyTiles3DBuilder::create(*this, copyop);
+    }
+};
+
 }
 
 EVSG_type_name(CustomBuilders::MyGltfBuilder)
-
+EVSG_type_name(CustomBuilders::MyTiles3DBuilder)
 
 int main(int argc, char** argv)
 {
@@ -55,7 +75,9 @@ int main(int argc, char** argv)
         options->sharedObjects = vsg::SharedObjects::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+
         options->setObject("gltf::Builder", CustomBuilders::MyGltfBuilder::create());
+        options->setObject("Tiles3D::Builder", CustomBuilders::MyTiles3DBuilder::create());
 
 #ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
