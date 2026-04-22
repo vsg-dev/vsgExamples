@@ -20,9 +20,10 @@ public:
         vsg::info("MyGltfBuilder() ", this);
     }
 
-    MyGltfBuilder(const MyGltfBuilder&, const vsg::CopyOp& = {}) :
+    MyGltfBuilder(const MyGltfBuilder& rhs, const vsg::CopyOp& = {}) :
         Inherit()
     {
+        vsg::info("MyGltfBuilder(const MyGltfBuilder& ", &rhs, ", const vsg::CopyOp& = {}) ", this);
     }
 
     vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
