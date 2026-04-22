@@ -1,48 +1,40 @@
 #include <vsg/all.h>
 
-#ifdef vsgXchange_FOUND
-#    include <vsgXchange/all.h>
-#endif
+#include <vsgXchange/all.h>
+#include <vsgXchange/gltf.h>
+#include <vsgXchange/3DTiles.h>
 
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <thread>
 
-vsg::ref_ptr<vsg::Node> createTextureQuad(vsg::ref_ptr<vsg::Data> sourceData, vsg::ref_ptr<vsg::Options> options)
+namespace CustomBuilders
 {
-    auto builder = vsg::Builder::create();
-    builder->options = options;
 
-    vsg::StateInfo state;
-    state.image = sourceData;
-    state.lighting = false;
+class MyGltfBuilder : public vsg::Inherit<vsgXchange::gltf::Builder, MyGltfBuilder>
+{
+public:
+    MyGltfBuilder()
+    {
+        vsg::info("MyGltfBuilder() ", this);
+    }
 
-    vsg::GeometryInfo geom;
-    geom.dx.set(static_cast<float>(sourceData->width()), 0.0f, 0.0f);
-    geom.dy.set(0.0f, 0.0f, static_cast<float>(sourceData->height()));
-    geom.dz.set(0.0f, -1.0f, 0.0f);
+    MyGltfBuilder(const MyGltfBuilder&, const vsg::CopyOp& = {}) :
+        Inherit()
+    {
+    }
 
-    return builder->createQuad(geom, state);
+    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
+    {
+        return MyGltfBuilder::create(*this, copyop);
+    }
+};
+
 }
 
-void enableGenerateDebugInfo(vsg::ref_ptr<vsg::Options> options)
-{
-    auto shaderHints = vsg::ShaderCompileSettings::create();
-    shaderHints->generateDebugInfo = true;
+EVSG_type_name(CustomBuilders::MyGltfBuilder)
 
-    auto& text = options->shaderSets["text"] = vsg::createTextShaderSet(options);
-    text->defaultShaderHints = shaderHints;
-
-    auto& flat = options->shaderSets["flat"] = vsg::createFlatShadedShaderSet(options);
-    flat->defaultShaderHints = shaderHints;
-
-    auto& phong = options->shaderSets["phong"] = vsg::createPhongShaderSet(options);
-    phong->defaultShaderHints = shaderHints;
-
-    auto& pbr = options->shaderSets["pbr"] = vsg::createPhysicsBasedRenderingShaderSet(options);
-    pbr->defaultShaderHints = shaderHints;
-}
 
 int main(int argc, char** argv)
 {
@@ -62,6 +54,7 @@ int main(int argc, char** argv)
         options->sharedObjects = vsg::SharedObjects::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+        options->setObject("gltf::Builder", CustomBuilders::MyGltfBuilder::create());
 
 #ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
@@ -118,18 +111,6 @@ int main(int argc, char** argv)
             resourceHints = vsg::read_cast<vsg::ResourceHints>(resourceHintsFilename, options);
         }
 
-        if (auto outputResourceHintsFilename = arguments.value<vsg::Path>("", "--orh"))
-        {
-            if (!resourceHints) resourceHints = vsg::ResourceHints::create();
-            vsg::write(resourceHints, outputResourceHintsFilename, options);
-            return 0;
-        }
-
-        if (arguments.read({"--shader-debug-info", "--sdi"}))
-        {
-            enableGenerateDebugInfo(options);
-            windowTraits->deviceExtensionNames.push_back(VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME);
-        }
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         auto logFilename = arguments.value<vsg::Path>("", "--log");
@@ -193,13 +174,6 @@ int main(int argc, char** argv)
             if (auto node = object.cast<vsg::Node>())
             {
                 group->addChild(node);
-            }
-            else if (auto data = object.cast<vsg::Data>())
-            {
-                if (auto textureGeometry = createTextureQuad(data, options))
-                {
-                    group->addChild(textureGeometry);
-                }
             }
             else if (object)
             {
