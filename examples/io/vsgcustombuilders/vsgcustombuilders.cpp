@@ -99,9 +99,9 @@ int main(int argc, char** argv)
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
-        options->setObject("gltf::Builder", CustomBuilders::MyGltfBuilder::create());
-        options->setObject("Tiles3D::Builder", CustomBuilders::MyTiles3DBuilder::create());
-        options->setObject("assimp::Builder", CustomBuilders::MyAssimpBuilder::create());
+        options->setObject(vsgXchange::gltf::prototype_builder, CustomBuilders::MyGltfBuilder::create());
+        options->setObject(vsgXchange::Tiles3D::prototype_builder, CustomBuilders::MyTiles3DBuilder::create());
+        options->setObject(vsgXchange::assimp::prototype_builder, CustomBuilders::MyAssimpBuilder::create());
 
 #ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
