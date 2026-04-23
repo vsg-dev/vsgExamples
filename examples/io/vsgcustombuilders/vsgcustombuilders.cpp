@@ -19,19 +19,25 @@ class MyGltfBuilder : public vsg::Inherit<vsgXchange::gltf::Builder, MyGltfBuild
 public:
     MyGltfBuilder()
     {
-        vsg::info("MyGltfBuilder() ", this);
     }
 
-    MyGltfBuilder(const MyGltfBuilder& rhs, const vsg::CopyOp& = {}) :
+    MyGltfBuilder(const MyGltfBuilder&, const vsg::CopyOp& = {}) :
         Inherit()
     {
-        vsg::info("MyGltfBuilder(const MyGltfBuilder& ", &rhs, ", const vsg::CopyOp& = {}) ", this);
     }
 
     vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
     {
         return MyGltfBuilder::create(*this, copyop);
     }
+
+
+    vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::gltf::glTF> in_model, vsg::ref_ptr<const vsg::Options> in_options) override
+    {
+        vsg::info("MyGltfBuilder::createSceneGraph(", in_model, ", ", in_options,") ", this);
+        return Inherit::createSceneGraph(in_model, in_options);
+    }
+
 };
 
 class MyTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MyTiles3DBuilder>
@@ -39,18 +45,22 @@ class MyTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MyTil
 public:
     MyTiles3DBuilder()
     {
-        vsg::info("MyTiles3DBuilder() ", this);
     }
 
-    MyTiles3DBuilder(const MyTiles3DBuilder& rhs, const vsg::CopyOp& = {}) :
+    MyTiles3DBuilder(const MyTiles3DBuilder&, const vsg::CopyOp& = {}) :
         Inherit()
     {
-        vsg::info("MyTiles3DBuilder(const MyTiles3DBuilder& ", &rhs, ", const vsg::CopyOp& = {}) ", this);
     }
 
     vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
     {
         return MyTiles3DBuilder::create(*this, copyop);
+    }
+
+    vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::Tiles3D::Tileset> tileset, vsg::ref_ptr<const vsg::Options> in_options) override
+    {
+        vsg::info("MyTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this);
+        return Inherit::createSceneGraph(tileset, in_options);
     }
 };
 
@@ -59,19 +69,25 @@ class MyAssimpBuilder : public vsg::Inherit<vsgXchange::assimp::Builder, MyAssim
 public:
     MyAssimpBuilder()
     {
-        vsg::info("MyAssimpBuilder() ", this);
     }
 
-    MyAssimpBuilder(const MyAssimpBuilder& rhs, const vsg::CopyOp& = {}) :
+    MyAssimpBuilder(const MyAssimpBuilder&, const vsg::CopyOp& = {}) :
         Inherit()
     {
-        vsg::info("MyAssimpBuilder(const MyAssimpBuilder& ", &rhs, ", const vsg::CopyOp& = {}) ", this);
     }
 
     vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
     {
         return MyAssimpBuilder::create(*this, copyop);
     }
+
+    vsg::ref_ptr<vsg::Node> createSceneGraph(const aiScene* in_scene, vsg::ref_ptr<const vsg::Options> in_options, const vsg::Path& ext) override
+    {
+        vsg::info("MyAssimpBuilder::createSceneGraph(", in_scene, ", ", in_options, ", ", ext, ") ", this);
+        return Inherit::createSceneGraph(in_scene, in_options, ext);
+    }
+
+
 };
 
 }
