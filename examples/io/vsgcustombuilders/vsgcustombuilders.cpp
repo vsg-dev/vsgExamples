@@ -1,6 +1,8 @@
 #include <vsg/all.h>
 
 #include <vsgXchange/all.h>
+
+#include <vsgXchange/assimp.h>
 #include <vsgXchange/gltf.h>
 #include <vsgXchange/3DTiles.h>
 
@@ -52,10 +54,31 @@ public:
     }
 };
 
+class MyAssimpBuilder : public vsg::Inherit<vsgXchange::assimp::Builder, MyAssimpBuilder>
+{
+public:
+    MyAssimpBuilder()
+    {
+        vsg::info("MyAssimpBuilder() ", this);
+    }
+
+    MyAssimpBuilder(const MyAssimpBuilder& rhs, const vsg::CopyOp& = {}) :
+        Inherit()
+    {
+        vsg::info("MyAssimpBuilder(const MyAssimpBuilder& ", &rhs, ", const vsg::CopyOp& = {}) ", this);
+    }
+
+    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
+    {
+        return MyAssimpBuilder::create(*this, copyop);
+    }
+};
+
 }
 
 EVSG_type_name(CustomBuilders::MyGltfBuilder)
 EVSG_type_name(CustomBuilders::MyTiles3DBuilder)
+EVSG_type_name(CustomBuilders::MyAssimpBuilder)
 
 int main(int argc, char** argv)
 {
@@ -78,6 +101,7 @@ int main(int argc, char** argv)
 
         options->setObject("gltf::Builder", CustomBuilders::MyGltfBuilder::create());
         options->setObject("Tiles3D::Builder", CustomBuilders::MyTiles3DBuilder::create());
+        options->setObject("assimp::Builder", CustomBuilders::MyAssimpBuilder::create());
 
 #ifdef vsgXchange_all
         // add vsgXchange's support for reading and writing 3rd party file formats
