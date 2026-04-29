@@ -51,7 +51,6 @@ int main(int argc, char** argv)
         {
             vsg::Path filename = arguments[i];
 
-            auto object = vsg::read(filename, options);
             if (vsg::fileExists(filename))
             {
                 int index = (i - 1);
