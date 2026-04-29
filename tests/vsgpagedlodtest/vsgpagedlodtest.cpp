@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include "DatabasePagerAutoscale.h"
+
 int main(int argc, char** argv)
 {
     try
@@ -26,6 +28,7 @@ int main(int argc, char** argv)
         options->add(vsgXchange::all::create());
 #endif
 
+        auto defaultDatabasePager = arguments.value(false, "--defaultDatabasePager");
         auto maxPagedLOD = arguments.value(1500, "--maxPagedLOD");
         auto useSharedObjects = arguments.value(false, "--shareObjects");
 
@@ -110,6 +113,16 @@ int main(int argc, char** argv)
         auto renderGraph = vsg::RenderGraph::create(window, view);
         auto commandGraph = vsg::CommandGraph::create(window, renderGraph);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+
+        // set custom databasepager which show each model with the same size for better demo scene
+        if (!defaultDatabasePager)
+        {
+            for (auto& task : viewer->recordAndSubmitTasks)
+            {
+                task->databasePager = DatabasePagerAutoscale::create();
+                std::cout << "Applied custom databasePager with autoscale models to the same size" << std::endl;
+            }
+        }
 
         viewer->compile();
 
