@@ -42,9 +42,15 @@ int main(int argc, char** argv)
             return 1;
         }
 
-        vsg::dvec3 center(0.0, 0.0, 0.0);
-        vsg::dvec3 shift(0.0, 2.0, 0.0);
         auto vsg_scene = vsg::Group::create();
+
+        vsg::dvec3 origin(0.0, 0.0, 0.0);
+        vsg::dvec3 primary(2.0, 0.0, 0.0);
+        vsg::dvec3 secondary(0.0, 2.0, 0.0);
+
+        int numModels = argc - 1;
+        int numColumns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(numModels))));
+        int numRows = static_cast<int>(std::ceil(static_cast<float>(numModels) / static_cast<float>(numColumns)));
 
         // read any 3d-models files
         for (int i = 1; i < argc; ++i)
@@ -54,13 +60,15 @@ int main(int argc, char** argv)
             if (vsg::fileExists(filename))
             {
                 int index = (i - 1);
-                vsg::dvec3 position = shift * static_cast<double>(index);
+                vsg::dvec3 position =   origin
+                                      + primary * static_cast<double>(index % numColumns)
+                                      + secondary * static_cast<double>(index / numColumns);
                 auto transform = vsg::MatrixTransform::create(vsg::translate(position));
 
                 auto pagedLOD = vsg::PagedLOD::create();
                 pagedLOD->filename = filename;
                 pagedLOD->options = options;
-                pagedLOD->bound = vsg::dsphere(center, 1.0);
+                pagedLOD->bound = vsg::dsphere(origin, 1.0);
                 transform->addChild(pagedLOD);
                 vsg_scene->addChild(transform);
 
@@ -90,10 +98,15 @@ int main(int argc, char** argv)
         viewer->addWindow(window);
 
         // compute position the camera
-        vsg::dvec3 eyeShift(0.0, -5, 2.0);
+        double viewingDistance = std::sqrt(static_cast<float>(numModels)) * 3.0;
+        vsg::dvec3 eyeShift(0.0, -viewingDistance, 0.0);
         vsg::dvec3 up(0.0, 0.0, 1.0);
-        auto lookAt = vsg::LookAt::create(center + eyeShift, center, up);
+        vsg::dvec3 centre =   origin
+                            + primary * (static_cast<double>(numColumns - 1) * 0.5)
+                            + secondary * (static_cast<double>(numRows - 1) * 0.5);
 
+        // set up the camera
+        auto lookAt = vsg::LookAt::create(centre + eyeShift, centre, up);
         auto perspective = vsg::Perspective::create(30.0,
                                                     static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height),
                                                     0.01,
