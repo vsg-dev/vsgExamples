@@ -11,90 +11,98 @@
 #include <iostream>
 #include <thread>
 
+#ifdef vsgXchange_gltf
 namespace CustomBuilders
 {
+    class MyGltfBuilder : public vsg::Inherit<vsgXchange::gltf::Builder, MyGltfBuilder>
+    {
+    public:
+        MyGltfBuilder()
+        {
+        }
 
-class MyGltfBuilder : public vsg::Inherit<vsgXchange::gltf::Builder, MyGltfBuilder>
+        MyGltfBuilder(const MyGltfBuilder&, const vsg::CopyOp& = {}) :
+            Inherit()
+        {
+        }
+
+        vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
+        {
+            return MyGltfBuilder::create(*this, copyop);
+        }
+
+
+        vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::gltf::glTF> in_model, vsg::ref_ptr<const vsg::Options> in_options) override
+        {
+            vsg::info("MyGltfBuilder::createSceneGraph(", in_model, ", ", in_options,") ", this);
+            return Inherit::createSceneGraph(in_model, in_options);
+        }
+
+    };
+}
+EVSG_type_name(CustomBuilders::MyGltfBuilder)
+#endif
+
+#ifdef vsgXchange_3DTiles
+namespace CustomBuilders
 {
-public:
-    MyGltfBuilder()
+    class MyTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MyTiles3DBuilder>
     {
-    }
+    public:
+        MyTiles3DBuilder()
+        {
+        }
 
-    MyGltfBuilder(const MyGltfBuilder&, const vsg::CopyOp& = {}) :
-        Inherit()
-    {
-    }
+        MyTiles3DBuilder(const MyTiles3DBuilder&, const vsg::CopyOp& = {}) :
+            Inherit()
+        {
+        }
 
-    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
-    {
-        return MyGltfBuilder::create(*this, copyop);
-    }
+        vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
+        {
+            return MyTiles3DBuilder::create(*this, copyop);
+        }
 
+        vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::Tiles3D::Tileset> tileset, vsg::ref_ptr<const vsg::Options> in_options) override
+        {
+            vsg::info("MyTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this);
+            return Inherit::createSceneGraph(tileset, in_options);
+        }
+    };
+}
+EVSG_type_name(CustomBuilders::MyTiles3DBuilder)
+#endif
 
-    vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::gltf::glTF> in_model, vsg::ref_ptr<const vsg::Options> in_options) override
-    {
-        vsg::info("MyGltfBuilder::createSceneGraph(", in_model, ", ", in_options,") ", this);
-        return Inherit::createSceneGraph(in_model, in_options);
-    }
-
-};
-
-class MyTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MyTiles3DBuilder>
+#ifdef vsgXchange_assimp
+namespace CustomBuilders
 {
-public:
-    MyTiles3DBuilder()
+    class MyAssimpBuilder : public vsg::Inherit<vsgXchange::assimp::Builder, MyAssimpBuilder>
     {
-    }
+    public:
+        MyAssimpBuilder()
+        {
+        }
 
-    MyTiles3DBuilder(const MyTiles3DBuilder&, const vsg::CopyOp& = {}) :
-        Inherit()
-    {
-    }
+        MyAssimpBuilder(const MyAssimpBuilder&, const vsg::CopyOp& = {}) :
+            Inherit()
+        {
+        }
 
-    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
-    {
-        return MyTiles3DBuilder::create(*this, copyop);
-    }
+        vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
+        {
+            return MyAssimpBuilder::create(*this, copyop);
+        }
 
-    vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::Tiles3D::Tileset> tileset, vsg::ref_ptr<const vsg::Options> in_options) override
-    {
-        vsg::info("MyTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this);
-        return Inherit::createSceneGraph(tileset, in_options);
-    }
-};
-
-class MyAssimpBuilder : public vsg::Inherit<vsgXchange::assimp::Builder, MyAssimpBuilder>
-{
-public:
-    MyAssimpBuilder()
-    {
-    }
-
-    MyAssimpBuilder(const MyAssimpBuilder&, const vsg::CopyOp& = {}) :
-        Inherit()
-    {
-    }
-
-    vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
-    {
-        return MyAssimpBuilder::create(*this, copyop);
-    }
-
-    vsg::ref_ptr<vsg::Node> createSceneGraph(const aiScene* in_scene, vsg::ref_ptr<const vsg::Options> in_options, const vsg::Path& ext) override
-    {
-        vsg::info("MyAssimpBuilder::createSceneGraph(", in_scene, ", ", in_options, ", ", ext, ") ", this);
-        return Inherit::createSceneGraph(in_scene, in_options, ext);
-    }
-
-
-};
+        vsg::ref_ptr<vsg::Node> createSceneGraph(const aiScene* in_scene, vsg::ref_ptr<const vsg::Options> in_options, const vsg::Path& ext) override
+        {
+            vsg::info("MyAssimpBuilder::createSceneGraph(", in_scene, ", ", in_options, ", ", ext, ") ", this);
+            return Inherit::createSceneGraph(in_scene, in_options, ext);
+        }
+    };
 
 }
-
-EVSG_type_name(CustomBuilders::MyGltfBuilder)
-EVSG_type_name(CustomBuilders::MyTiles3DBuilder)
 EVSG_type_name(CustomBuilders::MyAssimpBuilder)
+#endif
 
 int main(int argc, char** argv)
 {
@@ -115,14 +123,20 @@ int main(int argc, char** argv)
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
         options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
+#ifdef vsgXchange_gltf
         options->setObject(vsgXchange::gltf::prototype_builder, CustomBuilders::MyGltfBuilder::create());
-        options->setObject(vsgXchange::Tiles3D::prototype_builder, CustomBuilders::MyTiles3DBuilder::create());
-        options->setObject(vsgXchange::assimp::prototype_builder, CustomBuilders::MyAssimpBuilder::create());
+#endif
 
-#ifdef vsgXchange_all
+#ifdef vsgXchange_3DTiles
+        options->setObject(vsgXchange::Tiles3D::prototype_builder, CustomBuilders::MyTiles3DBuilder::create());
+#endif
+
+#ifdef vsgXchange_assimp
+        options->setObject(vsgXchange::assimp::prototype_builder, CustomBuilders::MyAssimpBuilder::create());
+#endif
+
         // add vsgXchange's support for reading and writing 3rd party file formats
         options->add(vsgXchange::all::create());
-#endif
 
         options->readOptions(arguments);
 
