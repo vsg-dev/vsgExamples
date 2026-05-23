@@ -43,13 +43,13 @@ int main(int argc, char** argv)
         auto features = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();
 
         auto& meshFeatures = features->get<VkPhysicalDeviceMeshShaderFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT>();
-        meshFeatures.meshShader = 1;
-        meshFeatures.taskShader = 1;
+        meshFeatures.meshShader = VK_TRUE;
+        meshFeatures.taskShader = VK_TRUE;
 
         if (barycentric)
         {
             auto& barycentricFeatures = features->get<VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR>();
-            barycentricFeatures.fragmentShaderBarycentric = 1;
+            barycentricFeatures.fragmentShaderBarycentric = VK_TRUE;
         }
 
         auto window = vsg::Window::create(windowTraits);
