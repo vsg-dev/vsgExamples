@@ -2,6 +2,7 @@
 #include <vsg/all.h>
 #include <vsgXchange/all.h>
 #include <vsgXchange/gltf.h>
+#include <vsgXchange/3DTiles.h>
 
 namespace custom
 {
@@ -50,7 +51,7 @@ namespace custom
 
         vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::gltf::glTF> in_model, vsg::ref_ptr<const vsg::Options> in_options) override
         {
-            vsg::info("MeshGltfBuilder::createSceneGraph(", in_model, ", ", in_options,") ", this);
+            vsg::info("MeshGltfBuilder::createSceneGraph(", in_model, ", ", in_options,") ", this,", filename = ", in_model->filename);
             return Inherit::createSceneGraph(in_model, in_options);
         }
 
@@ -60,6 +61,32 @@ namespace custom
             return Inherit::createMesh(gltf_mesh, meshExtras);
         }
     };
+
+    class MeshTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MeshTiles3DBuilder>
+    {
+    public:
+        MeshTiles3DBuilder()
+        {
+        }
+
+        MeshTiles3DBuilder(const MeshTiles3DBuilder&, const vsg::CopyOp& = {}) :
+        Inherit()
+        {
+        }
+
+        vsg::ref_ptr<vsg::Object> clone(const vsg::CopyOp& copyop = {}) const override
+        {
+            return MeshTiles3DBuilder::create(*this, copyop);
+        }
+
+        vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::Tiles3D::Tileset> tileset, vsg::ref_ptr<const vsg::Options> in_options) override
+        {
+            vsg::info("MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename);
+            return Inherit::createSceneGraph(tileset, in_options);
+        }
+    };
+
+
 }
 
 int main(int argc, char** argv)
@@ -72,7 +99,8 @@ int main(int argc, char** argv)
     // use the vsg::Options object to pass the ReaderWriter_all to use when reading files.
     auto options = vsg::Options::create();
     options->add(vsgXchange::all::create());
-    options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+    //options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+    options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
 
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();

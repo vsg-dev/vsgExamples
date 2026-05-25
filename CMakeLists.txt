@@ -21,13 +21,13 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-find_package(vsg 1.1.13)
+find_package(vsg 1.1.15)
 
 vsg_setup_dir_vars()
 vsg_setup_build_vars()
 
 # find the optional vsgXchange that can be used for reading a range of image and 3d model formats and shader compilation
-find_package(vsgXchange 1.1.12 QUIET)
+find_package(vsgXchange 1.1.14 QUIET)
 
 # find the optional vsgImGui that can be used for GUI elements added into graphics windows.
 find_package(vsgImGui QUIET)
