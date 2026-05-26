@@ -79,15 +79,55 @@ namespace custom
             return MeshTiles3DBuilder::create(*this, copyop);
         }
 
+        vsg::ref_ptr<vsg::Node> readInstanceChild(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> in_options) override
+        {
+            vsg::info("Vegetation : MeshTiles3DBuilder::readInstanceChild( ", filename, ", ", options, " )");
+            return Inherit::readInstanceChild(filename, in_options);
+        }
+
+        vsg::ref_ptr<vsg::Node> readInstanceChild(std::istream& fin, vsg::ref_ptr<const vsg::Options> in_options) override
+        {
+            vsg::info("Vegetation : MeshTiles3DBuilder::readInstanceChild( ", &fin, ", ", options, " )");
+            return Inherit::readInstanceChild(fin, in_options);
+        }
+
         vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::Tiles3D::Tileset> tileset, vsg::ref_ptr<const vsg::Options> in_options) override
         {
-            vsg::info("MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename);
-            return Inherit::createSceneGraph(tileset, in_options);
+            auto name = vsg::simpleFilename(tileset->filename);
+            vsg::ref_ptr<vsg::Object> object;
+            if (name=="tileset_vegetation")
+            {
+                vsg::info("Vegetation : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename);
+
+                auto local_options = vsg::clone(in_options);
+                local_options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+
+                object = Inherit::createSceneGraph(tileset, local_options);
+
+                vsg::info("after ", tileset->filename, "\n\n");
+            }
+            else if (name=="tileset_terrain")
+            {
+                vsg::info("Terrain : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename);
+
+                auto local_options = vsg::clone(in_options);
+                local_options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+
+                object = Inherit::createSceneGraph(tileset, local_options);
+                vsg::info("after ", tileset->filename, "\n\n");
+            }
+            else
+            {
+                object = Inherit::createSceneGraph(tileset, in_options);
+            }
+
+            return object;
         }
     };
-
-
 }
+
+EVSG_type_name(custom::MeshGltfBuilder)
+EVSG_type_name(custom::MeshTiles3DBuilder)
 
 int main(int argc, char** argv)
 {
@@ -99,7 +139,6 @@ int main(int argc, char** argv)
     // use the vsg::Options object to pass the ReaderWriter_all to use when reading files.
     auto options = vsg::Options::create();
     options->add(vsgXchange::all::create());
-    //options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
     options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
 
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -109,6 +148,9 @@ int main(int argc, char** argv)
     options->readOptions(arguments);
 
     auto numFrames = arguments.value(-1, "-f");
+    auto pathFilename = arguments.value<vsg::Path>("", "-p");
+    auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
+    auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
     auto outputShaderSetFilename = arguments.value<vsg::Path>("", "--os");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
@@ -207,6 +249,19 @@ int main(int argc, char** argv)
 
     // add close handler to respond to the close window button and pressing escape
     viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+
+    auto cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
+    viewer->addEventHandler(cameraAnimation);
+    if (autoPlay && cameraAnimation->animation)
+    {
+        cameraAnimation->play();
+
+        if (reportAverageFrameRate && maxTime == std::numeric_limits<double>::max())
+        {
+            maxTime = cameraAnimation->animation->maxTime();
+        }
+    }
+
     viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
     auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
