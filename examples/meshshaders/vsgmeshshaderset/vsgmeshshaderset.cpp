@@ -55,11 +55,7 @@ namespace custom
             return Inherit::createSceneGraph(in_model, in_options);
         }
 
-        vsg::ref_ptr<vsg::Node> createMesh(vsg::ref_ptr<vsgXchange::gltf::Mesh> gltf_mesh, const MeshExtras& meshExtras)
-        {
-            vsg::info("MeshGltfBuilder::createMesh(", gltf_mesh, ", ..) ", this);
-            return Inherit::createMesh(gltf_mesh, meshExtras);
-        }
+        vsg::ref_ptr<vsg::Node> createMesh(vsg::ref_ptr<vsgXchange::gltf::Mesh> gltf_mesh, const vsgXchange::gltf::Builder::MeshExtras& meshExtras) override;
     };
 
     class MeshTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MeshTiles3DBuilder>
@@ -129,6 +125,441 @@ namespace custom
 EVSG_type_name(custom::MeshGltfBuilder)
 EVSG_type_name(custom::MeshTiles3DBuilder)
 
+vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXchange::gltf::Mesh> gltf_mesh, const vsgXchange::gltf::Builder::MeshExtras& meshExtras)
+{
+#if 0
+    vsg::info("MeshGltfBuilder::createMesh(", gltf_mesh, ", ..) ", this);
+    return Inherit::createMesh(gltf_mesh, meshExtras);
+#else
+
+    vsg::info("MeshGltfBuilder::createMesh(", gltf_mesh, ", ..) ", this, " custom mesh");
+
+    /*
+    struct Attributes : public vsg::Inherit<vsg::JSONParser::Schema, Attributes>
+    {
+        std::map<std::string, glTFid> values;
+    };
+
+    struct Primitive : public vsg::Inherit<ExtensionsExtras, Primitive>
+    {
+        Attributes attributes;
+        glTFid indices;
+        glTFid material;
+        uint32_t mode = 0;
+        vsg::ObjectsSchema<Attributes> targets;
+    };
+
+    struct Mesh : public vsg::Inherit<NameExtensionsExtras, Mesh>
+    {
+        vsg::ObjectsSchema<Primitive> primitives;
+        vsg::ValuesSchema<double> weights;
+    };
+    */
+
+    const VkPrimitiveTopology topologyLookup[] = {
+        VK_PRIMITIVE_TOPOLOGY_POINT_LIST,     // 0, POINTS
+        VK_PRIMITIVE_TOPOLOGY_LINE_LIST,      // 1, LINES
+        VK_PRIMITIVE_TOPOLOGY_LINE_LIST,      // 2, LINE_LOOP, need special handling
+        VK_PRIMITIVE_TOPOLOGY_LINE_STRIP,     // 3, LINE_STRIP
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,  // 4, TRIANGLES
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, // 5, TRIANGLE_STRIP
+        VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN    // 6, TRIANGLE_FAN
+    };
+#if 0
+    vsg::info("mesh = {");
+    vsg::info("    primitives = ", gltf_mesh->primitives.values.size());
+    vsg::info("    weight = ", gltf_mesh->weights.values.size());
+#endif
+
+    std::vector<vsg::ref_ptr<vsg::Node>> nodes;
+
+    for (auto& primitive : gltf_mesh->primitives.values)
+    {
+        vsg::ref_ptr<vsg::DescriptorConfigurator> vsg_material;
+        if (primitive->material)
+        {
+            vsg_material = vsg_materials[primitive->material.value];
+        }
+        else
+        {
+            vsg::debug("Material for primitive not assigned, primitive = ", primitive, ", primitive->material = ", primitive->material);
+            vsg_material = default_material;
+        }
+
+        auto config = vsg::GraphicsPipelineConfigurator::create(vsg_material->shaderSet);
+        config->descriptorConfigurator = vsg_material;
+        if (options) config->assignInheritedState(options->inheritedState);
+
+        if (meshExtras.jointSampler)
+        {
+            vsg_material->assignDescriptor("jointMatrices", meshExtras.jointSampler->jointMatrices);
+        }
+
+#if 0
+        vsg::info("    primitive = {");
+        vsg::info("        attributes = {");
+        for(auto& [semantic, id] : primitive->attributes.values)
+        {
+             vsg::info("            ", semantic, ", ", id);
+        }
+        vsg::info("        }");
+        vsg::info("        indices = ", primitive->indices);
+        vsg::info("        material = ", primitive->material);
+        vsg::info("        mode = ", primitive->mode);
+        vsg::info("        targets = ", primitive->targets.values.size()) ;
+
+        vsg::info("        * topology = ", topologyLookup[primitive->mode]) ;
+        if (primitive->mode==2) vsg::info("        * LINE_LOOP needs special handling.");
+
+        vsg::info("    }");
+#endif
+
+        vsg::DataList vertexArrays;
+
+        auto assignArray = [&](vsgXchange::gltf::Attributes& attrib, VkVertexInputRate vertexInputRate, const std::string& attribute_name) -> bool {
+
+            auto array_itr = attrib.values.find(attribute_name);
+            if (array_itr == attrib.values.end()) return false;
+
+            auto name_itr = attributeLookup.find(attribute_name);
+            if (name_itr == attributeLookup.end()) return false;
+
+            if (array_itr->second.value >= vsg_accessors.size())
+            {
+                vsg::warn("gltf::Builder::createMesh() error in assignArray( attrib, vertexIndexRate", attribute_name, "), array index out of range.");
+                return false;
+            }
+
+            vsg::ref_ptr<vsg::Data> array = vsg_accessors[array_itr->second.value];
+            if (!array)
+            {
+                vsg::warn("gltf::Builder::createMesh() error in assignArray( attrib, vertexIndexRate", attribute_name, "), required array null.");
+                return false;
+            }
+
+            if (attribute_name == "ROTATION")
+            {
+                if (auto vec4Rotations = array.cast<vsg::vec4Array>())
+                {
+                    auto quatArray = vsg::quatArray::create(array, 0, 12, vec4Rotations->size());
+                    array = quatArray;
+                }
+            }
+            else if (attribute_name == "TEXCOORD_0" || attribute_name == "TEXCOORD_1" || attribute_name == "TEXCOORD_2" || attribute_name == "TEXCOORD_3")
+            {
+                if (auto texture_transform = vsg_material->getObject<vsgXchange::gltf::KHR_texture_transform>("KHR_texture_transform"))
+                {
+                    vsg::vec2 offset(0.0f, 0.0f);
+                    vsg::vec2 scale(1.0f, 1.0f);
+                    float rotation = texture_transform->rotation;
+                    if (texture_transform->offset.values.size() >= 2) offset.set(texture_transform->offset.values[0], texture_transform->offset.values[1]);
+                    if (texture_transform->scale.values.size() >= 2) scale.set(texture_transform->scale.values[0], texture_transform->scale.values[1]);
+
+                    if (auto texCoords = array.cast<vsg::vec2Array>())
+                    {
+                        float sin_rotation = std::sin(rotation);
+                        float cos_rotation = std::cos(rotation);
+                        auto transformedTexCoords = vsg::vec2Array::create(texCoords->size());
+                        auto dest_itr = transformedTexCoords->begin();
+                        for (auto& tc : *texCoords)
+                        {
+                            auto& dest_tc = *(dest_itr++);
+                            dest_tc.x = offset.x + (tc.x * scale.x) * cos_rotation + (tc.y * scale.y) * sin_rotation;
+                            dest_tc.y = offset.y + (tc.y * scale.y) * cos_rotation - (tc.x * scale.x) * sin_rotation;
+                        }
+                        array = transformedTexCoords;
+                    }
+                }
+            }
+            else if (attribute_name == "JOINTS_0")
+            {
+                if (auto ushortCoords = array.cast<vsg::usvec4Array>())
+                {
+                    auto intCoords = vsg::ivec4Array::create(ushortCoords->size());
+                    auto dest_itr = intCoords->begin();
+                    for (auto& usc : *ushortCoords)
+                    {
+                        *(dest_itr++) = vsg::ivec4(usc[0], usc[1], usc[2], usc[3]);
+                    }
+
+                    array = intCoords;
+                }
+                else if (auto ubyteCoords = array.cast<vsg::ubvec4Array>())
+                {
+                    auto intCoords = vsg::ivec4Array::create(ubyteCoords->size());
+                    auto dest_itr = intCoords->begin();
+                    for (auto& ubc : *ubyteCoords)
+                    {
+                        *(dest_itr++) = vsg::ivec4(ubc[0], ubc[1], ubc[2], ubc[3]);
+                    }
+
+                    array = intCoords;
+                }
+            }
+
+            config->assignArray(vertexArrays, name_itr->second, vertexInputRate, array);
+
+            vsg::info("assignArray(, vertexInputRate = ", vertexInputRate, ", name = ", attribute_name, ") vertexArrays = { ", vertexArrays, " }, name_itr->second = ", name_itr->second, ", array = ", array);
+            return true;
+        };
+
+        if (!assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "POSITION"))
+        {
+            vsg::warn("gltf::Builder::createMesh() error no vertex array assigned.");
+            return {};
+        }
+
+        if (!assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "NORMAL"))
+        {
+            auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 0.0f, 1.0f));
+            config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
+        }
+
+        if (!assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "TEXCOORD_0"))
+        {
+            auto texcoord = vsg::vec2Value::create(vsg::vec2(0.0f, 0.0f));
+            config->assignArray(vertexArrays, "vsg_TexCoord0", VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
+        }
+
+        assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "TEXCOORD_1");
+        assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "TEXCOORD_2");
+        assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "TEXCOORD_3");
+
+        uint32_t vertexCount = static_cast<uint32_t>(vertexArrays.front()->valueCount());
+        uint32_t instanceCount = 1;
+        if (meshExtras.instancedAttributes)
+        {
+            for (auto& [name, id] : meshExtras.instancedAttributes->values)
+            {
+                instanceCount = static_cast<uint32_t>(vsg_accessors[id.value]->valueCount());
+            }
+        }
+
+        if (!assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "COLOR_0"))
+        {
+            if (instanceNodeHint == vsg::Options::INSTANCE_NONE)
+            {
+                auto defaultColor = vsg::vec4Array::create(instanceCount, vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+                config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, defaultColor);
+            }
+            else if ((instanceNodeHint & vsg::Options::INSTANCE_COLORS) == 0)
+            {
+                auto defaultColor = vsg::vec4Array::create(vertexCount, vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+                config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, defaultColor);
+            }
+        }
+
+        if (meshExtras.jointSampler)
+        {
+            assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "JOINTS_0");
+            assignArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "WEIGHTS_0");
+        }
+
+        if (meshExtras.instancedAttributes)
+        {
+            assignArray(*meshExtras.instancedAttributes, VK_VERTEX_INPUT_RATE_INSTANCE, "TRANSLATION");
+            assignArray(*meshExtras.instancedAttributes, VK_VERTEX_INPUT_RATE_INSTANCE, "ROTATION");
+            assignArray(*meshExtras.instancedAttributes, VK_VERTEX_INPUT_RATE_INSTANCE, "SCALE");
+        }
+
+        vsg::ref_ptr<vsg::Node> draw;
+
+        if (!meshExtras.instancedAttributes && instanceNodeHint != vsg::Options::INSTANCE_NONE)
+        {
+            if ((instanceNodeHint & vsg::Options::INSTANCE_COLORS) != 0) config->enableArray("vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, 16, VK_FORMAT_R32G32B32A32_SFLOAT);
+            if ((instanceNodeHint & vsg::Options::INSTANCE_TRANSLATIONS) != 0) config->enableArray("vsg_Translation", VK_VERTEX_INPUT_RATE_INSTANCE, 12, VK_FORMAT_R32G32B32_SFLOAT);
+            if ((instanceNodeHint & vsg::Options::INSTANCE_ROTATIONS) != 0) config->enableArray("vsg_Rotation", VK_VERTEX_INPUT_RATE_INSTANCE, 16, VK_FORMAT_R32G32B32A32_SFLOAT);
+            if ((instanceNodeHint & vsg::Options::INSTANCE_SCALES) != 0) config->enableArray("vsg_Scale", VK_VERTEX_INPUT_RATE_INSTANCE, 12, VK_FORMAT_R32G32B32_SFLOAT);
+
+            if (primitive->indices)
+            {
+                auto instanceDrawIndexed = vsg::InstanceDrawIndexed::create();
+                assign_extras(*primitive, *instanceDrawIndexed);
+                instanceDrawIndexed->assignArrays(vertexArrays);
+
+                auto indices = vsg_accessors[primitive->indices.value];
+                if (!indices)
+                {
+                    vsg::warn("gltf::Builder::createMesh() error required indices array null.");
+                    return {};
+                }
+
+                if (auto ubyte_indices = indices.cast<vsg::ubyteArray>())
+                {
+                    // need to promote ubyte indices to ushort as Vulkan requires an extension to be enabled for ubyte indices.
+                    auto ushort_indices = vsg::ushortArray::create(ubyte_indices->size());
+                    auto itr = ushort_indices->begin();
+                    for (auto value : *ubyte_indices)
+                    {
+                        *(itr++) = static_cast<uint16_t>(value);
+                    }
+
+                    instanceDrawIndexed->assignIndices(ushort_indices);
+                    instanceDrawIndexed->indexCount = static_cast<uint32_t>(ushort_indices->valueCount());
+                }
+                else
+                {
+                    instanceDrawIndexed->assignIndices(indices);
+                    instanceDrawIndexed->indexCount = static_cast<uint32_t>(indices->valueCount());
+                }
+                draw = instanceDrawIndexed;
+            }
+            else
+            {
+                auto instanceDraw = vsg::InstanceDraw::create();
+                assign_extras(*primitive, *instanceDraw);
+                instanceDraw->assignArrays(vertexArrays);
+
+                assign_extras(*primitive, *instanceDraw);
+                instanceDraw->vertexCount = vertexCount;
+                draw = instanceDraw;
+            }
+        }
+        else if (primitive->indices)
+        {
+            auto vid = vsg::VertexIndexDraw::create();
+            assign_extras(*primitive, *vid);
+            vid->assignArrays(vertexArrays);
+            vid->instanceCount = instanceCount;
+
+            auto indices = vsg_accessors[primitive->indices.value];
+            if (!indices)
+            {
+                vsg::warn("gltf::Builder::createMesh() error required indices array null.");
+                return {};
+            }
+
+            if (auto ubyte_indices = indices.cast<vsg::ubyteArray>())
+            {
+                // need to promote ubyte indices to ushort as Vulkan requires an extension to be enabled for ubyte indices.
+                auto ushort_indices = vsg::ushortArray::create(ubyte_indices->size());
+                auto itr = ushort_indices->begin();
+                for (auto value : *ubyte_indices)
+                {
+                    *(itr++) = static_cast<uint16_t>(value);
+                }
+
+                vid->assignIndices(ushort_indices);
+                vid->indexCount = static_cast<uint32_t>(ushort_indices->valueCount());
+            }
+            else
+            {
+                vid->assignIndices(indices);
+                vid->indexCount = static_cast<uint32_t>(indices->valueCount());
+            }
+
+            draw = vid;
+        }
+        else
+        {
+            auto vd = vsg::VertexDraw::create();
+            assign_extras(*primitive, *vd);
+            vd->assignArrays(vertexArrays);
+            vd->instanceCount = instanceCount;
+            vd->vertexCount = vertexCount;
+            draw = vd;
+        }
+
+        // set the GraphicsPipelineStates to the required values.
+        struct SetPipelineStates : public vsg::Visitor
+        {
+            VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            bool blending = false;
+            bool two_sided = false;
+
+            SetPipelineStates(VkPrimitiveTopology in_topology, bool in_blending, bool in_two_sided) :
+                topology(in_topology), blending(in_blending), two_sided(in_two_sided) {}
+
+            void apply(vsg::Object& object) { object.traverse(*this); }
+            void apply(vsg::RasterizationState& rs)
+            {
+                if (two_sided) rs.cullMode = VK_CULL_MODE_NONE;
+            }
+            void apply(vsg::InputAssemblyState& ias) { ias.topology = topology; }
+            void apply(vsg::ColorBlendState& cbs) { cbs.configureAttachments(blending); }
+
+        } sps(topologyLookup[primitive->mode], vsg_material->blending, vsg_material->two_sided);
+
+        config->accept(sps);
+
+        if (sharedObjects)
+            sharedObjects->share(config, [](auto gpc) { gpc->init(); });
+        else
+            config->init();
+
+        // create StateGroup as the root of the scene/command graph to hold the GraphicsPipeline, and binding of Descriptors to decorate the whole graph
+        auto stateGroup = vsg::StateGroup::create();
+
+        config->copyTo(stateGroup, sharedObjects);
+
+        stateGroup->addChild(draw);
+
+        if (vsg_material->blending)
+        {
+            if (meshExtras.instancedAttributes || instanceNodeHint != vsg::Options::INSTANCE_NONE)
+            {
+#if 0
+                auto layer = vsg::Layer::create();
+                layer->binNumber = 10;
+                layer->child = stateGroup;
+
+                nodes.push_back(layer);
+#else
+                nodes.push_back(stateGroup);
+#endif
+            }
+            else
+            {
+                vsg::ComputeBounds computeBounds;
+                draw->accept(computeBounds);
+                vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+                double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
+
+                auto depthSorted = vsg::DepthSorted::create();
+                depthSorted->binNumber = 10;
+                depthSorted->bound.set(center[0], center[1], center[2], radius);
+                depthSorted->child = stateGroup;
+
+                nodes.push_back(depthSorted);
+            }
+        }
+        else
+        {
+            nodes.push_back(stateGroup);
+        }
+    }
+
+    if (nodes.empty())
+    {
+        vsg::warn("Empty mesh");
+        return {};
+    }
+
+    vsg::ref_ptr<vsg::Node> vsg_mesh;
+    if (nodes.size() == 1)
+    {
+        // vsg::info("Mesh with single primtiive");
+        vsg_mesh = nodes.front();
+    }
+    else
+    {
+        // vsg::info("Mesh with multiple primtiives - could possible use vsg::Geomterty.");
+        auto group = vsg::Group::create();
+        for (auto node : nodes)
+        {
+            group->addChild(node);
+        }
+
+        vsg_mesh = group;
+    }
+
+    assign_name_extras(*gltf_mesh, *vsg_mesh);
+
+    return vsg_mesh;
+
+#endif
+}
+
 int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
@@ -139,6 +570,7 @@ int main(int argc, char** argv)
     // use the vsg::Options object to pass the ReaderWriter_all to use when reading files.
     auto options = vsg::Options::create();
     options->add(vsgXchange::all::create());
+    options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
     options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
 
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
