@@ -82,6 +82,32 @@ int main(int argc, char** argv)
         std::cout << "mesh_properties.maxMeshOutputVertices = " << mesh_properties.maxMeshOutputVertices << std::endl;
         std::cout << "mesh_properties.maxMeshOutputPrimitives = " << mesh_properties.maxMeshOutputPrimitives << std::endl;
 
+        std::cout << "mesh_properties.maxMeshWorkGroupSize = " << mesh_properties.maxMeshWorkGroupSize << std::endl;
+        std::cout << "mesh_properties.maxMeshOutputLayers = " << mesh_properties.maxMeshOutputLayers << std::endl;
+
+        auto supportedStages = [](VkShaderStageFlags flags) -> std::string
+        {
+            std::string s;
+            if (flags & VK_SHADER_STAGE_COMPUTE_BIT) s += "COMPUTE ";
+            if (flags & VK_SHADER_STAGE_VERTEX_BIT) s += "VERTEX ";
+            if (flags & VK_SHADER_STAGE_GEOMETRY_BIT) s += "GEOMETRY ";
+            if (flags & VK_SHADER_STAGE_TASK_BIT_EXT) s += "TASK ";
+            if (flags & VK_SHADER_STAGE_MESH_BIT_EXT) s += "MESH ";
+            if (flags & VK_SHADER_STAGE_FRAGMENT_BIT) s += "FRAGMENT ";
+            if (flags & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) s += "TESSELLATION_CONTROL ";
+            if (flags & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT) s += "TESSELLATION_EVALUATION ";
+            return s;
+        };
+
+        auto subgroup_properties = window->getOrCreatePhysicalDevice()->getProperties<VkPhysicalDeviceSubgroupProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES>();
+        std::cout << "subgroup_properties.subgroupSize = " << subgroup_properties.subgroupSize << std::endl;
+        std::cout << "subgroup_properties.supportedStages = " << supportedStages(subgroup_properties.supportedStages) << std::endl;
+        std::cout << "subgroup_properties.supportedOperations = " << subgroup_properties.supportedOperations << std::endl;
+        std::cout << "subgroup_properties.quadOperationsInAllStages = " << subgroup_properties.quadOperationsInAllStages << std::endl;
+
+
+
+
         auto meshShaderPath = "shaders/meshshader.mesh";
         auto fragShaderPath = barycentric ? "shaders/barycentric.frag" : "shaders/meshshader.frag";
         // load shaders
