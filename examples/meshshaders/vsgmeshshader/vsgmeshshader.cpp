@@ -59,6 +59,34 @@ int main(int argc, char** argv)
             return 1;
         }
 
+        if (size_t pd_num = 0; arguments.read("--select", pd_num))
+        {
+            // use the Window implementation to create the Instance and Surface
+            auto instance = window->getOrCreateInstance();
+            auto surface = window->getOrCreateSurface();
+
+            auto physicalDevices = instance->getPhysicalDevices();
+            if (physicalDevices.empty())
+            {
+                std::cout << "No physical devices reported." << std::endl;
+                return 0;
+            }
+
+            if (pd_num >= physicalDevices.size())
+            {
+                std::cout << "--select " << pd_num << ", exceeds physical devices available, maximum permitted value is " << physicalDevices.size() - 1 << std::endl;
+                return 0;
+            }
+
+            // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they are available.
+            auto physicalDevice = physicalDevices[pd_num];
+            auto properties = physicalDevice->getProperties();
+
+            std::cout << "Selected vsg::PhysicalDevice " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType << std::endl;
+
+            window->setPhysicalDevice(physicalDevice);
+        }
+
         viewer->addWindow(window);
 
         auto mesh_features = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceMeshShaderFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT>();
