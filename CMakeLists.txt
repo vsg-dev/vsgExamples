@@ -34,6 +34,8 @@ find_package(vsgImGui QUIET)
 
 find_package(Tracy QUIET)
 
+find_package(meshoptimizer)
+
 if (MSVC)
     # MSVC assumes system-wide eight-bit code page (e.g. CP1252, CP1250) if there's no BOM
     add_compile_options("/utf-8")

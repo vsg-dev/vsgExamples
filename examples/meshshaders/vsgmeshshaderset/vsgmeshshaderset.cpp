@@ -4,6 +4,10 @@
 #include <vsgXchange/gltf.h>
 #include <vsgXchange/3DTiles.h>
 
+#ifdef meshoptimizer_FOUND
+#include <meshoptimizer.h>
+#endif
+
 namespace custom
 {
     const char* mesh_option = "mesh";
@@ -141,6 +145,7 @@ namespace custom
         }
 
         vsg::ref_ptr<vsg::Node> createMesh(vsg::ref_ptr<vsgXchange::gltf::Mesh> gltf_mesh, const vsgXchange::gltf::Builder::MeshExtras& meshExtras) override;
+
     };
 
     class MeshTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MeshTiles3DBuilder>
@@ -160,6 +165,14 @@ namespace custom
             return MeshTiles3DBuilder::create(*this, copyop);
         }
 
+
+        vsg::ref_ptr<vsg::Node> createTile(vsg::ref_ptr<vsgXchange::Tiles3D::Tile> tile, uint32_t level, const std::string& inherited_refine) override
+        {
+            vsg::info("MeshTiles3DBuilder::createTile(tile = ", tile, ", level = ", level, ", ", inherited_refine, ") options = ", options);
+            return Inherit::createTile(tile, level, inherited_refine);
+        }
+
+
         vsg::ref_ptr<vsg::Node> readInstanceChild(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> in_options) override
         {
             vsg::info("Vegetation : MeshTiles3DBuilder::readInstanceChild( ", filename, ", ", options, " )");
@@ -178,10 +191,10 @@ namespace custom
             vsg::ref_ptr<vsg::Object> object;
             if (name=="tileset_vegetation")
             {
-                vsg::info("Vegetation : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename);
-
                 auto local_options = vsg::clone(in_options);
                 local_options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+
+                vsg::info("Vegetation : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename, ", local_options = ", local_options);
 
                 object = Inherit::createSceneGraph(tileset, local_options);
 
@@ -189,10 +202,10 @@ namespace custom
             }
             else if (name=="tileset_terrain")
             {
-                vsg::info("Terrain : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename);
-
                 auto local_options = vsg::clone(in_options);
                 local_options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+
+                vsg::info("Terrain : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename, ", local_options = ", local_options);
 
                 object = Inherit::createSceneGraph(tileset, local_options);
                 vsg::info("after ", tileset->filename, "\n\n");
@@ -217,7 +230,7 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
     return Inherit::createMesh(gltf_mesh, meshExtras);
 #else
 
-    vsg::info("MeshGltfBuilder::createMesh(", gltf_mesh, ", ..) ", this, " custom mesh");
+    vsg::info("MeshGltfBuilder::createMesh(", gltf_mesh, ", ..) ", this, " custom mesh, options = ", options);
 
     /*
     struct Attributes : public vsg::Inherit<vsg::JSONParser::Schema, Attributes>
@@ -566,6 +579,49 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
         } sps(topologyLookup[primitive->mode], vsg_material->blending, vsg_material->two_sided);
 
         config->accept(sps);
+
+        vsg::info("  config->pipelineStates = { }", config->pipelineStates, " }");
+
+        vsg::info("config->shaderSet->attributeBindings = {");
+        for(auto& attributeBinding : config->shaderSet->attributeBindings)
+        {
+            vsg::info("    AttributeBinding{ name = ", attributeBinding.name, ", location = ", attributeBinding.location, " }");
+        }
+        vsg::info("}");
+
+        // https://github.com/zeux/meshoptimizer
+        // std::vector<unsigned int> remap(total_indices);
+        //
+        // size_t total_vertices = meshopt_generateVertexRemap(&remap[0], NULL, total_indices, &vertices[0], total_indices, sizeof(Vertex));
+        //
+        // result.indices.resize(total_indices);
+        // meshopt_remapIndexBuffer(&result.indices[0], NULL, total_indices, &remap[0]);
+        //
+        // result.vertices.resize(total_vertices);
+        // meshopt_remapVertexBuffer(&result.vertices[0], &vertices[0], total_indices, sizeof(Vertex), &remap[0]);
+
+        struct PrintPipelineStates : public vsg::Visitor
+        {
+            void apply(vsg::Object& object) { object.traverse(*this); }
+            void apply(vsg::VertexInputState& vis)
+            {
+                vsg::info("vis.vertexAttributeDescriptions = {");
+                for(auto& attributeDesc : vis.vertexAttributeDescriptions)
+                {
+                    vsg::info("    { location = ", attributeDesc.location, ", binding = ", attributeDesc.binding, ", format = ", attributeDesc.format, ", offset = ", attributeDesc.offset, " }");
+                }
+                vsg::info("}");
+
+                vsg::info("vis.vertexBindingDescriptions = {");
+                for(auto& bindingDesc : vis.vertexBindingDescriptions)
+                {
+                    vsg::info("    { binding = ", bindingDesc.binding, ", stride = ", bindingDesc.stride, ", inputRate = ", bindingDesc.inputRate, " }");
+                }
+                vsg::info("}");
+            }
+        } print;
+
+        config->accept(print);
 
         if (sharedObjects)
             sharedObjects->share(config, [](auto gpc) { gpc->init(); });
