@@ -312,6 +312,156 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
         vsg::info("    }");
 #endif
 
+
+#ifdef meshoptimizer_FOUND
+
+        bool use_meshoptimizer = true;
+        VkPrimitiveTopology topology = topologyLookup[primitive->mode];
+        if (topology < VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST || VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN > VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN)
+        {
+            vsg::info("Not a triangle representation, topology = ", topology);
+            use_meshoptimizer = false;
+        }
+        else if (topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP)
+        {
+            vsg::info("Need to convert from TRIANGLE_STRIP to TRIANGLE_LIST");
+            use_meshoptimizer = false;
+        }
+        else if (topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN)
+        {
+            vsg::info("Need to convert from TRIANGLE_FAN to TRIANGLE_LIST");
+            use_meshoptimizer = false;
+        }
+
+        if (use_meshoptimizer)
+        {
+            std::map<std::string, vsg::ref_ptr<vsg::Data>> perVertexArrays;
+            auto registerPerVertexArray = [&](vsgXchange::gltf::Attributes& attrib, VkVertexInputRate vertexInputRate, const std::string& attribute_name) -> bool {
+
+                if (vertexInputRate != VK_VERTEX_INPUT_RATE_VERTEX) return false;
+
+                auto array_itr = attrib.values.find(attribute_name);
+                if (array_itr == attrib.values.end()) return false;
+
+                if (array_itr->second.value >= vsg_accessors.size())
+                {
+                    vsg::warn("gltf::Builder::createMesh() error in registerPerVertexArray( attrib, vertexIndexRate", attribute_name, "), array index out of range.");
+                    return false;
+                }
+
+                perVertexArrays[attribute_name] = vsg_accessors[array_itr->second.value];
+                return true;
+            };
+
+            registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "POSITION");
+            registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "NORMAL");
+            registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "TEXCOORD_0");
+            registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "TEXCOORD_1");
+            registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "TEXCOORD_2");
+            registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "TEXCOORD_3");
+            registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "COLOR_0");
+
+            if (meshExtras.jointSampler)
+            {
+                registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "JOINTS_0");
+                registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "WEIGHTS_0");
+            }
+
+            vsg::info("perVertexArrays = ", perVertexArrays.size());
+
+            uint32_t vertexSize = 0;
+            uint32_t vertexCount = 0;
+            for(auto& [name, array] : perVertexArrays)
+            {
+                vsg::info("    ", name, ", ", array, ", valueSize = ", array->valueSize(), ", valueCount = ", array->valueCount());
+                vertexSize += array->valueSize();
+                if (array->valueCount() > vertexCount) vertexCount = array->valueCount();
+            }
+
+            std::vector<uint8_t> vertexData(vertexSize * vertexCount, 0);
+            uint32_t base = 0;
+            unsigned int xPos = 0;
+            for(auto& [name, array] : perVertexArrays)
+            {
+                if (name=="POSITION") xPos = base;
+                for(uint32_t i=0; i<array->valueCount(); ++i)
+                {
+                    std::memcpy(&vertexData[base + i*vertexSize], array->dataPointer(i), array->valueSize());
+                }
+                base += array->valueSize();
+            }
+
+            vsg::info("vertexData.size() = ", vertexData.size(), ", xPos = ", xPos);
+            // for(auto& v : vertexData) std::cout<<" "<<int(v);
+            // std::cout<<std::endl;
+
+            // https://github.com/zeux/meshoptimizer
+            // std::vector<unsigned int> remap(total_indices);
+            //
+            // size_t total_vertices = meshopt_generateVertexRemap(&remap[0], NULL, total_indices, &vertices[0], total_indices, sizeof(Vertex));
+            //
+            // result.indices.resize(total_indices);
+            // meshopt_remapIndexBuffer(&result.indices[0], NULL, total_indices, &remap[0]);
+            //
+            // result.vertices.resize(total_vertices);
+            // meshopt_remapVertexBuffer(&result.vertices[0], &vertices[0], total_indices, sizeof(Vertex), &remap[0]);
+
+            vsg::info("primitive->indices = ", primitive->indices, ",  topology = ", topology);
+            if (primitive->indices)
+            {
+
+                std::vector<unsigned int> indices;
+                struct CopyIndices : public vsg::ConstVisitor
+                {
+                    std::vector<unsigned int>& target;
+                    CopyIndices(std::vector<unsigned int>& in_indices) : target(in_indices) {}
+                    void apply(const vsg::Object& object) override { vsg::info("A object.className() ", object.className()); }
+                    void apply(const vsg::ubyteArray& src) override { vsg::info("B src.className() ", src.className()); target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                    void apply(const vsg::ushortArray& src) override { vsg::info("C src.className() ", src.className(), ", src.valueCount() = ", src.valueCount()); target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                    void apply(const vsg::uintArray& src) override { vsg::info("D src.className() ", src.className()); target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                } copyIndices(indices);
+
+                auto vsg_indices = vsg_accessors[primitive->indices.value];
+                vsg_indices->accept(copyIndices);
+
+
+                std::vector<unsigned int> remap(vertexCount);
+                // size_t totalRemappedVertices = meshopt_generateVertexRemap(&remap[0], nullptr, vertexCount, &vertexData.front(), vertexCount, vertexSize);
+                size_t totalRemappedVertices = meshopt_generateVertexRemap(&remap[0], &indices.front(), indices.size(), &vertexData.front(), vertexCount, vertexSize);
+
+                vsg::info("    indices.size() = ", indices.size(), " indices = ", indices, ", vsg_indices = ", vsg_indices, ", vsg_indices->valueCount() = ", vsg_indices->valueCount());
+                vsg::info("    after meshopt_generateVertexRemap(...) vertexCount = ",vertexCount, ", totalRemappedVertices = ", totalRemappedVertices);
+
+
+                std::vector<unsigned int> remapped_indices(indices.size());
+                meshopt_remapIndexBuffer(&remapped_indices[0], &indices.front(), indices.size(), &remap[0]);
+
+                std::vector<uint8_t> remapped_vertexData(vertexSize * totalRemappedVertices, 0);
+                meshopt_remapVertexBuffer(&remapped_vertexData.front(), &vertexData.front(), vertexCount, vertexSize, &remap[0]);
+
+                meshopt_optimizeVertexCache(&remapped_indices.front(), &remapped_indices.front(), remapped_indices.size(), totalRemappedVertices);
+
+                vsg::info("after optimization, remapped_indices = {", remapped_indices, "} ");
+#if 0
+                float threshold = 1.05;
+                meshopt_optimizeOverdraw(&remapped_indices.front(), &remapped_indices.front(), remapped_indices.size(), reinterpret_cast<float*>(&remapped_vertexData[xPos]), totalRemappedVertices, vertexSize, threshold);
+#endif
+                vsg::info("after overdraw optimization, remapped_indices = ", remapped_indices);
+
+                std::vector<uint8_t> final_vertexData(vertexSize * totalRemappedVertices, 0);
+                uint32_t optimized_vertexCount = meshopt_optimizeVertexFetch(&final_vertexData.front(), &remapped_indices.front(), remapped_indices.size(), &vertexData.front(), vertexCount, vertexSize);
+
+                vsg::info("after meshopt_optimizeVertexFetch optimization, optimized_vertexCount = ", optimized_vertexCount, ", remapped_indices = ", remapped_indices);
+            }
+            else
+            {
+                vsg::info("    NO indices = ");
+
+            }
+        }
+
+#endif
+
         vsg::DataList vertexArrays;
 
         auto assignArray = [&](vsgXchange::gltf::Attributes& attrib, VkVertexInputRate vertexInputRate, const std::string& attribute_name) -> bool {
@@ -396,8 +546,6 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
             }
 
             config->assignArray(vertexArrays, name_itr->second, vertexInputRate, array);
-
-            vsg::info("assignArray(, vertexInputRate = ", vertexInputRate, ", name = ", attribute_name, ") vertexArrays = { ", vertexArrays, " }, name_itr->second = ", name_itr->second, ", array = ", array);
             return true;
         };
 
@@ -580,6 +728,7 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
 
         config->accept(sps);
 
+#if 0
         vsg::info("  config->pipelineStates = { }", config->pipelineStates, " }");
 
         vsg::info("config->shaderSet->attributeBindings = {");
@@ -589,16 +738,6 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
         }
         vsg::info("}");
 
-        // https://github.com/zeux/meshoptimizer
-        // std::vector<unsigned int> remap(total_indices);
-        //
-        // size_t total_vertices = meshopt_generateVertexRemap(&remap[0], NULL, total_indices, &vertices[0], total_indices, sizeof(Vertex));
-        //
-        // result.indices.resize(total_indices);
-        // meshopt_remapIndexBuffer(&result.indices[0], NULL, total_indices, &remap[0]);
-        //
-        // result.vertices.resize(total_vertices);
-        // meshopt_remapVertexBuffer(&result.vertices[0], &vertices[0], total_indices, sizeof(Vertex), &remap[0]);
 
         struct PrintPipelineStates : public vsg::Visitor
         {
@@ -622,6 +761,7 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
         } print;
 
         config->accept(print);
+#endif
 
         if (sharedObjects)
             sharedObjects->share(config, [](auto gpc) { gpc->init(); });
