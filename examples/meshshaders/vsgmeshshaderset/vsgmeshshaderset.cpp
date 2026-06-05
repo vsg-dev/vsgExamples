@@ -367,18 +367,36 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
                 registerPerVertexArray(primitive->attributes, VK_VERTEX_INPUT_RATE_VERTEX, "WEIGHTS_0");
             }
 
-            vsg::info("perVertexArrays = ", perVertexArrays.size());
+            struct QuantizeArray : public vsg::Visitor
+            {
+                float epsilon;
+                QuantizeArray(float e = 1e-5f) : epsilon(e) {}
 
+                inline void _quantize(float& v) { v = std::round(v/epsilon)*epsilon; if (v==-0.0f) v = 0.0f; }
+
+                inline void quantize(float& v) { _quantize(v); }
+                inline void quantize(vsg::vec2& v) { _quantize(v.x); _quantize(v.y); }
+                inline void quantize(vsg::vec3& v) { _quantize(v.x); _quantize(v.y); _quantize(v.z); }
+                inline void quantize(vsg::vec4& v) { _quantize(v.x); _quantize(v.y); _quantize(v.z); _quantize(v.w);}
+
+                void apply(vsg::floatArray& array) override { for(auto& v : array) quantize(v); }
+                void apply(vsg::vec2Array& array) override { for(auto& v : array) quantize(v); }
+                void apply(vsg::vec3Array& array) override { for(auto& v : array) quantize(v); }
+                void apply(vsg::vec4Array& array) override { for(auto& v : array) quantize(v); }
+            } quantizeArray;
+
+
+            bool quantizeArrays = true;
             uint32_t vertexSize = 0;
             uint32_t vertexCount = 0;
             for(auto& [name, array] : perVertexArrays)
             {
-                vsg::info("    ", name, ", ", array, ", valueSize = ", array->valueSize(), ", valueCount = ", array->valueCount());
+                if (quantizeArrays) array->accept(quantizeArray);
                 vertexSize += array->valueSize();
                 if (array->valueCount() > vertexCount) vertexCount = array->valueCount();
             }
 
-            std::vector<uint8_t> vertexData(vertexSize * vertexCount, 0);
+            std::vector<uint8_t> vertexData(vertexSize * vertexCount, 127);
             uint32_t base = 0;
             unsigned int xPos = 0;
             for(auto& [name, array] : perVertexArrays)
@@ -390,10 +408,6 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
                 }
                 base += array->valueSize();
             }
-
-            vsg::info("vertexData.size() = ", vertexData.size(), ", xPos = ", xPos);
-            // for(auto& v : vertexData) std::cout<<" "<<int(v);
-            // std::cout<<std::endl;
 
             // https://github.com/zeux/meshoptimizer
             // std::vector<unsigned int> remap(total_indices);
@@ -415,10 +429,9 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
                 {
                     std::vector<unsigned int>& target;
                     CopyIndices(std::vector<unsigned int>& in_indices) : target(in_indices) {}
-                    void apply(const vsg::Object& object) override { vsg::info("A object.className() ", object.className()); }
-                    void apply(const vsg::ubyteArray& src) override { vsg::info("B src.className() ", src.className()); target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
-                    void apply(const vsg::ushortArray& src) override { vsg::info("C src.className() ", src.className(), ", src.valueCount() = ", src.valueCount()); target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
-                    void apply(const vsg::uintArray& src) override { vsg::info("D src.className() ", src.className()); target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                    void apply(const vsg::ubyteArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                    void apply(const vsg::ushortArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                    void apply(const vsg::uintArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
                 } copyIndices(indices);
 
                 auto vsg_indices = vsg_accessors[primitive->indices.value];
@@ -426,12 +439,10 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
 
 
                 std::vector<unsigned int> remap(vertexCount);
-                // size_t totalRemappedVertices = meshopt_generateVertexRemap(&remap[0], nullptr, vertexCount, &vertexData.front(), vertexCount, vertexSize);
+
                 size_t totalRemappedVertices = meshopt_generateVertexRemap(&remap[0], &indices.front(), indices.size(), &vertexData.front(), vertexCount, vertexSize);
 
-                vsg::info("    indices.size() = ", indices.size(), " indices = ", indices, ", vsg_indices = ", vsg_indices, ", vsg_indices->valueCount() = ", vsg_indices->valueCount());
                 vsg::info("    after meshopt_generateVertexRemap(...) vertexCount = ",vertexCount, ", totalRemappedVertices = ", totalRemappedVertices);
-
 
                 std::vector<unsigned int> remapped_indices(indices.size());
                 meshopt_remapIndexBuffer(&remapped_indices[0], &indices.front(), indices.size(), &remap[0]);
@@ -439,19 +450,88 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
                 std::vector<uint8_t> remapped_vertexData(vertexSize * totalRemappedVertices, 0);
                 meshopt_remapVertexBuffer(&remapped_vertexData.front(), &vertexData.front(), vertexCount, vertexSize, &remap[0]);
 
+#if 1
                 meshopt_optimizeVertexCache(&remapped_indices.front(), &remapped_indices.front(), remapped_indices.size(), totalRemappedVertices);
+#endif
 
-                vsg::info("after optimization, remapped_indices = {", remapped_indices, "} ");
 #if 0
                 float threshold = 1.05;
                 meshopt_optimizeOverdraw(&remapped_indices.front(), &remapped_indices.front(), remapped_indices.size(), reinterpret_cast<float*>(&remapped_vertexData[xPos]), totalRemappedVertices, vertexSize, threshold);
-#endif
                 vsg::info("after overdraw optimization, remapped_indices = ", remapped_indices);
+#endif
 
+#if 1
                 std::vector<uint8_t> final_vertexData(vertexSize * totalRemappedVertices, 0);
-                uint32_t optimized_vertexCount = meshopt_optimizeVertexFetch(&final_vertexData.front(), &remapped_indices.front(), remapped_indices.size(), &vertexData.front(), vertexCount, vertexSize);
+                uint32_t optimized_vertexCount = meshopt_optimizeVertexFetch(&final_vertexData.front(), &remapped_indices.front(), remapped_indices.size(), &remapped_vertexData.front(), vertexCount, vertexSize);
 
-                vsg::info("after meshopt_optimizeVertexFetch optimization, optimized_vertexCount = ", optimized_vertexCount, ", remapped_indices = ", remapped_indices);
+                vsg::info("after meshopt_optimizeVertexFetch optimization, optimized_vertexCount = ", optimized_vertexCount);
+#else
+                auto& final_vertexData = remapped_vertexData;
+#endif
+
+                // replace indices
+                if (remapped_indices.size() > 65536)
+                {
+                    vsg_accessors[primitive->indices.value] = vsg::uintArray::create(remapped_indices.size());
+                    std::memcpy(vsg_accessors[primitive->indices.value]->dataPointer(), remapped_indices.data(), remapped_indices.size()*4);
+                }
+                else
+                {
+                    auto new_indices = vsg::ushortArray::create(remapped_indices.size());
+                    vsg_accessors[primitive->indices.value] = new_indices;
+                    for(size_t i=0; i<remapped_indices.size(); ++i)
+                    {
+                        new_indices->set(i, remapped_indices[i]);
+                    }
+                }
+
+                struct CloneArray : public vsg::ConstVisitor
+                {
+                    uint32_t count = 0;
+                    vsg::ref_ptr<vsg::Data> data;
+
+                    CloneArray(uint32_t c) : count(c) {}
+
+                    void apply(const vsg::Object& object) override { vsg::info("CloneArray::apply(", object.className(), ") not supported"); }
+                    void apply(const vsg::floatArray& array) override { data = vsg::floatArray::create(count, array.properties); }
+                    void apply(const vsg::vec2Array& array) override { data = vsg::vec2Array::create(count, array.properties); }
+                    void apply(const vsg::vec3Array& array) override { data = vsg::vec3Array::create(count, array.properties); }
+                    void apply(const vsg::bvec3Array& array) override { data = vsg::bvec3Array::create(count, array.properties); }
+                    void apply(const vsg::ubvec3Array& array) override { data = vsg::ubvec3Array::create(count, array.properties); }
+                    void apply(const vsg::svec3Array& array) override { data = vsg::svec3Array::create(count, array.properties); }
+                    void apply(const vsg::usvec3Array& array) override { data = vsg::usvec3Array::create(count, array.properties); }
+                    void apply(const vsg::ivec3Array& array) override { data = vsg::ivec3Array::create(count, array.properties); }
+                    void apply(const vsg::uivec3Array& array) override { data = vsg::uivec3Array::create(count, array.properties); }
+                    void apply(const vsg::vec4Array& array) override { data = vsg::vec4Array::create(count, array.properties); }
+                    void apply(const vsg::bvec4Array& array) override { data = vsg::bvec4Array::create(count, array.properties); }
+                    void apply(const vsg::ubvec4Array& array) override { data = vsg::ubvec4Array::create(count, array.properties); }
+                    void apply(const vsg::svec4Array& array) override { data = vsg::svec4Array::create(count, array.properties); }
+                    void apply(const vsg::usvec4Array& array) override { data = vsg::usvec4Array::create(count, array.properties); }
+                    void apply(const vsg::ivec4Array& array) override { data = vsg::ivec4Array::create(count, array.properties); }
+                    void apply(const vsg::uivec4Array& array) override { data = vsg::uivec4Array::create(count, array.properties); }
+                } cloneArray(totalRemappedVertices);
+
+                // replace vertices
+                base = 0;
+                for(auto& [name, array] : perVertexArrays)
+                {
+                    array->accept(cloneArray);
+                    auto new_array = cloneArray.data;
+
+                    if (new_array)
+                    {
+                        for(uint32_t i=0; i<totalRemappedVertices; ++i)
+                        {
+                            std::memcpy(new_array->dataPointer(i), &final_vertexData[base + i*vertexSize], new_array->valueSize());
+                        }
+
+                        auto array_itr = primitive->attributes.values.find(name);
+                        vsg_accessors[array_itr->second.value] = new_array;
+                    }
+
+                    base += array->valueSize();
+
+                }
             }
             else
             {
@@ -872,20 +952,24 @@ int main(int argc, char** argv)
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
     bool reportAverageFrameRate = arguments.read("--fps");
 
-    vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::pbr_ShaderSet(options);
-    options->shaderSets["pbr"] = shaderSet;
-    if (!shaderSet)
+    if (!arguments.read("--standard"))
     {
-        std::cout << "No vsg::ShaderSet to process." << std::endl;
-        return 1;
+        vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::pbr_ShaderSet(options);
+        options->shaderSets["pbr"] = shaderSet;
+        if (!shaderSet)
+        {
+            std::cout << "No vsg::ShaderSet to process." << std::endl;
+            return 1;
+        }
+
+        if (outputShaderSetFilename)
+        {
+            vsg::write(shaderSet, outputShaderSetFilename, options);
+        }
     }
 
-    if (outputShaderSetFilename)
-    {
-        vsg::write(shaderSet, outputShaderSetFilename, options);
-    }
 
-    auto vsg_scene = vsg::Group::create();
+    auto group = vsg::Group::create();
 
     vsg::Path path;
 
@@ -895,7 +979,7 @@ int main(int argc, char** argv)
         vsg::Path filename = arguments[i];
         if (auto node = vsg::read_cast<vsg::Node>(filename, options))
         {
-            vsg_scene->addChild(node);
+            group->addChild(node);
         }
         else
         {
@@ -903,10 +987,16 @@ int main(int argc, char** argv)
         }
     }
 
-    if (vsg_scene->children.empty())
+    if (group->children.empty())
     {
         return 1;
     }
+
+    vsg::ref_ptr<vsg::Node> vsg_scene;
+    if (group->children.size() == 1)
+        vsg_scene = group->children[0];
+    else
+        vsg_scene = group;
 
     if (outputFilename)
     {
