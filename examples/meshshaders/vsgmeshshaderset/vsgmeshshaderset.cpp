@@ -140,7 +140,7 @@ namespace custom
 
         vsg::ref_ptr<vsg::Object> createSceneGraph(vsg::ref_ptr<vsgXchange::gltf::glTF> in_model, vsg::ref_ptr<const vsg::Options> in_options) override
         {
-            vsg::info("MeshGltfBuilder::createSceneGraph(", in_model, ", ", in_options,") ", this,", filename = ", in_model->filename);
+            vsg::debug("MeshGltfBuilder::createSceneGraph(", in_model, ", ", in_options,") ", this,", filename = ", in_model->filename);
             return Inherit::createSceneGraph(in_model, in_options);
         }
 
@@ -168,20 +168,20 @@ namespace custom
 
         vsg::ref_ptr<vsg::Node> createTile(vsg::ref_ptr<vsgXchange::Tiles3D::Tile> tile, uint32_t level, const std::string& inherited_refine) override
         {
-            vsg::info("MeshTiles3DBuilder::createTile(tile = ", tile, ", level = ", level, ", ", inherited_refine, ") options = ", options);
+            vsg::debug("MeshTiles3DBuilder::createTile(tile = ", tile, ", level = ", level, ", ", inherited_refine, ") options = ", options);
             return Inherit::createTile(tile, level, inherited_refine);
         }
 
 
         vsg::ref_ptr<vsg::Node> readInstanceChild(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> in_options) override
         {
-            vsg::info("Vegetation : MeshTiles3DBuilder::readInstanceChild( ", filename, ", ", options, " )");
+            vsg::debug("Vegetation : MeshTiles3DBuilder::readInstanceChild( ", filename, ", ", options, " )");
             return Inherit::readInstanceChild(filename, in_options);
         }
 
         vsg::ref_ptr<vsg::Node> readInstanceChild(std::istream& fin, vsg::ref_ptr<const vsg::Options> in_options) override
         {
-            vsg::info("Vegetation : MeshTiles3DBuilder::readInstanceChild( ", &fin, ", ", options, " )");
+            vsg::debug("Vegetation : MeshTiles3DBuilder::readInstanceChild( ", &fin, ", ", options, " )");
             return Inherit::readInstanceChild(fin, in_options);
         }
 
@@ -194,21 +194,21 @@ namespace custom
                 auto local_options = vsg::clone(in_options);
                 local_options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
 
-                vsg::info("Vegetation : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename, ", local_options = ", local_options);
+                vsg::debug("Vegetation : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename, ", local_options = ", local_options);
 
                 object = Inherit::createSceneGraph(tileset, local_options);
 
-                vsg::info("after ", tileset->filename, "\n\n");
+                vsg::debug("after ", tileset->filename, "\n\n");
             }
             else if (name=="tileset_terrain")
             {
                 auto local_options = vsg::clone(in_options);
                 local_options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
 
-                vsg::info("Terrain : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename, ", local_options = ", local_options);
+                vsg::debug("Terrain : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename, ", local_options = ", local_options);
 
                 object = Inherit::createSceneGraph(tileset, local_options);
-                vsg::info("after ", tileset->filename, "\n\n");
+                vsg::debug("after ", tileset->filename, "\n\n");
             }
             else
             {
@@ -230,7 +230,7 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
     return Inherit::createMesh(gltf_mesh, meshExtras);
 #else
 
-    vsg::info("MeshGltfBuilder::createMesh(", gltf_mesh, ", ..) ", this, " custom mesh, options = ", options);
+    vsg::debug("MeshGltfBuilder::createMesh(", gltf_mesh, ", ..) ", this, " custom mesh, options = ", options);
 
     /*
     struct Attributes : public vsg::Inherit<vsg::JSONParser::Schema, Attributes>
@@ -312,6 +312,11 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
         vsg::info("    }");
 #endif
 
+        vsg::ref_ptr<vsg::Data> indices;
+        if (primitive->indices)
+        {
+            indices = vsg_accessors[primitive->indices.value];
+        }
 
 #ifdef meshoptimizer_FOUND
 
@@ -420,39 +425,50 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
             // result.vertices.resize(total_vertices);
             // meshopt_remapVertexBuffer(&result.vertices[0], &vertices[0], total_indices, sizeof(Vertex), &remap[0]);
 
-            vsg::info("primitive->indices = ", primitive->indices, ",  topology = ", topology);
-            if (primitive->indices)
+            vsg::debug("primitive->indices = ", primitive->indices, ",  topology = ", topology);
+
+            bool optimizeMesh = true;
+
+            if (optimizeMesh)
             {
+                std::vector<unsigned int> original_indices;
 
-                std::vector<unsigned int> indices;
-                struct CopyIndices : public vsg::ConstVisitor
+                if (indices)
                 {
-                    std::vector<unsigned int>& target;
-                    CopyIndices(std::vector<unsigned int>& in_indices) : target(in_indices) {}
-                    void apply(const vsg::ubyteArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
-                    void apply(const vsg::ushortArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
-                    void apply(const vsg::uintArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
-                } copyIndices(indices);
+                    struct CopyIndices : public vsg::ConstVisitor
+                    {
+                        std::vector<unsigned int>& target;
+                        CopyIndices(std::vector<unsigned int>& in_indices) : target(in_indices) {}
+                        void apply(const vsg::ubyteArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                        void apply(const vsg::ushortArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                        void apply(const vsg::uintArray& src) override { target.resize(src.valueCount()); for(unsigned int i=0; i<target.size(); ++i) target[i] = src[i]; }
+                    } copyIndices(original_indices);
 
-                auto vsg_indices = vsg_accessors[primitive->indices.value];
-                vsg_indices->accept(copyIndices);
-
+                    indices->accept(copyIndices);
+                }
+                else
+                {
+                    vsg::info("creating indices");
+                    original_indices.resize(vertexCount);
+                    for(uint32_t i=0; i<vertexCount; ++i)
+                    {
+                        original_indices[i] = i;
+                    }
+                }
 
                 std::vector<unsigned int> remap(vertexCount);
 
-                size_t totalRemappedVertices = meshopt_generateVertexRemap(&remap[0], &indices.front(), indices.size(), &vertexData.front(), vertexCount, vertexSize);
+                size_t totalRemappedVertices = meshopt_generateVertexRemap(&remap[0], &original_indices.front(), original_indices.size(), &vertexData.front(), vertexCount, vertexSize);
 
-                vsg::info("    after meshopt_generateVertexRemap(...) vertexCount = ",vertexCount, ", totalRemappedVertices = ", totalRemappedVertices);
+                vsg::debug("    after meshopt_generateVertexRemap(...) vertexCount = ",vertexCount, ", totalRemappedVertices = ", totalRemappedVertices);
 
-                std::vector<unsigned int> remapped_indices(indices.size());
-                meshopt_remapIndexBuffer(&remapped_indices[0], &indices.front(), indices.size(), &remap[0]);
+                std::vector<unsigned int> remapped_indices(original_indices.size());
+                meshopt_remapIndexBuffer(&remapped_indices[0], &original_indices.front(), original_indices.size(), &remap[0]);
 
                 std::vector<uint8_t> remapped_vertexData(vertexSize * totalRemappedVertices, 0);
                 meshopt_remapVertexBuffer(&remapped_vertexData.front(), &vertexData.front(), vertexCount, vertexSize, &remap[0]);
 
-#if 1
                 meshopt_optimizeVertexCache(&remapped_indices.front(), &remapped_indices.front(), remapped_indices.size(), totalRemappedVertices);
-#endif
 
 #if 0
                 float threshold = 1.05;
@@ -460,29 +476,34 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
                 vsg::info("after overdraw optimization, remapped_indices = ", remapped_indices);
 #endif
 
-#if 1
                 std::vector<uint8_t> final_vertexData(vertexSize * totalRemappedVertices, 0);
                 uint32_t optimized_vertexCount = meshopt_optimizeVertexFetch(&final_vertexData.front(), &remapped_indices.front(), remapped_indices.size(), &remapped_vertexData.front(), vertexCount, vertexSize);
 
-                vsg::info("after meshopt_optimizeVertexFetch optimization, optimized_vertexCount = ", optimized_vertexCount);
-#else
-                auto& final_vertexData = remapped_vertexData;
-#endif
+                vsg::debug("after meshopt_optimizeVertexFetch optimization, optimized_vertexCount = ", optimized_vertexCount);
+
+                if (optimized_vertexCount!=vertexCount)
+                {
+                    vsg::info("mesh reduction ratio = ", float(optimized_vertexCount)/float(vertexCount), ", indices changed = ", vsg::compare_value_container(original_indices, remapped_indices));
+                }
+                else
+                {
+                    vsg::info("mesh no change in vertex count, indices changed = ", vsg::compare_value_container(original_indices, remapped_indices));
+                }
 
                 // replace indices
                 if (remapped_indices.size() > 65536)
                 {
-                    vsg_accessors[primitive->indices.value] = vsg::uintArray::create(remapped_indices.size());
-                    std::memcpy(vsg_accessors[primitive->indices.value]->dataPointer(), remapped_indices.data(), remapped_indices.size()*4);
+                    indices = vsg::uintArray::create(remapped_indices.size());
+                    std::memcpy(indices->dataPointer(), remapped_indices.data(), remapped_indices.size()*4);
                 }
                 else
                 {
-                    auto new_indices = vsg::ushortArray::create(remapped_indices.size());
-                    vsg_accessors[primitive->indices.value] = new_indices;
+                    auto ushort_indices = vsg::ushortArray::create(remapped_indices.size());
                     for(size_t i=0; i<remapped_indices.size(); ++i)
                     {
-                        new_indices->set(i, remapped_indices[i]);
+                        ushort_indices->set(i, remapped_indices[i]);
                     }
+                    indices = ushort_indices;
                 }
 
                 struct CloneArray : public vsg::ConstVisitor
@@ -697,18 +718,11 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
             if ((instanceNodeHint & vsg::Options::INSTANCE_ROTATIONS) != 0) config->enableArray("vsg_Rotation", VK_VERTEX_INPUT_RATE_INSTANCE, 16, VK_FORMAT_R32G32B32A32_SFLOAT);
             if ((instanceNodeHint & vsg::Options::INSTANCE_SCALES) != 0) config->enableArray("vsg_Scale", VK_VERTEX_INPUT_RATE_INSTANCE, 12, VK_FORMAT_R32G32B32_SFLOAT);
 
-            if (primitive->indices)
+            if (indices)
             {
                 auto instanceDrawIndexed = vsg::InstanceDrawIndexed::create();
                 assign_extras(*primitive, *instanceDrawIndexed);
                 instanceDrawIndexed->assignArrays(vertexArrays);
-
-                auto indices = vsg_accessors[primitive->indices.value];
-                if (!indices)
-                {
-                    vsg::warn("gltf::Builder::createMesh() error required indices array null.");
-                    return {};
-                }
 
                 if (auto ubyte_indices = indices.cast<vsg::ubyteArray>())
                 {
@@ -735,25 +749,16 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
                 auto instanceDraw = vsg::InstanceDraw::create();
                 assign_extras(*primitive, *instanceDraw);
                 instanceDraw->assignArrays(vertexArrays);
-
-                assign_extras(*primitive, *instanceDraw);
                 instanceDraw->vertexCount = vertexCount;
                 draw = instanceDraw;
             }
         }
-        else if (primitive->indices)
+        else if (indices)
         {
             auto vid = vsg::VertexIndexDraw::create();
             assign_extras(*primitive, *vid);
             vid->assignArrays(vertexArrays);
             vid->instanceCount = instanceCount;
-
-            auto indices = vsg_accessors[primitive->indices.value];
-            if (!indices)
-            {
-                vsg::warn("gltf::Builder::createMesh() error required indices array null.");
-                return {};
-            }
 
             if (auto ubyte_indices = indices.cast<vsg::ubyteArray>())
             {
@@ -942,6 +947,7 @@ int main(int argc, char** argv)
 
     arguments.readAndAssign<bool>(custom::mesh_option, options);
 
+    if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
     auto numFrames = arguments.value(-1, "-f");
     auto pathFilename = arguments.value<vsg::Path>("", "-p");
     auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
@@ -951,6 +957,19 @@ int main(int argc, char** argv)
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
     bool reportAverageFrameRate = arguments.read("--fps");
+    if (arguments.read({"-t", "--test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->fullscreen = true;
+        reportAverageFrameRate = true;
+    }
+    if (arguments.read({"--st", "--small-test"}))
+    {
+        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+        windowTraits->width = 192, windowTraits->height = 108;
+        windowTraits->decoration = false;
+        reportAverageFrameRate = true;
+    }
 
     if (!arguments.read("--standard"))
     {
@@ -1034,7 +1053,7 @@ int main(int argc, char** argv)
     vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
     double radius = vsg::length(bounds.max - bounds.min) * 0.6;
 
-    vsg::info("scene bounds ", bounds);
+    // vsg::info("scene bounds ", bounds);
 
     // set up the camera
     auto lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
@@ -1061,7 +1080,7 @@ int main(int argc, char** argv)
     {
         cameraAnimation->play();
 
-        if (reportAverageFrameRate && maxTime == std::numeric_limits<double>::max())
+        if (reportAverageFrameRate && (maxTime == std::numeric_limits<double>::max()) && (numFrames < 0))
         {
             maxTime = cameraAnimation->animation->maxTime();
         }
@@ -1077,7 +1096,7 @@ int main(int argc, char** argv)
     viewer->start_point() = vsg::clock::now();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

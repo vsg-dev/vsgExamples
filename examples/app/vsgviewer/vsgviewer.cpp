@@ -299,7 +299,7 @@ int main(int argc, char** argv)
         {
             cameraAnimation->play();
 
-            if (reportAverageFrameRate && maxTime == std::numeric_limits<double>::max())
+            if (reportAverageFrameRate && (maxTime == std::numeric_limits<double>::max()) && (numFrames < 0))
             {
                 maxTime = cameraAnimation->animation->maxTime();
             }
