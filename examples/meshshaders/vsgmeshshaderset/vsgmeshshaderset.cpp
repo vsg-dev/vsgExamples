@@ -4,9 +4,14 @@
 #include <vsgXchange/gltf.h>
 #include <vsgXchange/3DTiles.h>
 
-#ifdef meshoptimizer_FOUND
+#ifdef vsgXchange_meshoptimizer
 #include <meshoptimizer.h>
 #endif
+
+// MeshShader blog posts
+// https://chaoticbob.github.io/2024/01/24/mesh-shading-part-1.html
+// https://interplayoflight.wordpress.com/2025/05/05/meshlets-and-mesh-shaders/
+//
 
 namespace custom
 {
@@ -318,7 +323,7 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
             indices = vsg_accessors[primitive->indices.value];
         }
 
-#ifdef meshoptimizer_FOUND
+#ifdef vsgXchange_meshoptimizer
 
         bool use_meshoptimizer = true;
         VkPrimitiveTopology topology = topologyLookup[primitive->mode];
@@ -492,25 +497,43 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
                     }
                 }
 
-#if 0
-#if 0
-                const size_t max_vertices = 64;
-                const size_t max_triangles = 126; // note: in v0.25 or prior, max_triangles needs to be divisible by 4
-                const float cone_weight = 0.0f;
-#else
-                const size_t max_vertices = 256;
-                const size_t max_triangles = 256; // note: in v0.25 or prior, max_triangles needs to be divisible by 4
-                const float cone_weight = 0.0f;
-#endif
 
 
-                size_t max_meshlets = meshopt_buildMeshletsBound(remapped_indices.size(), max_vertices, max_triangles);
-                std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+#if 1
+                bool build_spatial_meshlets = true;
+
+                size_t max_meshlets = 0;
+                size_t meshlet_count = 0;
+
+                std::vector<meshopt_Meshlet> meshlets;
                 std::vector<unsigned int> meshlet_vertices(remapped_indices.size());
                 std::vector<unsigned char> meshlet_triangles(remapped_indices.size());
 
-                size_t meshlet_count = meshopt_buildMeshlets(meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), remapped_indices.data(),
-                                                             remapped_indices.size(), reinterpret_cast<float*>(&final_vertexData[xPos]), final_vertexData.size(), vertexSize, max_vertices, max_triangles, cone_weight);
+                if (build_spatial_meshlets)
+                {
+                    const size_t max_vertices = 256;
+                    const size_t min_triangles = 16;
+                    const size_t max_triangles = 256; // note: in v0.25 or prior, max_triangles needs to be divisible by 4
+                    const float fill_weight = 0.0f;
+
+                    max_meshlets = meshopt_buildMeshletsBound(remapped_indices.size(), max_vertices, min_triangles);
+                    meshlets.resize(max_meshlets);
+
+                    meshlet_count = meshopt_buildMeshletsSpatial(meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), remapped_indices.data(),
+                                                                 remapped_indices.size(), reinterpret_cast<float*>(&final_vertexData[xPos]), final_vertexData.size(), vertexSize, max_vertices, min_triangles, max_triangles, fill_weight);
+                }
+                else
+                {
+                    const size_t max_vertices = 256;
+                    const size_t max_triangles = 256; // note: in v0.25 or prior, max_triangles needs to be divisible by 4
+                    const float cone_weight = 0.0f;
+
+                    max_meshlets = meshopt_buildMeshletsBound(remapped_indices.size(), max_vertices, max_triangles);
+                    meshlets.resize(max_meshlets);
+
+                    meshlet_count = meshopt_buildMeshlets(meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), remapped_indices.data(),
+                                                          remapped_indices.size(), reinterpret_cast<float*>(&final_vertexData[xPos]), final_vertexData.size(), vertexSize, max_vertices, max_triangles, cone_weight);
+                }
 
                 if (meshlet_count > 0)
                 {
@@ -530,22 +553,31 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
                         meshopt_optimizeMeshlet(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset], meshlet.triangle_count, meshlet.vertex_count);
 
                         vsg::info("   meshlet { vertex_offset = ", meshlet.vertex_offset,", triangle_offset = ", meshlet.triangle_offset, ", vertex_count = ", meshlet.vertex_count,", triangle_count = ",meshlet.triangle_count, "}");
-                        vsg::info("SetMeshOutputsEXT( ",meshlet.vertex_count,", ", meshlet.triangle_count, " )");
+
+                        meshopt_Bounds bounds = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset], meshlet.triangle_count, reinterpret_cast<float*>(&final_vertexData[xPos]), final_vertexData.size(), vertexSize);
+
+                        vsg::info("    meshopt_Bounds { center = { ", bounds.center[0], ", ",  bounds.center[1], ", ",  bounds.center[2], " }, radius = ", bounds.radius, " },",
+                                  " conex_apex = { ", bounds.cone_apex[0], ", ", bounds.cone_apex[1], ", ", bounds.cone_apex[2], "}, cone_axis = {", bounds.cone_axis[0], ", ", bounds.cone_axis[1], ", ", bounds.cone_axis[2], "}, cone_cutoff = ", bounds.cone_cutoff);
+
+
+#if 0
+                        vsg::info("    SetMeshOutputsEXT( ",meshlet.vertex_count,", ", meshlet.triangle_count, " )");
 
 
                         for (uint32_t i = 0; i < meshlet.vertex_count; i += 1)
                         {
                             uint32_t index = meshlet_vertices[meshlet.vertex_offset + i];
-                            vsg::info("gl_MeshVerticesEXT[", int(i), "].gl_Position = world_view_projection * vec4( vertex_positions[", int(index), "], , 1)");
+                            vsg::info("    gl_MeshVerticesEXT[", int(i), "].gl_Position = world_view_projection * vec4( vertex_positions[", int(index), "], , 1)");
                         }
 
                         for (uint32_t i = 0; i < meshlet.triangle_count; i += 1)
                         {
                             uint32_t offset = meshlet.triangle_offset + i * 3;
-                            vsg::info("gl_PrimitiveTriangleIndicesEXT[", i, "] = uvec3( ",
+                            vsg::info("    gl_PrimitiveTriangleIndicesEXT[", i, "] = uvec3( ",
                                 int(meshlet_triangles[offset]), ", ", int(meshlet_triangles[offset + 1]), ", ", int(meshlet_triangles[offset + 2]), " )");
                         }
 
+#endif
                     }
                 }
 #endif
