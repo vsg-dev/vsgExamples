@@ -72,9 +72,11 @@ namespace custom
             shaderSet->addDescriptorBinding("vsg_JointIndices", "VSG_SKINNING", ARRAY_DESCRIPTOR_SET, 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::ivec4Array::create(1));
             shaderSet->addDescriptorBinding("vsg_JointWeights", "VSG_SKINNING", ARRAY_DESCRIPTOR_SET, 11, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1));
 
-            shaderSet->addDescriptorBinding("meshlets", "", ARRAY_DESCRIPTOR_SET, 12, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::uivec4Array::create(1));
-            shaderSet->addDescriptorBinding("meshlet_vertices", "", ARRAY_DESCRIPTOR_SET, 13, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
-            shaderSet->addDescriptorBinding("meshlet_triangles", "", ARRAY_DESCRIPTOR_SET, 14, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(1));
+            shaderSet->addDescriptorBinding("vertexInputRates", "", ARRAY_DESCRIPTOR_SET, 12, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
+
+            shaderSet->addDescriptorBinding("meshlets", "", ARRAY_DESCRIPTOR_SET, 13, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::uivec4Array::create(1));
+            shaderSet->addDescriptorBinding("meshlet_vertices", "", ARRAY_DESCRIPTOR_SET, 14, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
+            shaderSet->addDescriptorBinding("meshlet_triangles", "", ARRAY_DESCRIPTOR_SET, 15, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(1));
         }
         else
         {
