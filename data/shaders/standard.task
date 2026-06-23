@@ -6,18 +6,7 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-#define MAX_SIZE 256
-
-struct Task
-{
-    uint id[local_size_x];
-};
-
-taskPayloadSharedEXT Task OUT;
-
 void main()
 {
-    OUT.id[gl_LocalInvocationIndex] = gl_LocalInvocationIndex;
-
-    EmitMeshTasksEXT(16, 1, 1);
+    EmitMeshTasksEXT(1, 1, 1);
 }
