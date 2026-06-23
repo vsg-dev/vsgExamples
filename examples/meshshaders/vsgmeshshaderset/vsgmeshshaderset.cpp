@@ -11,34 +11,33 @@
 // MeshShader blog posts
 // https://chaoticbob.github.io/2024/01/24/mesh-shading-part-1.html
 // https://interplayoflight.wordpress.com/2025/05/05/meshlets-and-mesh-shaders/
-//
+// https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/
+// https://docs.vulkan.org/features/latest/features/proposals/VK_EXT_mesh_shader.html
+// https://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkPhysicalDevice8BitStorageFeatures.html
 
 namespace custom
 {
-    const char* mesh_option = "mesh";
+    const char* task_option = "task";
 
     vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options)
     {
-        bool useMeshShader = vsg::value<bool>(false, custom::mesh_option, options);
+        bool useTaskShader = vsg::value<bool>(false, custom::task_option, options);
 
-        vsg::info("Local pbr_ShaderSet(", options, ") useMeshShader = ", useMeshShader);
+        vsg::info("Local pbr_ShaderSet(", options, ") useTaskShader = ", useTaskShader);
 
         vsg::ShaderStages shaderStages;
-        if (useMeshShader)
+
+        if (useTaskShader)
         {
             if (auto taskShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.task", options)) shaderStages.push_back(taskShader);
-            if (auto meshShader = vsg::read_cast<vsg::ShaderStage>("shaders/meshshader.mesh", options)) shaderStages.push_back(meshShader);
-            if (auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/meshshader.frag", options)) shaderStages.push_back(fragmentShader);
         }
-        else
-        {
-            if (auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options)) shaderStages.push_back(vertexShader);
-            if (auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/wireframe_pbr.frag", options)) shaderStages.push_back(fragmentShader);
-        }
+
+        if (auto meshShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.mesh", options)) shaderStages.push_back(meshShader);
+        if (auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard_pbr.frag", options)) shaderStages.push_back(fragmentShader);
 
         if (shaderStages.empty())
         {
-            vsg::error("pbr_ShaderSet(...) could not find shaders.");
+            vsg::error("mesh pbr_ShaderSet(...) could not find shaders.");
             return {};
         }
 
@@ -46,60 +45,35 @@ namespace custom
 
         #define VIEW_DESCRIPTOR_SET 0
         #define MATERIAL_DESCRIPTOR_SET 1
-        #define ARRAY_DESCRIPTOR_SET 2
+        #define MESH_DESCRIPTOR_SET 2
 
-        if (useMeshShader)
-        {
-            vsg::info("MESH SHADER");
 
-            // array bindings as descriptors
-            VkShaderStageFlags meshShaderStage = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT;
+        // array bindings as descriptors
+        VkShaderStageFlags meshShaderStage = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT;
 
-            shaderSet->addDescriptorBinding("vsg_Vertex", "", ARRAY_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
-            shaderSet->addDescriptorBinding("vsg_Normal", "", ARRAY_DESCRIPTOR_SET, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
-            shaderSet->addDescriptorBinding("vsg_TexCoord0", "VSG_TEXTURECOORD_0", ARRAY_DESCRIPTOR_SET, 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
-            shaderSet->addDescriptorBinding("vsg_TexCoord1", "VSG_TEXTURECOORD_1", ARRAY_DESCRIPTOR_SET, 3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
-            shaderSet->addDescriptorBinding("vsg_TexCoord2", "VSG_TEXTURECOORD_2", ARRAY_DESCRIPTOR_SET, 4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
-            shaderSet->addDescriptorBinding("vsg_TexCoord3", "VSG_TEXTURECOORD_3", ARRAY_DESCRIPTOR_SET, 5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
-            shaderSet->addDescriptorBinding("vsg_Color", "", ARRAY_DESCRIPTOR_SET, 6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1), vsg::CoordinateSpace::LINEAR);
+        shaderSet->addDescriptorBinding("vsg_Vertex", "", MESH_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_Normal", "", MESH_DESCRIPTOR_SET, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_TexCoord0", "VSG_TEXTURECOORD_0", MESH_DESCRIPTOR_SET, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_TexCoord1", "VSG_TEXTURECOORD_1", MESH_DESCRIPTOR_SET, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_TexCoord2", "VSG_TEXTURECOORD_2", MESH_DESCRIPTOR_SET, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_TexCoord3", "VSG_TEXTURECOORD_3", MESH_DESCRIPTOR_SET, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_Color", "", MESH_DESCRIPTOR_SET, 6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1), vsg::CoordinateSpace::LINEAR);
 
-            shaderSet->addDescriptorBinding("vsg_Translation_scaleDistance", "VSG_BILLBOARD", ARRAY_DESCRIPTOR_SET, 7, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_Translation_scaleDistance", "VSG_BILLBOARD", MESH_DESCRIPTOR_SET, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1));
 
-            shaderSet->addDescriptorBinding("vsg_Translation", "VSG_INSTANCE_TRANSLATION", ARRAY_DESCRIPTOR_SET, 7, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
-            shaderSet->addDescriptorBinding("vsg_Rotation", "VSG_INSTANCE_ROTATION", ARRAY_DESCRIPTOR_SET, 8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::quatArray::create(1));
-            shaderSet->addDescriptorBinding("vsg_Scale", "VSG_INSTANCE_SCALE", ARRAY_DESCRIPTOR_SET, 9, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_Translation", "VSG_INSTANCE_TRANSLATION", MESH_DESCRIPTOR_SET, 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_Rotation", "VSG_INSTANCE_ROTATION", MESH_DESCRIPTOR_SET, 8, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::quatArray::create(1));
+        shaderSet->addDescriptorBinding("vsg_Scale", "VSG_INSTANCE_SCALE", MESH_DESCRIPTOR_SET, 9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
 
-            shaderSet->addDescriptorBinding("vsg_JointIndices", "VSG_SKINNING", ARRAY_DESCRIPTOR_SET, 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::ivec4Array::create(1));
-            shaderSet->addDescriptorBinding("vsg_JointWeights", "VSG_SKINNING", ARRAY_DESCRIPTOR_SET, 11, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_JointIndices", "VSG_SKINNING", MESH_DESCRIPTOR_SET, 10, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::ivec4Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_JointWeights", "VSG_SKINNING", MESH_DESCRIPTOR_SET, 11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1));
 
-            shaderSet->addDescriptorBinding("vertexInputRates", "", ARRAY_DESCRIPTOR_SET, 12, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
+        shaderSet->addDescriptorBinding("vertexInputRates", "", MESH_DESCRIPTOR_SET, 12, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
 
-            shaderSet->addDescriptorBinding("meshlets", "", ARRAY_DESCRIPTOR_SET, 13, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::uivec4Array::create(1));
-            shaderSet->addDescriptorBinding("meshlet_vertices", "", ARRAY_DESCRIPTOR_SET, 14, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
-            shaderSet->addDescriptorBinding("meshlet_triangles", "", ARRAY_DESCRIPTOR_SET, 15, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(1));
-        }
-        else
-        {
-            vsg::info("VERTEX SHADER");
-
-            // array bindings
-            shaderSet->addAttributeBinding("vsg_Vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
-            shaderSet->addAttributeBinding("vsg_Normal", "", 1, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
-            shaderSet->addAttributeBinding("vsg_TexCoord0", "VSG_TEXTURECOORD_0", 2, VK_FORMAT_R32G32_SFLOAT, vsg::vec2Array::create(1));
-            shaderSet->addAttributeBinding("vsg_TexCoord1", "VSG_TEXTURECOORD_1", 3, VK_FORMAT_R32G32_SFLOAT, vsg::vec2Array::create(1));
-            shaderSet->addAttributeBinding("vsg_TexCoord2", "VSG_TEXTURECOORD_2", 4, VK_FORMAT_R32G32_SFLOAT, vsg::vec2Array::create(1));
-            shaderSet->addAttributeBinding("vsg_TexCoord3", "VSG_TEXTURECOORD_3", 5, VK_FORMAT_R32G32_SFLOAT, vsg::vec2Array::create(1));
-            shaderSet->addAttributeBinding("vsg_Color", "", 6, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1), vsg::CoordinateSpace::LINEAR);
-
-            shaderSet->addAttributeBinding("vsg_Translation_scaleDistance", "VSG_BILLBOARD", 7, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
-
-            shaderSet->addAttributeBinding("vsg_Translation", "VSG_INSTANCE_TRANSLATION", 7, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
-            shaderSet->addAttributeBinding("vsg_Rotation", "VSG_INSTANCE_ROTATION", 8, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::quatArray::create(1));
-            shaderSet->addAttributeBinding("vsg_Scale", "VSG_INSTANCE_SCALE", 9, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
-
-            shaderSet->addAttributeBinding("vsg_JointIndices", "VSG_SKINNING", 10, VK_FORMAT_R32G32B32A32_SINT, vsg::ivec4Array::create(1));
-            shaderSet->addAttributeBinding("vsg_JointWeights", "VSG_SKINNING", 11, VK_FORMAT_R32G32B32A32_SFLOAT, vsg::vec4Array::create(1));
-        }
+        shaderSet->addDescriptorBinding("meshlets", "", MESH_DESCRIPTOR_SET, 13, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uivec4Array::create(1));
+        shaderSet->addDescriptorBinding("meshlet_Vertices", "", MESH_DESCRIPTOR_SET, 14, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
+        shaderSet->addDescriptorBinding("meshlet_Triangles", "", MESH_DESCRIPTOR_SET, 15, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(1));
+        shaderSet->addDescriptorBinding("meshlet_Bounds", "", MESH_DESCRIPTOR_SET, 16, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1));
 
         // standard descriptors
         shaderSet->addDescriptorBinding("diffuseMap", "VSG_DIFFUSE_MAP", MATERIAL_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::ubvec4Array2D::create(1, 1, vsg::Data::Properties{VK_FORMAT_R8G8B8A8_UNORM}));
@@ -129,11 +103,14 @@ namespace custom
 
         shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_ALL, 0, 128);
 
+#if 0
+        // TODO need to implement mesh shader alternates for these...
         shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_INSTANCE_TRANSLATION"}, vsg::TranslationArrayState::create()});
         shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_INSTANCE_TRANSLATION", "VSG_INSTANCE_ROTATION", "VSG_INSTANCE_SCALE"}, vsg::TranslationRotationScaleArrayState::create()});
         shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_INSTANCE_TRANSLATION", "VSG_DISPLACEMENT_MAP"}, vsg::TranslationAndDisplacementMapArrayState::create()});
         shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_DISPLACEMENT_MAP"}, vsg::DisplacementMapArrayState::create()});
         shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_BILLBOARD"}, vsg::BillboardArrayState::create()});
+#endif
 
         shaderSet->customDescriptorSetBindings.push_back(vsg::ViewDependentStateBinding::create(VIEW_DESCRIPTOR_SET));
 
@@ -269,7 +246,7 @@ int main(int argc, char** argv)
     // read any command line options that the ReaderWriters support
     options->readOptions(arguments);
 
-    arguments.readAndAssign<bool>(custom::mesh_option, options);
+    arguments.readAndAssign<bool>(custom::task_option, options);
 
     if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
     auto numFrames = arguments.value(-1, "-f");
@@ -344,6 +321,7 @@ int main(int argc, char** argv)
     if (outputFilename)
     {
         vsg::write(vsg_scene, outputFilename, options);
+        return 1;
     }
 
     // create the viewer and assign window(s) to it
@@ -352,6 +330,7 @@ int main(int argc, char** argv)
     windowTraits->vulkanVersion = VK_API_VERSION_1_1;
     windowTraits->deviceExtensionNames = {VK_EXT_MESH_SHADER_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
     windowTraits->deviceExtensionNames.push_back(VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME);
+    windowTraits->deviceExtensionNames.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
 
     // set up features
     auto& features = windowTraits->deviceFeatures;
@@ -362,6 +341,11 @@ int main(int argc, char** argv)
 
     auto& barycentricFeatures = features->get<VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR>();
     barycentricFeatures.fragmentShaderBarycentric = VK_TRUE;
+
+    auto& eightBitStorageFeatures = features->get<VkPhysicalDevice8BitStorageFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES>();
+    eightBitStorageFeatures.storageBuffer8BitAccess = VK_TRUE;
+    eightBitStorageFeatures.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+    // storagePushConstant8;
 
     auto window = vsg::Window::create(windowTraits);
     if (!window)
@@ -390,7 +374,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 1000.0);
     }
 
     auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
@@ -416,6 +400,16 @@ int main(int argc, char** argv)
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
+
+    if (autoPlay)
+    {
+        // find any animation groups in the loaded scene graph and play the first animation in each of the animation groups.
+        auto animationGroups = vsg::visit<vsg::FindAnimations>(vsg_scene).animationGroups;
+        for (auto ag : animationGroups)
+        {
+            if (!ag->animations.empty()) viewer->animationManager->play(ag->animations.front());
+        }
+    }
 
     viewer->start_point() = vsg::clock::now();
 

@@ -1,0 +1,133 @@
+#version 450
+#extension GL_EXT_mesh_shader : require
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int8  : require
+
+
+#pragma import_defines (VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
+
+#define VIEW_DESCRIPTOR_SET 0
+#define MATERIAL_DESCRIPTOR_SET 1
+#define MESH_DESCRIPTOR_SET 2
+
+#if defined(VSG_TEXTURECOORD_3)
+#define VSG_TEXCOORD_COUNT 4
+#elif defined(VSG_TEXTURECOORD_2)
+#define VSG_TEXCOORD_COUNT 3
+#elif defined(VSG_TEXTURECOORD_1)
+#define VSG_TEXCOORD_COUNT 2
+#else
+#define VSG_TEXCOORD_COUNT 1
+#endif
+
+layout(push_constant) uniform PushConstants {
+	mat4 projection;
+	mat4 modelView;
+} pc;
+
+layout(set = MESH_DESCRIPTOR_SET, binding = 0) readonly buffer vertexBuffer {
+	float vsg_Vertex[];
+};
+
+layout(set = MESH_DESCRIPTOR_SET, binding = 1) readonly buffer normlBuffer {
+	float vsg_Normal[];
+};
+
+#if defined(VSG_TEXTURECOORD_0)
+layout(set = MESH_DESCRIPTOR_SET, binding = 2) readonly buffer texcoordBuffer0 {
+	vec2 vsg_TexCoord0[];
+};
+#endif
+
+#if defined(VSG_TEXTURECOORD_1)
+layout(set = MESH_DESCRIPTOR_SET, binding = 3) readonly buffer texcoordBuffer1 {
+	vec2 vsg_TexCoord1[];
+};
+#endif
+
+#if defined(VSG_TEXTURECOORD_2)
+layout(set = MESH_DESCRIPTOR_SET, binding = 4) readonly buffer texcoordBuffer2 {
+	vec2 vsg_TexCoord2[];
+};
+#endif
+
+#if defined(VSG_TEXTURECOORD_3)
+layout(set = MESH_DESCRIPTOR_SET, binding = 5) readonly buffer texcoordBuffer3 {
+	vec2 vsg_TexCoord3[];
+};
+#endif
+
+layout(set = MESH_DESCRIPTOR_SET, binding = 6) readonly buffer colorBuffer {
+	vec4 vsg_Color[];
+};
+
+struct Meshlet
+{
+	uint vertex_offset;
+	uint triangle_offset;
+	uint vertex_count;
+	uint triangle_count;
+};
+
+layout(std430, set = MESH_DESCRIPTOR_SET, binding = 13) readonly buffer meshletDescBuffer {
+	Meshlet meshletDescs[];
+};
+layout(std430, set = MESH_DESCRIPTOR_SET, binding = 14) readonly buffer primIndexBuffer1 {
+	uint    meshlet_vertices[];
+};
+layout(std430, set = MESH_DESCRIPTOR_SET, binding = 15) readonly buffer primIndexBuffer2 {
+	uint8_t meshlet_triangles[];
+};
+
+
+layout(location = 0) out vec3 eyePos[];
+layout(location = 1) out vec3 normalDir[];
+layout(location = 2) out vec4 vertexColor[];
+layout(location = 3) out vec3 viewDir[];
+layout(location = 4) out vec2 texCoord[][VSG_TEXCOORD_COUNT];
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = 256, max_primitives = 256) out;
+
+void main()
+{
+	Meshlet meshlet = meshletDescs[gl_WorkGroupID.x];
+	SetMeshOutputsEXT(meshlet.vertex_count, meshlet.triangle_count);
+
+	mat4 mv = pc.modelView;
+	mat4 mvp = pc.projection * pc.modelView;
+
+	for (uint i = 0; i < meshlet.vertex_count; ++i)
+	{
+		uint index = meshlet_vertices[meshlet.vertex_offset + i];
+		vec4 vertex = vec4(vsg_Vertex[index*3], vsg_Vertex[index*3+1], vsg_Vertex[index*3+2], 1.0);
+		vec4 normal = vec4(vsg_Normal[index*3], vsg_Normal[index*3+1], vsg_Normal[index*3+2], 0.0);
+
+		gl_MeshVerticesEXT[i].gl_Position = mvp * vertex;
+
+		vertexColor[i] = vsg_Color[0]; // vsg_Color[index];
+		eyePos[i] = (mv * vertex).xyz;
+		viewDir[i] = -(mv * vertex).xyz;
+		normalDir[i] = (mv * normal).xyz;
+
+		#if VSG_TEXCOORD_COUNT >= 1
+		texCoord[i][0] = vsg_TexCoord0[index];
+		#endif
+		#if VSG_TEXCOORD_COUNT >= 2
+		texCoord[i][1] = vsg_TexCoord1[index];
+		#endif
+		#if VSG_TEXCOORD_COUNT >= 3
+		texCoord[i][2] = vsg_TexCoord2[index];
+		#endif
+		#if VSG_TEXCOORD_COUNT >= 4
+		texCoord[i][3] = vsg_TexCoord3[index];
+		#endif
+	}
+
+	for (uint i = 0; i < meshlet.triangle_count; ++i)
+	{
+		uint offset = meshlet.triangle_offset + i * 3;
+		gl_PrimitiveTriangleIndicesEXT[i] = uvec3(
+			meshlet_triangles[offset], meshlet_triangles[offset + 1], meshlet_triangles[offset + 2]);
+	}
+}
