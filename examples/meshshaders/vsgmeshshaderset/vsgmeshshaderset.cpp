@@ -23,7 +23,7 @@ namespace custom
     {
         bool useTaskShader = vsg::value<bool>(false, custom::task_option, options);
 
-        vsg::info("Local pbr_ShaderSet(", options, ") useTaskShader = ", useTaskShader);
+        vsg::debug("Local pbr_ShaderSet(", options, ") useTaskShader = ", useTaskShader);
 
         vsg::ShaderStages shaderStages;
 
@@ -233,6 +233,8 @@ int main(int argc, char** argv)
 {
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
+
+    std::cout<<arguments<<std::endl;
 
     auto windowTraits = vsg::WindowTraits::create(arguments);
 
