@@ -90,10 +90,13 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 256, max_primitives = 256) out;
 
 #ifdef MESHLET_DEBUG_COLORS
-const vec4[3] colors = {
-	vec4(0.0, 1.0, 0.0, 1.0),
-	vec4(0.0, 0.0, 1.0, 1.0),
-	vec4(1.0, 0.0, 0.0, 1.0)
+const vec4[] colors = {
+	vec4(0.5, 1.0, 0.5, 1.0),
+	vec4(0.5, 0.5, 1.0, 1.0),
+	vec4(1.0, 0.5, 0.5, 1.0),
+	vec4(1.0, 1.0, 0.5, 1.0),
+	vec4(0.5, 1.0, 1.0, 1.0),
+	vec4(1.0, 0.5, 1.0, 1.0)
 };
 #endif
 
@@ -106,7 +109,7 @@ void main()
 	mat4 mvp = pc.projection * pc.modelView;
 
 #ifdef MESHLET_DEBUG_COLORS
-	vec4 color = colors[gl_WorkGroupID.x % 3];
+	vec4 color = colors[gl_WorkGroupID.x % colors.length()];
 #endif
 
 	for (uint i = 0; i < meshlet.vertex_count; ++i)
