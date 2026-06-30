@@ -151,6 +151,8 @@ namespace custom
     class MeshTiles3DBuilder : public vsg::Inherit<vsgXchange::Tiles3D::Builder, MeshTiles3DBuilder>
     {
     public:
+        vsg::ref_ptr<vsg::ShaderSet> mesh_shaderSet;
+
         MeshTiles3DBuilder()
         {
         }
@@ -189,6 +191,7 @@ namespace custom
         {
             auto name = vsg::simpleFilename(tileset->filename);
             vsg::ref_ptr<vsg::Object> object;
+#if 0
             if (name=="tileset_vegetation")
             {
                 auto local_options = vsg::clone(in_options);
@@ -200,14 +203,24 @@ namespace custom
 
                 vsg::debug("after ", tileset->filename, "\n\n");
             }
-            else if (name=="tileset_terrain")
+            else
+#endif
+            if (name=="tileset_terrain")
             {
                 auto local_options = vsg::clone(in_options);
-                local_options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+                // local_options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+
+                if (!mesh_shaderSet) mesh_shaderSet = custom::pbr_ShaderSet(in_options);
+
+                if (mesh_shaderSet)
+                {
+                    local_options->shaderSets["pbr"] = mesh_shaderSet;
+                }
 
                 vsg::debug("Terrain : MeshTiles3DBuilder::createSceneGraph(", tileset, ", ", in_options,") ", this, ", filename = ", tileset->filename, ", local_options = ", local_options);
 
                 object = Inherit::createSceneGraph(tileset, local_options);
+
                 vsg::debug("after ", tileset->filename, "\n\n");
             }
             else
@@ -242,14 +255,45 @@ int main(int argc, char** argv)
     auto options = vsg::Options::create();
     options->add(vsgXchange::all::create());
 
+
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+    options->sharedObjects = vsg::SharedObjects::create();
+
+    auto outputFilename = arguments.value<vsg::Path>("", "-o");
+    auto outputShaderSetFilename = arguments.value<vsg::Path>("", "--os");
+
     if (arguments.read({"--custom-bulders", "--cb"}))
     {
         options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
         options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
     }
 
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-    options->sharedObjects = vsg::SharedObjects::create();
+    if (arguments.read({"--tile"}))
+    {
+        auto builder = custom::MeshTiles3DBuilder::create();
+        builder->mesh_shaderSet = custom::pbr_ShaderSet(options);
+        options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
+
+        if (builder->mesh_shaderSet && outputShaderSetFilename)
+        {
+            vsg::write(builder->mesh_shaderSet, outputShaderSetFilename, options);
+        }
+    }
+    else if (!arguments.read("--standard"))
+    {
+        vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::pbr_ShaderSet(options);
+        options->shaderSets["pbr"] = shaderSet;
+        if (!shaderSet)
+        {
+            std::cout << "No vsg::ShaderSet to process." << std::endl;
+            return 1;
+        }
+
+        if (outputShaderSetFilename)
+        {
+            vsg::write(shaderSet, outputShaderSetFilename, options);
+        }
+    }
 
     // read any command line options that the ReaderWriters support
     options->readOptions(arguments);
@@ -261,8 +305,6 @@ int main(int argc, char** argv)
     auto pathFilename = arguments.value<vsg::Path>("", "-p");
     auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
     auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
-    auto outputFilename = arguments.value<vsg::Path>("", "-o");
-    auto outputShaderSetFilename = arguments.value<vsg::Path>("", "--os");
     auto horizonMountainHeight = arguments.value(0.0, "--hmh");
     auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
     bool reportAverageFrameRate = arguments.read("--fps");
@@ -280,20 +322,9 @@ int main(int argc, char** argv)
         reportAverageFrameRate = true;
     }
 
-    if (!arguments.read("--standard"))
-    {
-        vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::pbr_ShaderSet(options);
-        options->shaderSets["pbr"] = shaderSet;
-        if (!shaderSet)
-        {
-            std::cout << "No vsg::ShaderSet to process." << std::endl;
-            return 1;
-        }
 
-        if (outputShaderSetFilename)
-        {
-            vsg::write(shaderSet, outputShaderSetFilename, options);
-        }
+    {
+
     }
 
 
