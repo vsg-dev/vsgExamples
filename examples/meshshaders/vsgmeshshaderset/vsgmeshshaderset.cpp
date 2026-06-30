@@ -18,12 +18,14 @@
 namespace custom
 {
     const char* task_option = "task";
+    const char* debug_option = "debug-colors";
 
     vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options)
     {
         bool useTaskShader = vsg::value<bool>(false, custom::task_option, options);
+        bool debugColors = vsg::value<bool>(false, custom::debug_option, options);
 
-        vsg::debug("Local pbr_ShaderSet(", options, ") useTaskShader = ", useTaskShader);
+        vsg::info("Local pbr_ShaderSet(", options, ") useTaskShader = ", useTaskShader, ",  debugColors = ", debugColors);
 
         vsg::ShaderStages shaderStages;
 
@@ -99,7 +101,7 @@ namespace custom
         shaderSet->addDescriptorBinding("shadowMapShadowSampler", "", VIEW_DESCRIPTOR_SET, 4, VK_DESCRIPTOR_TYPE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr);
 
         // additional defines
-        shaderSet->optionalDefines = {"VSG_GREYSCALE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_POINT_SPRITE", "VSG_WORKFLOW_SPECGLOSS", "VSG_SHADOWS_PCSS", "VSG_SHADOWS_SOFT", "VSG_SHADOWS_HARD", "SHADOWMAP_DEBUG", "VSG_ALPHA_TEST"};
+        shaderSet->optionalDefines = {"MESHLET_DEBUG_COLORS", "VSG_GREYSCALE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_POINT_SPRITE", "VSG_WORKFLOW_SPECGLOSS", "VSG_SHADOWS_PCSS", "VSG_SHADOWS_SOFT", "VSG_SHADOWS_HARD", "SHADOWMAP_DEBUG", "VSG_ALPHA_TEST"};
 
         shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_ALL, 0, 128);
 
@@ -115,6 +117,14 @@ namespace custom
         shaderSet->customDescriptorSetBindings.push_back(vsg::ViewDependentStateBinding::create(VIEW_DESCRIPTOR_SET));
 
         shaderSet->geometryHints = vsg::ShaderSet::DRAWMESHTASKS | vsg::ShaderSet::MESHLETS;
+
+        if (debugColors)
+        {
+            if (!shaderSet->defaultShaderHints) shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
+            shaderSet->defaultShaderHints->defines.insert("MESHLET_DEBUG_COLORS");
+
+            vsg::info("Enabling MESHLET_DEBUG_COLORS");
+        }
 
         return shaderSet;
     }
@@ -253,8 +263,11 @@ int main(int argc, char** argv)
 
     // use the vsg::Options object to pass the ReaderWriter_all to use when reading files.
     auto options = vsg::Options::create();
-    options->add(vsgXchange::all::create());
 
+    arguments.readAndAssign<bool>(custom::task_option, options);
+    arguments.readAndAssign<bool>(custom::debug_option, options);
+
+    options->add(vsgXchange::all::create());
 
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->sharedObjects = vsg::SharedObjects::create();
@@ -298,7 +311,6 @@ int main(int argc, char** argv)
     // read any command line options that the ReaderWriters support
     options->readOptions(arguments);
 
-    arguments.readAndAssign<bool>(custom::task_option, options);
 
     if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
     auto numFrames = arguments.value(-1, "-f");

@@ -4,7 +4,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8  : require
 
 
-#pragma import_defines (VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
+#pragma import_defines (MESHLET_DEBUG_COLORS, VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
@@ -89,6 +89,14 @@ layout(location = 4) out vec2 texCoord[][VSG_TEXCOORD_COUNT];
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 256, max_primitives = 256) out;
 
+#ifdef MESHLET_DEBUG_COLORS
+const vec4[3] colors = {
+	vec4(0.0, 1.0, 0.0, 1.0),
+	vec4(0.0, 0.0, 1.0, 1.0),
+	vec4(1.0, 0.0, 0.0, 1.0)
+};
+#endif
+
 void main()
 {
 	Meshlet meshlet = meshletDescs[gl_WorkGroupID.x];
@@ -96,6 +104,10 @@ void main()
 
 	mat4 mv = pc.modelView;
 	mat4 mvp = pc.projection * pc.modelView;
+
+#ifdef MESHLET_DEBUG_COLORS
+	vec4 color = colors[gl_WorkGroupID.x % 3];
+#endif
 
 	for (uint i = 0; i < meshlet.vertex_count; ++i)
 	{
@@ -105,7 +117,12 @@ void main()
 
 		gl_MeshVerticesEXT[i].gl_Position = mvp * vertex;
 
+		#ifdef MESHLET_DEBUG_COLORS
+		vertexColor[i] = color; // vsg_Color[0]; // vsg_Color[index];
+		#else
 		vertexColor[i] = vsg_Color[0]; // vsg_Color[index];
+		#endif
+
 		eyePos[i] = (mv * vertex).xyz;
 		viewDir[i] = -(mv * vertex).xyz;
 		normalDir[i] = (mv * normal).xyz;
