@@ -12,8 +12,12 @@
 // https://chaoticbob.github.io/2024/01/24/mesh-shading-part-1.html
 // https://interplayoflight.wordpress.com/2025/05/05/meshlets-and-mesh-shaders/
 // https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/
-// https://docs.vulkan.org/features/latest/features/proposals/VK_EXT_mesh_shader.html
 // https://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkPhysicalDevice8BitStorageFeatures.html
+// https://docs.vulkan.org/features/latest/features/proposals/VK_EXT_mesh_shader.html
+// https://docs.vulkan.org/glslext/latest/glslext/ext/GL_EXT_control_flow_attributes.html
+// https://docs.vulkan.org/refpages/latest/refpages/source/VK_KHR_8bit_storage.html
+// https://www.khronos.org/blog/vulkan-subgroup-tutorial
+// https://docs.vulkan.org/glslext/latest/glslext/khr/GL_KHR_shader_subgroup.html
 
 namespace custom
 {
@@ -334,12 +338,6 @@ int main(int argc, char** argv)
         reportAverageFrameRate = true;
     }
 
-
-    {
-
-    }
-
-
     auto group = vsg::Group::create();
 
     vsg::Path path;
@@ -396,7 +394,8 @@ int main(int argc, char** argv)
     auto& eightBitStorageFeatures = features->get<VkPhysicalDevice8BitStorageFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES>();
     eightBitStorageFeatures.storageBuffer8BitAccess = VK_TRUE;
     eightBitStorageFeatures.uniformAndStorageBuffer8BitAccess = VK_TRUE;
-    // storagePushConstant8;
+
+
 
     auto window = vsg::Window::create(windowTraits);
     if (!window)
@@ -404,6 +403,44 @@ int main(int argc, char** argv)
         std::cout << "Could not create window." << std::endl;
         return 1;
     }
+
+
+    if (size_t pd_num = 0; arguments.read("--select", pd_num))
+    {
+        // use the Window implementation to create the Instance and Surface
+        auto instance = window->getOrCreateInstance();
+        auto surface = window->getOrCreateSurface();
+
+        auto physicalDevices = instance->getPhysicalDevices();
+        if (physicalDevices.empty())
+        {
+            std::cout << "No physical devices reported." << std::endl;
+            return 0;
+        }
+
+        if (pd_num >= physicalDevices.size())
+        {
+            std::cout << "--select " << pd_num << ", exceeds physical devices available, maximum permitted value is " << physicalDevices.size() - 1 << std::endl;
+            return 0;
+        }
+
+        // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they are available.
+        auto physicalDevice = physicalDevices[pd_num];
+        auto properties = physicalDevice->getProperties();
+
+        std::cout << "Selected vsg::PhysicalDevice " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType << std::endl;
+
+        window->setPhysicalDevice(physicalDevice);
+    }
+
+
+    auto physicalDevice = window->getOrCreatePhysicalDevice();
+    auto subgroupProperties = physicalDevice->getProperties<VkPhysicalDeviceSubgroupProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES>();
+
+    vsg::info("subgroupSize = ", subgroupProperties.subgroupSize);
+    vsg::info("supportedStages = ", subgroupProperties.supportedStages);
+    vsg::info("supportedOperations = ", subgroupProperties.supportedOperations);
+    vsg::info("quadOperationsInAllStages = ", subgroupProperties.quadOperationsInAllStages);
 
     viewer->addWindow(window);
 
