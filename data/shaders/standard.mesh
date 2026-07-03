@@ -177,8 +177,7 @@ void main()
 	for (uint i = gl_LocalInvocationIndex; i < meshlet.triangle_count; i += gl_WorkGroupSize.x)
 	{
 		uint offset = meshlet.triangle_offset + i * 3;
-		gl_PrimitiveTriangleIndicesEXT[i] = uvec3(
-			meshlet_triangles[offset], meshlet_triangles[offset + 1], meshlet_triangles[offset + 2]);
+		gl_PrimitiveTriangleIndicesEXT[i] = uvec3(meshlet_triangles[offset], meshlet_triangles[offset + 1], meshlet_triangles[offset + 2]);
 	}
 
 }
