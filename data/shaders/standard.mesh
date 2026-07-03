@@ -4,7 +4,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int8  : require
 
 
-#pragma import_defines (MESHLET_DEBUG_COLORS, VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
+#pragma import_defines (TASK_SHADER, MESHLET_DEBUG_COLORS, VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
@@ -19,6 +19,17 @@
 #else
 #define VSG_TEXCOORD_COUNT 1
 #endif
+
+
+#define MESH_SUBGROUP_COUNT 4
+#define MESH_SUBGROUP_SIZE 32
+#define WORKGROUP_SIZE MESH_SUBGROUP_COUNT * MESH_SUBGROUP_SIZE
+#define MAX_VERTEX_COUNT 64
+#define MAX_PRIMITIVE_COUNT 126
+
+//#extension GL_EXT_control_flow_attributes: require
+//#define UNROLL_LOOP [[unroll]]
+//#define UNROLL_LOOP
 
 layout(push_constant) uniform PushConstants {
 	mat4 projection;
@@ -86,8 +97,17 @@ layout(location = 2) out vec4 vertexColor[];
 layout(location = 3) out vec3 viewDir[];
 layout(location = 4) out vec2 texCoord[][VSG_TEXCOORD_COUNT];
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-layout(triangles, max_vertices = 256, max_primitives = 256) out;
+layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = MAX_VERTEX_COUNT, max_primitives = MAX_PRIMITIVE_COUNT) out;
+
+#ifdef TASK_SHADER
+#define NVMESHLET_PER_TASK 32
+struct Task
+{
+	uint      baseID;
+	uint8_t   deltaIDs[NVMESHLET_PER_TASK];
+};
+#endif
 
 #ifdef MESHLET_DEBUG_COLORS
 const vec4[] colors = {
@@ -110,24 +130,32 @@ void main()
 
 #ifdef MESHLET_DEBUG_COLORS
 	vec4 color = colors[gl_WorkGroupID.x % colors.length()];
+#elif defined(TASK_SHADER)
+	vec4 color = vec4(1.0, 0.0, 1.0, 1.0);
 #endif
 
-	for (uint i = 0; i < meshlet.vertex_count; ++i)
+	for (uint i = gl_LocalInvocationIndex; i < meshlet.vertex_count; i += gl_WorkGroupSize.x)
 	{
-		uint index = meshlet_vertices[meshlet.vertex_offset + i];
+		uint vi = meshlet.vertex_offset + i;
+
+		uint index = meshlet_vertices[vi];
+
 		vec4 vertex = vec4(vsg_Vertex[index*3], vsg_Vertex[index*3+1], vsg_Vertex[index*3+2], 1.0);
 		vec4 normal = vec4(vsg_Normal[index*3], vsg_Normal[index*3+1], vsg_Normal[index*3+2], 0.0);
 
 		gl_MeshVerticesEXT[i].gl_Position = mvp * vertex;
 
-		#ifdef MESHLET_DEBUG_COLORS
+		#if 1
+
+		#if defined(MESHLET_DEBUG_COLORS) || defined(TASK_SHADER)
 		vertexColor[i] = color; // vsg_Color[0]; // vsg_Color[index];
 		#else
 		vertexColor[i] = vsg_Color[0]; // vsg_Color[index];
 		#endif
 
-		eyePos[i] = (mv * vertex).xyz;
-		viewDir[i] = -(mv * vertex).xyz;
+		vec3 eye = (mv * vertex).xyz;
+		eyePos[i] = eye;
+		viewDir[i] = -normalize(eye);
 		normalDir[i] = (mv * normal).xyz;
 
 		#if VSG_TEXCOORD_COUNT >= 1
@@ -142,12 +170,15 @@ void main()
 		#if VSG_TEXCOORD_COUNT >= 4
 		texCoord[i][3] = vsg_TexCoord3[index];
 		#endif
+
+		#endif
 	}
 
-	for (uint i = 0; i < meshlet.triangle_count; ++i)
+	for (uint i = gl_LocalInvocationIndex; i < meshlet.triangle_count; i += gl_WorkGroupSize.x)
 	{
 		uint offset = meshlet.triangle_offset + i * 3;
 		gl_PrimitiveTriangleIndicesEXT[i] = uvec3(
 			meshlet_triangles[offset], meshlet_triangles[offset + 1], meshlet_triangles[offset + 2]);
 	}
+
 }
