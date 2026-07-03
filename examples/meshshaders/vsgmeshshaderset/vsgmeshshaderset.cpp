@@ -18,6 +18,9 @@
 // https://docs.vulkan.org/refpages/latest/refpages/source/VK_KHR_8bit_storage.html
 // https://www.khronos.org/blog/vulkan-subgroup-tutorial
 // https://docs.vulkan.org/glslext/latest/glslext/khr/GL_KHR_shader_subgroup.html
+// https://www.khronos.org/assets/uploads/developers/library/2018-vulkan-devday/06-subgroups.pdf
+// https://docs.vulkan.org/guide/latest/subgroups.html
+// https://www.youtube.com/watch?v=3EMdMD1PsgY
 
 namespace custom
 {
@@ -126,8 +129,13 @@ namespace custom
         {
             if (!shaderSet->defaultShaderHints) shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
             shaderSet->defaultShaderHints->defines.insert("MESHLET_DEBUG_COLORS");
+        }
 
-            vsg::info("Enabling MESHLET_DEBUG_COLORS");
+        if (useTaskShader)
+        {
+            if (!shaderSet->defaultShaderHints) shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
+            shaderSet->defaultShaderHints->defines.insert("TASK_SHADER");
+
         }
 
         return shaderSet;
@@ -258,301 +266,333 @@ vsg::ref_ptr<vsg::Node> custom::MeshGltfBuilder::createMesh(vsg::ref_ptr<vsgXcha
 
 int main(int argc, char** argv)
 {
-    // set up defaults and read command line arguments to override them
-    vsg::CommandLine arguments(&argc, argv);
-
-    std::cout<<arguments<<std::endl;
-
-    auto windowTraits = vsg::WindowTraits::create(arguments);
-
-    // use the vsg::Options object to pass the ReaderWriter_all to use when reading files.
-    auto options = vsg::Options::create();
-
-    arguments.readAndAssign<bool>(custom::task_option, options);
-    arguments.readAndAssign<bool>(custom::debug_option, options);
-
-    options->add(vsgXchange::all::create());
-
-    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-    options->sharedObjects = vsg::SharedObjects::create();
-
-    auto outputFilename = arguments.value<vsg::Path>("", "-o");
-    auto outputShaderSetFilename = arguments.value<vsg::Path>("", "--os");
-
-    if (arguments.read({"--custom-bulders", "--cb"}))
+    try
     {
-        options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
-        options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
-    }
+        // set up defaults and read command line arguments to override them
+        vsg::CommandLine arguments(&argc, argv);
 
-    if (arguments.read({"--tile"}))
-    {
-        auto builder = custom::MeshTiles3DBuilder::create();
-        builder->mesh_shaderSet = custom::pbr_ShaderSet(options);
-        options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
+        std::cout<<arguments<<std::endl;
 
-        if (builder->mesh_shaderSet && outputShaderSetFilename)
+        auto windowTraits = vsg::WindowTraits::create(arguments);
+
+        // use the vsg::Options object to pass the ReaderWriter_all to use when reading files.
+        auto options = vsg::Options::create();
+
+        arguments.readAndAssign<bool>(custom::task_option, options);
+        arguments.readAndAssign<bool>(custom::debug_option, options);
+
+        options->add(vsgXchange::all::create());
+
+        options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
+        options->sharedObjects = vsg::SharedObjects::create();
+
+        auto outputFilename = arguments.value<vsg::Path>("", "-o");
+        auto outputShaderSetFilename = arguments.value<vsg::Path>("", "--os");
+
+        if (arguments.read({"--custom-bulders", "--cb"}))
         {
-            vsg::write(builder->mesh_shaderSet, outputShaderSetFilename, options);
+            options->setObject(vsgXchange::gltf::prototype_builder, custom::MeshGltfBuilder::create());
+            options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
         }
-    }
-    else if (!arguments.read("--standard"))
-    {
-        vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::pbr_ShaderSet(options);
-        options->shaderSets["pbr"] = shaderSet;
-        if (!shaderSet)
+
+        if (arguments.read({"--tile"}))
         {
-            std::cout << "No vsg::ShaderSet to process." << std::endl;
+            auto builder = custom::MeshTiles3DBuilder::create();
+            builder->mesh_shaderSet = custom::pbr_ShaderSet(options);
+            options->setObject(vsgXchange::Tiles3D::prototype_builder, custom::MeshTiles3DBuilder::create());
+
+            if (builder->mesh_shaderSet && outputShaderSetFilename)
+            {
+                vsg::write(builder->mesh_shaderSet, outputShaderSetFilename, options);
+            }
+        }
+        else if (!arguments.read("--standard"))
+        {
+            vsg::ref_ptr<vsg::ShaderSet> shaderSet = custom::pbr_ShaderSet(options);
+            options->shaderSets["pbr"] = shaderSet;
+            if (!shaderSet)
+            {
+                std::cout << "No vsg::ShaderSet to process." << std::endl;
+                return 1;
+            }
+
+            if (outputShaderSetFilename)
+            {
+                vsg::write(shaderSet, outputShaderSetFilename, options);
+            }
+        }
+
+        // read any command line options that the ReaderWriters support
+        options->readOptions(arguments);
+
+
+        if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+        int pd_num = arguments.value<int>(-1, "--select");
+        uint64_t initialFrameCycleCount = arguments.value(10, "--ifcc");
+        auto numFrames = arguments.value(-1, "-f");
+        auto pathFilename = arguments.value<vsg::Path>("", "-p");
+        auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
+        auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
+        bool baricentric = arguments.read({"--baricentric", "-b"});
+        auto horizonMountainHeight = arguments.value(0.0, "--hmh");
+        auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
+        bool reportAverageFrameRate = arguments.read("--fps");
+        if (arguments.read({"-t", "--test"}))
+        {
+            windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            windowTraits->fullscreen = true;
+            reportAverageFrameRate = true;
+        }
+        if (arguments.read({"--st", "--small-test"}))
+        {
+            windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            windowTraits->width = 192, windowTraits->height = 108;
+            windowTraits->decoration = false;
+            reportAverageFrameRate = true;
+        }
+
+        auto group = vsg::Group::create();
+
+        vsg::Path path;
+
+        // read any vsg files
+        for (int i = 1; i < argc; ++i)
+        {
+            vsg::Path filename = arguments[i];
+            if (auto node = vsg::read_cast<vsg::Node>(filename, options))
+            {
+                group->addChild(node);
+            }
+            else
+            {
+                std::cout << "Unable to load file " << filename << std::endl;
+            }
+        }
+
+        if (group->children.empty())
+        {
             return 1;
         }
 
-        if (outputShaderSetFilename)
-        {
-            vsg::write(shaderSet, outputShaderSetFilename, options);
-        }
-    }
-
-    // read any command line options that the ReaderWriters support
-    options->readOptions(arguments);
-
-
-    if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
-    auto numFrames = arguments.value(-1, "-f");
-    auto pathFilename = arguments.value<vsg::Path>("", "-p");
-    auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
-    auto maxTime = arguments.value(std::numeric_limits<double>::max(), "--max-time");
-    auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-    auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
-    bool reportAverageFrameRate = arguments.read("--fps");
-    if (arguments.read({"-t", "--test"}))
-    {
-        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-        windowTraits->fullscreen = true;
-        reportAverageFrameRate = true;
-    }
-    if (arguments.read({"--st", "--small-test"}))
-    {
-        windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-        windowTraits->width = 192, windowTraits->height = 108;
-        windowTraits->decoration = false;
-        reportAverageFrameRate = true;
-    }
-
-    auto group = vsg::Group::create();
-
-    vsg::Path path;
-
-    // read any vsg files
-    for (int i = 1; i < argc; ++i)
-    {
-        vsg::Path filename = arguments[i];
-        if (auto node = vsg::read_cast<vsg::Node>(filename, options))
-        {
-            group->addChild(node);
-        }
+        vsg::ref_ptr<vsg::Node> vsg_scene;
+        if (group->children.size() == 1)
+            vsg_scene = group->children[0];
         else
+            vsg_scene = group;
+
+        if (outputFilename)
         {
-            std::cout << "Unable to load file " << filename << std::endl;
-        }
-    }
-
-    if (group->children.empty())
-    {
-        return 1;
-    }
-
-    vsg::ref_ptr<vsg::Node> vsg_scene;
-    if (group->children.size() == 1)
-        vsg_scene = group->children[0];
-    else
-        vsg_scene = group;
-
-    if (outputFilename)
-    {
-        vsg::write(vsg_scene, outputFilename, options);
-        return 1;
-    }
-
-    // create the viewer and assign window(s) to it
-    auto viewer = vsg::Viewer::create();
-
-    windowTraits->vulkanVersion = VK_API_VERSION_1_1;
-    windowTraits->deviceExtensionNames = {VK_EXT_MESH_SHADER_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
-    windowTraits->deviceExtensionNames.push_back(VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME);
-    windowTraits->deviceExtensionNames.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
-
-    // set up features
-    auto& features = windowTraits->deviceFeatures;
-
-    auto& meshFeatures = features->get<VkPhysicalDeviceMeshShaderFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT>();
-    meshFeatures.meshShader = VK_TRUE;
-    meshFeatures.taskShader = VK_TRUE;
-
-    auto& barycentricFeatures = features->get<VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR>();
-    barycentricFeatures.fragmentShaderBarycentric = VK_TRUE;
-
-    auto& eightBitStorageFeatures = features->get<VkPhysicalDevice8BitStorageFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES>();
-    eightBitStorageFeatures.storageBuffer8BitAccess = VK_TRUE;
-    eightBitStorageFeatures.uniformAndStorageBuffer8BitAccess = VK_TRUE;
-
-
-
-    auto window = vsg::Window::create(windowTraits);
-    if (!window)
-    {
-        std::cout << "Could not create window." << std::endl;
-        return 1;
-    }
-
-
-    if (size_t pd_num = 0; arguments.read("--select", pd_num))
-    {
-        // use the Window implementation to create the Instance and Surface
-        auto instance = window->getOrCreateInstance();
-        auto surface = window->getOrCreateSurface();
-
-        auto physicalDevices = instance->getPhysicalDevices();
-        if (physicalDevices.empty())
-        {
-            std::cout << "No physical devices reported." << std::endl;
-            return 0;
+            vsg::write(vsg_scene, outputFilename, options);
+            return 1;
         }
 
-        if (pd_num >= physicalDevices.size())
+        // create the viewer and assign window(s) to it
+        auto viewer = vsg::Viewer::create();
+
+        windowTraits->vulkanVersion = VK_API_VERSION_1_1;
+        windowTraits->deviceExtensionNames = {VK_EXT_MESH_SHADER_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
+        windowTraits->deviceExtensionNames.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
+
+        // set up features
+        auto& features = windowTraits->deviceFeatures;
+
+        auto& meshFeatures = features->get<VkPhysicalDeviceMeshShaderFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT>();
+        meshFeatures.meshShader = VK_TRUE;
+        meshFeatures.taskShader = VK_TRUE;
+
+        auto& eightBitStorageFeatures = features->get<VkPhysicalDevice8BitStorageFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES>();
+        eightBitStorageFeatures.storageBuffer8BitAccess = VK_TRUE;
+        eightBitStorageFeatures.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+
+        if (baricentric)
         {
-            std::cout << "--select " << pd_num << ", exceeds physical devices available, maximum permitted value is " << physicalDevices.size() - 1 << std::endl;
-            return 0;
+            windowTraits->deviceExtensionNames.push_back(VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME);
+            auto& barycentricFeatures = features->get<VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR>();
+            barycentricFeatures.fragmentShaderBarycentric = VK_TRUE;
         }
 
-        // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they are available.
-        auto physicalDevice = physicalDevices[pd_num];
-        auto properties = physicalDevice->getProperties();
-
-        std::cout << "Selected vsg::PhysicalDevice " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType << std::endl;
-
-        window->setPhysicalDevice(physicalDevice);
-    }
 
 
-    auto physicalDevice = window->getOrCreatePhysicalDevice();
-    auto subgroupProperties = physicalDevice->getProperties<VkPhysicalDeviceSubgroupProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES>();
-
-    vsg::info("subgroupSize = ", subgroupProperties.subgroupSize);
-    vsg::info("supportedStages = ", subgroupProperties.supportedStages);
-    vsg::info("supportedOperations = ", subgroupProperties.supportedOperations);
-    vsg::info("quadOperationsInAllStages = ", subgroupProperties.quadOperationsInAllStages);
-
-    viewer->addWindow(window);
-
-    auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
-
-    vsg::ref_ptr<vsg::LookAt> lookAt;
-    vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-    if (ellipsoidModel)
-    {
-        // compute the bounds of the scene graph to help position camera
-        vsg::ComputeBounds computeBounds;
-        vsg_scene->accept(computeBounds);
-
-        double initialRadius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
-        double modelToEarthRatio = (initialRadius / ellipsoidModel->radiusEquator());
-
-        // if the model is small compared to the radius of the earth position camera in local coordinate frame of the model rather than ECEF.
-        if (modelToEarthRatio < 1.0)
+        auto window = vsg::Window::create(windowTraits);
+        if (!window)
         {
-            vsg::dvec3 lla = ellipsoidModel->convertECEFToLatLongAltitude((computeBounds.bounds.min + computeBounds.bounds.max) * 0.5);
+            std::cout << "Could not create window." << std::endl;
+            return 1;
+        }
 
-            auto worldToLocal = ellipsoidModel->computeWorldToLocalTransform(lla);
-            auto localToWorld = ellipsoidModel->computeLocalToWorldTransform(lla);
 
-            // recompute the bounds of the model in the local coordinate frame of the model, rather than ECEF
-            // to give a tigher bound around the dataset.
-            computeBounds.matrixStack.clear();
-            computeBounds.matrixStack.push_back(worldToLocal);
-            computeBounds.bounds.reset();
+        if (pd_num >= 0)
+        {
+            // use the Window implementation to create the Instance and Surface
+            auto instance = window->getOrCreateInstance();
+            auto surface = window->getOrCreateSurface();
+
+            auto physicalDevices = instance->getPhysicalDevices();
+            if (physicalDevices.empty())
+            {
+                std::cout << "No physical devices reported." << std::endl;
+                return 0;
+            }
+
+            if (pd_num >= static_cast<int>(physicalDevices.size()))
+            {
+                std::cout << "--select " << pd_num << ", exceeds physical devices available, maximum permitted value is " << physicalDevices.size() - 1 << std::endl;
+                return 0;
+            }
+
+            // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they are available.
+            auto physicalDevice = physicalDevices[pd_num];
+            auto properties = physicalDevice->getProperties();
+
+            std::cout << "Selected vsg::PhysicalDevice " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType << std::endl;
+
+            window->setPhysicalDevice(physicalDevice);
+        }
+
+
+        auto physicalDevice = window->getOrCreatePhysicalDevice();
+        auto subgroupProperties = physicalDevice->getProperties<VkPhysicalDeviceSubgroupProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES>();
+
+        vsg::info("subgroupSize = ", subgroupProperties.subgroupSize);
+        vsg::info("supportedStages = ", subgroupProperties.supportedStages);
+        vsg::info("supportedOperations = ", subgroupProperties.supportedOperations);
+        vsg::info("quadOperationsInAllStages = ", subgroupProperties.quadOperationsInAllStages);
+
+        viewer->addWindow(window);
+
+        auto ellipsoidModel = vsg_scene->getRefObject<vsg::EllipsoidModel>("EllipsoidModel");
+
+        vsg::ref_ptr<vsg::LookAt> lookAt;
+        vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+        if (ellipsoidModel)
+        {
+            // compute the bounds of the scene graph to help position camera
+            vsg::ComputeBounds computeBounds;
             vsg_scene->accept(computeBounds);
 
-            auto bounds = computeBounds.bounds;
-            vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
-            double radius = vsg::length(bounds.max - bounds.min) * 0.5;
+            double initialRadius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
+            double modelToEarthRatio = (initialRadius / ellipsoidModel->radiusEquator());
 
-            lookAt = vsg::LookAt::create(localToWorld * (centre + vsg::dvec3(0.0, 0.0, radius)), localToWorld * centre, vsg::dvec3(0.0, 1.0, 0.0) * worldToLocal);
+            // if the model is small compared to the radius of the earth position camera in local coordinate frame of the model rather than ECEF.
+            if (modelToEarthRatio < 1.0)
+            {
+                vsg::dvec3 lla = ellipsoidModel->convertECEFToLatLongAltitude((computeBounds.bounds.min + computeBounds.bounds.max) * 0.5);
+
+                auto worldToLocal = ellipsoidModel->computeWorldToLocalTransform(lla);
+                auto localToWorld = ellipsoidModel->computeLocalToWorldTransform(lla);
+
+                // recompute the bounds of the model in the local coordinate frame of the model, rather than ECEF
+                // to give a tigher bound around the dataset.
+                computeBounds.matrixStack.clear();
+                computeBounds.matrixStack.push_back(worldToLocal);
+                computeBounds.bounds.reset();
+                vsg_scene->accept(computeBounds);
+
+                auto bounds = computeBounds.bounds;
+                vsg::dvec3 centre = (bounds.min + bounds.max) * 0.5;
+                double radius = vsg::length(bounds.max - bounds.min) * 0.5;
+
+                lookAt = vsg::LookAt::create(localToWorld * (centre + vsg::dvec3(0.0, 0.0, radius)), localToWorld * centre, vsg::dvec3(0.0, 1.0, 0.0) * worldToLocal);
+            }
+            else
+            {
+                lookAt = vsg::LookAt::create(vsg::dvec3(initialRadius * 2.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
+            }
+
+            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
         }
         else
         {
-            lookAt = vsg::LookAt::create(vsg::dvec3(initialRadius * 2.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
+            // compute the bounds of the scene graph to help position camera
+            vsg::ComputeBounds computeBounds;
+            vsg_scene->accept(computeBounds);
+
+            vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
+            double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+
+            // set up the camera
+            lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.5);
         }
 
-        perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
-    }
-    else
-    {
-        // compute the bounds of the scene graph to help position camera
-        vsg::ComputeBounds computeBounds;
-        vsg_scene->accept(computeBounds);
+        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
 
-        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
+        // add close handler to respond to the close window button and pressing escape
+        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
 
-        // set up the camera
-        lookAt = vsg::LookAt::create(centre + vsg::dvec3(0.0, -radius * 3.5, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-        perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 10.5);
-    }
-
-    auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-
-    // add close handler to respond to the close window button and pressing escape
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-    auto cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
-    viewer->addEventHandler(cameraAnimation);
-    if (autoPlay && cameraAnimation->animation)
-    {
-        cameraAnimation->play();
-
-        if (reportAverageFrameRate && (maxTime == std::numeric_limits<double>::max()) && (numFrames < 0))
+        auto cameraAnimation = vsg::CameraAnimationHandler::create(camera, pathFilename, options);
+        viewer->addEventHandler(cameraAnimation);
+        if (autoPlay && cameraAnimation->animation)
         {
-            maxTime = cameraAnimation->animation->maxTime();
+            cameraAnimation->play();
+
+            if (reportAverageFrameRate && (maxTime == std::numeric_limits<double>::max()) && (numFrames < 0))
+            {
+                maxTime = cameraAnimation->animation->maxTime();
+            }
         }
-    }
 
-    viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
+        viewer->addEventHandler(vsg::Trackball::create(camera, ellipsoidModel));
 
-    auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
-    viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
-    viewer->compile();
+        viewer->compile();
 
-    if (autoPlay)
-    {
-        // find any animation groups in the loaded scene graph and play the first animation in each of the animation groups.
-        auto animationGroups = vsg::visit<vsg::FindAnimations>(vsg_scene).animationGroups;
-        for (auto ag : animationGroups)
+        if (autoPlay)
         {
-            if (!ag->animations.empty()) viewer->animationManager->play(ag->animations.front());
+            // find any animation groups in the loaded scene graph and play the first animation in each of the animation groups.
+            auto animationGroups = vsg::visit<vsg::FindAnimations>(vsg_scene).animationGroups;
+            for (auto ag : animationGroups)
+            {
+                if (!ag->animations.empty()) viewer->animationManager->play(ag->animations.front());
+            }
+        }
+
+        if (initialFrameCycleCount > 0)
+        {
+            // run an initial set of frames to get past the intiial frame time variability so we get stable frame rate stats
+            while ((initialFrameCycleCount-- > 0) && viewer->advanceToNextFrame())
+            {
+                viewer->getFrameStamp()->simulationTime = 0.0;
+                viewer->handleEvents();
+                viewer->update();
+                viewer->recordAndSubmit();
+                viewer->present();
+            }
+        }
+
+        viewer->start_point() = vsg::clock::now();
+        viewer->getFrameStamp()->frameCount = 0;
+        viewer->getFrameStamp()->simulationTime = 0.0;
+
+        // rendering main loop
+        while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
+        {
+            // pass any events into EventHandlers assigned to the Viewer
+            viewer->handleEvents();
+
+            viewer->update();
+
+            viewer->recordAndSubmit();
+
+            viewer->present();
+        }
+
+        if (reportAverageFrameRate)
+        {
+            auto fs = viewer->getFrameStamp();
+            double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
+            std::cout << "Average frame rate = " << fps << " fps" << std::endl;
         }
     }
-
-    viewer->start_point() = vsg::clock::now();
-
-    // rendering main loop
-    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0) && (viewer->getFrameStamp()->simulationTime < maxTime))
+    catch (const vsg::Exception& ve)
     {
-        // pass any events into EventHandlers assigned to the Viewer
-        viewer->handleEvents();
-
-        viewer->update();
-
-        viewer->recordAndSubmit();
-
-        viewer->present();
+        for (int i = 0; i < argc; ++i) std::cerr << argv[i] << " ";
+        std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
+        return 1;
     }
 
-    if (reportAverageFrameRate)
-    {
-        auto fs = viewer->getFrameStamp();
-        double fps = static_cast<double>(fs->frameCount) / std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - viewer->start_point()).count();
-        std::cout << "Average frame rate = " << fps << " fps" << std::endl;
-    }
+    // clean up done automatically thanks to ref_ptr<>
     return 0;
 }
