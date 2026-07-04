@@ -3,7 +3,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int8  : require
 
-
 #pragma import_defines (TASK_SHADER, MESHLET_DEBUG_COLORS, VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
 #define VIEW_DESCRIPTOR_SET 0
@@ -101,12 +100,14 @@ layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = MAX_VERTEX_COUNT, max_primitives = MAX_PRIMITIVE_COUNT) out;
 
 #ifdef TASK_SHADER
-#define NVMESHLET_PER_TASK 32
+#define NVMESHLET_PER_TASK 1
 struct Task
 {
 	uint      baseID;
 	uint8_t   deltaIDs[NVMESHLET_PER_TASK];
 };
+
+taskPayloadSharedEXT Task payload;
 #endif
 
 #ifdef MESHLET_DEBUG_COLORS
@@ -122,7 +123,13 @@ const vec4[] colors = {
 
 void main()
 {
-	Meshlet meshlet = meshletDescs[gl_WorkGroupID.x];
+#ifdef TASK_SHADER
+	uint meshlet_id = payload.baseID + payload.deltaIDs[gl_WorkGroupID.x];
+#else
+	uint meshlet_id = gl_WorkGroupID.x;
+#endif
+
+	Meshlet meshlet = meshletDescs[meshlet_id];
 	SetMeshOutputsEXT(meshlet.vertex_count, meshlet.triangle_count);
 
 	mat4 mv = pc.modelView;
@@ -130,8 +137,6 @@ void main()
 
 #ifdef MESHLET_DEBUG_COLORS
 	vec4 color = colors[gl_WorkGroupID.x % colors.length()];
-#elif defined(TASK_SHADER)
-	vec4 color = vec4(1.0, 0.0, 1.0, 1.0);
 #endif
 
 	for (uint i = gl_LocalInvocationIndex; i < meshlet.vertex_count; i += gl_WorkGroupSize.x)
@@ -147,7 +152,7 @@ void main()
 
 		#if 1
 
-		#if defined(MESHLET_DEBUG_COLORS) || defined(TASK_SHADER)
+		#if defined(MESHLET_DEBUG_COLORS)
 		vertexColor[i] = color; // vsg_Color[0]; // vsg_Color[index];
 		#else
 		vertexColor[i] = vsg_Color[0]; // vsg_Color[index];

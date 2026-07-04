@@ -5,9 +5,10 @@
 
 #pragma import_defines (VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-#define NVMESHLET_PER_TASK 32
+#define NVMESHLET_PER_TASK 1
+
+layout(local_size_x = NVMESHLET_PER_TASK, local_size_y = 1, local_size_z = 1) in;
 
 struct Task
 {
@@ -15,7 +16,16 @@ struct Task
     uint8_t   deltaIDs[NVMESHLET_PER_TASK];
 };
 
+taskPayloadSharedEXT Task payload;
+
 void main()
 {
-    EmitMeshTasksEXT(1, 1, 1);
+    payload.baseID = gl_WorkGroupID.x * NVMESHLET_PER_TASK;
+
+    for(int i=0; i<NVMESHLET_PER_TASK; ++i)
+    {
+        payload.deltaIDs[i] = uint8_t(i);
+    }
+
+    EmitMeshTasksEXT(NVMESHLET_PER_TASK, 1, 1);
 }

@@ -14,14 +14,15 @@
 // https://developer.nvidia.com/blog/introduction-turing-mesh-shaders/
 // https://registry.khronos.org/VulkanSC/specs/1.0-extensions/man/html/VkPhysicalDevice8BitStorageFeatures.html
 // https://docs.vulkan.org/features/latest/features/proposals/VK_EXT_mesh_shader.html
+// https://docs.vulkan.org/glsl/latest/chapters/builtins.html
 // https://docs.vulkan.org/glslext/latest/glslext/ext/GL_EXT_control_flow_attributes.html
 // https://docs.vulkan.org/refpages/latest/refpages/source/VK_KHR_8bit_storage.html
-// https://www.khronos.org/blog/vulkan-subgroup-tutorial
 // https://docs.vulkan.org/glslext/latest/glslext/khr/GL_KHR_shader_subgroup.html
-// https://www.khronos.org/assets/uploads/developers/library/2018-vulkan-devday/06-subgroups.pdf
 // https://docs.vulkan.org/guide/latest/subgroups.html
+// https://www.khronos.org/blog/vulkan-subgroup-tutorial
+// https://www.khronos.org/assets/uploads/developers/library/2018-vulkan-devday/06-subgroups.pdf
 // https://www.youtube.com/watch?v=3EMdMD1PsgY
-
+// https://www.youtube.com/watch?v=nr23tTzToYk
 namespace custom
 {
     const char* task_option = "task";
@@ -389,9 +390,9 @@ int main(int argc, char** argv)
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
 
-        windowTraits->vulkanVersion = VK_API_VERSION_1_1;
+        //windowTraits->vulkanVersion = VK_API_VERSION_1_1;
+        windowTraits->vulkanVersion = VK_API_VERSION_1_2;
         windowTraits->deviceExtensionNames = {VK_EXT_MESH_SHADER_EXTENSION_NAME, VK_KHR_SPIRV_1_4_EXTENSION_NAME, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME};
-        windowTraits->deviceExtensionNames.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
 
         // set up features
         auto& features = windowTraits->deviceFeatures;
@@ -400,9 +401,17 @@ int main(int argc, char** argv)
         meshFeatures.meshShader = VK_TRUE;
         meshFeatures.taskShader = VK_TRUE;
 
+#if 1
+        auto& vulkan12Features = features->get<VkPhysicalDeviceVulkan12Features, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES>();
+        vulkan12Features.shaderInt8 = VK_TRUE;
+        vulkan12Features.storageBuffer8BitAccess = VK_TRUE;
+        vulkan12Features.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+#else
+        windowTraits->deviceExtensionNames.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
         auto& eightBitStorageFeatures = features->get<VkPhysicalDevice8BitStorageFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES>();
         eightBitStorageFeatures.storageBuffer8BitAccess = VK_TRUE;
         eightBitStorageFeatures.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+#endif
 
         if (baricentric)
         {
