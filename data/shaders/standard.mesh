@@ -5,6 +5,9 @@
 
 #pragma import_defines (TASK_SHADER, MESHLET_DEBUG_COLORS, VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
+
+#include "mesh_common.h"
+
 #define VIEW_DESCRIPTOR_SET 0
 #define MATERIAL_DESCRIPTOR_SET 1
 #define MESH_DESCRIPTOR_SET 2
@@ -20,11 +23,6 @@
 #endif
 
 
-#define MESH_SUBGROUP_COUNT 4
-#define MESH_SUBGROUP_SIZE 32
-#define WORKGROUP_SIZE MESH_SUBGROUP_COUNT * MESH_SUBGROUP_SIZE
-#define MAX_VERTEX_COUNT 64
-#define MAX_PRIMITIVE_COUNT 126
 
 //#extension GL_EXT_control_flow_attributes: require
 //#define UNROLL_LOOP [[unroll]]
@@ -96,15 +94,14 @@ layout(location = 2) out vec4 vertexColor[];
 layout(location = 3) out vec3 viewDir[];
 layout(location = 4) out vec2 texCoord[][VSG_TEXCOORD_COUNT];
 
-layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = MESH_WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = MAX_VERTEX_COUNT, max_primitives = MAX_PRIMITIVE_COUNT) out;
 
 #ifdef TASK_SHADER
-#define NVMESHLET_PER_TASK 1
 struct Task
 {
 	uint      baseID;
-	uint8_t   deltaIDs[NVMESHLET_PER_TASK];
+	uint8_t   deltaIDs[MESHLET_PER_TASK];
 };
 
 taskPayloadSharedEXT Task payload;
