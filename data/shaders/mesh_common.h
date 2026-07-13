@@ -24,12 +24,25 @@
 #define MESHLET_PER_TASK 32
 #endif
 
+// vertex{11,11,11}, normal_polar{8,7}, tecoord{8,8} ->  64bits
+struct PackedVertex
+{
+    uint64_t data;
+};
+
 struct Meshlet
 {
     uint vertex_offset;
     uint triangle_offset;
     uint vertex_count;
     uint triangle_count;
+};
+
+struct Mesh
+{
+    uint count[4];
+    vec4 originScale;
+    vec4 texcoodExtents;
 };
 
 #define VIEW_DESCRIPTOR_SET 0

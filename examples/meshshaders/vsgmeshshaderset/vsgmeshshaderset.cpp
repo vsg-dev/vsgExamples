@@ -8,7 +8,10 @@
 #include <meshoptimizer.h>
 #endif
 
+namespace vsg
+{
 #include "../../../data/shaders/mesh_common.h"
+}
 
 // MeshShader blog posts
 // https://chaoticbob.github.io/2024/01/24/mesh-shading-part-1.html
@@ -63,9 +66,11 @@ namespace custom
         // array bindings as descriptors
         VkShaderStageFlags meshShaderStage = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT;
 
-        shaderSet->addDescriptorBinding("vsg_Vertex", "", MESH_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
-        shaderSet->addDescriptorBinding("vsg_Normal", "", MESH_DESCRIPTOR_SET, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
+
+        shaderSet->addDescriptorBinding("vsg_Vertex", "VSG_VERTEX", MESH_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
+        shaderSet->addDescriptorBinding("vsg_Normal", "VSG_NORMAL", MESH_DESCRIPTOR_SET, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec3Array::create(1));
         shaderSet->addDescriptorBinding("vsg_TexCoord0", "VSG_TEXTURECOORD_0", MESH_DESCRIPTOR_SET, 2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
+
         shaderSet->addDescriptorBinding("vsg_TexCoord1", "VSG_TEXTURECOORD_1", MESH_DESCRIPTOR_SET, 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
         shaderSet->addDescriptorBinding("vsg_TexCoord2", "VSG_TEXTURECOORD_2", MESH_DESCRIPTOR_SET, 4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
         shaderSet->addDescriptorBinding("vsg_TexCoord3", "VSG_TEXTURECOORD_3", MESH_DESCRIPTOR_SET, 5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec2Array::create(1));
@@ -82,11 +87,13 @@ namespace custom
 
         shaderSet->addDescriptorBinding("vertexInputRates", "", MESH_DESCRIPTOR_SET, 12, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
 
-        shaderSet->addDescriptorBinding("meshlets", "", MESH_DESCRIPTOR_SET, 13, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uivec4Array::create(1));
-        shaderSet->addDescriptorBinding("meshlet_Count", "", MESH_DESCRIPTOR_SET, 14, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uivec4Value::create(0, 0, 0, 0));
+        shaderSet->addDescriptorBinding("mesh", "", MESH_DESCRIPTOR_SET, 13, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(32, 0));
+        shaderSet->addDescriptorBinding("meshlets", "", MESH_DESCRIPTOR_SET, 14, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uivec4Array::create(1));
         shaderSet->addDescriptorBinding("meshlet_Vertices", "", MESH_DESCRIPTOR_SET, 15, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
         shaderSet->addDescriptorBinding("meshlet_Triangles", "", MESH_DESCRIPTOR_SET, 16, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(1));
         shaderSet->addDescriptorBinding("meshlet_Bounds", "", MESH_DESCRIPTOR_SET, 17, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::vec4Array::create(1));
+
+        shaderSet->addDescriptorBinding("vsg_PackedVertex", "PACKED_VERTEX", MESH_DESCRIPTOR_SET, 18, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::floatArray2D::create(8,1));
 
         // standard descriptors
         shaderSet->addDescriptorBinding("diffuseMap", "VSG_DIFFUSE_MAP", MATERIAL_DESCRIPTOR_SET, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::ubvec4Array2D::create(1, 1, vsg::Data::Properties{VK_FORMAT_R8G8B8A8_UNORM}));
@@ -332,7 +339,6 @@ int main(int argc, char** argv)
 
         if (int log_level = 0; arguments.read("--log-level", log_level)) vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         int pd_num = arguments.value<int>(-1, "--select");
-        uint64_t initialFrameCycleCount = arguments.value(10, "--ifcc");
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
         auto autoPlay = !arguments.read({"--no-auto-play", "--nop"});
@@ -354,6 +360,8 @@ int main(int argc, char** argv)
             windowTraits->decoration = false;
             reportAverageFrameRate = true;
         }
+
+        uint64_t initialFrameCycleCount = arguments.value(reportAverageFrameRate ? 10 : 0, "--ifcc");
 
         auto group = vsg::Group::create();
 
@@ -399,6 +407,7 @@ int main(int argc, char** argv)
 
         // set up features
         auto& features = windowTraits->deviceFeatures;
+        features->get().shaderInt64 = VK_TRUE;
 
         auto& meshFeatures = features->get<VkPhysicalDeviceMeshShaderFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT>();
         meshFeatures.meshShader = VK_TRUE;

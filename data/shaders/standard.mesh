@@ -1,12 +1,12 @@
 #version 450
 #extension GL_EXT_mesh_shader : require
 #extension GL_ARB_separate_shader_objects : enable
-#extension GL_EXT_shader_explicit_arithmetic_types_int8  : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-#pragma import_defines (TASK_SHADER, MESHLET_DEBUG_COLORS, VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
+#pragma import_defines (PACKED_VERTEX, TASK_SHADER, MESHLET_DEBUG_COLORS, VSG_TEXTURECOORD_0, VSG_TEXTURECOORD_1, VSG_TEXTURECOORD_2, VSG_TEXTURECOORD_3, VSG_BILLBOARD, VSG_INSTANCE_TRANSLATION, VSG_INSTANCE_ROTATION, VSG_INSTANCE_SCALE, VSG_DISPLACEMENT_MAP, VSG_SKINNING, VSG_POINT_SPRITE)
 
 #include "mesh_common.h"
-
 
 //#extension GL_EXT_control_flow_attributes: require
 //#define UNROLL_LOOP [[unroll]]
@@ -17,6 +17,11 @@ layout(push_constant) uniform PushConstants {
 	mat4 modelView;
 } pc;
 
+#if defined(PACKED_VERTEX)
+layout(std430, set = MESH_DESCRIPTOR_SET, binding = 18) readonly buffer vertexBuffer {
+	uint64_t vsg_PackedVertex[];
+};
+#else
 layout(set = MESH_DESCRIPTOR_SET, binding = 0) readonly buffer vertexBuffer {
 	float vsg_Vertex[];
 };
@@ -24,8 +29,9 @@ layout(set = MESH_DESCRIPTOR_SET, binding = 0) readonly buffer vertexBuffer {
 layout(set = MESH_DESCRIPTOR_SET, binding = 1) readonly buffer normlBuffer {
 	float vsg_Normal[];
 };
+#endif
 
-#if defined(VSG_TEXTURECOORD_0)
+#if !defined(PACKED_VERTEX) && defined(VSG_TEXTURECOORD_0)
 layout(set = MESH_DESCRIPTOR_SET, binding = 2) readonly buffer texcoordBuffer0 {
 	vec2 vsg_TexCoord0[];
 };
@@ -53,11 +59,13 @@ layout(set = MESH_DESCRIPTOR_SET, binding = 6) readonly buffer colorBuffer {
 	vec4 vsg_Color[];
 };
 
-layout(std430, set = MESH_DESCRIPTOR_SET, binding = 13) readonly buffer meshletDescBuffer {
-	Meshlet meshlets[];
+layout(std430, set = MESH_DESCRIPTOR_SET, binding = 13) readonly buffer meshBuffer {
+	uvec4 count;
+	vec4 bounds;
+	vec4 tecoordExtents;
 };
-layout(std430, set = MESH_DESCRIPTOR_SET, binding = 14) readonly buffer meshletCountBuffer {
-	uvec4 meshlet_count;
+layout(std430, set = MESH_DESCRIPTOR_SET, binding = 14) readonly buffer meshletDescBuffer {
+	Meshlet meshlets[];
 };
 layout(std430, set = MESH_DESCRIPTOR_SET, binding = 15) readonly buffer primIndexBuffer1 {
 	uint meshlet_vertices[];
@@ -84,6 +92,29 @@ struct Task
 };
 
 taskPayloadSharedEXT Task payload;
+#endif
+
+
+#if defined(PACKED_VERTEX)
+void unpack(uint64_t data, inout vec4 vertex, inout vec4 normal, inout vec2 texcoord)
+{
+	vertex.x = bounds.x + bounds.w * (float(data & 0X7FF) / 2048.0);
+	vertex.y = bounds.y + bounds.w * (float((data >> 11) & 0X7FF) / 2047.0);
+	vertex.z = bounds.z + bounds.w * (float((data >> 22) & 0X7FF) / 2047.0);
+	vertex.w = 1.0;
+
+	float azim = float((data >> 33) & 0xFF) * 0.02454369261;
+	float elev = float((data >> 41) & 0x7F) * 0.02454369261;
+	float sin_elev = sin(elev);
+
+	normal.x = cos(azim) * sin_elev;
+	normal.y = sin(azim) * sin_elev;
+	normal.z = cos(elev);
+	normal.w = 0.0;
+
+	texcoord.x = mix(tecoordExtents[0], tecoordExtents[2], float((data >> 48) & 0xFF) / 255.0);
+	texcoord.y = mix(tecoordExtents[1], tecoordExtents[3], float((data >> 56) & 0xFF) / 255.0);
+}
 #endif
 
 #ifdef MESHLET_DEBUG_COLORS
@@ -121,12 +152,18 @@ void main()
 
 		uint index = meshlet_vertices[vi];
 
-		vec4 vertex = vec4(vsg_Vertex[index*3], vsg_Vertex[index*3+1], vsg_Vertex[index*3+2], 1.0);
-		vec4 normal = vec4(vsg_Normal[index*3], vsg_Normal[index*3+1], vsg_Normal[index*3+2], 0.0);
+#if defined(PACKED_VERTEX)
+		vec4 vertex, normal;
+		vec2 texcoord;
+		unpack(vsg_PackedVertex[index], vertex, normal, texcoord);
+		texCoord[i][0] = texcoord;
+#else
+		uint oi = index*3;
+		vec4 vertex = vec4(vsg_Vertex[oi], vsg_Vertex[oi+1], vsg_Vertex[oi+2], 1.0);
+		vec4 normal = vec4(vsg_Normal[oi], vsg_Normal[oi+1], vsg_Normal[oi+2], 0.0);
+#endif
 
 		gl_MeshVerticesEXT[i].gl_Position = mvp * vertex;
-
-		#if 1
 
 		#if defined(MESHLET_DEBUG_COLORS)
 		vertexColor[i] = color; // vsg_Color[0]; // vsg_Color[index];
@@ -139,7 +176,9 @@ void main()
 		viewDir[i] = -normalize(eye);
 		normalDir[i] = (mv * normal).xyz;
 
-		#if VSG_TEXCOORD_COUNT >= 1
+		#if 1
+
+		#if !defined(PACKED_VERTEX) && VSG_TEXCOORD_COUNT >= 1
 		texCoord[i][0] = vsg_TexCoord0[index];
 		#endif
 		#if VSG_TEXCOORD_COUNT >= 2

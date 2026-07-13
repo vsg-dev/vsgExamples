@@ -1,7 +1,8 @@
 #version 450
 #extension GL_EXT_mesh_shader : require
 #extension GL_ARB_separate_shader_objects : enable
-#extension GL_EXT_shader_explicit_arithmetic_types_int8  : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 #extension GL_KHR_shader_subgroup_basic : require
 #extension GL_KHR_shader_subgroup_ballot : require
@@ -16,14 +17,11 @@ layout(push_constant) uniform PushConstants {
     mat4 modelView;
 } pc;
 
-#if 0
-layout(std430, set = MESH_DESCRIPTOR_SET, binding = 13) readonly buffer meshletDescBuffer {
-    Meshlet meshlets[];
-};
-#endif
 
-layout(std430, set = MESH_DESCRIPTOR_SET, binding = 14) readonly buffer meshletCountBuffer {
-    uvec4 meshlet_count;
+layout(std430, set = MESH_DESCRIPTOR_SET, binding = 13) readonly buffer meshBuffer {
+    uvec4 count;
+    vec4 bounds;
+    vec4 tecoordExtents;
 };
 
 layout(std430, set = MESH_DESCRIPTOR_SET, binding = 17) readonly buffer meshletBoundsBuffer {
@@ -72,11 +70,11 @@ Frustum computeFrustum()
     return f;
 }
 
-bool withinFrustum(vec4 bounds)
+bool withinFrustum(vec4 bs)
 {
     Frustum f = computeFrustum();
-    vec4 vertex = vec4(bounds.xyz, 1.0);
-    float radius = bounds.w;
+    vec4 vertex = vec4(bs.xyz, 1.0);
+    float radius = bs.w;
 
     return (dot(f.left, vertex) > -radius &&
             dot(f.right, vertex) > -radius &&
@@ -101,9 +99,8 @@ void main()
     uint meshletLocal = laneID;
     uint meshletGlobal = baseID + meshletLocal;
 
-
-    //bool render = meshletGlobal < meshlet_count[0];
-    bool render = (meshletGlobal < meshlet_count[0]) && withinFrustum(meshlet_bounds[meshletGlobal]);
+    //bool render = meshletGlobal < count[0];
+    bool render = (meshletGlobal < count[0]) && withinFrustum(meshlet_bounds[meshletGlobal]);
 
     uvec4 voteMeshltes = subgroupBallot(render);
     uint numMeshlets = subgroupBallotBitCount(voteMeshltes);
