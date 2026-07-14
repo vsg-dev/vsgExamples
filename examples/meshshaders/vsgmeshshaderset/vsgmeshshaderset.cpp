@@ -87,7 +87,7 @@ namespace custom
 
         shaderSet->addDescriptorBinding("vertexInputRates", "", MESH_DESCRIPTOR_SET, 12, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
 
-        shaderSet->addDescriptorBinding("mesh", "", MESH_DESCRIPTOR_SET, 13, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(32, 0));
+        shaderSet->addDescriptorBinding("mesh", "", MESH_DESCRIPTOR_SET, 13, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(32, 0));
         shaderSet->addDescriptorBinding("meshlets", "", MESH_DESCRIPTOR_SET, 14, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uivec4Array::create(1));
         shaderSet->addDescriptorBinding("meshlet_Vertices", "", MESH_DESCRIPTOR_SET, 15, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::uintArray::create(1));
         shaderSet->addDescriptorBinding("meshlet_Triangles", "", MESH_DESCRIPTOR_SET, 16, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, meshShaderStage, vsg::ubyteArray::create(1));

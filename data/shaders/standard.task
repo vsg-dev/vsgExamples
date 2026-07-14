@@ -18,13 +18,13 @@ layout(push_constant) uniform PushConstants {
 } pc;
 
 
-layout(std430, set = MESH_DESCRIPTOR_SET, binding = 13) readonly buffer meshBuffer {
+layout(set = MESH_DESCRIPTOR_SET, binding = 13) uniform meshBuffer {
     uvec4 count;
     vec4 bounds;
     vec4 tecoordExtents;
 };
 
-layout(std430, set = MESH_DESCRIPTOR_SET, binding = 17) readonly buffer meshletBoundsBuffer {
+layout(set = MESH_DESCRIPTOR_SET, binding = 17) readonly buffer meshletBoundsBuffer {
     vec4 meshlet_bounds[];
 };
 
