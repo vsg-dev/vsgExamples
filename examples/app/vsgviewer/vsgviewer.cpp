@@ -103,6 +103,17 @@ int main(int argc, char** argv)
         auto nearFarRatio = arguments.value<double>(0.001, "--nfr");
         if (arguments.read("--rgb")) options->mapRGBtoRGBAHint = false;
 
+        std::string shaderSetName;
+        vsg::Path shaderSetFilename;
+        while(arguments.read("--ss", shaderSetName, shaderSetFilename))
+        {
+            if (auto shaderSet = vsg::read_cast<vsg::ShaderSet>(shaderSetFilename, options))
+            {
+                options->shaderSets[shaderSetName] = shaderSet;
+                vsg::info("assigned shaderSets[", shaderSetName, "] = ", shaderSet);
+            }
+        }
+
         bool depthClamp = arguments.read({"--dc", "--depthClamp"});
         if (depthClamp)
         {
@@ -299,7 +310,7 @@ int main(int argc, char** argv)
         {
             cameraAnimation->play();
 
-            if (reportAverageFrameRate && maxTime == std::numeric_limits<double>::max())
+            if (reportAverageFrameRate && (maxTime == std::numeric_limits<double>::max()) && (numFrames < 0))
             {
                 maxTime = cameraAnimation->animation->maxTime();
             }

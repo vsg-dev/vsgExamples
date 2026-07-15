@@ -59,6 +59,34 @@ int main(int argc, char** argv)
             return 1;
         }
 
+        if (size_t pd_num = 0; arguments.read("--select", pd_num))
+        {
+            // use the Window implementation to create the Instance and Surface
+            auto instance = window->getOrCreateInstance();
+            auto surface = window->getOrCreateSurface();
+
+            auto physicalDevices = instance->getPhysicalDevices();
+            if (physicalDevices.empty())
+            {
+                std::cout << "No physical devices reported." << std::endl;
+                return 0;
+            }
+
+            if (pd_num >= physicalDevices.size())
+            {
+                std::cout << "--select " << pd_num << ", exceeds physical devices available, maximum permitted value is " << physicalDevices.size() - 1 << std::endl;
+                return 0;
+            }
+
+            // create a vk/vsg::PhysicalDevice, prefer discrete GPU over integrated GPUs when they are available.
+            auto physicalDevice = physicalDevices[pd_num];
+            auto properties = physicalDevice->getProperties();
+
+            std::cout << "Selected vsg::PhysicalDevice " << physicalDevice << " " << properties.deviceName << " deviceType = " << properties.deviceType << std::endl;
+
+            window->setPhysicalDevice(physicalDevice);
+        }
+
         viewer->addWindow(window);
 
         auto mesh_features = window->getOrCreatePhysicalDevice()->getFeatures<VkPhysicalDeviceMeshShaderFeaturesEXT, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT>();
@@ -81,6 +109,32 @@ int main(int argc, char** argv)
         std::cout << "mesh_properties.maxMeshOutputMemorySize = " << mesh_properties.maxMeshOutputMemorySize << std::endl;
         std::cout << "mesh_properties.maxMeshOutputVertices = " << mesh_properties.maxMeshOutputVertices << std::endl;
         std::cout << "mesh_properties.maxMeshOutputPrimitives = " << mesh_properties.maxMeshOutputPrimitives << std::endl;
+
+        std::cout << "mesh_properties.maxMeshWorkGroupSize = " << mesh_properties.maxMeshWorkGroupSize << std::endl;
+        std::cout << "mesh_properties.maxMeshOutputLayers = " << mesh_properties.maxMeshOutputLayers << std::endl;
+
+        auto supportedStages = [](VkShaderStageFlags flags) -> std::string
+        {
+            std::string s;
+            if (flags & VK_SHADER_STAGE_COMPUTE_BIT) s += "COMPUTE ";
+            if (flags & VK_SHADER_STAGE_VERTEX_BIT) s += "VERTEX ";
+            if (flags & VK_SHADER_STAGE_GEOMETRY_BIT) s += "GEOMETRY ";
+            if (flags & VK_SHADER_STAGE_TASK_BIT_EXT) s += "TASK ";
+            if (flags & VK_SHADER_STAGE_MESH_BIT_EXT) s += "MESH ";
+            if (flags & VK_SHADER_STAGE_FRAGMENT_BIT) s += "FRAGMENT ";
+            if (flags & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) s += "TESSELLATION_CONTROL ";
+            if (flags & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT) s += "TESSELLATION_EVALUATION ";
+            return s;
+        };
+
+        auto subgroup_properties = window->getOrCreatePhysicalDevice()->getProperties<VkPhysicalDeviceSubgroupProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES>();
+        std::cout << "subgroup_properties.subgroupSize = " << subgroup_properties.subgroupSize << std::endl;
+        std::cout << "subgroup_properties.supportedStages = " << supportedStages(subgroup_properties.supportedStages) << std::endl;
+        std::cout << "subgroup_properties.supportedOperations = " << subgroup_properties.supportedOperations << std::endl;
+        std::cout << "subgroup_properties.quadOperationsInAllStages = " << subgroup_properties.quadOperationsInAllStages << std::endl;
+
+
+
 
         auto meshShaderPath = "shaders/meshshader.mesh";
         auto fragShaderPath = barycentric ? "shaders/barycentric.frag" : "shaders/meshshader.frag";
