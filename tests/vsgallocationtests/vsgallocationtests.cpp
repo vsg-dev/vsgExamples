@@ -46,7 +46,7 @@ int main(int argc, char** argv)
         auto builder = vsg::Builder::create();
         auto quad = builder->createQuad(geometry, state);
 
-        vsg::info("data = ", data, ", quad = ", quad);
+        std::cout<<i<<", data = "<<data<<", quad = "<<quad<<std::endl;
     }
 
 
