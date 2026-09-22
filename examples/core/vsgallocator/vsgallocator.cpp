@@ -75,6 +75,9 @@ int main(int argc, char** argv)
     if (size_t nodesBlockSize; arguments.read("--nodes", nodesBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_NODES, nodesBlockSize);
     if (size_t dataBlockSize; arguments.read("--data", dataBlockSize)) vsg::Allocator::instance()->setBlockSize(vsg::ALLOCATOR_AFFINITY_DATA, dataBlockSize);
 
+    bool validateAllocator = arguments.read("--validate");
+    auto intrusiveAllocator = dynamic_cast<vsg::IntrusiveAllocator*>(&(*vsg::Allocator::instance()));
+
     double loadDuration = 0.0;
     double frameRate = 0.0;
     vsg::time_point endOfViewerScope;
@@ -112,7 +115,7 @@ int main(int argc, char** argv)
             windowTraits->width = 192, windowTraits->height = 108;
             windowTraits->decoration = false;
         }
-        bool reportAtEndOfAllFrames = arguments.read("--report");
+
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value<vsg::Path>("", "-p");
         auto loadLevels = arguments.value(0, "--load-levels");
@@ -285,9 +288,12 @@ int main(int argc, char** argv)
 
                 viewer->present();
 
-                if (reportAtEndOfAllFrames)
+                if (validateAllocator && intrusiveAllocator)
                 {
-                    vsg::Allocator::instance()->report(std::cout);
+                    if (!intrusiveAllocator->validate())
+                    {
+                        vsg::warn("intrusiveAllocator->validate() failed test, frameCount = ", viewer->getFrameStamp()->frameCount);
+                    }
                 }
             }
 
