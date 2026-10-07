@@ -1,6 +1,7 @@
 #include <vsg/core/Auxiliary.h>
 #include <vsg/core/ConstVisitor.h>
 #include <vsg/core/Object.h>
+#include <vsg/core/ReplacementVisitor.h>
 #include <vsg/core/Value.h>
 #include <vsg/core/Visitor.h>
 #include <vsg/io/stream.h>
