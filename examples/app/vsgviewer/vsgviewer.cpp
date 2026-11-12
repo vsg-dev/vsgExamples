@@ -51,6 +51,8 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
+        if (size_t alignment; arguments.read("--alignment", alignment)) vsg::Allocator::instance().reset(new vsg::IntrusiveAllocator(std::move(vsg::Allocator::instance()), alignment));
+
         // create windowTraits using the any command line arugments to configure settings
         auto windowTraits = vsg::WindowTraits::create(arguments);
 
