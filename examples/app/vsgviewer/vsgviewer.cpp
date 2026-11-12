@@ -428,6 +428,13 @@ int main(int argc, char** argv)
             {
                 vsg::LogOutput output;
                 options->sharedObjects->report(output);
+
+                vsg::Allocator::instance()->report(std::cout);
+
+                for (auto& task : viewer->recordAndSubmitTasks)
+                {
+                    if (task->databasePager) output(task->databasePager, ", targetMaxNumPagedLODWithHighResSubgraphs = ", task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs);
+                }
             }
         }
 
