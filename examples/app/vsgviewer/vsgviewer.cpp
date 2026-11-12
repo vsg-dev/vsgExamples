@@ -76,6 +76,7 @@ int main(int argc, char** argv)
 
         bool reportAverageFrameRate = arguments.read("--fps");
         bool reportMemoryStats = arguments.read("--rms");
+        bool reportDescriptorPoolStats = arguments.read("--dps");
         if (arguments.read({"-t", "--test"}))
         {
             windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -436,6 +437,17 @@ int main(int argc, char** argv)
                 for (auto& task : viewer->recordAndSubmitTasks)
                 {
                     if (task->databasePager) output(task->databasePager, ", targetMaxNumPagedLODWithHighResSubgraphs = ", task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs);
+                }
+            }
+        }
+
+        if (reportDescriptorPoolStats)
+        {
+            for (auto& task : viewer->recordAndSubmitTasks)
+            {
+                if (auto dps = task->device->descriptorPools.ref_ptr())
+                {
+                    dps->report(std::cout);
                 }
             }
         }
