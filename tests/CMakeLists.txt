@@ -5,6 +5,7 @@ add_subdirectory(vsgunicode)
 add_subdirectory(vsgperformance)
 add_subdirectory(vsgcast)
 add_subdirectory(vsgterrain)
+add_subdirectory(vsgspotshadow)
 
 if (vsgXchange_FOUND)
     add_subdirectory(vsgallocationtests)
