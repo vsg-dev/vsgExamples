@@ -23,7 +23,7 @@ bool fixSpotShadowCone(vsg::ShaderSet& shaderSet)
     return false;
 }
 
-vsg::ref_ptr<vsg::Node> createScene(bool fix, bool pbr)
+vsg::ref_ptr<vsg::Node> createSpotLightScene(bool fix, bool pbr)
 {
     auto builder = vsg::Builder::create();
 
@@ -73,13 +73,81 @@ vsg::ref_ptr<vsg::Node> createScene(bool fix, bool pbr)
     return scene;
 }
 
+vsg::ref_ptr<vsg::Node> createTransformScene(bool pbr)
+{
+    auto builder = vsg::Builder::create();
+
+    if (pbr)
+    {
+        auto shaderSet = vsg::createPhysicsBasedRenderingShaderSet();
+        shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
+        shaderSet->defaultShaderHints->defines.insert("VSG_SHADOWS_HARD");
+
+        builder->shaderSet = shaderSet;
+    }
+
+    auto scene = vsg::Group::create();
+
+    // ground and a box, both PBR
+    vsg::GeometryInfo ground;
+    ground.position.set(0.0f, 0.0f, -0.1f);
+    ground.dx.set(20.0f, 0.0f, 0.0f);
+    ground.dy.set(0.0f, 20.0f, 0.0f);
+    ground.dz.set(0.0f, 0.0f, 0.2f);
+    scene->addChild(builder->createBox(ground));
+
+    vsg::GeometryInfo box;
+    box.position.set(0.0f, 0.0f, 1.0f);
+    box.dx.set(2.0f, 0.0f, 0.0f);
+    box.dy.set(0.0f, 2.0f, 0.0f);
+    box.dz.set(0.0f, 0.0f, 7.0f);
+    scene->addChild(builder->createBox(box));
+
+    auto sun = vsg::DirectionalLight::create();
+    sun->intensity = 2.0f;
+    sun->shadowSettings = vsg::HardShadows::create(1);
+
+    const auto d = vsg::normalize(vsg::dvec3(-0.35, -0.8, 0.45));
+
+    // A) light at the root, direction in world space: correct shadow under the box
+    sun->direction = d;
+    scene->addChild(sun);
+
+    // B) same light under a rotated transform, shining along its local -Z:
+    //    the whole scene is in shadow
+    sun->direction = vsg::dvec3(0.0, 0.0, -1.0);
+    auto transform = vsg::MatrixTransform::create(
+        vsg::translate(0.0, 20.0, 0.0) * vsg::rotate(vsg::dquat(vsg::dvec3(0.0, 0.0, -1.0), d)));
+    transform->addChild(sun);
+    scene->addChild(transform);
+
+    // C) translation-only transform, direction in world space: correct again
+    sun->direction = d;
+    auto translated = vsg::MatrixTransform::create(vsg::translate(0.0, 20.0, 0.0));
+    translated->addChild(sun);
+    scene->addChild(translated);
+
+    return scene;
+}
+
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
     bool fix = arguments.read("--fix");
     bool pbr = !arguments.read("--phong");
+    bool transform = arguments.read({"-t", "--transform"});
 
-    auto scene = createScene(fix, pbr);
+    vsg::ref_ptr<vsg::Node> scene;
+    if (transform)
+    {
+        scene = createTransformScene(pbr);
+    }
+    else
+    {
+        scene = createSpotLightScene(fix, pbr);
+    }
+
+    if (!scene) return 1;
 
     auto window = vsg::Window::create(vsg::WindowTraits::create(1024, 768, "spot shadow"));
     auto lookAt = vsg::LookAt::create(vsg::dvec3(0.0, -14.0, 10.0), vsg::dvec3(0.0, 0.0, 0.0), vsg::dvec3(0.0, 0.0, 1.0));
