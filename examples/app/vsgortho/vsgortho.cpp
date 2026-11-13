@@ -26,6 +26,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    auto numFrames = arguments.value(-1, "-f");
+
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
@@ -94,7 +96,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

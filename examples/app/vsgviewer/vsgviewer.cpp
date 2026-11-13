@@ -51,6 +51,8 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
+        if (size_t alignment; arguments.read("--alignment", alignment)) vsg::Allocator::instance().reset(new vsg::IntrusiveAllocator(std::move(vsg::Allocator::instance()), alignment));
+
         // create windowTraits using the any command line arugments to configure settings
         auto windowTraits = vsg::WindowTraits::create(arguments);
 
@@ -74,6 +76,7 @@ int main(int argc, char** argv)
 
         bool reportAverageFrameRate = arguments.read("--fps");
         bool reportMemoryStats = arguments.read("--rms");
+        bool reportDescriptorPoolStats = arguments.read("--dps");
         if (arguments.read({"-t", "--test"}))
         {
             windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -428,6 +431,24 @@ int main(int argc, char** argv)
             {
                 vsg::LogOutput output;
                 options->sharedObjects->report(output);
+
+                vsg::Allocator::instance()->report(std::cout);
+
+                for (auto& task : viewer->recordAndSubmitTasks)
+                {
+                    if (task->databasePager) output(task->databasePager, ", targetMaxNumPagedLODWithHighResSubgraphs = ", task->databasePager->targetMaxNumPagedLODWithHighResSubgraphs);
+                }
+            }
+        }
+
+        if (reportDescriptorPoolStats)
+        {
+            for (auto& task : viewer->recordAndSubmitTasks)
+            {
+                if (auto dps = task->device->descriptorPools.ref_ptr())
+                {
+                    dps->report(std::cout);
+                }
             }
         }
 

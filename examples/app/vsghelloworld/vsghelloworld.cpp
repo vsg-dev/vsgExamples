@@ -16,6 +16,8 @@ int main(int argc, char** argv)
     options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->readOptions(arguments);
 
+    auto numFrames = arguments.value(-1, "-f");
+
     vsg::Path filename = "models/openstreetmap.vsgt";
     if (argc > 1) filename = arguments[1];
 
@@ -74,7 +76,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

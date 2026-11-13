@@ -1,5 +1,9 @@
 // include into shader *after* #pragma import_defines
 
+#ifdef __cplusplus
+using uint = uint32_t;
+#endif
+
 #ifndef MESH_SUBGROUP_COUNT
 #define MESH_SUBGROUP_COUNT 4
 #endif

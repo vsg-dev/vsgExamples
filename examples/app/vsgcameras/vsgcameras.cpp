@@ -117,6 +117,7 @@ int main(int argc, char** argv)
 
     // set up instrumentation if required
     bool reportAverageFrameRate = arguments.read("--fps");
+    auto numFrames = arguments.value(-1, "-f");
     auto logFilename = arguments.value<vsg::Path>("", "--log");
     vsg::ref_ptr<vsg::Instrumentation> instrumentation;
     if (arguments.read({"--gpu-annotation", "--ga"}) && vsg::isExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
@@ -311,7 +312,7 @@ int main(int argc, char** argv)
     viewer->compile(resourceHints);
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

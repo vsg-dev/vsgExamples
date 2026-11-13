@@ -109,7 +109,7 @@ int main(int argc, char** argv)
     bool separateRenderGraph = arguments.read("-s");
     auto outputFilename = arguments.value<vsg::Path>("", "-o");
 
-    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+    auto numFrames = arguments.value(-1, "-f");
 
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -127,6 +127,8 @@ int main(int argc, char** argv)
         std::cout << "Please specify a valid model on command line" << std::endl;
         return 1;
     }
+
+    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Mask mask_1 = 0x1;
     vsg::Mask mask_2 = 0x2;
@@ -227,7 +229,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

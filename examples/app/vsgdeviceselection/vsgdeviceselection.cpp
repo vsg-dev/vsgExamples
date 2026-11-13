@@ -46,6 +46,8 @@ int main(int argc, char** argv)
 #endif
         options->readOptions(arguments);
 
+        auto numFrames = arguments.value(-1, "-f");
+
         if (vkEnumerateInstanceVersion(&windowTraits->vulkanVersion) == VK_SUCCESS)
         {
             std::cout << "vkEnumerateInstanceVersion() " << windowTraits->vulkanVersion << std::endl;
@@ -295,7 +297,7 @@ int main(int argc, char** argv)
         viewer->compile();
 
         // rendering main loop
-        while (viewer->advanceToNextFrame())
+        while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();

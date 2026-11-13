@@ -44,6 +44,7 @@ int main(int argc, char** argv)
     stateInfo.wireframe = arguments.read("--wireframe");
     stateInfo.lighting = !arguments.read("--flat");
     stateInfo.two_sided = arguments.read("--two-sided");
+    stateInfo.greyscale = arguments.read("--greyscale");
 
     vsg::vec4 specularColor;
     bool hasSpecularColor = arguments.read("--specular", specularColor);

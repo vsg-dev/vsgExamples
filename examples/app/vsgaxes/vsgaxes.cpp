@@ -152,7 +152,7 @@ int main(int argc, char** argv)
 
     auto windowTraits = vsg::WindowTraits::create(arguments);
 
-    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+    auto numFrames = arguments.value(-1, "-f");
 
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -175,6 +175,9 @@ int main(int argc, char** argv)
         std::cout << "Please specify a valid model on command line" << std::endl;
         return 1;
     }
+
+    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+
 
     // create the viewer and assign window(s) to it
     auto viewer = vsg::Viewer::create();
@@ -218,7 +221,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();

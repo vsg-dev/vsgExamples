@@ -192,22 +192,7 @@ int main(int argc, char** argv)
     // set up defaults and read command line arguments to override them
     vsg::CommandLine arguments(&argc, argv);
 
-    double eyeSeperation = 0.06;
-    double screenDistance = 0.75;
-    double screenWidth = 0.55;
-
     auto windowTraits = vsg::WindowTraits::create(arguments);
-    auto outputFile = arguments.value<vsg::Path>("", "-o");
-
-    bool replacePipelineStates = !arguments.value<bool>(false, "--no-replace");
-
-    vsg::vec3 offset(0.0f, 0.0f, 0.0f);
-    arguments.read("--offset", offset.x, offset.z);
-
-    vsg::Path leftImageFilename, rightImageFilename;
-    arguments.read({"-s", "--stereo-pair"}, leftImageFilename, rightImageFilename);
-
-    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     auto options = vsg::Options::create();
     options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
@@ -218,6 +203,23 @@ int main(int argc, char** argv)
 #endif
 
     options->readOptions(arguments);
+
+    auto outputFile = arguments.value<vsg::Path>("", "-o");
+
+    bool replacePipelineStates = !arguments.value<bool>(false, "--no-replace");
+
+    double eyeSeperation = 0.06;
+    double screenDistance = 0.75;
+    double screenWidth = 0.55;
+
+    vsg::vec3 offset(0.0f, 0.0f, 0.0f);
+    arguments.read("--offset", offset.x, offset.z);
+
+    vsg::Path leftImageFilename, rightImageFilename;
+    arguments.read({"-s", "--stereo-pair"}, leftImageFilename, rightImageFilename);
+    auto numFrames = arguments.value(-1, "-f");
+
+    if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
     vsg::Mask leftMask = 0x1;
     vsg::Mask rightMask = 0x2;
@@ -354,7 +356,7 @@ int main(int argc, char** argv)
     viewer->compile();
 
     // rendering main loop
-    while (viewer->advanceToNextFrame())
+    while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
     {
         // pass any events into EventHandlers assigned to the Viewer
         viewer->handleEvents();
