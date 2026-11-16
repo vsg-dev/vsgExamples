@@ -148,9 +148,9 @@ int main(int argc, char** argv)
     vsg::CommandLine arguments(&argc, argv);
     bool fix = arguments.read("--fix");
     bool pbr = !arguments.read("--phong");
-    bool transform = arguments.read({"-t", "--transform"});
+
     std::string lightCase = "b";
-    arguments.read("--case", lightCase);
+    bool transform = arguments.read("--case", lightCase);
 
     vsg::ref_ptr<vsg::Node> scene;
     if (transform)
