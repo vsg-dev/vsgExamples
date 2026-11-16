@@ -73,7 +73,7 @@ vsg::ref_ptr<vsg::Node> createSpotLightScene(bool fix, bool pbr)
     return scene;
 }
 
-vsg::ref_ptr<vsg::Node> createTransformScene(bool pbr)
+vsg::ref_ptr<vsg::Node> createTransformScene(bool pbr, const std::string& lightCase)
 {
     auto builder = vsg::Builder::create();
 
@@ -107,25 +107,38 @@ vsg::ref_ptr<vsg::Node> createTransformScene(bool pbr)
     sun->intensity = 2.0f;
     sun->shadowSettings = vsg::HardShadows::create(1);
 
-    const auto d = vsg::normalize(vsg::dvec3(-0.35, -0.8, 0.45));
+    // the scene is Z-up: the light shines down and the transforms lift it above the ground
+    const auto d = vsg::normalize(vsg::dvec3(-0.35, 0.45, -0.8));
 
-    // A) light at the root, direction in world space: correct shadow under the box
-    sun->direction = d;
-    scene->addChild(sun);
-
-    // B) same light under a rotated transform, shining along its local -Z:
-    //    the whole scene is in shadow
-    sun->direction = vsg::dvec3(0.0, 0.0, -1.0);
-    auto transform = vsg::MatrixTransform::create(
-        vsg::translate(0.0, 20.0, 0.0) * vsg::rotate(vsg::dquat(vsg::dvec3(0.0, 0.0, -1.0), d)));
-    transform->addChild(sun);
-    scene->addChild(transform);
-
-    // C) translation-only transform, direction in world space: correct again
-    sun->direction = d;
-    auto translated = vsg::MatrixTransform::create(vsg::translate(0.0, 20.0, 0.0));
-    translated->addChild(sun);
-    scene->addChild(translated);
+    if (lightCase == "a")
+    {
+        // A) light at the root, direction in world space: correct shadow under the box
+        sun->direction = d;
+        scene->addChild(sun);
+    }
+    else if (lightCase == "b")
+    {
+        // B) light under a rotated transform, shining along its local -Z:
+        //    the shadow is cast from the wrong, view dependent direction
+        sun->direction = vsg::dvec3(0.0, 0.0, -1.0);
+        auto transform = vsg::MatrixTransform::create(
+            vsg::translate(0.0, 0.0, 20.0) * vsg::rotate(vsg::dquat(vsg::dvec3(0.0, 0.0, -1.0), d)));
+        transform->addChild(sun);
+        scene->addChild(transform);
+    }
+    else if (lightCase == "c")
+    {
+        // C) translation-only transform, direction in world space: correct again
+        sun->direction = d;
+        auto translated = vsg::MatrixTransform::create(vsg::translate(0.0, 0.0, 20.0));
+        translated->addChild(sun);
+        scene->addChild(translated);
+    }
+    else
+    {
+        std::cout << "unknown --case " << lightCase << ", expected a, b or c" << std::endl;
+        return {};
+    }
 
     return scene;
 }
@@ -136,11 +149,13 @@ int main(int argc, char** argv)
     bool fix = arguments.read("--fix");
     bool pbr = !arguments.read("--phong");
     bool transform = arguments.read({"-t", "--transform"});
+    std::string lightCase = "b";
+    arguments.read("--case", lightCase);
 
     vsg::ref_ptr<vsg::Node> scene;
     if (transform)
     {
-        scene = createTransformScene(pbr);
+        scene = createTransformScene(pbr, lightCase);
     }
     else
     {
