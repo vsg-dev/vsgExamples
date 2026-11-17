@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 
     // create the logical device with specified queue, layers and extensions
     vsg::QueueSettings queueSettings{vsg::QueueSetting{computeQueueFamily, {1.0, 0.0}}};
-    auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions);
+    auto device = vsg::Device::create(physicalDevice, queueSettings, deviceExtensions);
 
     // get the queue for the compute commands
     auto computeQueue = device->getQueue(computeQueueFamily);

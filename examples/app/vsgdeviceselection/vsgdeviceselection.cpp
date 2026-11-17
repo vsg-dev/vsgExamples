@@ -217,8 +217,6 @@ int main(int argc, char** argv)
                 if (windowTraits->apiDumpLayer) requestedLayers.push_back("VK_LAYER_LUNARG_api_dump");
             }
 
-            vsg::Names validatedNames = vsg::validateInstanceLayerNames(requestedLayers);
-
             vsg::Names deviceExtensions;
             deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
             deviceExtensions.insert(deviceExtensions.end(), windowTraits->deviceExtensionNames.begin(), windowTraits->deviceExtensionNames.end());
@@ -232,7 +230,7 @@ int main(int argc, char** argv)
             }
 
             vsg::QueueSettings queueSettings{vsg::QueueSetting{queueFamily, {1.0}}, vsg::QueueSetting{presentFamily, {1.0}}};
-            auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, windowTraits->deviceFeatures, instance->getAllocationCallbacks());
+            auto device = vsg::Device::create(physicalDevice, queueSettings, deviceExtensions, windowTraits->deviceFeatures, instance->getAllocationCallbacks());
 
             std::cout << "Created our own vsg::Device " << device << std::endl;
 
