@@ -573,7 +573,7 @@ int main(int argc, char** argv)
     deviceFeatures->get().samplerAnisotropy = VK_TRUE;
     deviceFeatures->get().geometryShader = enableGeometryShader;
 
-    auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
+    auto device = vsg::Device::create(physicalDevice, queueSettings, deviceExtensions, deviceFeatures);
 
     // compute the bounds of the scene graph to help position camera
     vsg::ComputeBounds computeBounds;

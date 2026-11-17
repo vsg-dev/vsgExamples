@@ -67,7 +67,7 @@ int main(int argc, char** argv)
     deviceFeatures->get().samplerAnisotropy = VK_TRUE;
     deviceFeatures->get().geometryShader = enableGeometryShader;
 
-    auto device = vsg::Device::create(physicalDevice, queueSettings, validatedNames, deviceExtensions, deviceFeatures);
+    auto device = vsg::Device::create(physicalDevice, queueSettings, deviceExtensions, deviceFeatures);
     auto context = vsg::Context::create(device);
     context->commandPool = vsg::CommandPool::create(device, queueFamily);
     context->graphicsQueue = device->getQueue(queueFamily);
