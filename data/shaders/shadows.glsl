@@ -83,6 +83,12 @@ float quick_hash(vec2 pos) {
 }
 #endif
 
+vec3 calculatorShadowEyePos(vec3 eyePos, vec3 normal, vec3 direction)
+{
+    float cosLight = dot(normal, direction);
+    float sinLight = sqrt(max(1.0 - cosLight * cosLight, 0.0));
+    return eyePos + normal * (sinLight * (0.02 + 0.002 * length(eyePos)));
+}
 
 #ifdef VSG_SHADOWS_PCSS
 #include "shadows_pcss.glsl"
@@ -96,7 +102,7 @@ float quick_hash(vec2 pos) {
 #include "shadows_hard.glsl"
 #endif
 
-float calculateShadowCoverageForDirectionalLight(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
+float calculateShadowCoverageForDirectionalLight(vec3 shadowEyePos, int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, inout vec3 color)
 {
     vec4 shadowMapSettings = lightData.values[lightDataIndex];
     int shadowMapCount = int(shadowMapSettings.r);
@@ -105,7 +111,7 @@ float calculateShadowCoverageForDirectionalLight(int lightDataIndex, int shadowM
         if (shadowMapSettings.g < 0.0)
         {
 #ifdef VSG_SHADOWS_HARD
-            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, color);
+            return calculateShadowCoverageForDirectionalLightHard(shadowEyePos, lightDataIndex, shadowMapIndex, color);
 #else
             return 0;
 #endif
@@ -113,9 +119,9 @@ float calculateShadowCoverageForDirectionalLight(int lightDataIndex, int shadowM
         else if (shadowMapSettings.b < 0.0)
         {
 #ifdef VSG_SHADOWS_SOFT
-            return calculateShadowCoverageForDirectionalLightSoft(lightDataIndex, shadowMapIndex, T, B, color);
+            return calculateShadowCoverageForDirectionalLightSoft(shadowEyePos, lightDataIndex, shadowMapIndex, T, B, color);
 #elif defined(VSG_SHADOWS_HARD)
-            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, color);
+            return calculateShadowCoverageForDirectionalLightHard(shadowEyePos, lightDataIndex, shadowMapIndex, color);
 #else
             return 0;
 #endif
@@ -123,9 +129,9 @@ float calculateShadowCoverageForDirectionalLight(int lightDataIndex, int shadowM
         else
         {
 #ifdef VSG_SHADOWS_PCSS
-            return calculateShadowCoverageForDirectionalLightPCSS(lightDataIndex, shadowMapIndex, T, B, color);
+            return calculateShadowCoverageForDirectionalLightPCSS(shadowEyePos, lightDataIndex, shadowMapIndex, T, B, color);
 #elif defined(VSG_SHADOWS_HARD)
-            return calculateShadowCoverageForDirectionalLightHard(lightDataIndex, shadowMapIndex, color);
+            return calculateShadowCoverageForDirectionalLightHard(shadowEyePos, lightDataIndex, shadowMapIndex, color);
 #else
             return 0;
 #endif
@@ -134,7 +140,7 @@ float calculateShadowCoverageForDirectionalLight(int lightDataIndex, int shadowM
     return 0;
 }
 
-float calculateShadowCoverageForSpotLight(int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, float lightDist, inout vec3 color)
+float calculateShadowCoverageForSpotLight(vec3 shadowEyePos, int lightDataIndex, int shadowMapIndex, vec3 T, vec3 B, float lightDist, inout vec3 color)
 {
     vec4 shadowMapSettings = lightData.values[lightDataIndex];
     int shadowMapCount = int(shadowMapSettings.r);
@@ -143,7 +149,7 @@ float calculateShadowCoverageForSpotLight(int lightDataIndex, int shadowMapIndex
         if (shadowMapSettings.g < 0.0)
         {
 #ifdef VSG_SHADOWS_HARD
-            return calculateShadowCoverageForSpotLightHard(lightDataIndex, shadowMapIndex, color);
+            return calculateShadowCoverageForSpotLightHard(shadowEyePos, lightDataIndex, shadowMapIndex, color);
 #else
             return 0;
 #endif
@@ -151,9 +157,9 @@ float calculateShadowCoverageForSpotLight(int lightDataIndex, int shadowMapIndex
         else if (shadowMapSettings.b < 0.0)
         {
 #ifdef VSG_SHADOWS_SOFT
-            return calculateShadowCoverageForSpotLightSoft(lightDataIndex, shadowMapIndex, T, B, color);
+            return calculateShadowCoverageForSpotLightSoft(shadowEyePos, lightDataIndex, shadowMapIndex, T, B, color);
 #elif defined(VSG_SHADOWS_HARD)
-            return calculateShadowCoverageForSpotLightHard(lightDataIndex, shadowMapIndex, color);
+            return calculateShadowCoverageForSpotLightHard(shadowEyePos, lightDataIndex, shadowMapIndex, color);
 #else
             return 0;
 #endif
@@ -161,9 +167,9 @@ float calculateShadowCoverageForSpotLight(int lightDataIndex, int shadowMapIndex
         else
         {
 #ifdef VSG_SHADOWS_PCSS
-            return calculateShadowCoverageForSpotLightPCSS(lightDataIndex, shadowMapIndex, T, B, lightDist, color);
+            return calculateShadowCoverageForSpotLightPCSS(shadowEyePos, lightDataIndex, shadowMapIndex, T, B, lightDist, color);
 #elif defined(VSG_SHADOWS_HARD)
-            return calculateShadowCoverageForSpotLightHard(lightDataIndex, shadowMapIndex, color);
+            return calculateShadowCoverageForSpotLightHard(shadowEyePos, lightDataIndex, shadowMapIndex, color);
 #else
             return 0;
 #endif
