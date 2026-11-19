@@ -83,7 +83,7 @@ float quick_hash(vec2 pos) {
 }
 #endif
 
-vec3 calculatorShadowEyePos(vec3 eyePos, vec3 normal, vec3 direction)
+vec3 calculateShadowEyePos(vec3 eyePos, vec3 normal, vec3 direction)
 {
     float cosLight = dot(normal, direction);
     float sinLight = sqrt(max(1.0 - cosLight * cosLight, 0.0));
