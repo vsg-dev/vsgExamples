@@ -23,6 +23,32 @@
 
 namespace
 {
+    vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options)
+    {
+        vsg::info("Local pbr_ShaderSet(", options, ")");
+
+        auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+        auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/wireframe_pbr.frag", options);
+
+        if (!vertexShader || !fragmentShader)
+        {
+            vsg::error("pbr_ShaderSet(...) could not find shaders.");
+            return {};
+        }
+
+        // use the built PBR ShaderSet as a starting place
+        auto shaderSet = vsg::createPhysicsBasedRenderingShaderSet(options);
+
+        // replace the shader stages with our custom wireframe_pbr fragment shader
+        shaderSet->stages = vsg::ShaderStages{vertexShader, fragmentShader};
+
+        // clear precompiled shader variants to force use of the new shader stages.
+        shaderSet->variants.clear();
+
+        return shaderSet;
+    }
+}
+
 // Ridges of up to ~70 degrees slope around a flat disc of radius 15 m at the origin.
 float terrainHeight(float x, float y)
 {
@@ -113,15 +139,43 @@ bool applyNormalOffset(vsg::ShaderSet& pbr)
         stage->module->source = source;
         stage->module->code.clear();
         pbr.variants.clear();
+
+        std::ofstream fout("new.frag");
+        fout.write(stage->module->source.data(), stage->module->source.size());
+        fout.close();
+
         return true;
     }
     return false;
 }
-} // namespace
+
+bool replaceShaders(vsg::ShaderSet& pbr, vsg::ref_ptr<vsg::Options> options)
+{
+    auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/standard.vert", options);
+    auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("new_standard_pbr.frag", options);
+
+    if (!vertexShader || !fragmentShader)
+    {
+        vsg::error("pbr_ShaderSet(...) could not find shaders.");
+        return false;
+    }
+
+    vsg::info("applied new shaders");
+
+    // replace the shader stages with our custom wireframe_pbr fragment shader
+    pbr.stages = vsg::ShaderStages{vertexShader, fragmentShader};
+
+    return true;
+}
 
 int main(int argc, char** argv)
 {
     vsg::CommandLine arguments(&argc, argv);
+
+    auto options = vsg::Options::create();
+    options->sharedObjects = vsg::SharedObjects::create();
+    options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
+    options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
 
     auto windowTraits = vsg::WindowTraits::create(arguments);
     windowTraits->width = 1280;
@@ -135,6 +189,7 @@ int main(int argc, char** argv)
     const double distance = arguments.value<double>(45.0, "--distance");
     const uint32_t numShadowMaps = arguments.value<uint32_t>(4, "--sm");
     const bool fix = arguments.read("--fix");
+    const bool new_shaders = arguments.read("--new-shaders");
     const int frames = arguments.value<int>(-1, "--frames");
     const auto screenshotFilename = arguments.value<std::string>("", "--screenshot");
 
@@ -164,6 +219,12 @@ int main(int argc, char** argv)
     if (fix && !applyNormalOffset(*pbr))
     {
         std::cerr << "pbr shader source does not match the normal offset patch" << std::endl;
+        return 1;
+    }
+
+    if (new_shaders && !replaceShaders(*pbr, options))
+    {
+        std::cerr << "new shader source not found" << std::endl;
         return 1;
     }
 
