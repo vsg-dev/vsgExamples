@@ -183,7 +183,7 @@ int main(int argc, char** argv)
 #ifdef SHADOWACNE_CAPTURE
     windowTraits->swapchainPreferences.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 #endif
-    const double shadowMapBias = arguments.value<double>(0.005, "--sb");
+    const double shadowMapBias = arguments.value<double>(0.0001, "--sb");
     const float angleSubtended = arguments.value<float>(0.0090f, "--angleSubtended");
     const double elevation = vsg::radians(arguments.value<double>(30.0, "--elevation"));
     const double distance = arguments.value<double>(45.0, "--distance");
