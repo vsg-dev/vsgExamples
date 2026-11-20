@@ -4,6 +4,11 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 3) uniform sampler shadowMapDirectSa
 #endif
 layout(set = VIEW_DESCRIPTOR_SET, binding = 4) uniform sampler shadowMapShadowSampler;
 
+layout(set = VIEW_DESCRIPTOR_SET, binding = 5) uniform ShadowMapBias
+{
+    vec4 values;
+} shadowMapBias;
+
 #if defined(VSG_SHADOWS_PCSS) || defined(VSG_SHADOWS_SOFT)
 layout(constant_id = 0) const int shadowSamples = 16;
 
@@ -87,7 +92,7 @@ vec3 calculateShadowEyePos(vec3 eyePos, vec3 normal, vec3 direction)
 {
     float cosLight = dot(normal, direction);
     float sinLight = sqrt(max(1.0 - cosLight * cosLight, 0.0));
-    return eyePos + normal * (sinLight * (0.02 + 0.002 * length(eyePos)));
+    return eyePos + normal * (sinLight * (shadowMapBias.values[1] + shadowMapBias.values[2] * length(eyePos)));
 }
 
 #ifdef VSG_SHADOWS_PCSS
