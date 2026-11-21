@@ -247,9 +247,10 @@ int main(int argc, char** argv)
     }
 #endif
 
-    double maxShadowDistance = arguments.value<double>(1e8, "--sd");
-    double shadowMapBias = arguments.value<double>(0.005, "--sb");
+    auto shadowMapBias = vsg::ShadowMapBiasValue::create();
+    arguments.read("--sb", shadowMapBias->value());
     double lambda = arguments.value<double>(0.5, "--lambda");
+    double maxShadowDistance = arguments.value<double>(1e8, "--sd");
     double nearFarRatio = arguments.value<double>(0.001, "--nf");
 
     bool depthClamp = arguments.read({"--dc", "--depthClamp"});
@@ -629,6 +630,8 @@ int main(int argc, char** argv)
     view->viewDependentState->shadowMapBias = shadowMapBias;
     view->viewDependentState->lambda = lambda;
     if (overrideShadowSettings) view->viewDependentState->shadowSettingsOverride[{}] = vsg::HardShadows::create(1);
+
+    vsg::info("view->viewDependentState->shadowMapBias = ", view->viewDependentState->shadowMapBias->value());
 
     view->addChild(scene);
 
