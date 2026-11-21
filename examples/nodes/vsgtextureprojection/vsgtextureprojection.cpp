@@ -239,7 +239,7 @@ int main(int argc, char** argv)
 #endif
 
     auto numFrames = arguments.value(-1, "-f");
-    auto shadowMapBias = vsg::vec4Value::create(vsg::vec4(0.0002f, 0.005f, 0.001f, 0.0f));
+    auto shadowMapBias = vsg::ShadowMapBiasValue::create();
     arguments.read("--sb", shadowMapBias->value());
     double maxShadowDistance = arguments.value<double>(1e8, "--sd");
     double lambda = arguments.value<double>(0.5, "--lambda");
