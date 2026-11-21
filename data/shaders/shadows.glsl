@@ -86,8 +86,8 @@ float quick_hash(vec2 pos) {
 layout(set = VIEW_DESCRIPTOR_SET, binding = 5) uniform ShadowMapBias
 {
     float constantBias;
-    float normalOffset;
     float slopeBias;
+    float normalOffset;
     float padding;
 } shadowMapBias;
 
