@@ -238,7 +238,7 @@ void main()
             {
                 if (intensity >= intensityMinimum)
                 {
-                    intensity *= (1.0-calculateShadowCoverageForDirectionalLight(calculatorShadowEyePos(eyePos, N, direction), lightDataIndex, shadowMapIndex, T, B, color));
+                    intensity *= (1.0-calculateShadowCoverageForDirectionalLight(calculateShadowEyePos(eyePos, N, direction), lightDataIndex, shadowMapIndex, T, B, color));
                 }
 
                 lightDataIndex += 1 + 8 * shadowMapCount;
@@ -324,7 +324,7 @@ void main()
             {
                 if (lightDirection_cosOuterAngle.w < dot_lightdirection)
                 {
-                    intensity *= (1.0-calculateShadowCoverageForSpotLight(calculatorShadowEyePos(eyePos, N, direction), lightDataIndex, shadowMapIndex, T, B, dist, color));
+                    intensity *= (1.0-calculateShadowCoverageForSpotLight(calculateShadowEyePos(eyePos, N, direction), lightDataIndex, shadowMapIndex, T, B, dist, color));
                 }
 
                 lightDataIndex += 1 + 8 * shadowMapCount;

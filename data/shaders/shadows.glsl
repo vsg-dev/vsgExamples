@@ -83,11 +83,19 @@ float quick_hash(vec2 pos) {
 }
 #endif
 
-vec3 calculatorShadowEyePos(vec3 eyePos, vec3 normal, vec3 direction)
+layout(set = VIEW_DESCRIPTOR_SET, binding = 5) uniform ShadowMapBias
+{
+    float constantBias;
+    float slopeBias;
+    float normalOffset;
+    float padding;
+} shadowMapBias;
+
+vec3 calculateShadowEyePos(vec3 eyePos, vec3 normal, vec3 direction)
 {
     float cosLight = dot(normal, direction);
     float sinLight = sqrt(max(1.0 - cosLight * cosLight, 0.0));
-    return eyePos + normal * (sinLight * (0.02 + 0.002 * length(eyePos)));
+    return eyePos + direction*shadowMapBias.constantBias + normal * (sinLight * (shadowMapBias.normalOffset + shadowMapBias.slopeBias * length(eyePos)));
 }
 
 #ifdef VSG_SHADOWS_PCSS

@@ -239,9 +239,10 @@ int main(int argc, char** argv)
 #endif
 
     auto numFrames = arguments.value(-1, "-f");
-    auto maxShadowDistance = arguments.value<double>(2000.0, "--sd");
-    auto shadowMapBias = arguments.value<double>(0.005, "--sb");
-    auto lambda = arguments.value<double>(0.5, "--lambda");
+    auto shadowMapBias = vsg::ShadowMapBiasValue::create();
+    arguments.read("--sb", shadowMapBias->value());
+    double maxShadowDistance = arguments.value<double>(1e8, "--sd");
+    double lambda = arguments.value<double>(0.5, "--lambda");
     auto nearFarRatio = arguments.value<double>(0.001, "--nf");
 
     auto deviceFeatures = windowTraits->deviceFeatures = vsg::DeviceFeatures::create();

@@ -258,8 +258,10 @@ void main()
             int shadowMapCount = int(lightData.values[lightDataIndex].r);
             if (shadowMapCount > 0)
             {
-                if (intensity > intensityMinimum)
-                    intensity *= (1.0-calculateShadowCoverageForDirectionalLight(lightDataIndex, shadowMapIndex, T, B, color));
+                if (intensity >= intensityMinimum)
+                {
+                    intensity *= (1.0-calculateShadowCoverageForDirectionalLight(calculateShadowEyePos(eyePos, N, direction), lightDataIndex, shadowMapIndex, T, B, color));
+                }
 
                 lightDataIndex += 1 + 8 * shadowMapCount;
                 shadowMapIndex += shadowMapCount;
@@ -343,7 +345,9 @@ void main()
             if (shadowMapCount > 0)
             {
                 if (lightDirection_cosOuterAngle.w < dot_lightdirection)
-                    intensity *= (1.0-calculateShadowCoverageForSpotLight(lightDataIndex, shadowMapIndex, T, B, dist, color));
+                {
+                    intensity *= (1.0-calculateShadowCoverageForSpotLight(calculateShadowEyePos(eyePos, N, direction), lightDataIndex, shadowMapIndex, T, B, dist, color));
+                }
 
                 lightDataIndex += 1 + 8 * shadowMapCount;
                 shadowMapIndex += shadowMapCount;
@@ -354,17 +358,11 @@ void main()
             // if light is too shadowed to effect the rendering skip it
             if (intensity < intensityMinimum ) continue;
 
+            vec3 l = direction;        // Vector from surface point to light
+            vec3 h = normalize(l+v);    // Half vector between both l and v
             float scale = (intensity * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
 
-            float unclamped_LdotN = dot(direction, nd);
-
-            float diff = scale * max(unclamped_LdotN, 0.0);
-            color.rgb += (diffuseColor.rgb * lightColor.rgb) * diff;
-            if (shininess > 0.0 && diff > 0.0)
-            {
-                vec3 halfDir = normalize(direction + vd);
-                color.rgb += specularColor.rgb * (pow(max(dot(halfDir, nd), 0.0), shininess) * scale);
-            }
+            color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
         }
     }
 
