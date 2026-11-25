@@ -95,8 +95,7 @@ void configureSharedBindings(GraphicsPipelineConfigurator& configurator, ref_ptr
     if (auto* descriptorConfigurator = configurator.descriptorConfigurator.get(); descriptorConfigurator != nullptr)
     {
         descriptorConfigurator->assignDefaults(configurator.inheritedSets);
-        configurator.shaderHints->defines.insert(
-            descriptorConfigurator->defines.begin(), descriptorConfigurator->defines.end());
+        configurator.shaderHints->defines.insert(descriptorConfigurator->defines);
     }
 }
 

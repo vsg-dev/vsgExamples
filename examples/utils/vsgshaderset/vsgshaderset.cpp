@@ -79,7 +79,8 @@ void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
     out << "optionalDefines.size() = " << shaderSet.optionalDefines.size() << std::endl;
     for (auto& define : shaderSet.optionalDefines)
     {
-        out << "    define = " << define << std::endl;
+        if (define.second.empty()) out << "    define = []" << define.first << std::endl;
+        else out << "    define = [" << define.first << ", "<<define.second<<"]"<<std::endl;
     }
 
     out << std::endl;
@@ -89,7 +90,11 @@ void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
         out << "  Variant {" << std::endl;
 
         out << "    shaderCompileSettings = " << shaderCompileSettings << " : defines ";
-        for (auto& define : shaderCompileSettings->defines) out << define << " ";
+        for (auto& define : shaderCompileSettings->defines)
+        {
+            if (define.second.empty()) out << define.first << " ";
+            else out << define.first << " "<<define.second;
+        }
         out << std::endl;
 
         out << "    shaderStages = " << shaderStages.size() << std::endl;
@@ -122,7 +127,7 @@ std::set<std::string> supportedDefines(const vsg::ShaderSet& shaderSet)
 
     for (auto& define : shaderSet.optionalDefines)
     {
-        defines.insert(define);
+        defines.insert(define.first);
     }
 
     return defines;
@@ -254,7 +259,11 @@ int main(int argc, char** argv)
             for (auto& [shaderCompileSetting, stagesToCompile] : shaderSet->variants)
             {
                 std::cout << "    " << shaderCompileSetting << " : ";
-                for (auto& define : shaderCompileSetting->defines) std::cout << define << " ";
+                for (auto& define : shaderCompileSetting->defines)
+                {
+                    if (define.second.empty()) std::cout << define.first << " ";
+                    else std::cout << define.first << "=" << define.second << " ";
+                }
 
                 size_t numShadersWithSource = 0;
                 for (auto& stage : stagesToCompile)
