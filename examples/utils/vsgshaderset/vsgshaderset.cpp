@@ -79,8 +79,7 @@ void print(const vsg::ShaderSet& shaderSet, std::ostream& out)
     out << "optionalDefines.size() = " << shaderSet.optionalDefines.size() << std::endl;
     for (auto& define : shaderSet.optionalDefines)
     {
-        if (define.second.empty()) out << "    define = []" << define.first << std::endl;
-        else out << "    define = [" << define.first << ", "<<define.second<<"]"<<std::endl;
+        out << "    define = " << define << std::endl;
     }
 
     out << std::endl;
@@ -127,7 +126,7 @@ std::set<std::string> supportedDefines(const vsg::ShaderSet& shaderSet)
 
     for (auto& define : shaderSet.optionalDefines)
     {
-        defines.insert(define.first);
+        defines.insert(define);
     }
 
     return defines;
