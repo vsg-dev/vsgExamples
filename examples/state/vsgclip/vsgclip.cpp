@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 
         // specify the number of clips to perform; gl_ClipDistance array is sized by NUM_CLIPS
         vertexShader->module->hints = vsg::ShaderCompileSettings::create();
-        vertexShader->module->hints->defines.insert("NUM_CLIPS="+std::to_string(numClips));
+        vertexShader->module->hints->defines["NUM_CLIPS"] = vsg::make_string(numClips);
 
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
