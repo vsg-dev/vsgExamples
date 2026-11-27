@@ -41,6 +41,15 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::string fogFunction;
+    if (arguments.read("--func", fogFunction))
+    {
+        if (!shaderSet->defaultShaderHints) shaderSet->defaultShaderHints = vsg::ShaderCompileSettings::create();
+        shaderSet->defaultShaderHints->defines["FOG_FUNCTION"] = fogFunction;
+
+        //std::cout<<"shaderSet->defaultShaderHints->defines = "<<shaderSet->defaultShaderHints->defines.values<<std::endl;
+    }
+
     bool fogSet = false;
     auto fogValue = custom::FogValue::create();
     auto& fog = fogValue->value();
