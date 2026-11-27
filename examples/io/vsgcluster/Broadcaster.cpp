@@ -56,6 +56,9 @@
 #elif defined(__APPLE__)
 #    include <sys/sockio.h>
 #    include <unistd.h>
+#elif defined(__QNX__)
+#    include <sys/sockio.h>
+#    include <unistd.h>
 #elif defined(WIN32)
 #elif defined(__hpux)
 #    include <unistd.h>
