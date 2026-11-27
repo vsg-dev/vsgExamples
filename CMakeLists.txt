@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(vsgExamples
-        VERSION 1.1.16
+        VERSION 1.1.17
         DESCRIPTION "Set of example programs that test and illustrate how to use the VulkanSceneGraph"
         LANGUAGES CXX C
 )
@@ -27,7 +27,7 @@ vsg_setup_dir_vars()
 vsg_setup_build_vars()
 
 # find the optional vsgXchange that can be used for reading a range of image and 3d model formats and shader compilation
-find_package(vsgXchange 1.1.14 QUIET)
+find_package(vsgXchange 1.1.15 QUIET)
 
 # find the optional vsgImGui that can be used for GUI elements added into graphics windows.
 find_package(vsgImGui QUIET)
