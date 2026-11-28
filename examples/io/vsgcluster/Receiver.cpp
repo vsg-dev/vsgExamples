@@ -167,7 +167,7 @@ unsigned int Receiver::receive(void* buffer, const unsigned int buffer_size)
 
 #else
 
-    ssize_t read_bytes = recvfrom(_so, (caddr_t)buffer, buffer_size, 0, 0, &size);
+    ssize_t read_bytes = recvfrom(_so, (caddr_t)buffer, buffer_size, 0, 0, reinterpret_cast<socklen_t *>(&size));
 
     if (read_bytes < 0)
     {
